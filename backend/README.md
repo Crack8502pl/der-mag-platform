@@ -1,0 +1,408 @@
+# Der-Mag Platform - Backend API
+
+Pełnoprawny backend API dla platformy zarządzania zadaniami infrastrukturalnymi Der-Mag.
+
+## 📋 Spis treści
+
+- [Opis projektu](#opis-projektu)
+- [Technologie](#technologie)
+- [Wymagania](#wymagania)
+- [Instalacja](#instalacja)
+- [Konfiguracja](#konfiguracja)
+- [Uruchomienie](#uruchomienie)
+- [Struktura projektu](#struktura-projektu)
+- [API Endpoints](#api-endpoints)
+- [Baza danych](#baza-danych)
+- [Deployment](#deployment)
+- [Testowanie](#testowanie)
+
+## 🎯 Opis projektu
+
+Der-Mag Platform to zaawansowany system zarządzania zadaniami infrastrukturalnymi, dedykowany dla branży kolejowej i telekomunikacyjnej. System obsługuje 13 różnych typów zadań, od systemów monitoringu wizyjnego (SMW) po struktury światłowodowe.
+
+### Główne funkcjonalności:
+
+- ✅ **Zarządzanie zadaniami** - Tworzenie, edycja, usuwanie zadań z unikalnym 9-cyfrowym numerem
+- 👥 **System użytkowników** - Uwierzytelnianie JWT, role (admin, manager, technician, viewer)
+- 📦 **BOM (Bill of Materials)** - Zarządzanie materiałami i komponentami
+- 🔢 **Numery seryjne** - Śledzenie urządzeń i ich lokalizacji
+- 🌐 **IP Management** - Automatyczna alokacja adresów IP z puli CIDR
+- ✓ **Checklisty** - Szablony aktywności dla każdego typu zadania
+- 📸 **Kontrola jakości** - Upload zdjęć z EXIF, GPS, kompresja
+- 📊 **Metryki i statystyki** - Dashboard z danymi w czasie rzeczywistym
+
+## 🛠 Technologie
+
+- **Runtime**: Node.js 20 LTS
+- **Framework**: Express 4.x
+- **Język**: TypeScript 5.x
+- **ORM**: TypeORM 0.3
+- **Baza danych**: PostgreSQL 15
+- **Uwierzytelnianie**: JWT + Bcrypt
+- **Upload plików**: Multer
+- **Przetwarzanie obrazów**: Sharp
+- **EXIF**: exifr
+- **Walidacja**: class-validator
+- **Security**: Helmet, CORS, Rate Limiting
+
+## 📌 Wymagania
+
+- Node.js >= 20.0.0
+- PostgreSQL >= 15
+- npm >= 9.0.0
+
+## 📥 Instalacja
+
+1. **Klonowanie repozytorium**
+
+```bash
+git clone https://github.com/Crack8502pl/der-mag-platform.git
+cd der-mag-platform/backend
+```
+
+2. **Instalacja zależności**
+
+```bash
+npm install
+```
+
+3. **Konfiguracja bazy danych**
+
+Utwórz bazę danych PostgreSQL:
+
+```bash
+psql -U postgres
+CREATE DATABASE dermag_platform;
+CREATE USER dermag_user WITH PASSWORD 'your-password';
+GRANT ALL PRIVILEGES ON DATABASE dermag_platform TO dermag_user;
+\q
+```
+
+Uruchom skrypty inicjalizacyjne:
+
+```bash
+psql -U dermag_user -d dermag_platform -f scripts/init-db.sql
+psql -U dermag_user -d dermag_platform -f scripts/seed-data.sql
+```
+
+## ⚙️ Konfiguracja
+
+Skopiuj plik `.env.example` do `.env` i dostosuj wartości:
+
+```bash
+cp .env.example .env
+```
+
+Przykładowa konfiguracja `.env`:
+
+```env
+NODE_ENV=development
+PORT=3000
+
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=dermag_platform
+DB_USER=dermag_user
+DB_PASSWORD=your-secure-password
+
+# JWT
+JWT_SECRET=your-super-secret-jwt-key-change-in-production
+JWT_EXPIRES_IN=8h
+REFRESH_TOKEN_EXPIRES_IN=7d
+
+# Upload
+UPLOAD_DIR=./uploads
+MAX_FILE_SIZE=10485760
+
+# CORS
+CORS_ORIGIN=http://localhost:3001
+```
+
+## 🚀 Uruchomienie
+
+### Środowisko deweloperskie
+
+```bash
+npm run dev
+```
+
+Serwer uruchomi się na `http://localhost:3000`
+
+### Produkcja
+
+```bash
+# Budowanie
+npm run build
+
+# Uruchomienie
+npm start
+```
+
+### Testowanie połączenia
+
+```bash
+curl http://localhost:3000/health
+```
+
+## 📁 Struktura projektu
+
+```
+backend/
+├── src/
+│   ├── config/              # Konfiguracja (DB, JWT, stałe)
+│   ├── entities/            # Encje TypeORM (modele danych)
+│   ├── controllers/         # Kontrolery HTTP
+│   ├── services/            # Logika biznesowa
+│   ├── middleware/          # Middleware (auth, walidacja, upload)
+│   ├── routes/              # Definicje tras API
+│   ├── dto/                 # Data Transfer Objects
+│   ├── utils/               # Narzędzia pomocnicze
+│   ├── app.ts               # Konfiguracja Express
+│   └── index.ts             # Punkt wejścia
+├── scripts/                 # Skrypty SQL
+├── uploads/                 # Przesłane pliki
+├── package.json
+├── tsconfig.json
+└── Dockerfile
+```
+
+## 🔌 API Endpoints
+
+### Uwierzytelnianie
+
+```
+POST   /api/auth/login       - Logowanie
+POST   /api/auth/refresh     - Odświeżenie tokenu
+POST   /api/auth/logout      - Wylogowanie
+GET    /api/auth/me          - Dane zalogowanego użytkownika
+```
+
+### Zadania
+
+```
+GET    /api/tasks            - Lista zadań (z filtrami)
+GET    /api/tasks/my         - Moje zadania
+GET    /api/tasks/:number    - Szczegóły zadania
+POST   /api/tasks            - Nowe zadanie
+PUT    /api/tasks/:number    - Aktualizacja zadania
+PATCH  /api/tasks/:number/status - Zmiana statusu
+DELETE /api/tasks/:number    - Usunięcie zadania
+POST   /api/tasks/:number/assign - Przypisanie użytkowników
+```
+
+### BOM (Bill of Materials)
+
+```
+GET    /api/bom/templates              - Szablony BOM
+GET    /api/bom/templates/:taskType    - Szablony dla typu zadania
+POST   /api/bom/templates              - Nowy szablon
+GET    /api/tasks/:number/bom          - Materiały zadania
+PUT    /api/tasks/:number/bom/:id      - Aktualizacja materiału
+```
+
+### Urządzenia
+
+```
+POST   /api/devices/serial             - Rejestracja urządzenia
+GET    /api/devices/:serialNumber      - Pobierz urządzenie
+PUT    /api/devices/:id/verify         - Weryfikacja urządzenia
+GET    /api/tasks/:number/devices      - Urządzenia zadania
+```
+
+### Aktywności (Checklisty)
+
+```
+GET    /api/activities/templates              - Szablony aktywności
+GET    /api/activities/templates/:taskType    - Szablony dla typu
+GET    /api/tasks/:number/activities          - Aktywności zadania
+POST   /api/activities/:id/complete           - Oznacz jako wykonane
+```
+
+### Kontrola jakości
+
+```
+POST   /api/quality/photos            - Upload zdjęcia
+GET    /api/tasks/:number/photos      - Zdjęcia zadania
+PUT    /api/quality/photos/:id/approve - Zatwierdzenie zdjęcia
+```
+
+### IP Management
+
+```
+GET    /api/ip/pools         - Pule IP
+POST   /api/ip/allocate      - Alokacja IP
+POST   /api/ip/release       - Zwolnienie IP
+```
+
+### Metryki
+
+```
+GET    /api/metrics/dashboard      - Dashboard
+GET    /api/metrics/task-types     - Statystyki typów zadań
+GET    /api/metrics/users/:userId  - Statystyki użytkownika
+GET    /api/metrics/daily          - Statystyki dzienne
+```
+
+### Użytkownicy
+
+```
+GET    /api/users       - Lista użytkowników
+POST   /api/users       - Nowy użytkownik
+PUT    /api/users/:id   - Aktualizacja użytkownika
+```
+
+## 💾 Baza danych
+
+### Główne tabele:
+
+- **users** - Użytkownicy systemu
+- **roles** - Role i uprawnienia
+- **task_types** - 13 typów zadań
+- **tasks** - Zadania (z 9-cyfrowym numerem)
+- **bom_templates** - Szablony materiałów
+- **task_materials** - Materiały zadań
+- **devices** - Urządzenia z numerami seryjnymi
+- **ip_pools** - Pule adresów IP
+- **activity_templates** - Szablony aktywności
+- **task_activities** - Aktywności zadań
+- **quality_photos** - Zdjęcia kontroli jakości
+- **task_assignments** - Przypisania użytkowników
+- **task_metrics** - Metryki zadań
+
+### Indeksy i optymalizacje:
+
+- Indeksy na `task_number` (unikalne)
+- Indeksy na `status`, `task_type_id`
+- Indeksy na `serial_number` dla urządzeń
+- Indeksy kompozytowe dla wydajności
+
+## 🐳 Deployment
+
+### Docker
+
+Build obrazu:
+
+```bash
+docker build -t der-mag-backend:latest .
+```
+
+Uruchomienie kontenera:
+
+```bash
+docker run -d \
+  -p 3000:3000 \
+  -e DB_HOST=postgres \
+  -e DB_PASSWORD=secret \
+  --name der-mag-api \
+  der-mag-backend:latest
+```
+
+### Docker Compose
+
+```yaml
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: dermag_platform
+      POSTGRES_USER: dermag_user
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DB_HOST: postgres
+      DB_PASSWORD: secret
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:
+```
+
+## 🧪 Testowanie
+
+### Logowanie (uzyskanie tokenu)
+
+```bash
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "password": "Admin123!"
+  }'
+```
+
+### Pobranie listy zadań
+
+```bash
+curl http://localhost:3000/api/tasks \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Utworzenie nowego zadania
+
+```bash
+curl -X POST http://localhost:3000/api/tasks \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Montaż SMW Stacja Warszawa",
+    "taskTypeId": 1,
+    "location": "Warszawa Centralna",
+    "client": "PKP PLK"
+  }'
+```
+
+## 📝 Uwagi
+
+### Domyślne konto administratora:
+
+- **Username**: `admin`
+- **Password**: `Admin123!`
+- **Email**: `admin@dermag.lan`
+
+⚠️ **Zmień hasło po pierwszym logowaniu w środowisku produkcyjnym!**
+
+### Bezpieczeństwo:
+
+- ✅ JWT token-based authentication
+- ✅ Bcrypt password hashing (10 rounds)
+- ✅ Helmet.js security headers
+- ✅ Rate limiting (100 req/15min)
+- ✅ CORS configuration
+- ✅ Input validation
+- ✅ SQL injection prevention
+- ✅ XSS protection
+
+### Wydajność:
+
+- ✅ Database indexing
+- ✅ Image compression
+- ✅ Pagination support
+- ✅ Query optimization
+- ✅ Connection pooling
+
+## 📄 Licencja
+
+MIT License - siehe [LICENSE](../LICENSE)
+
+## 👥 Autorzy
+
+Der-Mag Platform Development Team
+
+## 📞 Wsparcie
+
+W przypadku problemów lub pytań:
+- 📧 Email: support@dermag.lan
+- 🌐 URL: https://api.dermag.lan
+
+---
+
+**Der-Mag Platform** - Profesjonalne zarządzanie zadaniami infrastrukturalnymi 🚀

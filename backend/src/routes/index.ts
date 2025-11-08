@@ -1,0 +1,80 @@
+// src/routes/index.ts
+// Główny router aplikacji
+
+import { Router } from 'express';
+import authRoutes from './auth.routes';
+import taskRoutes from './task.routes';
+import bomRoutes from './bom.routes';
+import deviceRoutes from './device.routes';
+import activityRoutes from './activity.routes';
+import qualityRoutes from './quality.routes';
+import ipRoutes from './ip.routes';
+import metricsRoutes from './metrics.routes';
+import userRoutes from './user.routes';
+
+const router = Router();
+
+// Montowanie tras
+router.use('/auth', authRoutes);
+router.use('/tasks', taskRoutes);
+router.use('/bom', bomRoutes);
+router.use('/devices', deviceRoutes);
+router.use('/activities', activityRoutes);
+router.use('/quality', qualityRoutes);
+router.use('/ip', ipRoutes);
+router.use('/metrics', metricsRoutes);
+router.use('/users', userRoutes);
+
+// Dodatkowa trasa dla BOM zadań
+import { BOMController } from '../controllers/BOMController';
+import { authenticate } from '../middleware/auth';
+router.get('/tasks/:taskNumber/bom', authenticate, BOMController.getTaskMaterials);
+router.put('/tasks/:taskNumber/bom/:id', authenticate, BOMController.updateMaterial);
+
+// Dodatkowa trasa dla urządzeń zadań
+import { AppDataSource } from '../config/database';
+import { Task } from '../entities/Task';
+import { Device } from '../entities/Device';
+router.get('/tasks/:taskNumber/devices', authenticate, async (req, res) => {
+  try {
+    const { taskNumber } = req.params;
+    const task = await AppDataSource.getRepository(Task).findOne({ where: { taskNumber } });
+    if (!task) {
+      res.status(404).json({ success: false, message: 'Zadanie nie znalezione' });
+      return;
+    }
+    const devices = await AppDataSource.getRepository(Device).find({
+      where: { taskId: task.id }
+    });
+    res.json({ success: true, data: devices });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Błąd serwera' });
+  }
+});
+
+// Dodatkowa trasa dla aktywności zadań
+import { TaskActivity } from '../entities/TaskActivity';
+router.get('/tasks/:taskNumber/activities', authenticate, async (req, res) => {
+  try {
+    const { taskNumber } = req.params;
+    const task = await AppDataSource.getRepository(Task).findOne({ where: { taskNumber } });
+    if (!task) {
+      res.status(404).json({ success: false, message: 'Zadanie nie znalezione' });
+      return;
+    }
+    const activities = await AppDataSource.getRepository(TaskActivity).find({
+      where: { taskId: task.id },
+      relations: ['completedBy'],
+      order: { sequence: 'ASC' }
+    });
+    res.json({ success: true, data: activities });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Błąd serwera' });
+  }
+});
+
+// Dodatkowa trasa dla zdjęć zadań
+import { QualityController } from '../controllers/QualityController';
+router.get('/tasks/:taskNumber/photos', authenticate, QualityController.getTaskPhotos);
+
+export default router;
