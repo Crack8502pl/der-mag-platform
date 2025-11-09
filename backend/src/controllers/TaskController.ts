@@ -4,6 +4,7 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
 import { Task } from '../entities/Task';
+import { TaskType } from '../entities/TaskType';
 import { TaskService } from '../services/TaskService';
 import { TaskAssignment } from '../entities/TaskAssignment';
 import { PAGINATION } from '../config/constants';
@@ -153,6 +154,35 @@ export class TaskController {
    */
   static async create(req: Request, res: Response): Promise<void> {
     try {
+      const { taskTypeId } = req.body;
+      const user = req.user;
+
+      // Sprawdź uprawnienia koordynatora do tworzenia zadań
+      if (user?.role === 'coordinator') {
+        // Pobierz typ zadania
+        const taskTypeRepository = AppDataSource.getRepository(TaskType);
+        const taskType = await taskTypeRepository.findOne({
+          where: { id: taskTypeId, active: true }
+        });
+
+        if (!taskType) {
+          res.status(404).json({
+            success: false,
+            message: 'Typ zadania nie znaleziony'
+          });
+          return;
+        }
+
+        // Koordynator może tworzyć tylko zadania typu SERWIS
+        if (taskType.code !== 'SERWIS') {
+          res.status(403).json({
+            success: false,
+            message: 'Koordynator może tworzyć tylko zadania serwisowe'
+          });
+          return;
+        }
+      }
+
       const task = await TaskService.createTask(req.body);
 
       res.status(201).json({

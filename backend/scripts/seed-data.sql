@@ -5,25 +5,27 @@
 INSERT INTO roles (name, description, permissions, created_at, updated_at) VALUES
 ('admin', 'Administrator systemu z pełnymi uprawnieniami', '{"all": true}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('manager', 'Menedżer projektów - zarządzanie zadaniami i użytkownikami', '{"tasks": true, "users": true}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('coordinator', 'Koordynator - zarządzanie zadaniami serwisowymi', '{"tasks": {"read": true, "update": true, "create": ["SERWIS"], "assign": true}, "users": {"read": true}, "activities": {"read": true, "update": true}, "devices": {"read": true}, "photos": {"read": true}}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('technician', 'Technik terenowy - wykonywanie zadań', '{"tasks": true}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('viewer', 'Podgląd systemu bez możliwości edycji', '{"read": true}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON CONFLICT DO NOTHING;
 
 -- Wstawienie typów zadań
 INSERT INTO task_types (name, description, code, active, configuration, created_at, updated_at) VALUES
-('System Monitoringu Wizyjnego', 'SMW - System Monitoringu Wizyjnego', 'SMW', true, '{}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('CSDIP', 'Cyfrowe Systemy Dźwiękowego Informowania Pasażerów', 'CSDIP', true, '{}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('LAN PKP PLK', 'Sieci LAN PKP PLK', 'LAN_PKP_PLK', true, '{}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('SMOK-IP/CMOK-IP (Wariant A/SKP)', 'System monitorowania obiektów kolejowych - Wariant A', 'SMOK_IP_A', true, '{}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('SMOK-IP/CMOK-IP (Wariant B)', 'System monitorowania obiektów kolejowych - Wariant B', 'SMOK_IP_B', true, '{}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('SSWiN', 'System Sygnalizacji Włamania i Napadu', 'SSWIN', true, '{}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('SSP', 'System Sygnalizacji Pożaru', 'SSP', true, '{}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('SUG', 'Stałe Urządzenie Gaśnicze', 'SUG', true, '{}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Obiekty Kubaturowe', 'Obiekty budowlane kubaturowe', 'OBIEKTY_KUBATUROWE', true, '{}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Kontrakty Liniowe', 'Kontrakty liniowe kolejowe', 'KONTRAKTY_LINIOWE', true, '{}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('LAN Strukturalny Miedziana', 'LAN Strukturalny - okablowanie miedziane', 'LAN_STRUKTURALNY', true, '{}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Zasilania', 'Systemy zasilania', 'ZASILANIA', true, '{}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('Struktury Światłowodowe', 'Infrastruktura światłowodowa', 'STRUKTURY_SWIATLO', true, '{}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+('System Monitoringu Wizyjnego', 'SMW - System Monitoringu Wizyjnego', 'SMW', true, '{"has_bom": true, "has_ip_config": true}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('CSDIP', 'Cyfrowe Systemy Dźwiękowego Informowania Pasażerów', 'CSDIP', true, '{"has_bom": true, "has_ip_config": true}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('LAN PKP PLK', 'Sieci LAN PKP PLK', 'LAN_PKP_PLK', true, '{"has_bom": true, "has_ip_config": true}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('SMOK-IP/CMOK-IP (Wariant A/SKP)', 'System monitorowania obiektów kolejowych - Wariant A', 'SMOK_IP_A', true, '{"has_bom": true, "has_ip_config": true}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('SMOK-IP/CMOK-IP (Wariant B)', 'System monitorowania obiektów kolejowych - Wariant B', 'SMOK_IP_B', true, '{"has_bom": true, "has_ip_config": true}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('SSWiN', 'System Sygnalizacji Włamania i Napadu', 'SSWIN', true, '{"has_bom": true, "has_ip_config": false}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('SSP', 'System Sygnalizacji Pożaru', 'SSP', true, '{"has_bom": true, "has_ip_config": false}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('SUG', 'Stałe Urządzenie Gaśnicze', 'SUG', true, '{"has_bom": true, "has_ip_config": false}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Obiekty Kubaturowe', 'Obiekty budowlane kubaturowe', 'OBIEKTY_KUBATUROWE', true, '{"has_bom": true, "has_ip_config": false}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Kontrakty Liniowe', 'Kontrakty liniowe kolejowe', 'KONTRAKTY_LINIOWE', true, '{"has_bom": true, "has_ip_config": false}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('LAN Strukturalny Miedziana', 'LAN Strukturalny - okablowanie miedziane', 'LAN_STRUKTURALNY', true, '{"has_bom": true, "has_ip_config": true}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Zasilania', 'Systemy zasilania', 'ZASILANIA', true, '{"has_bom": true, "has_ip_config": false}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Struktury Światłowodowe', 'Infrastruktura światłowodowa', 'STRUKTURY_SWIATLO', true, '{"has_bom": true, "has_ip_config": false}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Zadanie Serwisowe', 'Naprawa, konserwacja i interwencje serwisowe', 'SERWIS', true, '{"has_bom": true, "has_ip_config": false}'::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON CONFLICT DO NOTHING;
 
 -- Wstawienie przykładowego użytkownika administratora
