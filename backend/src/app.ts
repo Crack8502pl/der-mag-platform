@@ -7,6 +7,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
 import routes from './routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { RATE_LIMIT } from './config/constants';
@@ -49,6 +50,12 @@ app.get('/health', (req, res) => {
     uptime: process.uptime()
   });
 });
+
+// Serwowanie interfejsu testowego (tylko w development)
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/test', express.static(path.join(__dirname, '../public')));
+  console.log('🧪 Test interface dostępny na: http://localhost:3000/test/api-tester.html');
+}
 
 // API routes
 app.use('/api', routes);
