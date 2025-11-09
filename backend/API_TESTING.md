@@ -52,6 +52,37 @@ curl -X POST http://localhost:3000/api/auth/login \
 
 **Zapisz `accessToken` - będzie potrzebny do wszystkich następnych żądań!**
 
+## 🔑 Role użytkowników
+
+System obsługuje następujące role:
+
+### Admin
+- Pełne uprawnienia do wszystkich funkcji systemu
+- Może tworzyć wszystkie typy zadań
+- Zarządza użytkownikami i ustawieniami systemu
+
+### Manager (Menedżer)
+- Zarządzanie wszystkimi zadaniami
+- Tworzenie wszystkich typów zadań
+- Zarządzanie użytkownikami
+- Przypisywanie zadań
+
+### Coordinator (Koordynator)
+- **Ograniczone uprawnienia do tworzenia zadań**
+- Może tworzyć **tylko zadania typu SERWIS**
+- Może aktualizować zadania
+- Może przypisywać użytkowników do zadań
+- Dostęp do odczytu użytkowników, urządzeń i aktywności
+
+### Technician (Technik)
+- Wykonywanie przypisanych zadań
+- Aktualizacja statusów zadań
+- Dodawanie zdjęć i dokumentacji
+
+### Viewer (Podgląd)
+- Tylko odczyt danych
+- Brak możliwości edycji
+
 ### Pobranie informacji o zalogowanym użytkowniku
 
 ```bash
@@ -71,8 +102,30 @@ curl -X POST http://localhost:3000/api/auth/refresh \
 
 ## 📝 2. Zadania (Tasks)
 
+### Typy zadań
+
+System obsługuje następujące typy zadań:
+
+1. **SMW** - System Monitoringu Wizyjnego (ID: 1)
+2. **CSDIP** - Cyfrowe Systemy Dźwiękowego Informowania Pasażerów (ID: 2)
+3. **LAN_PKP_PLK** - Sieci LAN PKP PLK (ID: 3)
+4. **SMOK_IP_A** - System monitorowania obiektów kolejowych - Wariant A (ID: 4)
+5. **SMOK_IP_B** - System monitorowania obiektów kolejowych - Wariant B (ID: 5)
+6. **SSWIN** - System Sygnalizacji Włamania i Napadu (ID: 6)
+7. **SSP** - System Sygnalizacji Pożaru (ID: 7)
+8. **SUG** - Stałe Urządzenie Gaśnicze (ID: 8)
+9. **OBIEKTY_KUBATUROWE** - Obiekty budowlane kubaturowe (ID: 9)
+10. **KONTRAKTY_LINIOWE** - Kontrakty liniowe kolejowe (ID: 10)
+11. **LAN_STRUKTURALNY** - LAN Strukturalny - okablowanie miedziane (ID: 11)
+12. **ZASILANIA** - Systemy zasilania (ID: 12)
+13. **STRUKTURY_SWIATLO** - Infrastruktura światłowodowa (ID: 13)
+14. **SERWIS** - Zadanie Serwisowe (ID: 14) - **Tylko ten typ może tworzyć koordynator**
+
 ### Utworzenie nowego zadania
 
+**Uwaga:** Koordynatorzy mogą tworzyć tylko zadania typu SERWIS (kod: 'SERWIS'). Próba utworzenia innego typu zadania przez koordynatora zwróci błąd 403.
+
+#### Przykład: Zadanie SMW (Admin/Manager)
 ```bash
 curl -X POST http://localhost:3000/api/tasks \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
@@ -90,7 +143,33 @@ curl -X POST http://localhost:3000/api/tasks \
   }'
 ```
 
+#### Przykład: Zadanie SERWIS (Admin/Manager/Coordinator)
+```bash
+curl -X POST http://localhost:3000/api/tasks \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Naprawa kamery - Stacja Gdańsk Główny",
+    "description": "Wymiana uszkodzonej kamery monitoringu",
+    "taskTypeId": 14,
+    "location": "Gdańsk Główny, Peron 3",
+    "client": "PKP PLK S.A.",
+    "contractNumber": "SRW/2024/015",
+    "plannedStartDate": "2024-12-05",
+    "plannedEndDate": "2024-12-06",
+    "priority": 2
+  }'
+```
+
 **Odpowiedź zawiera automatycznie wygenerowany 9-cyfrowy numer zadania!**
+
+**Błąd dla koordynatora próbującego utworzyć zadanie nie-SERWIS:**
+```json
+{
+  "success": false,
+  "message": "Koordynator może tworzyć tylko zadania serwisowe"
+}
+```
 
 ### Pobranie listy wszystkich zadań
 
