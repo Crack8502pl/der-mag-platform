@@ -131,7 +131,7 @@ class EmailService {
 
       return template(enrichedContext);
     } catch (error) {
-      console.error(`❌ Błąd renderowania szablonu ${templateName}:`, error);
+      console.error('❌ Błąd renderowania szablonu email');
       throw error;
     }
   }

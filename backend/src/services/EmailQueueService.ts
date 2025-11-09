@@ -195,10 +195,10 @@ class EmailQueueService {
       const job = await this.queue.getJob(jobId);
       if (job) {
         await job.retry();
-        console.log(`🔄 Zadanie ${jobId} zostało ponowione`);
+        console.log('🔄 Zadanie zostało ponowione:', jobId);
       }
     } catch (error) {
-      console.error(`❌ Błąd ponowienia zadania ${jobId}:`, error);
+      console.error('❌ Błąd ponowienia zadania:', jobId);
       throw error;
     }
   }
