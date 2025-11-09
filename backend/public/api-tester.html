@@ -350,6 +350,9 @@
             <div class="nav-item" data-section="metrics">
                 <span>📊</span> Metryki
             </div>
+            <div class="nav-item" data-section="email">
+                <span>📧</span> Email
+            </div>
         </div>
 
         <!-- Main Content -->
@@ -546,6 +549,37 @@
                     <button onclick="getDashboard()">Dashboard</button>
                     <button onclick="getTaskMetrics()">Statystyki zadań</button>
                 </div>
+            </div>
+                        <!-- Email Section -->
+            <div class="section" id="email">
+                <h2>📧 Email / Powiadomienia</h2>
+            
+                <h3>Status systemu emaili</h3>
+                <div class="button-group">
+                    <button onclick="checkEmailConfig()">Sprawdź konfigurację</button>
+                    <button onclick="verifyEmailConnection()">Test połączenia SMTP</button>
+                </div>
+            
+                <h3 style="margin-top: 2rem;">Test wysyłki emaila</h3>
+                
+                <div class="form-group">
+                    <label>Adres email:</label>
+                    <input type="email" id="testEmailTo" placeholder="test@example.com">
+                </div>
+                
+                <div class="button-group">
+                    <button onclick="sendTestEmail()">Wyślij testowy email</button>
+                </div>
+            
+                <h3 style="margin-top: 2rem;">Kolejka emaili</h3>
+                
+                <div class="button-group">
+                    <button onclick="getEmailQueueStats()">Statystyki kolejki</button>
+                    <button onclick="getFailedEmailJobs()">Nieudane wysyłki</button>
+                    <button class="danger" onclick="clearEmailQueue()">Wyczyść kolejkę (admin)</button>
+                </div>
+            
+                <div id="emailStatsDisplay" style="margin-top: 1rem;"></div>
             </div>
         </div>
 
