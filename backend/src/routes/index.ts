@@ -11,6 +11,7 @@ import qualityRoutes from './quality.routes';
 import ipRoutes from './ip.routes';
 import metricsRoutes from './metrics.routes';
 import userRoutes from './user.routes';
+import notificationRoutes from './notification.routes';
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.use('/quality', qualityRoutes);
 router.use('/ip', ipRoutes);
 router.use('/metrics', metricsRoutes);
 router.use('/users', userRoutes);
+router.use('/notifications', notificationRoutes);
 
 // Dodatkowa trasa dla BOM zadań
 import { BOMController } from '../controllers/BOMController';

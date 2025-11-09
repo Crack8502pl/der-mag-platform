@@ -5,6 +5,8 @@ import 'reflect-metadata';
 import dotenv from 'dotenv';
 import app from './app';
 import { initializeDatabase } from './config/database';
+import EmailService from './services/EmailService';
+import EmailQueueService from './services/EmailQueueService';
 
 // Załaduj zmienne środowiskowe
 dotenv.config();
@@ -16,6 +18,11 @@ const startServer = async () => {
   try {
     // Inicjalizacja bazy danych
     await initializeDatabase();
+
+    // Inicjalizacja systemu emaili
+    console.log('📧 Inicjalizacja systemu emaili...');
+    await EmailService.initialize();
+    await EmailQueueService.initialize();
 
     // Start serwera
     app.listen(PORT, () => {
@@ -45,13 +52,15 @@ process.on('uncaughtException', (error) => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('👋 SIGTERM received, shutting down gracefully');
+  await EmailQueueService.close();
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('👋 SIGINT received, shutting down gracefully');
+  await EmailQueueService.close();
   process.exit(0);
 });
 

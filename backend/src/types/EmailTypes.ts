@@ -1,0 +1,84 @@
+// src/types/EmailTypes.ts
+// Typy i interfejsy dla systemu emaili
+
+/**
+ * Załącznik do emaila
+ */
+export interface EmailAttachment {
+  filename: string;
+  content?: Buffer | string;
+  path?: string;
+  contentType?: string;
+}
+
+/**
+ * Opcje wysyłki emaila
+ */
+export interface EmailOptions {
+  to: string | string[];
+  subject: string;
+  template: string;
+  context: Record<string, any>;
+  attachments?: EmailAttachment[];
+  priority?: 'high' | 'normal' | 'low';
+}
+
+/**
+ * Enum dostępnych szablonów emaili
+ */
+export enum EmailTemplate {
+  TASK_CREATED = 'task-created',
+  TASK_ASSIGNED = 'task-assigned',
+  TASK_COMPLETED = 'task-completed',
+  TASK_OVERDUE = 'task-overdue',
+  USER_WELCOME = 'user-welcome',
+  PASSWORD_RESET = 'password-reset',
+}
+
+/**
+ * Kontekst dla emaili związanych z zadaniami
+ */
+export interface TaskEmailContext {
+  taskNumber: string;
+  taskName: string;
+  taskType: string;
+  assignedTo?: string;
+  assignedBy?: string;
+  createdBy: string;
+  location?: string;
+  status?: string;
+  url: string;
+  priority?: number;
+  dueDate?: string;
+}
+
+/**
+ * Kontekst dla emaila powitalnego użytkownika
+ */
+export interface UserWelcomeEmailContext {
+  username: string;
+  firstName: string;
+  loginUrl: string;
+  supportEmail?: string;
+}
+
+/**
+ * Kontekst dla emaila resetu hasła
+ */
+export interface PasswordResetEmailContext {
+  username: string;
+  firstName: string;
+  resetUrl: string;
+  expiresIn?: string;
+}
+
+/**
+ * Statystyki kolejki emaili
+ */
+export interface QueueStats {
+  waiting: number;
+  active: number;
+  completed: number;
+  failed: number;
+  delayed: number;
+}
