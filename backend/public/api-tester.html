@@ -958,6 +958,117 @@
         async function getTaskMetrics() {
             await apiRequest('/metrics/task-types', 'GET');
         }
+                // === EMAIL / POWIADOMIENIA ===
+        
+        /**
+         * Sprawdza konfigurację systemu emaili
+         */
+        async function checkEmailConfig() {
+            await apiRequest('/notifications/config', 'GET');
+        }
+        
+        /**
+         * Weryfikuje połączenie SMTP
+         */
+        async function verifyEmailConnection() {
+            const result = await apiRequest('/notifications/config', 'GET');
+            
+            if (result.success && result.data.connectionOk) {
+                alert('✅ Połączenie SMTP działa poprawnie!');
+            } else if (result.success && result.data.configured) {
+                alert('⚠️ System jest skonfigurowany, ale połączenie SMTP nie działa.\n\nSprawdź:\n- SMTP_HOST\n- SMTP_PORT\n- SMTP_USER\n- SMTP_PASSWORD');
+            } else {
+                alert('❌ System emaili nie jest skonfigurowany.\n\nDodaj do .env:\n- SMTP_HOST\n- SMTP_PORT\n- SMTP_USER\n- SMTP_PASSWORD');
+            }
+        }
+        
+        /**
+         * Wysyła testowy email
+         */
+        async function sendTestEmail() {
+            const to = document.getElementById('testEmailTo').value;
+            
+            if (!to) {
+                alert('Podaj adres email');
+                return;
+            }
+            
+            // Walidacja email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(to)) {
+                alert('Podaj poprawny adres email');
+                return;
+            }
+            
+            const result = await apiRequest('/notifications/test', 'POST', { to });
+            
+            if (result.success) {
+                alert(`✅ Email wysłany do ${to}!\n\nSprawdź skrzynkę pocztową (również folder SPAM).`);
+            } else {
+                alert(`❌ Błąd wysyłki:\n${result.data.message || 'Nieznany błąd'}`);
+            }
+        }
+        
+        /**
+         * Pobiera statystyki kolejki emaili
+         */
+        async function getEmailQueueStats() {
+            const result = await apiRequest('/notifications/queue/stats', 'GET');
+            
+            if (result.success) {
+                const stats = result.data;
+                const display = document.getElementById('emailStatsDisplay');
+                
+                display.innerHTML = `
+                    <div style="background: #2d2d2d; padding: 1rem; border-radius: 4px; margin-top: 1rem;">
+                        <h4 style="margin-bottom: 0.5rem; color: #007bff;">📊 Statystyki kolejki</h4>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 1rem;">
+                            <div>
+                                <div style="color: #888; font-size: 0.85rem;">Oczekujące</div>
+                                <div style="font-size: 1.5rem; font-weight: bold;">${stats.waiting || 0}</div>
+                            </div>
+                            <div>
+                                <div style="color: #888; font-size: 0.85rem;">Aktywne</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #007bff;">${stats.active || 0}</div>
+                            </div>
+                            <div>
+                                <div style="color: #888; font-size: 0.85rem;">Ukończone</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;">${stats.completed || 0}</div>
+                            </div>
+                            <div>
+                                <div style="color: #888; font-size: 0.85rem;">Nieudane</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #dc3545;">${stats.failed || 0}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        /**
+         * Pobiera listę nieudanych wysyłek
+         */
+        async function getFailedEmailJobs() {
+            await apiRequest('/notifications/queue/failed?start=0&end=20', 'GET');
+        }
+        
+        /**
+         * Czyści kolejkę emaili (tylko admin)
+         */
+        async function clearEmailQueue() {
+            if (!confirm('Czy na pewno wyczyścić kolejkę emaili?\n\nTa operacja usunie wszystkie oczekujące emaile.')) {
+                return;
+            }
+            
+            const result = await apiRequest('/notifications/queue/clear', 'POST');
+            
+            if (result.success) {
+                alert('✅ Kolejka wyczyszczona!');
+                await getEmailQueueStats(); // Odśwież statystyki
+            } else {
+                alert(`❌ Błąd:\n${result.data.message || 'Nieznany błąd'}`);
+            }
+        }    
     </script>
 </body>
 </html>
