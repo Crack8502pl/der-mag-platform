@@ -8,6 +8,9 @@ import { TaskType } from '../entities/TaskType';
 import { TaskService } from '../services/TaskService';
 import { TaskAssignment } from '../entities/TaskAssignment';
 import { PAGINATION } from '../config/constants';
+import EmailQueueService from '../services/EmailQueueService';
+import { EmailTemplate } from '../types/EmailTypes';
+import { User } from '../entities/User';
 
 export class TaskController {
   /**
@@ -185,6 +188,40 @@ export class TaskController {
 
       const task = await TaskService.createTask(req.body);
 
+      // Wysłanie emaila o utworzeniu zadania (asynchronicznie)
+      try {
+        // Znajdź managerów/adminów do powiadomienia
+        const userRepository = AppDataSource.getRepository(User);
+        const managers = await userRepository.find({
+          where: { active: true },
+          relations: ['role']
+        });
+
+        const managerEmails = managers
+          .filter(u => u.role && (u.role.name === 'admin' || u.role.name === 'manager'))
+          .map(u => u.email)
+          .filter(email => email && email.length > 0);
+
+        if (managerEmails.length > 0) {
+          await EmailQueueService.addToQueue({
+            to: managerEmails,
+            subject: `Nowe zadanie: ${task.title} (#${task.taskNumber})`,
+            template: EmailTemplate.TASK_CREATED,
+            context: {
+              taskNumber: task.taskNumber,
+              taskName: task.title,
+              taskType: task.taskType?.name || 'Nieznany',
+              createdBy: req.user?.username || 'System',
+              location: task.location || 'Nie określono',
+              url: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/tasks/${task.taskNumber}`,
+            },
+          });
+        }
+      } catch (emailError) {
+        console.error('Błąd wysyłania emaila o utworzeniu zadania:', emailError);
+        // Nie przerywamy procesu w przypadku błędu emaila
+      }
+
       res.status(201).json({
         success: true,
         message: 'Zadanie utworzone pomyślnie',
@@ -249,6 +286,67 @@ export class TaskController {
 
       const task = await TaskService.updateTaskStatus(taskNumber, status, userId);
 
+      // Wysłanie emaila o zakończeniu zadania (jeśli status to 'completed')
+      if (status === 'completed') {
+        try {
+          const taskRepository = AppDataSource.getRepository(Task);
+          const assignmentRepository = AppDataSource.getRepository(TaskAssignment);
+          
+          // Pobierz zadanie z relacjami
+          const fullTask = await taskRepository.findOne({
+            where: { taskNumber },
+            relations: ['taskType']
+          });
+
+          if (fullTask) {
+            // Znajdź przypisanych użytkowników i managerów
+            const assignments = await assignmentRepository.find({
+              where: { taskId: fullTask.id },
+              relations: ['user']
+            });
+
+            const assignedEmails = assignments
+              .map(a => a.user?.email)
+              .filter(email => email && email.length > 0);
+
+            // Znajdź managerów/adminów
+            const userRepository = AppDataSource.getRepository(User);
+            const managers = await userRepository.find({
+              where: { active: true },
+              relations: ['role']
+            });
+
+            const managerEmails = managers
+              .filter(u => u.role && (u.role.name === 'admin' || u.role.name === 'manager'))
+              .map(u => u.email)
+              .filter(email => email && email.length > 0);
+
+            // Połącz wszystkie unikalne adresy email
+            const allEmails = [...new Set([...assignedEmails, ...managerEmails])];
+
+            if (allEmails.length > 0) {
+              await EmailQueueService.addToQueue({
+                to: allEmails,
+                subject: `Zadanie zakończone: ${fullTask.title} (#${fullTask.taskNumber})`,
+                template: EmailTemplate.TASK_COMPLETED,
+                context: {
+                  taskNumber: fullTask.taskNumber,
+                  taskName: fullTask.title,
+                  taskType: fullTask.taskType?.name || 'Nieznany',
+                  createdBy: req.user?.username || 'System',
+                  location: fullTask.location || 'Nie określono',
+                  status: 'Zakończone',
+                  url: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/tasks/${fullTask.taskNumber}`,
+                },
+              });
+            }
+          }
+        } catch (emailError) {
+          console.error('Błąd wysyłania emaila o zakończeniu zadania:', emailError);
+          // Nie przerywamy procesu w przypadku błędu emaila
+        }
+      }
+
       res.json({
         success: true,
         message: 'Status zadania zaktualizowany',
@@ -312,9 +410,11 @@ export class TaskController {
 
       const taskRepository = AppDataSource.getRepository(Task);
       const assignmentRepository = AppDataSource.getRepository(TaskAssignment);
+      const userRepository = AppDataSource.getRepository(User);
 
       const task = await taskRepository.findOne({
-        where: { taskNumber, deletedAt: null as any }
+        where: { taskNumber, deletedAt: null as any },
+        relations: ['taskType']
       });
 
       if (!task) {
@@ -326,6 +426,8 @@ export class TaskController {
       }
 
       const assignments = [];
+      const newAssignedUsers = [];
+      
       for (const userId of userIds) {
         const existing = await assignmentRepository.findOne({
           where: { taskId: task.id, userId }
@@ -338,7 +440,38 @@ export class TaskController {
             assignedById
           });
           assignments.push(await assignmentRepository.save(assignment));
+          
+          // Pobierz dane użytkownika dla emaila
+          const user = await userRepository.findOne({ where: { id: userId } });
+          if (user) {
+            newAssignedUsers.push(user);
+          }
         }
+      }
+
+      // Wysyłka emaili do przypisanych użytkowników (asynchronicznie)
+      try {
+        for (const user of newAssignedUsers) {
+          if (user.email) {
+            await EmailQueueService.addToQueue({
+              to: user.email,
+              subject: `Przypisano Ci zadanie: ${task.title} (#${task.taskNumber})`,
+              template: EmailTemplate.TASK_ASSIGNED,
+              context: {
+                taskNumber: task.taskNumber,
+                taskName: task.title,
+                taskType: task.taskType?.name || 'Nieznany',
+                assignedBy: req.user?.username || 'System',
+                location: task.location || 'Nie określono',
+                priority: task.priority || 0,
+                url: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/tasks/${task.taskNumber}`,
+              },
+            });
+          }
+        }
+      } catch (emailError) {
+        console.error('Błąd wysyłania emaili o przypisaniu zadania:', emailError);
+        // Nie przerywamy procesu w przypadku błędu emaila
       }
 
       res.json({
