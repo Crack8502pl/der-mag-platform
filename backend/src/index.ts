@@ -1,6 +1,6 @@
 // src/index.ts
 // Punkt wejścia aplikacji
-
+import 'dotenv/config';
 import 'reflect-metadata';
 import dotenv from 'dotenv';
 import app from './app';
