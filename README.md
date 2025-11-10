@@ -29,6 +29,13 @@ Der-Mag Platform to kompleksowy system do zarządzania zadaniami infrastruktural
 - Sharp (przetwarzanie obrazów)
 - Helmet, CORS, Rate Limiting
 
+### Frontend (Demo)
+- React 18 + TypeScript
+- Vite
+- React Router
+- Axios
+- CSS3
+
 ## 📦 Struktura projektu
 
 ```
@@ -44,6 +51,14 @@ der-mag-platform/
 │   │   └── dto/         # Data Transfer Objects
 │   ├── scripts/         # Skrypty SQL
 │   └── README.md        # Dokumentacja backend
+├── frontend/             # Frontend Demo (React + TypeScript)
+│   ├── src/
+│   │   ├── api/         # Klient API
+│   │   ├── components/  # Komponenty React
+│   │   ├── contexts/    # React Context
+│   │   ├── pages/       # Strony aplikacji
+│   │   └── types/       # Definicje TypeScript
+│   └── README.md        # Dokumentacja frontend
 ├── LICENSE
 └── README.md            # Ten plik
 ```
@@ -61,6 +76,20 @@ npm run dev
 ```
 
 Szczegółowa dokumentacja: [backend/README.md](backend/README.md)
+
+### Frontend (Demo)
+
+```bash
+cd frontend
+npm install
+cp .env.example .env
+# Backend powinien działać na http://localhost:3000
+npm run dev
+```
+
+Aplikacja dostępna na: `http://localhost:5173`
+
+Szczegółowa dokumentacja: [frontend/README.md](frontend/README.md)
 
 ## 📚 API Endpoints
 
