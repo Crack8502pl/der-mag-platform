@@ -176,6 +176,8 @@
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s;
+      margin-right: 8px;
+      margin-bottom: 8px;
     }
 
     button:hover {
@@ -203,6 +205,14 @@
       background: #e53e3e;
     }
 
+    button.success {
+      background: #48bb78;
+    }
+
+    button.success:hover {
+      background: #38a169;
+    }
+
     .response {
       background: #1a202c;
       color: #e2e8f0;
@@ -225,12 +235,6 @@
       font-family: 'Courier New', monospace;
       font-size: 12px;
       margin-top: 10px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
     }
 
     .badge {
@@ -282,6 +286,35 @@
       color: #718096;
       margin-top: 4px;
     }
+
+    .user-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .user-item {
+      background: #f7fafc;
+      padding: 12px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .user-info {
+      flex: 1;
+    }
+
+    .user-actions button {
+      margin: 0 4px;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -291,20 +324,23 @@
       <h1>🧪 API Tester</h1>
       <p>Der-Mag Platform Backend</p>
       
-      <div class="nav-item active" data-section="auth">
+      <div class="nav-item active" onclick="showSection('auth')">
         🔐 Autoryzacja
       </div>
-      <div class="nav-item" data-section="users">
+      <div class="nav-item" onclick="showSection('users')">
         👥 Użytkownicy
       </div>
-      <div class="nav-item" data-section="tasks">
+      <div class="nav-item" onclick="showSection('tasks')">
         📋 Zadania
       </div>
-      <div class="nav-item" data-section="devices">
+      <div class="nav-item" onclick="showSection('devices')">
         📱 Urządzenia
       </div>
-      <div class="nav-item" data-section="email">
+      <div class="nav-item" onclick="showSection('email')">
         📧 Email
+      </div>
+      <div class="nav-item" onclick="showSection('database')">
+        🗄️ Baza danych
       </div>
     </div>
 
@@ -329,23 +365,17 @@
             <label for="password">Hasło</label>
             <div class="password-wrapper">
               <input type="password" id="password" placeholder="Admin123!" value="Admin123!">
-              <span class="password-toggle" data-target="password">👁️‍🗨️</span>
+              <span class="password-toggle" onclick="togglePassword('password')">👁️</span>
             </div>
           </div>
-          <button id="loginBtn">Zaloguj się</button>
-          <button class="secondary" id="logoutBtn" style="margin-left: 10px;">Wyloguj</button>
+          <button onclick="login()">Zaloguj się</button>
+          <button class="secondary" onclick="logout()">Wyloguj</button>
           <div class="response" id="loginResponse" style="display:none;"></div>
         </div>
 
         <div class="card">
-          <h3>🔄 Odświeżenie tokenu</h3>
-          <button id="refreshTokenBtn">Odśwież token</button>
-          <div class="response" id="refreshResponse" style="display:none;"></div>
-        </div>
-
-        <div class="card">
           <h3>👤 Moje dane</h3>
-          <button id="getMeBtn">Pobierz dane zalogowanego użytkownika</button>
+          <button onclick="getMe()">Pobierz dane zalogowanego użytkownika</button>
           <div class="response" id="meResponse" style="display:none;"></div>
         </div>
       </div>
@@ -354,7 +384,9 @@
       <div class="section" id="users">
         <div class="card">
           <h3>📋 Lista użytkowników</h3>
-          <button id="getUsersBtn">Pobierz użytkowników</button>
+          <button onclick="getUsers()">Pobierz użytkowników</button>
+          <button class="success" onclick="checkUsersInDB()">✓ Sprawdź w bazie</button>
+          <div id="usersList" class="user-list"></div>
           <div class="response" id="usersResponse" style="display:none;"></div>
         </div>
 
@@ -372,7 +404,7 @@
             <label for="newPassword">Hasło</label>
             <div class="password-wrapper">
               <input type="password" id="newPassword" placeholder="Haslo123!">
-              <span class="password-toggle" data-target="newPassword">👁️‍🗨️</span>
+              <span class="password-toggle" onclick="togglePassword('newPassword')">👁️</span>
             </div>
           </div>
           <div class="form-group">
@@ -394,8 +426,33 @@
               <option value="6" selected>Pracownik</option>
             </select>
           </div>
-          <button id="createUserBtn">Utwórz użytkownika</button>
+          <button onclick="createUser()">Utwórz użytkownika</button>
           <div class="response" id="createUserResponse" style="display:none;"></div>
+        </div>
+
+        <!-- Edit User Form (hidden) -->
+        <div class="card hidden" id="editUserCard">
+          <h3>✏️ Edytuj użytkownika</h3>
+          <input type="hidden" id="editUserId">
+          <div class="form-group">
+            <label for="editUsername">Nazwa użytkownika</label>
+            <input type="text" id="editUsername">
+          </div>
+          <div class="form-group">
+            <label for="editEmail">Email</label>
+            <input type="email" id="editEmail">
+          </div>
+          <div class="form-group">
+            <label for="editFirstName">Imię</label>
+            <input type="text" id="editFirstName">
+          </div>
+          <div class="form-group">
+            <label for="editLastName">Nazwisko</label>
+            <input type="text" id="editLastName">
+          </div>
+          <button onclick="updateUser()">Zapisz zmiany</button>
+          <button class="secondary" onclick="cancelEditUser()">Anuluj</button>
+          <div class="response" id="editUserResponse" style="display:none;"></div>
         </div>
       </div>
 
@@ -403,7 +460,8 @@
       <div class="section" id="tasks">
         <div class="card">
           <h3>📋 Lista zadań</h3>
-          <button id="getTasksBtn">Pobierz zadania</button>
+          <button onclick="getTasks()">Pobierz zadania</button>
+          <button class="success" onclick="checkTasksInDB()">✓ Sprawdź w bazie</button>
           <div class="response" id="tasksResponse" style="display:none;"></div>
         </div>
 
@@ -426,7 +484,7 @@
               <option value="4">Awaria</option>
             </select>
           </div>
-          <button id="createTaskBtn">Utwórz zadanie</button>
+          <button onclick="createTask()">Utwórz zadanie</button>
           <div class="response" id="createTaskResponse" style="display:none;"></div>
         </div>
       </div>
@@ -435,7 +493,8 @@
       <div class="section" id="devices">
         <div class="card">
           <h3>📱 Lista urządzeń</h3>
-          <button id="getDevicesBtn">Pobierz urządzenia</button>
+          <button onclick="getDevices()">Pobierz urządzenia</button>
+          <button class="success" onclick="checkDevicesInDB()">✓ Sprawdź w bazie</button>
           <div class="response" id="devicesResponse" style="display:none;"></div>
         </div>
 
@@ -453,7 +512,7 @@
             <label for="deviceMac">Adres MAC</label>
             <input type="text" id="deviceMac" placeholder="AA:BB:CC:DD:EE:FF">
           </div>
-          <button id="createDeviceBtn">Utwórz urządzenie</button>
+          <button onclick="createDevice()">Utwórz urządzenie</button>
           <div class="response" id="createDeviceResponse" style="display:none;"></div>
         </div>
       </div>
@@ -462,8 +521,8 @@
       <div class="section" id="email">
         <div class="card">
           <h3>⚙️ Konfiguracja Email</h3>
-          <button id="checkEmailConfigBtn">Sprawdź konfigurację</button>
-          <button class="secondary" id="testSmtpBtn" style="margin-left: 10px;">Test połączenia SMTP</button>
+          <button onclick="checkEmailConfig()">Sprawdź konfigurację</button>
+          <button class="secondary" onclick="testSmtp()">Test połączenia SMTP</button>
           <div class="response" id="emailConfigResponse" style="display:none;"></div>
         </div>
 
@@ -473,13 +532,13 @@
             <label for="testEmailTo">Adres email odbiorcy</label>
             <input type="email" id="testEmailTo" placeholder="twoj-email@example.com">
           </div>
-          <button id="sendTestEmailBtn">Wyślij testowy email</button>
+          <button onclick="sendTestEmail()">Wyślij testowy email</button>
           <div class="response" id="testEmailResponse" style="display:none;"></div>
         </div>
 
         <div class="card">
           <h3>📊 Statystyki kolejki</h3>
-          <button id="queueStatsBtn">Pobierz statystyki</button>
+          <button onclick="getQueueStats()">Pobierz statystyki</button>
           <div class="stats-grid" id="queueStatsGrid" style="display:none;">
             <div class="stat-card">
               <div class="value" id="statWaiting">0</div>
@@ -500,17 +559,28 @@
           </div>
           <div class="response" id="queueStatsResponse" style="display:none;"></div>
         </div>
+      </div>
 
+      <!-- Database Section -->
+      <div class="section" id="database">
         <div class="card">
-          <h3>❌ Nieudane wysyłki</h3>
-          <button id="failedJobsBtn">Pobierz nieudane wysyłki</button>
-          <div class="response" id="failedJobsResponse" style="display:none;"></div>
+          <h3>🗄️ Zarządzanie bazą danych</h3>
+          <p style="color: #718096; margin-bottom: 16px;">
+            Uwaga: Te operacje mogą nieodwracalnie usunąć dane. Używaj ostrożnie!
+          </p>
+          
+          <button class="danger" onclick="clearUsers()">🗑️ Wyczyść użytkowników (oprócz admin)</button>
+          <button class="danger" onclick="clearTasks()">🗑️ Wyczyść zadania</button>
+          <button class="danger" onclick="clearDevices()">🗑️ Wyczyść urządzenia</button>
+          <button class="danger" onclick="clearEmailQueue()">🗑️ Wyczyść kolejkę emaili</button>
+          
+          <div class="response" id="dbResponse" style="display:none;"></div>
         </div>
 
         <div class="card">
-          <h3>🗑️ Zarządzanie kolejką</h3>
-          <button class="danger" id="cleanQueueBtn">Wyczyść kolejkę (admin)</button>
-          <div class="response" id="cleanQueueResponse" style="display:none;"></div>
+          <h3>📊 Statystyki bazy danych</h3>
+          <button onclick="getDBStats()">Pobierz statystyki</button>
+          <div class="response" id="dbStatsResponse" style="display:none;"></div>
         </div>
       </div>
     </div>
@@ -522,9 +592,8 @@
     
     // Globalne zmienne
     let authToken = localStorage.getItem('authToken') || null;
-    let refreshToken = localStorage.getItem('refreshToken') || null;
 
-    // Funkcja do wykonywania requestów API z automatycznym dodawaniem tokenu
+    // Funkcja do wykonywania requestów API
     async function apiRequest(endpoint, method = 'GET', body = null) {
       const options = {
         method,
@@ -533,7 +602,7 @@
         }
       };
 
-      // Dodaj token autoryzacyjny jeśli istnieje
+      // Dodaj token autoryzacyjny
       const token = localStorage.getItem('authToken') || authToken;
       if (token) {
         options.headers['Authorization'] = `Bearer ${token}`;
@@ -547,7 +616,6 @@
         const response = await fetch(API_URL + endpoint, options);
         const data = await response.json();
         
-        // Zwróć obiekt z response i data
         return {
           ok: response.ok,
           status: response.status,
@@ -563,7 +631,7 @@
       }
     }
 
-    // Wyświetlanie odpowiedzi w UI
+    // Wyświetlanie odpowiedzi
     function displayResponse(elementId, data, status) {
       const element = document.getElementById(elementId);
       element.style.display = 'block';
@@ -598,43 +666,33 @@
     }
 
     // Toggle password visibility
-    function setupPasswordToggles() {
-      document.querySelectorAll('.password-toggle').forEach(toggle => {
-        toggle.addEventListener('click', function() {
-          const targetId = this.getAttribute('data-target');
-          const input = document.getElementById(targetId);
-          
-          if (input.type === 'password') {
-            input.type = 'text';
-            this.textContent = '👁️'; // Oko otwarte = hasło widoczne
-          } else {
-            input.type = 'password';
-            this.textContent = '👁️‍🗨️'; // Oko zamknięte/przekreślone = hasło ukryte
-          }
-        });
-      });
+    function togglePassword(inputId) {
+      const input = document.getElementById(inputId);
+      const toggle = event.target;
+      
+      if (input.type === 'password') {
+        input.type = 'text';
+        toggle.textContent = '🙈';
+      } else {
+        input.type = 'password';
+        toggle.textContent = '👁️';
+      }
     }
 
     // Nawigacja
-    document.querySelectorAll('.nav-item').forEach(item => {
-      item.addEventListener('click', function() {
-        // Usuń active ze wszystkich
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-
-        // Dodaj active do klikniętego
-        this.classList.add('active');
-        const sectionId = this.getAttribute('data-section');
-        document.getElementById(sectionId).classList.add('active');
-      });
-    });
+    function showSection(sectionId) {
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      document.getElementById(sectionId).classList.add('active');
+    }
 
     // ============================================
     // AUTORYZACJA
     // ============================================
 
-    // Login
-    document.getElementById('loginBtn').addEventListener('click', async function() {
+    async function login() {
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
 
@@ -647,10 +705,7 @@
 
       if (result.ok && result.data.success && result.data.data && result.data.data.accessToken) {
         authToken = result.data.data.accessToken;
-        refreshToken = result.data.data.refreshToken;
-        
         localStorage.setItem('authToken', authToken);
-        localStorage.setItem('refreshToken', refreshToken);
         
         if (result.data.data.user) {
           localStorage.setItem('user', JSON.stringify(result.data.data.user));
@@ -663,55 +718,55 @@
         displayResponse('loginResponse', result.data, result.status);
         alert('❌ Błąd logowania: ' + (result.data.message || 'Nieznany błąd'));
       }
-    });
+    }
 
-    // Logout
-    document.getElementById('logoutBtn').addEventListener('click', function() {
+    function logout() {
       authToken = null;
-      refreshToken = null;
       localStorage.removeItem('authToken');
-      localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       updateAuthStatus();
       alert('Wylogowano');
-    });
+    }
 
-    // Refresh Token
-    document.getElementById('refreshTokenBtn').addEventListener('click', async function() {
-      if (!refreshToken) {
-        alert('Brak refresh token. Zaloguj się ponownie.');
-        return;
-      }
-
-      const result = await apiRequest('/auth/refresh', 'POST', { refreshToken });
-      
-      if (result.ok && result.data.success && result.data.data && result.data.data.accessToken) {
-        authToken = result.data.data.accessToken;
-        localStorage.setItem('authToken', authToken);
-        updateAuthStatus();
-      }
-      
-      displayResponse('refreshResponse', result.data, result.status);
-    });
-
-    // Get Me
-    document.getElementById('getMeBtn').addEventListener('click', async function() {
+    async function getMe() {
       const result = await apiRequest('/auth/me', 'GET');
       displayResponse('meResponse', result.data, result.status);
-    });
+    }
 
     // ============================================
     // UŻYTKOWNICY
     // ============================================
 
-    // Get Users
-    document.getElementById('getUsersBtn').addEventListener('click', async function() {
+    async function getUsers() {
       const result = await apiRequest('/users', 'GET');
       displayResponse('usersResponse', result.data, result.status);
-    });
+      
+      if (result.ok && result.data.success && result.data.data) {
+        displayUsersList(result.data.data);
+      }
+    }
 
-    // Create User
-    document.getElementById('createUserBtn').addEventListener('click', async function() {
+    function displayUsersList(users) {
+      const listElement = document.getElementById('usersList');
+      listElement.innerHTML = '';
+      
+      users.forEach(user => {
+        const userDiv = document.createElement('div');
+        userDiv.className = 'user-item';
+        userDiv.innerHTML = `
+          <div class="user-info">
+            <strong>${user.firstName} ${user.lastName}</strong> (@${user.username})
+            <br><small>${user.email} | Rola: ${user.role?.name || 'Brak'}</small>
+          </div>
+          <div class="user-actions">
+            <button class="secondary" onclick="editUser(${user.id})">Edytuj</button>
+          </div>
+        `;
+        listElement.appendChild(userDiv);
+      });
+    }
+
+    async function createUser() {
       const username = document.getElementById('newUsername').value;
       const email = document.getElementById('newEmail').value;
       const password = document.getElementById('newPassword').value;
@@ -737,27 +792,78 @@
       
       if (result.ok) {
         alert('✅ Użytkownik utworzony');
-        // Wyczyść formularz
         document.getElementById('newUsername').value = '';
         document.getElementById('newEmail').value = '';
         document.getElementById('newPassword').value = '';
         document.getElementById('newFirstName').value = '';
         document.getElementById('newLastName').value = '';
+        getUsers();
       }
-    });
+    }
+
+    async function editUser(userId) {
+      const result = await apiRequest('/users', 'GET');
+      if (result.ok && result.data.success) {
+        const user = result.data.data.find(u => u.id === userId);
+        if (user) {
+          document.getElementById('editUserId').value = user.id;
+          document.getElementById('editUsername').value = user.username;
+          document.getElementById('editEmail').value = user.email;
+          document.getElementById('editFirstName').value = user.firstName;
+          document.getElementById('editLastName').value = user.lastName;
+          document.getElementById('editUserCard').classList.remove('hidden');
+          document.getElementById('editUserCard').scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    }
+
+    async function updateUser() {
+      const userId = document.getElementById('editUserId').value;
+      const username = document.getElementById('editUsername').value;
+      const email = document.getElementById('editEmail').value;
+      const firstName = document.getElementById('editFirstName').value;
+      const lastName = document.getElementById('editLastName').value;
+
+      const result = await apiRequest('/users/' + userId, 'PUT', {
+        username,
+        email,
+        firstName,
+        lastName
+      });
+
+      displayResponse('editUserResponse', result.data, result.status);
+      
+      if (result.ok) {
+        alert('✅ Użytkownik zaktualizowany');
+        cancelEditUser();
+        getUsers();
+      }
+    }
+
+    function cancelEditUser() {
+      document.getElementById('editUserCard').classList.add('hidden');
+    }
+
+    async function checkUsersInDB() {
+      const result = await apiRequest('/users', 'GET');
+      if (result.ok && result.data.success) {
+        alert('✅ Użytkowników w bazie: ' + result.data.data.length);
+        displayResponse('usersResponse', result.data, result.status);
+      } else {
+        alert('❌ Błąd pobierania użytkowników');
+      }
+    }
 
     // ============================================
     // ZADANIA
     // ============================================
 
-    // Get Tasks
-    document.getElementById('getTasksBtn').addEventListener('click', async function() {
+    async function getTasks() {
       const result = await apiRequest('/tasks', 'GET');
       displayResponse('tasksResponse', result.data, result.status);
-    });
+    }
 
-    // Create Task
-    document.getElementById('createTaskBtn').addEventListener('click', async function() {
+    async function createTask() {
       const title = document.getElementById('taskTitle').value;
       const description = document.getElementById('taskDescription').value;
       const taskTypeId = parseInt(document.getElementById('taskTypeId').value);
@@ -779,21 +885,30 @@
         alert('✅ Zadanie utworzone');
         document.getElementById('taskTitle').value = '';
         document.getElementById('taskDescription').value = '';
+        getTasks();
       }
-    });
+    }
+
+    async function checkTasksInDB() {
+      const result = await apiRequest('/tasks', 'GET');
+      if (result.ok && result.data.success) {
+        alert('✅ Zadań w bazie: ' + result.data.data.length);
+        displayResponse('tasksResponse', result.data, result.status);
+      } else {
+        alert('❌ Błąd pobierania zadań');
+      }
+    }
 
     // ============================================
     // URZĄDZENIA
     // ============================================
 
-    // Get Devices
-    document.getElementById('getDevicesBtn').addEventListener('click', async function() {
+    async function getDevices() {
       const result = await apiRequest('/devices', 'GET');
       displayResponse('devicesResponse', result.data, result.status);
-    });
+    }
 
-    // Create Device
-    document.getElementById('createDeviceBtn').addEventListener('click', async function() {
+    async function createDevice() {
       const serialNumber = document.getElementById('deviceSerial').value;
       const model = document.getElementById('deviceModel').value;
       const macAddress = document.getElementById('deviceMac').value;
@@ -816,33 +931,41 @@
         document.getElementById('deviceSerial').value = '';
         document.getElementById('deviceModel').value = '';
         document.getElementById('deviceMac').value = '';
+        getDevices();
       }
-    });
+    }
+
+    async function checkDevicesInDB() {
+      const result = await apiRequest('/devices', 'GET');
+      if (result.ok && result.data.success) {
+        alert('✅ Urządzeń w bazie: ' + result.data.data.length);
+        displayResponse('devicesResponse', result.data, result.status);
+      } else {
+        alert('❌ Błąd pobierania urządzeń');
+      }
+    }
 
     // ============================================
     // EMAIL
     // ============================================
 
-    // Check Email Config
-    document.getElementById('checkEmailConfigBtn').addEventListener('click', async function() {
+    async function checkEmailConfig() {
       const result = await apiRequest('/notifications/config', 'GET');
       displayResponse('emailConfigResponse', result.data, result.status);
-    });
+    }
 
-    // Test SMTP
-    document.getElementById('testSmtpBtn').addEventListener('click', async function() {
+    async function testSmtp() {
       const result = await apiRequest('/notifications/test-connection', 'POST');
       displayResponse('emailConfigResponse', result.data, result.status);
       
       if (result.ok && result.data.success) {
         alert('✅ Połączenie SMTP działa poprawnie!');
       } else {
-        alert('❌ Błąd połączenia SMTP: ' + (result.data.message || 'Nieznany błąd'));
+        alert('❌ Błąd połączenia SMTP');
       }
-    });
+    }
 
-    // Send Test Email
-    document.getElementById('sendTestEmailBtn').addEventListener('click', async function() {
+    async function sendTestEmail() {
       const to = document.getElementById('testEmailTo').value;
 
       if (!to) {
@@ -856,10 +979,9 @@
       if (result.ok) {
         alert('✅ Email testowy wysłany do: ' + to);
       }
-    });
+    }
 
-    // Queue Stats
-    document.getElementById('queueStatsBtn').addEventListener('click', async function() {
+    async function getQueueStats() {
       const result = await apiRequest('/notifications/queue/stats', 'GET');
       displayResponse('queueStatsResponse', result.data, result.status);
       
@@ -871,39 +993,76 @@
         document.getElementById('statFailed').textContent = stats.failed || 0;
         document.getElementById('queueStatsGrid').style.display = 'grid';
       }
-    });
+    }
 
-    // Failed Jobs
-    document.getElementById('failedJobsBtn').addEventListener('click', async function() {
-      const result = await apiRequest('/notifications/queue/failed', 'GET');
-      displayResponse('failedJobsResponse', result.data, result.status);
-    });
+    // ============================================
+    // BAZA DANYCH
+    // ============================================
 
-    // Clean Queue
-    document.getElementById('cleanQueueBtn').addEventListener('click', async function() {
+    async function clearUsers() {
+      if (!confirm('Czy na pewno chcesz usunąć wszystkich użytkowników (oprócz admin)? Ta operacja jest nieodwracalna!')) {
+        return;
+      }
+
+      // Ta funkcja wymaga specjalnego endpointu - do implementacji
+      alert('⚠️ Funkcja do implementacji na backendzie');
+      displayResponse('dbResponse', { message: 'Wymaga endpointu /api/admin/clear-users' }, 200);
+    }
+
+    async function clearTasks() {
+      if (!confirm('Czy na pewno chcesz usunąć wszystkie zadania? Ta operacja jest nieodwracalna!')) {
+        return;
+      }
+
+      alert('⚠️ Funkcja do implementacji na backendzie');
+      displayResponse('dbResponse', { message: 'Wymaga endpointu /api/admin/clear-tasks' }, 200);
+    }
+
+    async function clearDevices() {
+      if (!confirm('Czy na pewno chcesz usunąć wszystkie urządzenia? Ta operacja jest nieodwracalna!')) {
+        return;
+      }
+
+      alert('⚠️ Funkcja do implementacji na backendzie');
+      displayResponse('dbResponse', { message: 'Wymaga endpointu /api/admin/clear-devices' }, 200);
+    }
+
+    async function clearEmailQueue() {
       if (!confirm('Czy na pewno chcesz wyczyścić kolejkę emaili?')) {
         return;
       }
 
       const result = await apiRequest('/notifications/queue/clean', 'POST');
-      displayResponse('cleanQueueResponse', result.data, result.status);
+      displayResponse('dbResponse', result.data, result.status);
       
       if (result.ok) {
-        alert('✅ Kolejka wyczyszczona');
+        alert('✅ Kolejka emaili wyczyszczona');
       }
-    });
+    }
+
+    async function getDBStats() {
+      const users = await apiRequest('/users', 'GET');
+      const tasks = await apiRequest('/tasks', 'GET');
+      const devices = await apiRequest('/devices', 'GET');
+
+      const stats = {
+        users: users.ok && users.data.success ? users.data.data.length : 0,
+        tasks: tasks.ok && tasks.data.success ? tasks.data.data.length : 0,
+        devices: devices.ok && devices.data.success ? devices.data.data.length : 0,
+      };
+
+      displayResponse('dbStatsResponse', stats, 200);
+    }
 
     // ============================================
     // INICJALIZACJA
     // ============================================
 
-    // Inicjalizacja po załadowaniu strony
-    document.addEventListener('DOMContentLoaded', function() {
+    window.onload = function() {
       updateAuthStatus();
-      setupPasswordToggles();
       console.log('🧪 API Tester initialized');
       console.log('API URL:', API_URL);
-    });
+    };
   </script>
 </body>
 </html>
