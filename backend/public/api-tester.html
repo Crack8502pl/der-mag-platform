@@ -1,1074 +1,909 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Der-Mag Platform - API Tester</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Der-Mag Platform - API Tester</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #1a1a1a;
-            color: #e0e0e0;
-            height: 100vh;
-            overflow: hidden;
-        }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
 
-        /* Header */
-        .header {
-            background: #2d2d2d;
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #3a3a3a;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      min-height: calc(100vh - 40px);
+    }
 
-        .header h1 {
-            font-size: 1.5rem;
-            color: #007bff;
-        }
+    .sidebar {
+      background: #2d3748;
+      color: white;
+      padding: 30px 20px;
+    }
 
-        .auth-status {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
+    .sidebar h1 {
+      font-size: 22px;
+      margin-bottom: 10px;
+      color: #667eea;
+    }
 
-        .auth-status span {
-            color: #888;
-        }
+    .sidebar p {
+      font-size: 12px;
+      color: #a0aec0;
+      margin-bottom: 30px;
+    }
 
-        .auth-status.logged-in span {
-            color: #28a745;
-        }
+    .nav-item {
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-        /* Main Layout */
-        .container {
-            display: flex;
-            height: calc(100vh - 60px);
-        }
+    .nav-item:hover {
+      background: #4a5568;
+    }
 
-        /* Sidebar */
-        .sidebar {
-            width: 250px;
-            background: #2d2d2d;
-            border-right: 1px solid #3a3a3a;
-            overflow-y: auto;
-            padding: 1rem 0;
-        }
+    .nav-item.active {
+      background: #667eea;
+      font-weight: 600;
+    }
 
-        .nav-item {
-            padding: 0.75rem 1.5rem;
-            cursor: pointer;
-            transition: background 0.2s;
-            border-left: 3px solid transparent;
-        }
+    .content {
+      padding: 40px;
+      overflow-y: auto;
+    }
 
-        .nav-item:hover {
-            background: #3a3a3a;
-        }
+    .auth-status {
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
 
-        .nav-item.active {
-            background: #3a3a3a;
-            border-left-color: #007bff;
-        }
+    .auth-status.logged-in {
+      border-color: #48bb78;
+      background: #f0fff4;
+    }
 
-        .nav-item span {
-            margin-right: 0.5rem;
-        }
+    .auth-status h3 {
+      margin-bottom: 10px;
+      color: #2d3748;
+    }
 
-        /* Main Content */
-        .content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 2rem;
-        }
+    .section {
+      display: none;
+    }
 
-        .section {
-            display: none;
-        }
+    .section.active {
+      display: block;
+    }
 
-        .section.active {
-            display: block;
-        }
+    .card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
 
-        .section h2 {
-            margin-bottom: 1.5rem;
-            color: #007bff;
-        }
+    .card h3 {
+      margin-bottom: 16px;
+      color: #2d3748;
+      font-size: 18px;
+    }
 
-        /* Forms */
-        .form-group {
-            margin-bottom: 1rem;
-        }
+    .form-group {
+      margin-bottom: 16px;
+    }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #b0b0b0;
-        }
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      color: #4a5568;
+      font-weight: 500;
+      font-size: 14px;
+    }
 
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 0.75rem;
-            background: #2d2d2d;
-            border: 1px solid #3a3a3a;
-            border-radius: 4px;
-            color: #e0e0e0;
-            font-size: 0.95rem;
-        }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
 
-        .form-group textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
 
-        /* Buttons */
-        button {
-            padding: 0.75rem 1.5rem;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            transition: background 0.2s;
-            margin-right: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
+    .password-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
 
-        button:hover {
-            background: #0056b3;
-        }
+    .password-wrapper input {
+      padding-right: 40px;
+    }
 
-        button.secondary {
-            background: #6c757d;
-        }
+    .password-toggle {
+      position: absolute;
+      right: 10px;
+      cursor: pointer;
+      font-size: 20px;
+      user-select: none;
+      transition: opacity 0.2s;
+    }
 
-        button.secondary:hover {
-            background: #545b62;
-        }
+    .password-toggle:hover {
+      opacity: 0.7;
+    }
 
-        button.danger {
-            background: #dc3545;
-        }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
 
-        button.danger:hover {
-            background: #c82333;
-        }
+    button:hover {
+      background: #5568d3;
+      transform: translateY(-1px);
+    }
 
-        /* Response Panel */
-        .response-panel {
-            width: 500px;
-            background: #2d2d2d;
-            border-left: 1px solid #3a3a3a;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
+    button:active {
+      transform: translateY(0);
+    }
 
-        .response-header {
-            padding: 1rem;
-            border-bottom: 1px solid #3a3a3a;
-        }
+    button.secondary {
+      background: #718096;
+    }
 
-        .response-status {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 0.5rem;
-        }
+    button.secondary:hover {
+      background: #4a5568;
+    }
 
-        .status-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 4px;
-            font-weight: bold;
-        }
+    button.danger {
+      background: #f56565;
+    }
 
-        .status-badge.success {
-            background: #28a745;
-            color: white;
-        }
+    button.danger:hover {
+      background: #e53e3e;
+    }
 
-        .status-badge.error {
-            background: #dc3545;
-            color: white;
-        }
+    .response {
+      background: #1a202c;
+      color: #e2e8f0;
+      padding: 16px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      overflow-x: auto;
+      margin-top: 16px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
 
-        .response-body {
-            flex: 1;
-            padding: 1rem;
-            overflow-y: auto;
-        }
+    .token-display {
+      background: #fefcbf;
+      border: 1px solid #f6e05e;
+      padding: 12px;
+      border-radius: 6px;
+      word-break: break-all;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      margin-top: 10px;
+    }
 
-        .response-body pre {
-            background: #1a1a1a;
-            padding: 1rem;
-            border-radius: 4px;
-            overflow-x: auto;
-            font-size: 0.85rem;
-            line-height: 1.5;
-        }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
 
-        .history {
-            border-top: 1px solid #3a3a3a;
-            padding: 1rem;
-            max-height: 300px;
-            overflow-y: auto;
-        }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-right: 8px;
+    }
 
-        .history h3 {
-            margin-bottom: 1rem;
-            font-size: 1rem;
-            color: #b0b0b0;
-        }
+    .badge.success {
+      background: #c6f6d5;
+      color: #22543d;
+    }
 
-        .history-item {
-            padding: 0.5rem;
-            background: #1a1a1a;
-            border-radius: 4px;
-            margin-bottom: 0.5rem;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
+    .badge.error {
+      background: #fed7d7;
+      color: #742a2a;
+    }
 
-        .history-item:hover {
-            background: #252525;
-        }
+    .badge.info {
+      background: #bee3f8;
+      color: #2c5282;
+    }
 
-        .history-item .time {
-            font-size: 0.75rem;
-            color: #888;
-        }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
 
-        .history-item .request {
-            font-weight: bold;
-            margin: 0.25rem 0;
-        }
+    .stat-card {
+      background: #f7fafc;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
 
-        .history-item .status {
-            font-size: 0.85rem;
-        }
+    .stat-card .value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #667eea;
+    }
 
-        /* Token Display */
-        .token-display {
-            background: #1a1a1a;
-            padding: 1rem;
-            border-radius: 4px;
-            margin: 1rem 0;
-            word-break: break-all;
-            font-size: 0.85rem;
-        }
-
-        /* List Items */
-        .list-container {
-            margin-top: 1rem;
-        }
-
-        .list-item {
-            background: #2d2d2d;
-            padding: 1rem;
-            border-radius: 4px;
-            margin-bottom: 0.5rem;
-            border-left: 3px solid #007bff;
-        }
-
-        /* Loading State */
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            color: #888;
-        }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #1a1a1a;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #3a3a3a;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #4a4a4a;
-        }
-
-        /* Button Group */
-        .button-group {
-            margin: 1rem 0;
-        }
-    </style>
+    .stat-card .label {
+      font-size: 12px;
+      color: #718096;
+      margin-top: 4px;
+    }
+  </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        <h1>🧪 Der-Mag API Tester</h1>
-        <div class="auth-status" id="authStatus">
-            <span>● Wylogowany</span>
-        </div>
+  <div class="container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <h1>🧪 API Tester</h1>
+      <p>Der-Mag Platform Backend</p>
+      
+      <div class="nav-item active" data-section="auth">
+        🔐 Autoryzacja
+      </div>
+      <div class="nav-item" data-section="users">
+        👥 Użytkownicy
+      </div>
+      <div class="nav-item" data-section="tasks">
+        📋 Zadania
+      </div>
+      <div class="nav-item" data-section="devices">
+        📱 Urządzenia
+      </div>
+      <div class="nav-item" data-section="email">
+        📧 Email
+      </div>
     </div>
 
-    <!-- Main Container -->
-    <div class="container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="nav-item active" data-section="auth">
-                <span>🔐</span> Autentykacja
+    <!-- Content -->
+    <div class="content">
+      <!-- Auth Status Bar -->
+      <div class="auth-status" id="authStatus">
+        <h3>Status autoryzacji</h3>
+        <p id="authStatusText">Nie zalogowano</p>
+        <div id="tokenDisplay"></div>
+      </div>
+
+      <!-- Autoryzacja Section -->
+      <div class="section active" id="auth">
+        <div class="card">
+          <h3>🔐 Logowanie</h3>
+          <div class="form-group">
+            <label for="username">Nazwa użytkownika</label>
+            <input type="text" id="username" placeholder="admin" value="admin">
+          </div>
+          <div class="form-group">
+            <label for="password">Hasło</label>
+            <div class="password-wrapper">
+              <input type="password" id="password" placeholder="Admin123!" value="Admin123!">
+              <span class="password-toggle" data-target="password">👁️‍🗨️</span>
             </div>
-            <div class="nav-item" data-section="users">
-                <span>👥</span> Użytkownicy
-            </div>
-            <div class="nav-item" data-section="tasks">
-                <span>📋</span> Zadania
-            </div>
-            <div class="nav-item" data-section="task-types">
-                <span>📑</span> Typy zadań
-            </div>
-            <div class="nav-item" data-section="bom">
-                <span>🔧</span> BOM
-            </div>
-            <div class="nav-item" data-section="devices">
-                <span>📱</span> Urządzenia
-            </div>
-            <div class="nav-item" data-section="activities">
-                <span>✅</span> Aktywności
-            </div>
-            <div class="nav-item" data-section="metrics">
-                <span>📊</span> Metryki
-            </div>
-            <div class="nav-item" data-section="email">
-                <span>📧</span> Email
-            </div>
+          </div>
+          <button id="loginBtn">Zaloguj się</button>
+          <button class="secondary" id="logoutBtn" style="margin-left: 10px;">Wyloguj</button>
+          <div class="response" id="loginResponse" style="display:none;"></div>
         </div>
 
-        <!-- Main Content -->
-        <div class="content">
-            <!-- Authentication Section -->
-            <div class="section active" id="auth">
-                <h2>🔐 Autentykacja</h2>
-
-                <div class="form-group">
-                    <label>Nazwa użytkownika:</label>
-                    <input type="text" id="loginUsername" value="admin" placeholder="np. admin">
-                </div>
-
-                <div class="form-group">
-                    <label>Hasło:</label>
-                    <input type="password" id="loginPassword" value="Admin123!" placeholder="Hasło">
-                </div>
-
-                <div class="button-group">
-                    <button onclick="login()">Zaloguj się</button>
-                    <button class="secondary" onclick="testMe()">Test /api/auth/me</button>
-                    <button class="danger" onclick="logout()">Wyloguj</button>
-                </div>
-
-                <div class="token-display" id="tokenDisplay">
-                    <strong>Token JWT:</strong><br>
-                    <span id="tokenText">Brak tokena</span>
-                </div>
-            </div>
-
-            <!-- Users Section -->
-            <div class="section" id="users">
-                <h2>👥 Użytkownicy</h2>
-
-                <div class="button-group">
-                    <button onclick="listUsers()">Lista użytkowników</button>
-                </div>
-
-                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Dodaj użytkownika</h3>
-
-                <div class="form-group">
-                    <label>Nazwa użytkownika:</label>
-                    <input type="text" id="userUsername" placeholder="np. jan.kowalski">
-                </div>
-
-                <div class="form-group">
-                    <label>Email:</label>
-                    <input type="email" id="userEmail" placeholder="jan.kowalski@dermag.lan">
-                </div>
-
-                <div class="form-group">
-                    <label>Hasło:</label>
-                    <input type="password" id="userPassword" placeholder="Minimum 8 znaków">
-                </div>
-
-                <div class="form-group">
-                    <label>Imię:</label>
-                    <input type="text" id="userFirstName" placeholder="Jan">
-                </div>
-
-                <div class="form-group">
-                    <label>Nazwisko:</label>
-                    <input type="text" id="userLastName" placeholder="Kowalski">
-                </div>
-
-                <div class="form-group">
-                    <label>Rola:</label>
-                    <select id="userRole">
-                        <option value="1">1 - Admin</option>
-                        <option value="2">2 - Manager</option>
-                        <option value="3">3 - Koordynator</option>
-                        <option value="4">4 - Technik</option>
-                        <option value="5">5 - Viewer</option>
-                    </select>
-                </div>
-
-                <button onclick="createUser()">Utwórz użytkownika</button>
-            </div>
-
-            <!-- Tasks Section -->
-            <div class="section" id="tasks">
-                <h2>📋 Zadania</h2>
-
-                <div class="button-group">
-                    <button onclick="listTasks()">Lista wszystkich zadań</button>
-                    <button onclick="listMyTasks()">Moje zadania</button>
-                </div>
-
-                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Dodaj zadanie</h3>
-
-                <div class="form-group">
-                    <label>Nazwa zadania:</label>
-                    <input type="text" id="taskName" placeholder="np. Instalacja SMW Warszawa Centralna">
-                </div>
-
-                <div class="form-group">
-                    <label>Opis:</label>
-                    <textarea id="taskDescription" placeholder="Szczegółowy opis zadania..."></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label>Lokalizacja:</label>
-                    <input type="text" id="taskLocation" placeholder="np. Warszawa Centralna, peron 2">
-                </div>
-
-                <div class="form-group">
-                    <label>Typ zadania:</label>
-                    <select id="taskType">
-                        <option value="1">1 - SMW (System Monitoringu Wizyjnego)</option>
-                        <option value="2">2 - CSDIP</option>
-                        <option value="3">3 - LAN PKP PLK</option>
-                        <option value="4">4 - SMOK-IP/CMOK-IP (Wariant A/SKP)</option>
-                        <option value="5">5 - SMOK-IP/CMOK-IP (Wariant B)</option>
-                        <option value="6">6 - SSWiN</option>
-                        <option value="7">7 - SSP</option>
-                        <option value="8">8 - SUG</option>
-                        <option value="9">9 - Obiekty Kubaturowe</option>
-                        <option value="10">10 - Kontrakty Liniowe</option>
-                        <option value="11">11 - LAN Strukturalny Miedziana</option>
-                        <option value="12">12 - Zasilania</option>
-                        <option value="13">13 - Struktury Światłowodowe</option>
-                        <option value="14">14 - SERWIS (Zadanie Serwisowe)</option>
-                    </select>
-                </div>
-
-                <button onclick="createTask()">Utwórz zadanie</button>
-            </div>
-
-            <!-- Task Types Section -->
-            <div class="section" id="task-types">
-                <h2>📑 Typy zadań</h2>
-
-                <div class="button-group">
-                    <button onclick="listTaskTypes()">Lista typów zadań</button>
-                </div>
-            </div>
-
-            <!-- BOM Section -->
-            <div class="section" id="bom">
-                <h2>🔧 BOM (Bill of Materials)</h2>
-
-                <div class="button-group">
-                    <button onclick="getAllBOMTemplates()">Wszystkie szablony BOM</button>
-                </div>
-
-                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Szablony BOM dla typu zadania</h3>
-
-                <div class="form-group">
-                    <label>Kod typu zadania:</label>
-                    <input type="text" id="bomTaskTypeCode" placeholder="np. SMW, CSDIP, SERWIS">
-                </div>
-
-                <button onclick="getBOMByTaskType()">Pobierz szablony BOM</button>
-            </div>
-
-            <!-- Devices Section -->
-            <div class="section" id="devices">
-                <h2>📱 Urządzenia</h2>
-
-                <h3>Rejestracja urządzenia</h3>
-
-                <div class="form-group">
-                    <label>Numer seryjny:</label>
-                    <input type="text" id="deviceSerialNumber" placeholder="np. SN123456789">
-                </div>
-
-                <div class="form-group">
-                    <label>Kod materiałowy:</label>
-                    <input type="text" id="deviceMaterialCode" placeholder="np. CAM-IP-2MP-IR30">
-                </div>
-
-                <div class="form-group">
-                    <label>Typ urządzenia:</label>
-                    <input type="text" id="deviceType" placeholder="np. Kamera IP">
-                </div>
-
-                <button onclick="registerDevice()">Zarejestruj urządzenie</button>
-            </div>
-
-            <!-- Activities Section -->
-            <div class="section" id="activities">
-                <h2>✅ Aktywności</h2>
-
-                <div class="button-group">
-                    <button onclick="getActivityTemplates()">Szablony aktywności</button>
-                </div>
-            </div>
-
-            <!-- Metrics Section -->
-            <div class="section" id="metrics">
-                <h2>📊 Metryki</h2>
-
-                <div class="button-group">
-                    <button onclick="getDashboard()">Dashboard</button>
-                    <button onclick="getTaskMetrics()">Statystyki zadań</button>
-                </div>
-            </div>
-                        <!-- Email Section -->
-            <div class="section" id="email">
-                <h2>📧 Email / Powiadomienia</h2>
-            
-                <h3>Status systemu emaili</h3>
-                <div class="button-group">
-                    <button onclick="checkEmailConfig()">Sprawdź konfigurację</button>
-                    <button onclick="verifyEmailConnection()">Test połączenia SMTP</button>
-                </div>
-            
-                <h3 style="margin-top: 2rem;">Test wysyłki emaila</h3>
-                
-                <div class="form-group">
-                    <label>Adres email:</label>
-                    <input type="email" id="testEmailTo" placeholder="test@example.com">
-                </div>
-                
-                <div class="button-group">
-                    <button onclick="sendTestEmail()">Wyślij testowy email</button>
-                </div>
-            
-                <h3 style="margin-top: 2rem;">Kolejka emaili</h3>
-                
-                <div class="button-group">
-                    <button onclick="getEmailQueueStats()">Statystyki kolejki</button>
-                    <button onclick="getFailedEmailJobs()">Nieudane wysyłki</button>
-                    <button class="danger" onclick="clearEmailQueue()">Wyczyść kolejkę (admin)</button>
-                </div>
-            
-                <div id="emailStatsDisplay" style="margin-top: 1rem;"></div>
-            </div>
+        <div class="card">
+          <h3>🔄 Odświeżenie tokenu</h3>
+          <button id="refreshTokenBtn">Odśwież token</button>
+          <div class="response" id="refreshResponse" style="display:none;"></div>
         </div>
 
-        <!-- Response Panel -->
-        <div class="response-panel">
-            <div class="response-header">
-                <div class="response-status">
-                    <span id="responseStatusBadge"></span>
-                    <span id="responseTime"></span>
-                </div>
-            </div>
-
-            <div class="response-body">
-                <pre id="responseBody">Brak odpowiedzi - wykonaj zapytanie API</pre>
-            </div>
-
-            <div class="history">
-                <h3>Historia zapytań</h3>
-                <div id="historyList"></div>
-            </div>
+        <div class="card">
+          <h3>👤 Moje dane</h3>
+          <button id="getMeBtn">Pobierz dane zalogowanego użytkownika</button>
+          <div class="response" id="meResponse" style="display:none;"></div>
         </div>
+      </div>
+
+      <!-- Użytkownicy Section -->
+      <div class="section" id="users">
+        <div class="card">
+          <h3>📋 Lista użytkowników</h3>
+          <button id="getUsersBtn">Pobierz użytkowników</button>
+          <div class="response" id="usersResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>➕ Dodaj użytkownika</h3>
+          <div class="form-group">
+            <label for="newUsername">Nazwa użytkownika</label>
+            <input type="text" id="newUsername" placeholder="jankowalski">
+          </div>
+          <div class="form-group">
+            <label for="newEmail">Email</label>
+            <input type="email" id="newEmail" placeholder="jan@example.com">
+          </div>
+          <div class="form-group">
+            <label for="newPassword">Hasło</label>
+            <div class="password-wrapper">
+              <input type="password" id="newPassword" placeholder="Haslo123!">
+              <span class="password-toggle" data-target="newPassword">👁️‍🗨️</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="newFirstName">Imię</label>
+            <input type="text" id="newFirstName" placeholder="Jan">
+          </div>
+          <div class="form-group">
+            <label for="newLastName">Nazwisko</label>
+            <input type="text" id="newLastName" placeholder="Kowalski">
+          </div>
+          <div class="form-group">
+            <label for="newRoleId">Rola</label>
+            <select id="newRoleId">
+              <option value="1">Administrator Systemu</option>
+              <option value="2">Menedżer</option>
+              <option value="3">Koordynator</option>
+              <option value="4">Brygadzista</option>
+              <option value="5">Monter</option>
+              <option value="6" selected>Pracownik</option>
+            </select>
+          </div>
+          <button id="createUserBtn">Utwórz użytkownika</button>
+          <div class="response" id="createUserResponse" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Zadania Section -->
+      <div class="section" id="tasks">
+        <div class="card">
+          <h3>📋 Lista zadań</h3>
+          <button id="getTasksBtn">Pobierz zadania</button>
+          <div class="response" id="tasksResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>➕ Dodaj zadanie</h3>
+          <div class="form-group">
+            <label for="taskTitle">Tytuł</label>
+            <input type="text" id="taskTitle" placeholder="Montaż urządzenia XYZ">
+          </div>
+          <div class="form-group">
+            <label for="taskDescription">Opis</label>
+            <textarea id="taskDescription" rows="3" placeholder="Szczegółowy opis zadania..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="taskTypeId">Typ zadania</label>
+            <select id="taskTypeId">
+              <option value="1">Montaż nowy</option>
+              <option value="2">Demontaż</option>
+              <option value="3">Serwis</option>
+              <option value="4">Awaria</option>
+            </select>
+          </div>
+          <button id="createTaskBtn">Utwórz zadanie</button>
+          <div class="response" id="createTaskResponse" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Urządzenia Section -->
+      <div class="section" id="devices">
+        <div class="card">
+          <h3>📱 Lista urządzeń</h3>
+          <button id="getDevicesBtn">Pobierz urządzenia</button>
+          <div class="response" id="devicesResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>➕ Dodaj urządzenie</h3>
+          <div class="form-group">
+            <label for="deviceSerial">Numer seryjny</label>
+            <input type="text" id="deviceSerial" placeholder="DEV-2025-001">
+          </div>
+          <div class="form-group">
+            <label for="deviceModel">Model</label>
+            <input type="text" id="deviceModel" placeholder="Router TP-Link AC1200">
+          </div>
+          <div class="form-group">
+            <label for="deviceMac">Adres MAC</label>
+            <input type="text" id="deviceMac" placeholder="AA:BB:CC:DD:EE:FF">
+          </div>
+          <button id="createDeviceBtn">Utwórz urządzenie</button>
+          <div class="response" id="createDeviceResponse" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Email Section -->
+      <div class="section" id="email">
+        <div class="card">
+          <h3>⚙️ Konfiguracja Email</h3>
+          <button id="checkEmailConfigBtn">Sprawdź konfigurację</button>
+          <button class="secondary" id="testSmtpBtn" style="margin-left: 10px;">Test połączenia SMTP</button>
+          <div class="response" id="emailConfigResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>✉️ Wyślij testowy email</h3>
+          <div class="form-group">
+            <label for="testEmailTo">Adres email odbiorcy</label>
+            <input type="email" id="testEmailTo" placeholder="twoj-email@example.com">
+          </div>
+          <button id="sendTestEmailBtn">Wyślij testowy email</button>
+          <div class="response" id="testEmailResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>📊 Statystyki kolejki</h3>
+          <button id="queueStatsBtn">Pobierz statystyki</button>
+          <div class="stats-grid" id="queueStatsGrid" style="display:none;">
+            <div class="stat-card">
+              <div class="value" id="statWaiting">0</div>
+              <div class="label">Oczekujące</div>
+            </div>
+            <div class="stat-card">
+              <div class="value" id="statActive">0</div>
+              <div class="label">W trakcie</div>
+            </div>
+            <div class="stat-card">
+              <div class="value" id="statCompleted">0</div>
+              <div class="label">Wysłane</div>
+            </div>
+            <div class="stat-card">
+              <div class="value" id="statFailed">0</div>
+              <div class="label">Nieudane</div>
+            </div>
+          </div>
+          <div class="response" id="queueStatsResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>❌ Nieudane wysyłki</h3>
+          <button id="failedJobsBtn">Pobierz nieudane wysyłki</button>
+          <div class="response" id="failedJobsResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>🗑️ Zarządzanie kolejką</h3>
+          <button class="danger" id="cleanQueueBtn">Wyczyść kolejkę (admin)</button>
+          <div class="response" id="cleanQueueResponse" style="display:none;"></div>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        // Konfiguracja API
-        const API_URL = 'http://localhost:3000/api';
+  <script>
+    // Konfiguracja API
+    const API_URL = window.location.origin + '/api';
+    
+    // Globalne zmienne
+    let authToken = localStorage.getItem('authToken') || null;
+    let refreshToken = localStorage.getItem('refreshToken') || null;
 
-        // Stan aplikacji
-        let authToken = localStorage.getItem('authToken') || null;
-        let requestHistory = JSON.parse(localStorage.getItem('requestHistory') || '[]');
+    // Funkcja do wykonywania requestów API z automatycznym dodawaniem tokenu
+    async function apiRequest(endpoint, method = 'GET', body = null) {
+      const options = {
+        method,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      };
 
-        // Inicjalizacja
-        document.addEventListener('DOMContentLoaded', () => {
-            updateAuthStatus();
-            updateTokenDisplay();
-            updateHistoryList();
-            setupNavigation();
+      // Dodaj token autoryzacyjny jeśli istnieje
+      const token = localStorage.getItem('authToken') || authToken;
+      if (token) {
+        options.headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      if (body) {
+        options.body = JSON.stringify(body);
+      }
+
+      try {
+        const response = await fetch(API_URL + endpoint, options);
+        const data = await response.json();
+        
+        // Zwróć obiekt z response i data
+        return {
+          ok: response.ok,
+          status: response.status,
+          data: data
+        };
+      } catch (error) {
+        console.error('API Request Error:', error);
+        return {
+          ok: false,
+          status: 0,
+          data: { success: false, message: 'Błąd połączenia: ' + error.message }
+        };
+      }
+    }
+
+    // Wyświetlanie odpowiedzi w UI
+    function displayResponse(elementId, data, status) {
+      const element = document.getElementById(elementId);
+      element.style.display = 'block';
+      
+      let statusBadge = '';
+      if (status >= 200 && status < 300) {
+        statusBadge = '<span class="badge success">✓ ' + status + '</span>';
+      } else if (status >= 400) {
+        statusBadge = '<span class="badge error">✗ ' + status + '</span>';
+      } else {
+        statusBadge = '<span class="badge info">ⓘ ' + status + '</span>';
+      }
+      
+      element.innerHTML = statusBadge + '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+    }
+
+    // Aktualizacja statusu autoryzacji
+    function updateAuthStatus() {
+      const authStatus = document.getElementById('authStatus');
+      const authStatusText = document.getElementById('authStatusText');
+      const tokenDisplay = document.getElementById('tokenDisplay');
+
+      if (authToken) {
+        authStatus.classList.add('logged-in');
+        authStatusText.innerHTML = '<span class="badge success">✓ Zalogowano</span>';
+        tokenDisplay.innerHTML = '<strong>Token JWT:</strong><div class="token-display">' + authToken.substring(0, 50) + '...</div>';
+      } else {
+        authStatus.classList.remove('logged-in');
+        authStatusText.innerHTML = '<span class="badge error">✗ Nie zalogowano</span>';
+        tokenDisplay.innerHTML = '<strong>Token JWT:</strong><div class="token-display">Brak tokenu</div>';
+      }
+    }
+
+    // Toggle password visibility
+    function setupPasswordToggles() {
+      document.querySelectorAll('.password-toggle').forEach(toggle => {
+        toggle.addEventListener('click', function() {
+          const targetId = this.getAttribute('data-target');
+          const input = document.getElementById(targetId);
+          
+          if (input.type === 'password') {
+            input.type = 'text';
+            this.textContent = '👁️'; // Oko otwarte = hasło widoczne
+          } else {
+            input.type = 'password';
+            this.textContent = '👁️‍🗨️'; // Oko zamknięte/przekreślone = hasło ukryte
+          }
         });
+      });
+    }
 
-        // Nawigacja
-        function setupNavigation() {
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const section = item.dataset.section;
-                    
-                    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-                    
-                    item.classList.add('active');
-                    document.getElementById(section).classList.add('active');
-                });
-            });
-        }
+    // Nawigacja
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', function() {
+        // Usuń active ze wszystkich
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
 
-        // Funkcja wykonująca zapytanie API
-        async function apiRequest(endpoint, method = 'GET', body = null) {
-            const startTime = performance.now();
-            
-            try {
-                const options = {
-                    method,
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                };
+        // Dodaj active do klikniętego
+        this.classList.add('active');
+        const sectionId = this.getAttribute('data-section');
+        document.getElementById(sectionId).classList.add('active');
+      });
+    });
 
-                if (authToken) {
-                    options.headers['Authorization'] = `Bearer ${authToken}`;
-                }
+    // ============================================
+    // AUTORYZACJA
+    // ============================================
 
-                if (body) {
-                    options.body = JSON.stringify(body);
-                }
+    // Login
+    document.getElementById('loginBtn').addEventListener('click', async function() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
 
-                const response = await fetch(`${API_URL}${endpoint}`, options);
-                const endTime = performance.now();
-                const duration = Math.round(endTime - startTime);
+      if (!username || !password) {
+        alert('Wprowadź nazwę użytkownika i hasło');
+        return;
+      }
 
-                let data;
-                const contentType = response.headers.get('content-type');
-                if (contentType && contentType.includes('application/json')) {
-                    data = await response.json();
-                } else {
-                    data = { message: await response.text() };
-                }
+      const result = await apiRequest('/auth/login', 'POST', { username, password });
 
-                const result = {
-                    success: response.ok,
-                    status: response.status,
-                    data,
-                    duration
-                };
-
-                displayResponse(result, method, endpoint);
-                addToHistory(method, endpoint, response.status, duration);
-
-                return result;
-            } catch (error) {
-                const endTime = performance.now();
-                const duration = Math.round(endTime - startTime);
-
-                const result = {
-                    success: false,
-                    status: 0,
-                    data: { error: error.message },
-                    duration
-                };
-
-                displayResponse(result, method, endpoint);
-                addToHistory(method, endpoint, 0, duration);
-
-                return result;
-            }
-        }
-
-        // Wyświetlanie odpowiedzi
-        function displayResponse(result, method, endpoint) {
-            const statusBadge = document.getElementById('responseStatusBadge');
-            const responseTime = document.getElementById('responseTime');
-            const responseBody = document.getElementById('responseBody');
-
-            // Status
-            const statusClass = result.success ? 'success' : 'error';
-            const statusIcon = result.success ? '🟢' : '🔴';
-            statusBadge.className = `status-badge ${statusClass}`;
-            statusBadge.textContent = `${statusIcon} ${result.status}`;
-
-            // Czas
-            responseTime.textContent = `${result.duration}ms`;
-
-            // Body
-            responseBody.textContent = JSON.stringify(result.data, null, 2);
-        }
-
-        // Dodawanie do historii
-        function addToHistory(method, endpoint, status, duration) {
-            const now = new Date();
-            const time = now.toLocaleTimeString('pl-PL');
-
-            const historyItem = {
-                time,
-                method,
-                endpoint,
-                status,
-                duration,
-                timestamp: now.getTime()
-            };
-
-            requestHistory.unshift(historyItem);
-            requestHistory = requestHistory.slice(0, 10);
-
-            localStorage.setItem('requestHistory', JSON.stringify(requestHistory));
-            updateHistoryList();
-        }
-
-        // Aktualizacja listy historii
-        function updateHistoryList() {
-            const historyList = document.getElementById('historyList');
-            
-            if (requestHistory.length === 0) {
-                historyList.innerHTML = '<div style="color: #888; font-size: 0.9rem;">Brak historii</div>';
-                return;
-            }
-
-            historyList.innerHTML = requestHistory.map(item => {
-                const statusClass = item.status >= 200 && item.status < 300 ? 'success' : 'error';
-                return `
-                    <div class="history-item">
-                        <div class="time">${item.time}</div>
-                        <div class="request">${item.method} ${item.endpoint}</div>
-                        <div class="status">
-                            <span class="status-badge ${statusClass}">${item.status}</span>
-                            <span style="color: #888; margin-left: 0.5rem;">${item.duration}ms</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // Aktualizacja statusu autentykacji
-        function updateAuthStatus() {
-            const authStatus = document.getElementById('authStatus');
-            if (authToken) {
-                authStatus.innerHTML = '<span>● Zalogowany</span>';
-                authStatus.classList.add('logged-in');
-            } else {
-                authStatus.innerHTML = '<span>● Wylogowany</span>';
-                authStatus.classList.remove('logged-in');
-            }
-        }
-
-        // Aktualizacja wyświetlania tokena
-        function updateTokenDisplay() {
-            const tokenText = document.getElementById('tokenText');
-            if (authToken) {
-                tokenText.textContent = authToken;
-            } else {
-                tokenText.textContent = 'Brak tokena';
-            }
-        }
-
-        // === AUTENTYKACJA ===
-
-        async function login() {
-            const username = document.getElementById('loginUsername').value;
-            const password = document.getElementById('loginPassword').value;
-
-            if (!username || !password) {
-                alert('Podaj nazwę użytkownika i hasło');
-                return;
-            }
-
-            const result = await apiRequest('/auth/login', 'POST', { username, password });
-
-            if (result.success && result.data.token) {
-                authToken = result.data.token;
-                localStorage.setItem('authToken', authToken);
-                updateAuthStatus();
-                updateTokenDisplay();
-                alert('Zalogowano pomyślnie!');
-            } else {
-                alert('Błąd logowania: ' + (result.data.message || 'Nieznany błąd'));
-            }
-        }
-
-        async function logout() {
-            await apiRequest('/auth/logout', 'POST');
-            authToken = null;
-            localStorage.removeItem('authToken');
-            updateAuthStatus();
-            updateTokenDisplay();
-            alert('Wylogowano');
-        }
-
-        async function testMe() {
-            await apiRequest('/auth/me', 'GET');
-        }
-
-        // === UŻYTKOWNICY ===
-
-        async function listUsers() {
-            await apiRequest('/users', 'GET');
-        }
-
-        async function createUser() {
-            const userData = {
-                username: document.getElementById('userUsername').value,
-                email: document.getElementById('userEmail').value,
-                password: document.getElementById('userPassword').value,
-                firstName: document.getElementById('userFirstName').value,
-                lastName: document.getElementById('userLastName').value,
-                roleId: parseInt(document.getElementById('userRole').value)
-            };
-
-            if (!userData.username || !userData.email || !userData.password || 
-                !userData.firstName || !userData.lastName) {
-                alert('Wypełnij wszystkie pola');
-                return;
-            }
-
-            const result = await apiRequest('/users', 'POST', userData);
-
-            if (result.success) {
-                alert('Użytkownik utworzony pomyślnie!');
-                // Wyczyść formularz
-                document.getElementById('userUsername').value = '';
-                document.getElementById('userEmail').value = '';
-                document.getElementById('userPassword').value = '';
-                document.getElementById('userFirstName').value = '';
-                document.getElementById('userLastName').value = '';
-            } else {
-                alert('Błąd: ' + (result.data.message || 'Nie udało się utworzyć użytkownika'));
-            }
-        }
-
-        // === ZADANIA ===
-
-        async function listTasks() {
-            await apiRequest('/tasks', 'GET');
-        }
-
-        async function listMyTasks() {
-            await apiRequest('/tasks/my', 'GET');
-        }
-
-        async function createTask() {
-            const taskData = {
-                name: document.getElementById('taskName').value,
-                description: document.getElementById('taskDescription').value,
-                location: document.getElementById('taskLocation').value,
-                taskTypeId: parseInt(document.getElementById('taskType').value)
-            };
-
-            if (!taskData.name || !taskData.location) {
-                alert('Wypełnij przynajmniej nazwę i lokalizację');
-                return;
-            }
-
-            const result = await apiRequest('/tasks', 'POST', taskData);
-
-            if (result.success) {
-                alert('Zadanie utworzone pomyślnie!');
-                // Wyczyść formularz
-                document.getElementById('taskName').value = '';
-                document.getElementById('taskDescription').value = '';
-                document.getElementById('taskLocation').value = '';
-            } else {
-                alert('Błąd: ' + (result.data.message || 'Nie udało się utworzyć zadania'));
-            }
-        }
-
-        // === TYPY ZADAŃ ===
-
-        async function listTaskTypes() {
-            // Endpoint do pobrania wszystkich typów zadań - trzeba go zaimplementować w API
-            // lub użyć endpointu BOM templates bez parametru
-            await apiRequest('/bom/templates', 'GET');
-        }
-
-        // === BOM ===
-
-        async function getAllBOMTemplates() {
-            await apiRequest('/bom/templates', 'GET');
-        }
-
-        async function getBOMByTaskType() {
-            const taskType = document.getElementById('bomTaskTypeCode').value;
-
-            if (!taskType) {
-                alert('Podaj kod typu zadania');
-                return;
-            }
-
-            await apiRequest(`/bom/templates/${taskType}`, 'GET');
-        }
-
-        // === URZĄDZENIA ===
-
-        async function registerDevice() {
-            const deviceData = {
-                serialNumber: document.getElementById('deviceSerialNumber').value,
-                materialCode: document.getElementById('deviceMaterialCode').value,
-                deviceType: document.getElementById('deviceType').value
-            };
-
-            if (!deviceData.serialNumber || !deviceData.materialCode || !deviceData.deviceType) {
-                alert('Wypełnij wszystkie pola');
-                return;
-            }
-
-            const result = await apiRequest('/devices/serial', 'POST', deviceData);
-
-            if (result.success) {
-                alert('Urządzenie zarejestrowane pomyślnie!');
-                // Wyczyść formularz
-                document.getElementById('deviceSerialNumber').value = '';
-                document.getElementById('deviceMaterialCode').value = '';
-                document.getElementById('deviceType').value = '';
-            } else {
-                alert('Błąd: ' + (result.data.message || 'Nie udało się zarejestrować urządzenia'));
-            }
-        }
-
-        // === AKTYWNOŚCI ===
-
-        async function getActivityTemplates() {
-            await apiRequest('/activities/templates', 'GET');
-        }
-
-        // === METRYKI ===
-
-        async function getDashboard() {
-            await apiRequest('/metrics/dashboard', 'GET');
-        }
-
-        async function getTaskMetrics() {
-            await apiRequest('/metrics/task-types', 'GET');
-        }
-                // === EMAIL / POWIADOMIENIA ===
+      if (result.ok && result.data.success && result.data.data && result.data.data.accessToken) {
+        authToken = result.data.data.accessToken;
+        refreshToken = result.data.data.refreshToken;
         
-        /**
-         * Sprawdza konfigurację systemu emaili
-         */
-        async function checkEmailConfig() {
-            await apiRequest('/notifications/config', 'GET');
-        }
+        localStorage.setItem('authToken', authToken);
+        localStorage.setItem('refreshToken', refreshToken);
         
-        /**
-         * Weryfikuje połączenie SMTP
-         */
-        async function verifyEmailConnection() {
-            const result = await apiRequest('/notifications/config', 'GET');
-            
-            if (result.success && result.data.connectionOk) {
-                alert('✅ Połączenie SMTP działa poprawnie!');
-            } else if (result.success && result.data.configured) {
-                alert('⚠️ System jest skonfigurowany, ale połączenie SMTP nie działa.\n\nSprawdź:\n- SMTP_HOST\n- SMTP_PORT\n- SMTP_USER\n- SMTP_PASSWORD');
-            } else {
-                alert('❌ System emaili nie jest skonfigurowany.\n\nDodaj do .env:\n- SMTP_HOST\n- SMTP_PORT\n- SMTP_USER\n- SMTP_PASSWORD');
-            }
+        if (result.data.data.user) {
+          localStorage.setItem('user', JSON.stringify(result.data.data.user));
         }
-        
-        /**
-         * Wysyła testowy email
-         */
-        async function sendTestEmail() {
-            const to = document.getElementById('testEmailTo').value;
-            
-            if (!to) {
-                alert('Podaj adres email');
-                return;
-            }
-            
-            // Walidacja email
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(to)) {
-                alert('Podaj poprawny adres email');
-                return;
-            }
-            
-            const result = await apiRequest('/notifications/test', 'POST', { to });
-            
-            if (result.success) {
-                alert(`✅ Email wysłany do ${to}!\n\nSprawdź skrzynkę pocztową (również folder SPAM).`);
-            } else {
-                alert(`❌ Błąd wysyłki:\n${result.data.message || 'Nieznany błąd'}`);
-            }
-        }
-        
-        /**
-         * Pobiera statystyki kolejki emaili
-         */
-        async function getEmailQueueStats() {
-            const result = await apiRequest('/notifications/queue/stats', 'GET');
-            
-            if (result.success) {
-                const stats = result.data;
-                const display = document.getElementById('emailStatsDisplay');
-                
-                display.innerHTML = `
-                    <div style="background: #2d2d2d; padding: 1rem; border-radius: 4px; margin-top: 1rem;">
-                        <h4 style="margin-bottom: 0.5rem; color: #007bff;">📊 Statystyki kolejki</h4>
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 1rem;">
-                            <div>
-                                <div style="color: #888; font-size: 0.85rem;">Oczekujące</div>
-                                <div style="font-size: 1.5rem; font-weight: bold;">${stats.waiting || 0}</div>
-                            </div>
-                            <div>
-                                <div style="color: #888; font-size: 0.85rem;">Aktywne</div>
-                                <div style="font-size: 1.5rem; font-weight: bold; color: #007bff;">${stats.active || 0}</div>
-                            </div>
-                            <div>
-                                <div style="color: #888; font-size: 0.85rem;">Ukończone</div>
-                                <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;">${stats.completed || 0}</div>
-                            </div>
-                            <div>
-                                <div style="color: #888; font-size: 0.85rem;">Nieudane</div>
-                                <div style="font-size: 1.5rem; font-weight: bold; color: #dc3545;">${stats.failed || 0}</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-        }
-        
-        /**
-         * Pobiera listę nieudanych wysyłek
-         */
-        async function getFailedEmailJobs() {
-            await apiRequest('/notifications/queue/failed?start=0&end=20', 'GET');
-        }
-        
-        /**
-         * Czyści kolejkę emaili (tylko admin)
-         */
-        async function clearEmailQueue() {
-            if (!confirm('Czy na pewno wyczyścić kolejkę emaili?\n\nTa operacja usunie wszystkie oczekujące emaile.')) {
-                return;
-            }
-            
-            const result = await apiRequest('/notifications/queue/clear', 'POST');
-            
-            if (result.success) {
-                alert('✅ Kolejka wyczyszczona!');
-                await getEmailQueueStats(); // Odśwież statystyki
-            } else {
-                alert(`❌ Błąd:\n${result.data.message || 'Nieznany błąd'}`);
-            }
-        }    
-    </script>
+
+        updateAuthStatus();
+        displayResponse('loginResponse', result.data, result.status);
+        alert('✅ ' + result.data.message);
+      } else {
+        displayResponse('loginResponse', result.data, result.status);
+        alert('❌ Błąd logowania: ' + (result.data.message || 'Nieznany błąd'));
+      }
+    });
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', function() {
+      authToken = null;
+      refreshToken = null;
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      updateAuthStatus();
+      alert('Wylogowano');
+    });
+
+    // Refresh Token
+    document.getElementById('refreshTokenBtn').addEventListener('click', async function() {
+      if (!refreshToken) {
+        alert('Brak refresh token. Zaloguj się ponownie.');
+        return;
+      }
+
+      const result = await apiRequest('/auth/refresh', 'POST', { refreshToken });
+      
+      if (result.ok && result.data.success && result.data.data && result.data.data.accessToken) {
+        authToken = result.data.data.accessToken;
+        localStorage.setItem('authToken', authToken);
+        updateAuthStatus();
+      }
+      
+      displayResponse('refreshResponse', result.data, result.status);
+    });
+
+    // Get Me
+    document.getElementById('getMeBtn').addEventListener('click', async function() {
+      const result = await apiRequest('/auth/me', 'GET');
+      displayResponse('meResponse', result.data, result.status);
+    });
+
+    // ============================================
+    // UŻYTKOWNICY
+    // ============================================
+
+    // Get Users
+    document.getElementById('getUsersBtn').addEventListener('click', async function() {
+      const result = await apiRequest('/users', 'GET');
+      displayResponse('usersResponse', result.data, result.status);
+    });
+
+    // Create User
+    document.getElementById('createUserBtn').addEventListener('click', async function() {
+      const username = document.getElementById('newUsername').value;
+      const email = document.getElementById('newEmail').value;
+      const password = document.getElementById('newPassword').value;
+      const firstName = document.getElementById('newFirstName').value;
+      const lastName = document.getElementById('newLastName').value;
+      const roleId = parseInt(document.getElementById('newRoleId').value);
+
+      if (!username || !email || !password || !firstName || !lastName) {
+        alert('Wypełnij wszystkie pola');
+        return;
+      }
+
+      const result = await apiRequest('/users', 'POST', {
+        username,
+        email,
+        password,
+        firstName,
+        lastName,
+        roleId
+      });
+
+      displayResponse('createUserResponse', result.data, result.status);
+      
+      if (result.ok) {
+        alert('✅ Użytkownik utworzony');
+        // Wyczyść formularz
+        document.getElementById('newUsername').value = '';
+        document.getElementById('newEmail').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('newFirstName').value = '';
+        document.getElementById('newLastName').value = '';
+      }
+    });
+
+    // ============================================
+    // ZADANIA
+    // ============================================
+
+    // Get Tasks
+    document.getElementById('getTasksBtn').addEventListener('click', async function() {
+      const result = await apiRequest('/tasks', 'GET');
+      displayResponse('tasksResponse', result.data, result.status);
+    });
+
+    // Create Task
+    document.getElementById('createTaskBtn').addEventListener('click', async function() {
+      const title = document.getElementById('taskTitle').value;
+      const description = document.getElementById('taskDescription').value;
+      const taskTypeId = parseInt(document.getElementById('taskTypeId').value);
+
+      if (!title || !description) {
+        alert('Wypełnij tytuł i opis');
+        return;
+      }
+
+      const result = await apiRequest('/tasks', 'POST', {
+        title,
+        description,
+        taskTypeId
+      });
+
+      displayResponse('createTaskResponse', result.data, result.status);
+      
+      if (result.ok) {
+        alert('✅ Zadanie utworzone');
+        document.getElementById('taskTitle').value = '';
+        document.getElementById('taskDescription').value = '';
+      }
+    });
+
+    // ============================================
+    // URZĄDZENIA
+    // ============================================
+
+    // Get Devices
+    document.getElementById('getDevicesBtn').addEventListener('click', async function() {
+      const result = await apiRequest('/devices', 'GET');
+      displayResponse('devicesResponse', result.data, result.status);
+    });
+
+    // Create Device
+    document.getElementById('createDeviceBtn').addEventListener('click', async function() {
+      const serialNumber = document.getElementById('deviceSerial').value;
+      const model = document.getElementById('deviceModel').value;
+      const macAddress = document.getElementById('deviceMac').value;
+
+      if (!serialNumber || !model) {
+        alert('Wypełnij numer seryjny i model');
+        return;
+      }
+
+      const result = await apiRequest('/devices', 'POST', {
+        serialNumber,
+        model,
+        macAddress
+      });
+
+      displayResponse('createDeviceResponse', result.data, result.status);
+      
+      if (result.ok) {
+        alert('✅ Urządzenie utworzone');
+        document.getElementById('deviceSerial').value = '';
+        document.getElementById('deviceModel').value = '';
+        document.getElementById('deviceMac').value = '';
+      }
+    });
+
+    // ============================================
+    // EMAIL
+    // ============================================
+
+    // Check Email Config
+    document.getElementById('checkEmailConfigBtn').addEventListener('click', async function() {
+      const result = await apiRequest('/notifications/config', 'GET');
+      displayResponse('emailConfigResponse', result.data, result.status);
+    });
+
+    // Test SMTP
+    document.getElementById('testSmtpBtn').addEventListener('click', async function() {
+      const result = await apiRequest('/notifications/test-connection', 'POST');
+      displayResponse('emailConfigResponse', result.data, result.status);
+      
+      if (result.ok && result.data.success) {
+        alert('✅ Połączenie SMTP działa poprawnie!');
+      } else {
+        alert('❌ Błąd połączenia SMTP: ' + (result.data.message || 'Nieznany błąd'));
+      }
+    });
+
+    // Send Test Email
+    document.getElementById('sendTestEmailBtn').addEventListener('click', async function() {
+      const to = document.getElementById('testEmailTo').value;
+
+      if (!to) {
+        alert('Wprowadź adres email');
+        return;
+      }
+
+      const result = await apiRequest('/notifications/test', 'POST', { to });
+      displayResponse('testEmailResponse', result.data, result.status);
+      
+      if (result.ok) {
+        alert('✅ Email testowy wysłany do: ' + to);
+      }
+    });
+
+    // Queue Stats
+    document.getElementById('queueStatsBtn').addEventListener('click', async function() {
+      const result = await apiRequest('/notifications/queue/stats', 'GET');
+      displayResponse('queueStatsResponse', result.data, result.status);
+      
+      if (result.ok && result.data.success && result.data.data) {
+        const stats = result.data.data;
+        document.getElementById('statWaiting').textContent = stats.waiting || 0;
+        document.getElementById('statActive').textContent = stats.active || 0;
+        document.getElementById('statCompleted').textContent = stats.completed || 0;
+        document.getElementById('statFailed').textContent = stats.failed || 0;
+        document.getElementById('queueStatsGrid').style.display = 'grid';
+      }
+    });
+
+    // Failed Jobs
+    document.getElementById('failedJobsBtn').addEventListener('click', async function() {
+      const result = await apiRequest('/notifications/queue/failed', 'GET');
+      displayResponse('failedJobsResponse', result.data, result.status);
+    });
+
+    // Clean Queue
+    document.getElementById('cleanQueueBtn').addEventListener('click', async function() {
+      if (!confirm('Czy na pewno chcesz wyczyścić kolejkę emaili?')) {
+        return;
+      }
+
+      const result = await apiRequest('/notifications/queue/clean', 'POST');
+      displayResponse('cleanQueueResponse', result.data, result.status);
+      
+      if (result.ok) {
+        alert('✅ Kolejka wyczyszczona');
+      }
+    });
+
+    // ============================================
+    // INICJALIZACJA
+    // ============================================
+
+    // Inicjalizacja po załadowaniu strony
+    document.addEventListener('DOMContentLoaded', function() {
+      updateAuthStatus();
+      setupPasswordToggles();
+      console.log('🧪 API Tester initialized');
+      console.log('API URL:', API_URL);
+    });
+  </script>
 </body>
 </html>
