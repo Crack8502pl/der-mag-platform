@@ -12,6 +12,11 @@ build/
 .env.local
 .env.production
 
+# Dotenv-vault files (encrypted secrets management)
+.env.keys
+.env.me
+# Note: .env.vault CAN be committed (it's encrypted)
+
 # Logs
 logs/
 *.log

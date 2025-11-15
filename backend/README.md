@@ -87,13 +87,38 @@ psql -U dermag_user -d dermag_platform -f scripts/seed-data.sql
 
 ## ⚙️ Konfiguracja
 
+### 🔒 Encrypted Secrets Management
+
+Der-Mag Platform używa **dotenv-vault** do bezpiecznego zarządzania wrażliwymi danymi. Zamiast trzymać hasła w plaintext, wszystkie secrets są szyfrowane.
+
+#### Quick Start
+
 Skopiuj plik `.env.example` do `.env` i dostosuj wartości:
 
 ```bash
 cp .env.example .env
 ```
 
-Przykładowa konfiguracja `.env`:
+Wypełnij `.env` swoimi lokalnymi wartościami. Plik ten jest w `.gitignore` i nigdy nie jest commitowany.
+
+#### Dla zespołów używających vault
+
+Jeśli projekt już ma skonfigurowany vault, otrzymasz od team leadera klucz development:
+
+```bash
+# Dodaj klucz do swojego lokalnego .env:
+echo "DOTENV_VAULT_DEVELOPMENT_KEY=dotenv://:key_xxxxx" > .env
+
+# Start aplikacji - automatycznie deszyfuje secrets:
+npm run dev
+```
+
+#### Szczegółowa dokumentacja
+
+- 📖 **[Setup Guide](docs/ENCRYPTED_ENV_SETUP.md)** - Kompletna instrukcja konfiguracji
+- 🔐 **[Security Guide](docs/SECURITY_SECRETS_GUIDE.md)** - Best practices i procedury
+
+### Przykładowa konfiguracja `.env`:
 
 ```env
 NODE_ENV=development
@@ -372,14 +397,32 @@ curl -X POST http://localhost:3000/api/tasks \
 
 ### Bezpieczeństwo:
 
-- ✅ JWT token-based authentication
-- ✅ Bcrypt password hashing (10 rounds)
-- ✅ Helmet.js security headers
-- ✅ Rate limiting (100 req/15min)
-- ✅ CORS configuration
-- ✅ Input validation
-- ✅ SQL injection prevention
-- ✅ XSS protection
+- ✅ **Encrypted secrets** - dotenv-vault AES-256-GCM encryption
+- ✅ **JWT token-based authentication**
+- ✅ **Bcrypt password hashing** (10 rounds)
+- ✅ **Helmet.js security headers**
+- ✅ **Rate limiting** (100 req/15min)
+- ✅ **CORS configuration**
+- ✅ **Input validation**
+- ✅ **SQL injection prevention**
+- ✅ **XSS protection**
+
+#### 🔐 Secrets Management
+
+System używa zaszyfrowanych zmiennych środowiskowych:
+
+```bash
+# Helper scripts do zarządzania vault:
+npm run env:init    # Inicjalizacja vault (pierwszy raz)
+npm run env:push    # Push lokalnego .env do vault
+npm run env:pull    # Pull z vault do lokalnego .env
+npm run env:build   # Build zaszyfrowanego .env.vault
+npm run env:keys    # Pokaż klucze deszyfrujące
+```
+
+**Dokumentacja bezpieczeństwa:**
+- 📖 [Encrypted Environment Setup](docs/ENCRYPTED_ENV_SETUP.md)
+- 🔐 [Security & Secrets Guide](docs/SECURITY_SECRETS_GUIDE.md)
 
 ### Wydajność:
 
