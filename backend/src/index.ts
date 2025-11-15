@@ -1,15 +1,11 @@
 // src/index.ts
 // Punkt wejścia aplikacji
-import 'dotenv/config';
+import 'dotenv-vault/config';
 import 'reflect-metadata';
-import dotenv from 'dotenv';
 import app from './app';
 import { initializeDatabase } from './config/database';
 import EmailService from './services/EmailService';
 import EmailQueueService from './services/EmailQueueService';
-
-// Załaduj zmienne środowiskowe
-dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 

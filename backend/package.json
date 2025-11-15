@@ -7,7 +7,12 @@
     "start": "node dist/index.js",
     "dev": "nodemon --watch src --exec ts-node src/index.ts",
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "env:init": "dotenv-vault new",
+    "env:push": "dotenv-vault push",
+    "env:pull": "dotenv-vault pull",
+    "env:build": "dotenv-vault build",
+    "env:keys": "dotenv-vault keys"
   },
   "keywords": [
     "der-mag",
@@ -24,6 +29,7 @@
     "class-validator": "^0.14.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
+    "dotenv-vault": "^1.27.0",
     "exifr": "^7.1.3",
     "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
