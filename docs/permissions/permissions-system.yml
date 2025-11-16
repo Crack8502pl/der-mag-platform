@@ -1,0 +1,1410 @@
+# ============================================
+# System Uprawnień i Ról - Der-Mag Platform
+# ============================================
+# Autor: Copilot + Crack8502pl
+# Wersja: 1.1
+# Data: 2025-11-15
+# Status: DRAFT - po edycji Crack8502pl
+
+metadata:
+  title: "System Uprawnień Der-Mag Platform"
+  version: "1.1"
+  created: "2025-11-15"
+  status: "DRAFT"
+  description: "Kompleksowy system RBAC z granularnymi uprawnieniami"
+
+# ============================================
+# FILOZOFIA SYSTEMU
+# ============================================
+philosophy:
+  multi_role: true  # Użytkownik może mieć wiele ról jednocześnie
+  admin_auto_access: true  # Admin ma automatycznie wszystkie uprawnienia
+  granular_permissions: true  # Uprawnienia typu resource.action
+  context_aware: true  # Uprawnienia zależne od kontekstu (own vs all)
+  auditable: true  # Wszystkie akcje są logowane
+  
+  key_principles:
+    - "Principle of Least Privilege - minimalne potrzebne uprawnienia"
+    - "Separation of Duties - różne osoby = różne uprawnienia"
+    - "Defense in Depth - wielowarstwowa ochrona"
+    - "Audit Everything - pełna historia działań"
+
+# ============================================
+# DEFINICJE RÓL
+# ============================================
+roles:
+  admin:
+    id: 1
+    name: "admin"
+    display_name: "Administrator"
+    description: "Administrator systemu z pełnym dostępem do wszystkiego"
+    is_admin: true  # ✅ Automatycznie wszystkie uprawnienia
+    level: 100
+    can_have_other_roles: false
+    special_abilities:
+      - "Zarządzanie użytkownikami i rolami"
+      - "Dostęp do wszystkich zadań"
+      - "Usuwanie danych"
+      - "Modyfikacja uprawnień"
+      - "Dostęp do audit logów"
+    restrictions: []
+    # TODO: Czy admin ma jakieś ograniczenia? Czy może np. usuwać audit logi?
+  
+  manager:
+    id: 2
+    name: "manager"
+    display_name: "Menedżer Projektów"
+    description: "Menedżer zarządzający projektami i zespołem"
+    is_admin: false
+    level: 80
+    can_have_other_roles: true
+    possible_combinations:
+      - "manager + technician"  # Może też pracować w terenie
+      - "manager + coordinator"
+    special_abilities:
+      - "Tworzenie wszystkich typów zadań"
+      - "Zarządzanie użytkownikami (tworzenie, edycja)"
+      - "Przypisywanie zadań"
+      - "Zatwierdzanie materiałów i zdjęć"
+      - "Dostęp do raportów i metryk"
+    restrictions:
+      - "Nie może usuwać użytkowników (tylko deaktywacja)"
+      - "Nie może zarządzać rolami admin"
+    # TODO: Czy manager może zmienić uprawnienia innego managera?
+  
+  coordinator:
+    id: 3
+    name: "coordinator"
+    display_name: "Koordynator"
+    description: "Koordynator zadań serwisowych"
+    is_admin: false
+    level: 60
+    can_have_other_roles: true
+    possible_combinations:
+      - "coordinator + technician"
+    special_abilities:
+      - "Tworzenie zadań serwisowych (tylko typ SERWIS)"
+      - "Przypisywanie techników do zadań"
+      - "Edycja zadań serwisowych"
+      - "Zarządzanie materiałami (BOM)"
+    restrictions:
+      - "Może tworzyć TYLKO zadania typu SERWIS"
+      - "Nie może tworzyć innych typów (SMW, CSDIP, SSP, itp.)"
+      - "Nie może usuwać zadań"
+      - "Nie może zarządzać użytkownikami"
+    validation:
+      # Logika walidacji w kodzie
+      task_creation: |
+        if (user.role === 'coordinator') {
+          const taskType = await getTaskType(taskTypeId);
+          if (taskType.code !== 'SERWIS') {
+            throw new ForbiddenError('Koordynator może tworzyć tylko zadania serwisowe');
+          }
+        }
+    # TODO: Czy coordinator może edytować zadania innych typów?
+    # TODO: Czy może przeglądać zadania innych typów?
+  
+  technician:
+    id: 4
+    name: "technician"
+    display_name: "Technik"
+    description: "Technik terenowy wykonujący zadania"
+    is_admin: false
+    level: 40
+    can_have_other_roles: true
+    possible_combinations:
+      - "technician + coordinator"  # Starszy technik
+    special_abilities:
+      - "Przejęcie dowolnego zadania"  # ⚠️ TWOJE SPECJALNE WYMAGANIE!
+      - "Wykonywanie aktywności w zadaniach"
+      - "Upload zdjęć kontroli jakości"
+      - "Rejestracja urządzeń w terenie"
+      - "Aktualizacja statusu zadań"
+    restrictions:
+      - "Widzi tylko WŁASNE zadania (assigned to him)"
+      - "Może edytować tylko WŁASNE aktywności"
+      - "NIE MOŻE edytować aktywności innych techników"  # ⚠️ KLUCZOWE!
+      - "NIE MOŻE usuwać aktywności innych techników"
+      - "Nie może tworzyć zadań"
+      - "Nie może przypisywać innych użytkowników"
+    special_rules:
+      task_takeover:
+        description: "Technik może przejąć dowolne zadanie"
+        process: |
+          1. Technik widzi zadanie w statusie 'in_progress'
+          2. Kliknięcie 'Przejmij zadanie'
+          3. System sprawdza:
+             - Czy zadanie nie jest zablokowane
+             - Czy poprzedni technik nie jest aktywny (ostatnia aktywność > 2h)
+          4. Przejęcie:
+             - Dodaje nowego technika do task_assignments
+             - Poprzednie przypisanie pozostaje w historii
+             - Status zadania NIE zmienia się
+        data_separation: |
+          TaskActivity:
+            - Każda aktywność ma pole 'created_by' (userId)
+            - Technik B widzi aktywności Technika A (readonly)
+            - Technik B NIE MOŻE edytować/usunąć aktywności Technika A
+            - Technik B dodaje NOWE aktywności ze swoim userId
+          
+          QualityPhoto:
+            - Każde zdjęcie ma 'uploaded_by' (userId)
+            - Technik B widzi zdjęcia Technika A
+            - Technik B NIE MOŻE usunąć zdjęć Technika A
+          
+          TaskMaterial:
+            - Każda alokacja ma 'allocated_by' (userId)
+            - Historia alokacji jest zachowana
+        validation_code: |
+          // Middleware sprawdza:
+          if (activity.createdBy !== req.userId && !req.user.isAdmin) {
+            throw new ForbiddenError('Nie możesz edytować aktywności innego technika');
+          }
+    # TODO: Czy technik widzi wszystkie zadania, czy tylko 'available' + własne?
+    # TODO: Jak długo zadanie jest 'dostępne' do przejęcia?
+    # TODO: Czy poprzedni technik dostaje powiadomienie?
+  
+  viewer:
+    id: 5
+    name: "viewer"
+    display_name: "Obserwator"
+    description: "Obserwator z dostępem tylko do odczytu"
+    is_admin: false
+    level: 20
+    can_have_other_roles: true
+    possible_combinations:
+      - "viewer + technician"  # Trainee
+    special_abilities:
+      - "Przeglądanie wszystkich danych"
+      - "Eksport raportów (opcjonalnie)"
+    restrictions:
+      - "TYLKO odczyt - zero modyfikacji"
+      - "Nie może niczego dodać/edytować/usunąć"
+    # TODO: Czy viewer może eksportować dane?
+
+# ============================================
+# KATALOG UPRAWNIEŃ (63 uprawnienia)
+# ============================================
+permissions:
+  
+  # ========================================
+  # TASKS (Zadania) - 18 uprawnień
+  # ========================================
+  tasks:
+    - name: "tasks.create.all"
+      description: "Tworzenie wszystkich typów zadań"
+      resource: "tasks"
+      action: "create.all"
+      context: null
+      examples:
+        - "Tworzenie zadania SMW"
+        - "Tworzenie zadania CSDIP"
+        - "Tworzenie zadania SSP"
+    
+    - name: "tasks.create.service"
+      description: "Tworzenie zadań serwisowych (tylko typ SERWIS)"
+      resource: "tasks"
+      action: "create.service"
+      context: "task_type === 'SERWIS'"
+      examples:
+        - "Naprawa systemu"
+        - "Konserwacja systemu"
+        - "Naprawa Systemu przed odbiorem końcowym"
+        - "Powtórna naprawa w przeciągu 7 dnii"
+      validation: |
+        const taskType = await getTaskType(taskTypeId);
+        if (taskType.code !== 'SERWIS') {
+          throw new ForbiddenError('Możesz tworzyć tylko zadania serwisowe/reklamacyjne');
+        }
+    
+    - name: "tasks.read"
+      description: "Odczyt wszystkich zadań"
+      resource: "tasks"
+      action: "read"
+      context: "all"
+    
+    - name: "tasks.read.own"
+      description: "Odczyt tylko własnych zadań (przypisanych do użytkownika)"
+      resource: "tasks"
+      action: "read"
+      context: "own"
+      query_filter: |
+        queryBuilder
+          .innerJoin('task.assignments', 'assignment')
+          .where('assignment.userId = :userId', { userId: req.userId });
+    
+    - name: "tasks.update"
+      description: "Edycja wszystkich zadań"
+      resource: "tasks"
+      action: "update"
+      context: "all"
+    
+    - name: "tasks.update.own"
+      description: "Edycja tylko własnych zadań"
+      resource: "tasks"
+      action: "update"
+      context: "own"
+      validation: |
+        const assignment = await getAssignment(taskId, req.userId);
+        if (!assignment) {
+          throw new ForbiddenError('To nie jest Twoje zadanie');
+        }
+    
+    - name: "tasks.delete"
+      description: "Usuwanie zadań (soft delete)"
+      resource: "tasks"
+      action: "delete"
+      context: null   
+      note: "Soft delete - ustawia active=false"
+      
+    - name: "tasks.undelete"
+      description: "Przywrócenie zadania przypadkowo usuniętego"
+      resource: "tasks"
+      action: "undelete/reopen"
+      context: null
+    
+    - name: "tasks.assign"
+      description: "Przypisywanie użytkowników do zadań"
+      resource: "tasks"
+      action: "assign"
+      context: null
+    
+    - name: "tasks.takeover"
+      description: "Przejęcie zadania (specjalne dla technika)"
+      resource: "tasks"
+      action: "takeover"
+      context: "available_or_assigned_to_inactive"
+      special_rule: true
+      implementation: |
+        // 1. Sprawdź czy zadanie jest dostępne
+        const task = await getTask(taskNumber);
+        if (task.status === 'completed') {
+          throw new ForbiddenError('Nie możesz przejąć zakończonego zadania');
+        }
+        
+        // 2. Sprawdź czy zadanie ma status "Save"
+        
+        // 3. Przejmij
+        await addAssignment(task.id, req.userId);
+    
+    - name: "tasks.status.change"
+      description: "Zmiana statusu zadania"
+      resource: "tasks"
+      action: "status.change"
+      context: null
+    
+    - name: "tasks.priority.change"
+      description: "Zmiana priorytetu zadania"
+      resource: "tasks"
+      action: "priority.change"
+      context: null
+    
+    - name: "tasks.approve"
+      description: "Zatwierdzanie zadań"
+      resource: "tasks"
+      action: "approve"
+      context: null
+      
+    - name: "tasks.Save"
+      description: "Zapisuje zmiany w zadaniu"
+      resource: "tasks"
+      action: "Save"
+      context: null
+    
+    - name: "tasks.reject"
+      description: "Odrzucanie zadań"
+      resource: "tasks"
+      action: "reject"
+      context: null
+    
+    - name: "tasks.reopen"
+      description: "Ponowne otwieranie zamkniętych zadań"
+      resource: "tasks"
+      action: "reopen"
+      context: null
+      
+    - name: "task.unarchive"
+      description: "Przywracanie pomyłkowo zarchiwizowanych zadań"
+      resource: "tasks"
+      action: "reopen"
+      context: null
+    
+    - name: "tasks.archive"
+      description: "Archiwizowanie zadań"
+      resource: "tasks"
+      action: "archive"
+      context: null
+  
+  # ========================================
+  # USERS (Użytkownicy) - 7 uprawnień
+  # ========================================
+  users:
+    - name: "users.create"
+      description: "Tworzenie nowych użytkowników"
+      resource: "users"
+      action: "create"
+    
+    - name: "users.read"
+      description: "Przeglądanie listy użytkowników"
+      resource: "users"
+      action: "read"
+    
+    - name: "users.read.own"
+      description: "Odczyt tylko własnego profilu"
+      resource: "users"
+      action: "read"
+      context: "own"
+    
+    - name: "users.update"
+      description: "Edycja użytkowników"
+      resource: "users"
+      action: "update"
+    
+    - name: "users.update.own"
+      description: "Edycja tylko własnego profilu"
+      resource: "users"
+      action: "update"
+      context: "own"
+    
+    - name: "users.delete"
+      description: "Usuwanie użytkowników (deaktywacja)"
+      resource: "users"
+      action: "delete"
+      note: "Soft delete - ustawia active=false"
+    
+    - name: "users.roles.manage"
+      description: "Przypisywanie ról użytkownikom"
+      resource: "users"
+      action: "roles.manage"
+  
+  # ========================================
+  # BOM (Bill of Materials) - 9 uprawnień
+  # ========================================
+  bom:
+    - name: "bom.read"
+      description: "Odczyt materiałów i szablonów"
+      resource: "bom"
+      action: "read"
+    
+    - name: "bom.templates.read"
+      description: "Odczyt szablonów BOM"
+      resource: "bom"
+      action: "templates.read"
+    
+    - name: "bom.update"
+      description: "Edycja materiałów w zadaniach"
+      resource: "bom"
+      action: "update"
+    
+    - name: "bom.templates.create"
+      description: "Tworzenie szablonów BOM"
+      resource: "bom"
+      action: "templates.create"
+    
+    - name: "bom.templates.update"
+      description: "Edycja szablonów BOM"
+      resource: "bom"
+      action: "templates.update"
+    
+    - name: "bom.templates.delete"
+      description: "Usuwanie szablonów BOM (soft delete)"
+      resource: "bom"
+      action: "templates.delete"
+      
+    - name: "bom.templates.purification"
+      description: "Usuwanie szablonów BOM proces nieodwracalny 2x potwierdzić czynność"
+      resource: "bom"
+      action: "templates.purification"      
+      
+    - name: "bom.templates.undelete"
+      description: "przywrócenie usuniętego szablonów BOM (soft delete)"
+      resource: "bom"
+      action: "templates.updelete"        
+    
+    - name: "bom.approve"
+      description: "Zatwierdzanie wykorzystania materiałów"
+      resource: "bom"
+      action: "approve"
+  
+  # ========================================
+  # DEVICES (Urządzenia) - 6 uprawnień
+  # ========================================
+  devices:
+    - name: "devices.register"
+      description: "Rejestracja nowych urządzeń z numerem seryjnym"
+      resource: "devices"
+      action: "register"
+    
+    - name: "devices.read"
+      description: "Odczyt urządzeń"
+      resource: "devices"
+      action: "read"
+    
+    - name: "devices.update"
+      description: "Edycja informacji o urządzeniach"
+      resource: "devices"
+      action: "update"
+    
+    - name: "devices.delete"
+      description: "Usuwanie urządzeń (soft delete)"
+      resource: "devices"
+      action: "delete"
+      note: "Soft delete - ustawia active=false"
+    
+    - name: "devices.verify"
+      description: "Weryfikacja urządzeń"
+      resource: "devices"
+      action: "verify"
+    
+    - name: "devices.assign"
+      description: "Przypisywanie urządzeń do zadań"
+      resource: "devices"
+      action: "assign"
+  
+  # ========================================
+  # ACTIVITIES (Aktywności/Checklisty) - 6 uprawnień
+  # ========================================
+  activities:
+    - name: "activities.read"
+      description: "Odczyt aktywności i szablonów"
+      resource: "activities"
+      action: "read"
+    
+    - name: "activities.read.own"
+      description: "Odczyt tylko własnych aktywności"
+      resource: "activities"
+      action: "read"
+      context: "own"
+    
+    - name: "activities.complete"
+      description: "Oznaczanie aktywności jako wykonane (dodawanie nowego wpisu)"
+      resource: "activities"
+      action: "complete"
+    
+    - name: "activities.update.own"
+      description: "Edycja tylko własnych aktywności"
+      resource: "activities"
+      action: "update"
+      context: "own"
+      validation: |
+        const activity = await getActivity(activityId);
+        if (activity.createdBy !== req.userId && !req.user.isAdmin) {
+          throw new ForbiddenError('Nie możesz edytować aktywności innego technika');
+        }
+    
+    - name: "activities.update.all"
+      description: "Edycja wszystkich aktywności"
+      resource: "activities"
+      action: "update"
+      context: "all"
+    
+    - name: "activities.approve"
+      description: "Zatwierdzanie wykonanych aktywności"
+      resource: "activities"
+      action: "approve"
+  
+  # ========================================
+  # QUALITY (Kontrola jakości) - 7 uprawnień
+  # ========================================
+  quality:
+    - name: "quality.upload"
+      description: "Upload zdjęć kontroli jakości"
+      resource: "quality"
+      action: "upload"
+    
+    - name: "quality.read"
+      description: "Przeglądanie zdjęć"
+      resource: "quality"
+      action: "read"
+    
+    - name: "quality.update"
+      description: "Edycja informacji o zdjęciach"
+      resource: "quality"
+      action: "update"
+    
+    - name: "quality.delete"
+      description: "Usuwanie zdjęć"
+      resource: "quality"
+      action: "delete"
+    
+    - name: "quality.approve"
+      description: "Zatwierdzanie zdjęć"
+      resource: "quality"
+      action: "approve"
+    
+    - name: "quality.reject"
+      description: "Odrzucanie zdjęć z komentarzem"
+      resource: "quality"
+      action: "reject"
+    
+    - name: "quality.require-reupload"
+      description: "Wymaganie ponownego uploadu"
+      resource: "quality"
+      action: "require-reupload"
+  
+  # ========================================
+  # IP MANAGEMENT - 6 uprawnień
+  # ========================================
+  ip:
+    - name: "ip.read"
+      description: "Przeglądanie pul IP"
+      resource: "ip"
+      action: "read"
+    
+    - name: "ip.pools.read"
+      description: "Odczyt konfiguracji pul"
+      resource: "ip"
+      action: "pools.read"
+    
+    - name: "ip.allocate"
+      description: "Alokacja adresów IP z puli"
+      resource: "ip"
+      action: "allocate"
+    
+    - name: "ip.release"
+      description: "Zwalnianie adresów IP"
+      resource: "ip"
+      action: "release"
+    
+    - name: "ip.pools.create"
+      description: "Tworzenie nowych pul IP"
+      resource: "ip"
+      action: "pools.create"
+    
+    - name: "ip.pools.update"
+      description: "Modyfikacja pul IP"
+      resource: "ip"
+      action: "pools.update"
+  
+  # ========================================
+  # METRICS & REPORTS - 5 uprawnień
+  # ========================================
+  metrics:
+    - name: "metrics.read"
+      description: "Przeglądanie metryk i dashboardu"
+      resource: "metrics"
+      action: "read"
+    
+    - name: "metrics.read.all"
+      description: "Dostęp do wszystkich statystyk"
+      resource: "metrics"
+      action: "read.all"
+    
+    - name: "metrics.export"
+      description: "Export raportów do CSV/PDF"
+      resource: "metrics"
+      action: "export"
+    
+    - name: "metrics.export.detailed"
+      description: "Export szczegółowych raportów"
+      resource: "metrics"
+      action: "export.detailed"
+    
+    - name: "metrics.analytics"
+      description: "Dostęp do zaawansowanej analityki"
+      resource: "metrics"
+      action: "analytics"
+  
+  # ========================================
+  # NOTIFICATIONS - 4 uprawnienia
+  # ========================================
+  notifications:
+    - name: "notifications.read"
+      description: "Odczyt powiadomień"
+      resource: "notifications"
+      action: "read"
+    
+    - name: "notifications.read.all"
+      description: "Odczyt wszystkich powiadomień (admin)"
+      resource: "notifications"
+      action: "read.all"
+    
+    - name: "notifications.send"
+      description: "Wysyłanie powiadomień"
+      resource: "notifications"
+      action: "send"
+    
+    - name: "notifications.manage"
+      description: "Zarządzanie ustawieniami powiadomień"
+      resource: "notifications"
+      action: "manage"
+
+# ============================================
+# MAPOWANIE: Role → Permissions
+# ============================================
+role_permissions_mapping:
+  
+  admin:
+    # Admin ma WSZYSTKO automatycznie (is_admin: true)
+    auto_grant: "ALL_PERMISSIONS"
+    explicit_permissions: []  # Nie trzeba wypisywać
+  
+  manager:
+    permissions:
+      # Tasks - pełna kontrola
+      - "tasks.create.all"
+      - "tasks.read"
+      - "tasks.update"
+      - "tasks.delete"
+      - "tasks.assign"
+      - "tasks.status.change"
+      - "tasks.priority.change"
+      - "tasks.approve"
+      - "tasks.reject"
+      - "tasks.reopen"
+      
+      # Users - zarządzanie
+      - "users.read"
+      - "users.create"
+      - "users.update"
+      - "users.roles.manage"  # Może przypisywać role (poza admin)
+      
+      # BOM - zatwierdzanie
+      - "bom.read"
+      - "bom.update"
+      - "bom.approve"
+      - "bom.templates.create"
+      - "bom.templates.update"
+      
+      # Devices
+      - "devices.read"
+      - "devices.verify"
+      - "devices.update"
+      
+      # Activities
+      - "activities.read"
+      - "activities.approve"
+      
+      # Quality - weryfikacja
+      - "quality.read"
+      - "quality.approve"
+      - "quality.reject"
+      
+      # IP
+      - "ip.read"
+      - "ip.allocate"
+      - "ip.release"
+      
+      # Metrics - pełny dostęp
+      - "metrics.read"
+      - "metrics.read.all"
+      - "metrics.export"
+  
+  coordinator:
+    permissions:
+      # Tasks - tylko serwisowe
+      - "tasks.create.service"  # ⚠️ TYLKO SERWIS!
+      - "tasks.read"
+      - "tasks.update"
+      - "tasks.assign"
+      - "tasks.status.change"
+      
+      # Users - odczyt
+      - "users.read"
+      
+      # BOM
+      - "bom.read"
+      - "bom.update"
+      
+      # Devices
+      - "devices.read"
+      - "devices.register"
+      
+      # Activities
+      - "activities.read"
+      - "activities.complete"
+      
+      # Quality
+      - "quality.read"
+      - "quality.upload"
+      
+      # IP
+      - "ip.read"
+      
+      # Metrics
+      - "metrics.read"
+  
+  technician:
+    permissions:
+      # Tasks - tylko swoje + przejęcie
+      - "tasks.read.own"  # Widzi tylko swoje
+      - "tasks.update.own"
+      - "tasks.takeover"  # ⚠️ SPECJALNE - może przejąć
+      - "tasks.status.change"
+      
+      # BOM
+      - "bom.read"
+      
+      # Devices
+      - "devices.read"
+      - "devices.register"  # Rejestruje w terenie
+      
+      # Activities
+      - "activities.read"
+      - "activities.complete"
+      - "activities.update.own"  # ⚠️ Tylko swoje!
+      
+      # Quality
+      - "quality.read"
+      - "quality.upload"  # Robi zdjęcia
+      
+      # Metrics
+      - "metrics.read"  # Swoje statystyki
+  
+  viewer:
+    permissions:
+      # Tylko odczyt
+      - "tasks.read"
+      - "users.read"
+      - "bom.read"
+      - "devices.read"
+      - "activities.read"
+      - "quality.read"
+      - "ip.read"
+      - "metrics.read"
+
+# ============================================
+# SPECJALNE REGUŁY BIZNESOWE
+# ============================================
+special_rules:
+  
+  task_takeover_by_technician:
+    title: "Przejęcie zadania przez technika"
+    description: |
+      Technik może przejąć dowolne zadanie, ale czynności przez niego odnotowane 
+      nie zmienią czynności które wykonał wcześniejszy technik.
+    
+    step_by_step:
+      1:
+        step: "Technik widzi zadanie"
+        details: |
+          - Technik widzi zadania w statusie 'in_progress'
+          - Może zobaczyć kto jest obecnie przypisany
+          - Widzi ostatnią aktywność (timestamp)
+      
+      2:
+        step: "Kliknięcie 'Przejmij zadanie'"
+        ui: "Button w widoku szczegółów zadania"
+      
+      3:
+        step: "Sprawdzenie przez system"
+        checks:
+          - "Czy zadanie nie jest w statusie 'completed' lub 'archived'"
+          - "Czy poprzedni technik nie jest aktywny (last_activity > 2h)"
+          - "Czy zadanie nie jest zablokowane (locked=false)"
+        sql: |
+          SELECT 
+            t.*,
+            MAX(ta.created_at) as last_activity
+          FROM tasks t
+          LEFT JOIN task_activities ta ON t.id = ta.task_id
+          WHERE t.task_number = ?
+          AND t.status NOT IN ('completed', 'archived')
+          AND (
+            MAX(ta.created_at) IS NULL 
+            OR MAX(ta.created_at) < NOW() - INTERVAL '2 hours'
+          )
+      
+      4:
+        step: "Przejęcie zadania"
+        actions:
+          - "Dodanie nowego wpisu do task_assignments"
+          - "Poprzednie przypisanie pozostaje (nie jest usuwane)"
+          - "Status zadania NIE zmienia się"
+          - "Wysłanie powiadomienia do poprzedniego technika (opcjonalnie)"
+        sql: |
+          -- Nowe przypisanie (nie usuwa starego!)
+          INSERT INTO task_assignments (task_id, user_id, assigned_by, role_in_task)
+          VALUES (?, ?, NULL, 'technician_takeover');
+          
+          -- Audit log
+          INSERT INTO audit_logs (action, user_id, resource_type, resource_id)
+          VALUES ('TASK_TAKEOVER', ?, 'task', ?);
+    
+    data_separation:
+      task_activities:
+        description: "Aktywności są osobne dla każdego technika"
+        schema: |
+          CREATE TABLE task_activities (
+            id SERIAL PRIMARY KEY,
+            task_id INT REFERENCES tasks(id),
+            activity_template_id INT,
+            created_by INT REFERENCES users(id),  -- ⚠️ KTO STWORZYŁ
+            completed_at TIMESTAMP,
+            notes TEXT,
+            photos JSONB
+          );
+        rules:
+          - "Każda aktywność ma pole 'created_by' wskazujące technika"
+          - "Technik B widzi aktywności Technika A (SELECT)"
+          - "Technik B NIE MOŻE UPDATE/DELETE aktywności Technika A"
+          - "Technik B tworzy NOWE wpisy ze swoim user_id"
+        validation_code: |
+          // Middleware przed UPDATE/DELETE activity
+          const activity = await activityRepo.findOne({ where: { id: activityId } });
+          
+          if (activity.createdBy !== req.userId && !req.user.isAdmin) {
+            throw new ForbiddenError({
+              message: 'Nie możesz modyfikować aktywności innego technika',
+              code: 'ACTIVITY_NOT_YOURS',
+              createdBy: activity.createdBy,
+              yourUserId: req.userId
+            });
+          }
+      
+      quality_photos:
+        description: "Zdjęcia są osobne dla każdego technika"
+        rules:
+          - "Każde zdjęcie ma 'uploaded_by'"
+          - "Technik B widzi zdjęcia Technika A"
+          - "Technik B NIE MOŻE usunąć zdjęć Technika A"
+          - "Admin/Manager może wszystko"
+      
+      task_materials:
+        description: "Alokacje materiałów są audytowane"
+        rules:
+          - "Każda alokacja ma 'allocated_by' i timestamp"
+          - "Historia alokacji jest zachowana"
+          - "Technik może dodać nową alokację"
+          - "Technik nie może zmienić alokacji poprzednika"
+    
+    ui_considerations:
+      task_detail_view: |
+        ┌────────────────────────────────────────┐
+        │ Zadanie #123456789                     │
+        │ Status: In Progress                    │
+        │                                        │
+        │ 📋 Historia przypisań:                 │
+        │ • Jan Kowalski (2025-11-10 08:00)     │
+        │ • Piotr Nowak (2025-11-12 14:30) ← TY │
+        │                                        │
+        │ ✅ Aktywności:                         │
+        │ [x] Montaż kamery                      │
+        │     → Wykonane przez: Jan Kowalski    │
+        │     → Data: 2025-11-10 10:00          │
+        │     → 🔒 Nie możesz edytować          │
+        │                                        │
+        │ [ ] Konfiguracja rejestratora          │
+        │     → [Oznacz jako wykonane]          │
+        │                                        │
+        │ 📸 Zdjęcia:                            │
+        │ • foto1.jpg (Jan Kowalski)            │
+        │   🔒 Nie możesz usunąć                │
+        │ • [Upload nowego zdjęcia]             │
+        └────────────────────────────────────────┘
+  
+  coordinator_service_only:
+    title: "Koordynator może tworzyć tylko zadania serwisowe"
+    validation:
+      frontend: |
+        // Komponent CreateTask.tsx
+        if (user.role === 'coordinator') {
+          // Pokaż tylko typ SERWIS w dropdown
+          const taskTypes = allTaskTypes.filter(tt => tt.code === 'SERWIS');
+        }
+      
+      backend: |
+        // TaskController.create()
+        if (req.user.roles.includes('coordinator') && 
+            !req.user.isAdmin && 
+            !req.user.roles.includes('manager')) {
+          
+          const taskType = await getTaskType(taskTypeId);
+          
+          if (taskType.code !== 'SERWIS') {
+            return res.status(403).json({
+              success: false,
+              message: 'Koordynator może tworzyć tylko zadania serwisowe',
+              allowedTypes: ['SERWIS'],
+              attemptedType: taskType.code
+            });
+          }
+        }
+    
+    edge_cases:
+      - question: "Czy coordinator może EDYTOWAĆ zadania innych typów?"
+        answer: "TODO: DO USTALENIA"
+        options:
+          a: "Tak - może edytować wszystkie"
+          b: "Nie - tylko przeglądać"
+          c: "Tak - tylko swoje (jeśli był assigned)"
+      
+      - question: "Czy coordinator + manager może tworzyć wszystkie typy?"
+        answer: "TAK - manager override coordinator restriction"
+
+# ============================================
+# USE CASES (Scenariusze)
+# ============================================
+use_cases:
+  
+  uc01_task_takeover:
+    title: "Technik przejmuje zadanie"
+    actors:
+      - "Technik A (Jan Kowalski) - poprzedni"
+      - "Technik B (Piotr Nowak) - nowy"
+      - "System"
+    
+    preconditions:
+      - "Zadanie #123456789 istnieje"
+      - "Zadanie ma status 'in_progress'"
+      - "Technik A jest assigned, ale nieaktywny >2h"
+      - "Technik A wykonał 3 z 5 aktywności"
+    
+    main_flow:
+      1: "Technik B loguje się do systemu"
+      2: "Technik B przegląda dostępne zadania"
+      3: "Technik B widzi zadanie #123456789 z oznaczeniem 'Dostępne do przejęcia'"
+      4: "Technik B klika 'Przejmij zadanie'"
+      5: "System sprawdza warunki przejęcia"
+      6: "System dodaje Technika B do task_assignments"
+      7: "System pokazuje potwierdzenie"
+      8: "Technik B widzi zadanie w 'Moje zadania'"
+      9: "Technik B widzi historię aktywności Technika A (readonly)"
+      10: "Technik B kontynuuje od punktu 4/5 checklisty"
+    
+    postconditions:
+      - "Zadanie ma 2 wpisy w task_assignments"
+      - "Aktywności Technika A są niezmienione"
+      - "Zadanie nadal w statusie 'in_progress'"
+      - "Audit log zawiera zdarzenie 'TASK_TAKEOVER'"
+    
+    alternative_flows:
+      a_task_completed:
+        condition: "Zadanie jest już zakończone"
+        flow:
+          - "System pokazuje błąd: 'Nie możesz przejąć zakończonego zadania'"
+      
+      b_technician_active:
+        condition: "Technik A jest nadal aktywny (<2h)"
+        flow:
+          - "System pokazuje: 'Zadanie jest aktywnie realizowane przez Jana Kowalskiego'"
+          - "Opcja: 'Wyślij prośbę o przekazanie' (TODO: czy to potrzebne?)"
+      
+      c_task_locked:
+        condition: "Zadanie jest zablokowane przez managera"
+        flow:
+          - "System pokazuje: 'Zadanie jest zablokowane. Skontaktuj się z managerem.'"
+  
+  uc02_technician_cannot_edit_others_activity:
+    title: "Technik próbuje edytować cudzą aktywność"
+    actors:
+      - "Technik B"
+      - "System"
+    
+    preconditions:
+      - "Technik B jest assigned do zadania"
+      - "Aktywność została wykonana przez Technika A"
+    
+    main_flow:
+      1: "Technik B otwiera szczegóły zadania"
+      2: "Technik B widzi aktywność wykonaną przez Technika A"
+      3: "Technik B klika 'Edytuj' przy aktywności Technika A"
+      4: "System sprawdza activity.createdBy !== req.userId"
+      5: "System zwraca 403 Forbidden"
+      6: "Frontend pokazuje: 'Nie możesz edytować aktywności innego technika'"
+    
+    validation_code: |
+      // Middleware
+      export const canModifyActivity = async (req, res, next) => {
+        const { activityId } = req.params;
+        const activity = await activityRepo.findOne({ where: { id: activityId } });
+        
+        if (!activity) {
+          return res.status(404).json({ message: 'Activity not found' });
+        }
+        
+        // Admin może wszystko
+        if (req.user.isAdmin) {
+          return next();
+        }
+        
+        // Manager może wszystko
+        if (req.user.roles.includes('manager')) {
+          return next();
+        }
+        
+        // Technik może tylko swoje
+        if (activity.createdBy !== req.userId) {
+          return res.status(403).json({
+            success: false,
+            message: 'Nie możesz modyfikować aktywności innego technika',
+            code: 'ACTIVITY_NOT_YOURS',
+            activityCreatedBy: activity.createdBy,
+            yourUserId: req.userId
+          });
+        }
+        
+        next();
+      };
+      
+      // Route
+      router.put('/activities/:activityId', 
+        authenticate,
+        requirePermissions('activities.update.own', 'activities.update.all'),
+        canModifyActivity,  // ⚠️ Dodatkowa walidacja kontekstowa!
+        ActivityController.update
+      );
+  
+  uc03_coordinator_creates_service_task:
+    title: "Koordynator tworzy zadanie serwisowe"
+    actors:
+      - "Koordynator"
+      - "System"
+    
+    main_flow:
+      1: "Koordynator klika 'Nowe zadanie'"
+      2: "System pokazuje formularz"
+      3: "W dropdown 'Typ zadania' widzi TYLKO 'Zadanie serwisowe'"
+      4: "Koordynator wypełnia formularz"
+      5: "Koordynator klika 'Utwórz'"
+      6: "System waliduje: taskType.code === 'SERWIS'"
+      7: "System tworzy zadanie"
+      8: "Koordynator widzi potwierdzenie"
+    
+    alternative_flow_api_bypass:
+      condition: "Koordynator próbuje stworzyć SMW przez API (omijając frontend)"
+      flow:
+        1: "Request: POST /api/tasks { taskTypeId: 1 } // SMW"
+        2: "Backend sprawdza: user.role === 'coordinator'"
+        3: "Backend pobiera: taskType = getTaskType(1)"
+        4: "Backend sprawdza: taskType.code !== 'SERWIS'"
+        5: "Backend zwraca: 403 Forbidden"
+        6: "Response: { message: 'Możesz tworzyć tylko zadania serwisowe' }"
+
+# ============================================
+# IMPLEMENTACJA TECHNICZNA
+# ============================================
+technical_implementation:
+  
+  database_schema:
+    tables:
+      roles:
+        sql: |
+          CREATE TABLE roles (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(50) UNIQUE NOT NULL,
+            description TEXT,
+            is_admin BOOLEAN DEFAULT FALSE,
+            level INT DEFAULT 0,
+            active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT NOW()
+          );
+      
+      permissions:
+        sql: |
+          CREATE TABLE permissions (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(100) UNIQUE NOT NULL,
+            description TEXT,
+            resource VARCHAR(50) NOT NULL,
+            action VARCHAR(50) NOT NULL,
+            context VARCHAR(50),
+            created_at TIMESTAMP DEFAULT NOW()
+          );
+          
+          CREATE INDEX idx_permissions_resource ON permissions(resource);
+          CREATE INDEX idx_permissions_action ON permissions(action);
+      
+      role_permissions:
+        sql: |
+          CREATE TABLE role_permissions (
+            role_id INT REFERENCES roles(id) ON DELETE CASCADE,
+            permission_id INT REFERENCES permissions(id) ON DELETE CASCADE,
+            PRIMARY KEY (role_id, permission_id),
+            granted_at TIMESTAMP DEFAULT NOW()
+          );
+      
+      user_roles:
+        sql: |
+          CREATE TABLE user_roles (
+            user_id INT REFERENCES users(id) ON DELETE CASCADE,
+            role_id INT REFERENCES roles(id) ON DELETE CASCADE,
+            PRIMARY KEY (user_id, role_id),
+            assigned_at TIMESTAMP DEFAULT NOW(),
+            assigned_by INT REFERENCES users(id)
+          );
+          
+          CREATE INDEX idx_user_roles_user ON user_roles(user_id);
+          CREATE INDEX idx_user_roles_role ON user_roles(role_id);
+      
+      task_activities:
+        note: "Dodaj kolumnę created_by dla śledzenia autora"
+        sql: |
+          ALTER TABLE task_activities 
+          ADD COLUMN created_by INT REFERENCES users(id);
+          
+          CREATE INDEX idx_task_activities_created_by ON task_activities(created_by);
+      
+      quality_photos:
+        note: "Dodaj kolumnę uploaded_by"
+        sql: |
+          ALTER TABLE quality_photos 
+          ADD COLUMN uploaded_by INT REFERENCES users(id);
+  
+  middleware:
+    authenticate:
+      code: |
+        export const authenticate = async (req, res, next) => {
+          const token = req.headers.authorization?.split(' ')[1];
+          const decoded = jwt.verify(token, JWT_SECRET);
+          
+          // Pobierz user z rolami i uprawnieniami
+          const user = await userRepo.findOne({
+            where: { id: decoded.userId },
+            relations: ['roles', 'roles.permissions']
+          });
+          
+          // Zbierz uprawnienia
+          const permissions = new Set<string>();
+          let isAdmin = false;
+          
+          for (const role of user.roles) {
+            if (role.isAdmin) {
+              isAdmin = true;
+              break;
+            }
+            role.permissions.forEach(p => permissions.add(p.name));
+          }
+          
+          req.user = {
+            ...decoded,
+            roles: user.roles.map(r => r.name),
+            permissions: Array.from(permissions),
+            isAdmin
+          };
+          
+          next();
+        };
+    
+    requirePermissions:
+      code: |
+        export const requirePermissions = (...requiredPerms: string[]) => {
+          return async (req, res, next) => {
+            // Admin ma wszystko
+            if (req.user.isAdmin) {
+              return next();
+            }
+            
+            // Sprawdź czy user ma wszystkie wymagane uprawnienia
+            const hasAll = requiredPerms.every(p => 
+              req.user.permissions.includes(p)
+            );
+            
+            if (!hasAll) {
+              return res.status(403).json({
+                success: false,
+                message: 'Brak uprawnień',
+                required: requiredPerms,
+                current: req.user.permissions
+              });
+            }
+            
+            next();
+          };
+        };
+    
+    requireAnyPermission:
+      code: |
+        export const requireAnyPermission = (...requiredPerms: string[]) => {
+          return async (req, res, next) => {
+            if (req.user.isAdmin) {
+              return next();
+            }
+            
+            const hasAny = requiredPerms.some(p => 
+              req.user.permissions.includes(p)
+            );
+            
+            if (!hasAny) {
+              return res.status(403).json({
+                success: false,
+                message: 'Brak uprawnień'
+              });
+            }
+            
+            next();
+          };
+        };
+  
+  usage_examples:
+    routes:
+      code: |
+        // Tasks routes
+        router.get('/tasks', 
+          authenticate,
+          requireAnyPermission('tasks.read', 'tasks.read.own'),
+          TaskController.list
+        );
+        
+        router.post('/tasks',
+          authenticate,
+          requirePermissions('tasks.create.all', 'tasks.create.service'),
+          TaskController.create
+        );
+        
+        router.put('/tasks/:id',
+          authenticate,
+          requireAnyPermission('tasks.update', 'tasks.update.own'),
+          TaskController.update
+        );
+        
+        router.delete('/tasks/:id',
+          authenticate,
+          requirePermissions('tasks.delete'),
+          TaskController.delete
+        );
+        
+        // Activities routes
+        router.put('/activities/:id',
+          authenticate,
+          requireAnyPermission('activities.update.own', 'activities.update.all'),
+          canModifyActivity,  // Extra check!
+          ActivityController.update
+        );
+
+# ============================================
+# PYTANIA DO USTALENIA
+# ============================================
+questions_to_resolve:
+  - id: Q1
+    question: "Czy technik widzi WSZYSTKIE zadania, czy tylko dostępne + własne?"
+    options:
+      a: "Wszystkie (transparency)"
+      b: "Tylko available + assigned to him (isolation)"
+      c: "Konfigurowalny per deployment"
+    recommendation: "Opcja B - isolation"
+  
+  - id: Q2
+    question: "Jak długo zadanie jest 'dostępne do przejęcia'?"
+    options:
+      a: "Jeśli last_activity > 2h"
+      b: "Jeśli last_activity > 4h"
+      c: "Manualnie oznaczone przez managera"
+    recommendation: "Opcja A - 2h jako default, C jako override"
+  
+  - id: Q3
+    question: "Czy coordinator może edytować zadania innych typów (nie-SERWIS)?"
+    options:
+      a: "Nie może wcale"
+      b: "Może tylko jeśli jest assigned"
+      c: "Może tylko status change"
+    recommendation: "Opcja B"
+  
+  - id: Q4
+    question: "Czy poprzedni technik dostaje powiadomienie o przejęciu?"
+    options:
+      a: "Tak, zawsze"
+      b: "Nie"
+      c: "Opcjonalnie (ustawienie)"
+    recommendation: "Opcja A - dla transparency"
+  
+  - id: Q5
+    question: "Czy viewer może eksportować raporty?"
+    options:
+      a: "Tak"
+      b: "Nie"
+      c: "Tylko swoje statystyki"
+    recommendation: "Opcja A - helpful for auditors"
+  
+  - id: Q6
+    question: "Czy admin może usuwać audit logi?"
+    options:
+      a: "Nie - immutable zawsze"
+      b: "Tak - tylko admin"
+      c: "Tak - tylko starsze niż X dni"
+    recommendation: "Opcja A - compliance requirement"
+
+# ============================================
+# PRIORYTETY IMPLEMENTACJI
+# ============================================
+implementation_priorities:
+  
+  phase_1_must_have:
+    priority: "CRITICAL"
+    duration: "2 weeks"
+    items:
+      - "Nowy system ról i uprawnień (tabele DB)"
+      - "Middleware: requirePermissions, requireAnyPermission"
+      - "Migracja istniejących użytkowników"
+      - "Task takeover mechanism dla technika"
+      - "Walidacja activities.update.own"
+      - "Coordinator service-only validation"
+  
+  phase_2_should_have:
+    priority: "HIGH"
+    duration: "1 week"
+    items:
+      - "Audit logging wszystkich akcji"
+      - "Token rotation system"
+      - "Activity ownership UI indicators"
+      - "Task takeover notifications"
+      - "Admin panel do zarządzania rolami"
+  
+  phase_3_nice_to_have:
+    priority: "MEDIUM"
+    duration: "1 week"
+    items:
+      - "Dynamic permission system (bez migracji)"
+      - "Permission groups dla łatwiejszego zarządzania"
+      - "Role templates (presets)"
+      - "Time-based permissions (temporary access)"
+      - "Geofencing dla techników (GPS-based permissions)"
+
+# ============================================
+# NOTATKI I UWAGI
+# ============================================
+notes:
+  security_considerations:
+    - "⚠️ NIGDY nie sprawdzaj uprawnień tylko na frontend!"
+    - "✅ ZAWSZE waliduj backend + middleware"
+    - "✅ Admin bypass WSZYSTKO automatycznie"
+    - "⚠️ Kontekstowe sprawdzanie (own vs all) w service layer"
+    - "✅ Audit KAŻDĄ akcję modyfikującą dane"
+  
+  performance_tips:
+    - "Cache permissions per user (Redis, 5 min TTL)"
+    - "Nie ładuj permissions na każdy request (JWT zawiera permissions)"
+    - "Index na user_roles, role_permissions"
+    - "Partycjonuj audit_logs po dacie"
+  
+  testing_checklist:
+    - "[ ] Admin może wszystko"
+    - "[ ] Manager nie może usuwać adminów"
+    - "[ ] Coordinator nie może tworzyć SMW"
+    - "[ ] Technician nie może edytować cudzych activities"
+    - "[ ] Technician może przejąć zadanie"
+    - "[ ] Viewer nie może niczego zmienić"
+    - "[ ] Multi-role działa (manager + technician)"
+  
+  migration_from_old_system:
+    - "Stary system: users.role_id (jeden)"
+    - "Nowy system: user_roles (many-to-many)"
+    - "Migration: INSERT INTO user_roles (user_id, role_id) SELECT id, role_id FROM users"
+    - "Backward compatibility: zachowaj stary authorize() jako deprecated"
+
+# ============================================
+# CHANGELOG
+# ============================================
+changelog:
+  - version: "1.0"
+    date: "2025-11-15"
+    changes:
+      - "Pierwsza wersja propozycji"
+      - "Definicja 5 ról"
+      - "Katalog 63 uprawnień"
+      - "Specjalne reguły dla technika (task takeover)"
+      - "Use cases i scenariusze"
+      - "Implementacja techniczna"
+
+# ============================================
+# KOŃCOWE TODO DLA UŻYTKOWNIKA
+# ============================================
+user_todos:
+  - "[ ] Przejrzyj wszystkie uprawnienia - czy wszystkie są potrzebne?"
+  - "[ ] Odpowiedz na pytania w sekcji 'questions_to_resolve'"
+  - "[ ] Doprecyzuj reguły task takeover (co dokładnie ma się dziać)"
+  - "[ ] Zdecyduj czy coordinator może edytować zadania innych typów"
+  - "[ ] Dodaj swoje specjalne reguły jeśli są"
+  - "[ ] Review use cases - czy pokrywają wszystkie scenariusze?"
+  - "[ ] Zatwierdź lub zmodyfikuj propozycję"
+  - "[ ] Prześlij z powrotem do implementacji!"
