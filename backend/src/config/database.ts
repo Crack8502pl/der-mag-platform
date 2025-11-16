@@ -15,6 +15,7 @@ import { TaskActivity } from '../entities/TaskActivity';
 import { QualityPhoto } from '../entities/QualityPhoto';
 import { TaskAssignment } from '../entities/TaskAssignment';
 import { TaskMetric } from '../entities/TaskMetric';
+import { RefreshToken } from '../entities/RefreshToken';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -38,7 +39,8 @@ export const AppDataSource = new DataSource({
     TaskActivity,
     QualityPhoto,
     TaskAssignment,
-    TaskMetric
+    TaskMetric,
+    RefreshToken
   ],
   subscribers: [],
   migrations: [],

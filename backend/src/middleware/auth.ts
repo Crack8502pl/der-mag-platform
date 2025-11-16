@@ -2,9 +2,10 @@
 // Middleware uwierzytelniania JWT
 
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken, JWTPayload } from '../config/jwt';
+import { verifyAccessToken, JWTPayload } from '../config/jwt';
 import { AppDataSource } from '../config/database';
 import { User } from '../entities/User';
+import { RefreshToken } from '../entities/RefreshToken';
 
 // Rozszerzenie typu Request o dane użytkownika
 declare global {
@@ -15,6 +16,8 @@ declare global {
     }
   }
 }
+
+const PARANOID_MODE = process.env.PARANOID_MODE === 'true';
 
 /**
  * Middleware weryfikacji JWT token
@@ -38,7 +41,7 @@ export const authenticate = async (
     const token = authHeader.substring(7);
 
     try {
-      const payload = verifyToken(token);
+      const payload = verifyAccessToken(token);
       req.user = payload;
       req.userId = payload.userId;
 
@@ -54,6 +57,23 @@ export const authenticate = async (
           message: 'Użytkownik nieaktywny lub nie istnieje'
         });
         return;
+      }
+
+      // Paranoid mode: verify token exists in database and is not revoked
+      if (PARANOID_MODE && payload.jti) {
+        const refreshTokenRepo = AppDataSource.getRepository(RefreshToken);
+        const tokenRecord = await refreshTokenRepo.findOne({
+          where: { tokenId: payload.jti, revoked: false }
+        });
+
+        if (!tokenRecord) {
+          res.status(401).json({
+            success: false,
+            message: 'Token został unieważniony',
+            code: 'TOKEN_REVOKED'
+          });
+          return;
+        }
       }
 
       next();
