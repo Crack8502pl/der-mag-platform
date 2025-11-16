@@ -1,15 +1,60 @@
 // src/controllers/AuthController.ts
-// Kontroler uwierzytelniania
+// Kontroler uwierzytelniania z obsługą rotacji tokenów
 
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
 import { User } from '../entities/User';
-import { generateAccessToken, generateRefreshToken, verifyToken } from '../config/jwt';
+import { RefreshToken } from '../entities/RefreshToken';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken, decodeToken } from '../config/jwt';
+import { v4 as uuidv4 } from 'uuid';
+
+// Helper function to log security events
+const logSecurityEvent = async (
+  eventType: string,
+  userId: number | null,
+  ipAddress: string | null,
+  details: any
+): Promise<void> => {
+  try {
+    // Try to insert into audit_logs if table exists
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    
+    const tableExists = await queryRunner.hasTable('audit_logs');
+    
+    if (tableExists) {
+      await queryRunner.query(
+        `INSERT INTO audit_logs (event_type, user_id, ip_address, details, created_at) 
+         VALUES ($1, $2, $3, $4, NOW())`,
+        [eventType, userId, ipAddress, JSON.stringify(details)]
+      );
+    }
+    
+    await queryRunner.release();
+  } catch (error) {
+    // Fallback to console if audit table doesn't exist
+    console.error(`[SECURITY EVENT] ${eventType}:`, {
+      userId,
+      ipAddress,
+      details,
+      timestamp: new Date().toISOString()
+    });
+  }
+};
+
+// Helper function to get client IP
+const getClientIP = (req: Request): string => {
+  return (
+    (req.headers['x-forwarded-for'] as string)?.split(',')[0] ||
+    req.socket.remoteAddress ||
+    'unknown'
+  );
+};
 
 export class AuthController {
   /**
    * POST /api/auth/login
-   * Logowanie użytkownika
+   * Logowanie użytkownika z generowaniem tokenów rotacyjnych
    */
   static async login(req: Request, res: Response): Promise<void> {
     try {
@@ -45,15 +90,53 @@ export class AuthController {
         return;
       }
 
-      // Generuj tokeny
+      // Generate unique token ID
+      const tokenId = uuidv4();
+      const ipAddress = getClientIP(req);
+      const userAgent = req.headers['user-agent'] || null;
+
+      // Generuj tokeny z tokenId
       const payload = {
         userId: user.id,
         username: user.username,
         role: user.role.name
       };
 
-      const accessToken = generateAccessToken(payload);
-      const refreshToken = generateRefreshToken(payload);
+      const accessToken = generateAccessToken(payload, tokenId);
+      const refreshToken = generateRefreshToken(payload, tokenId);
+
+      // Calculate expiration date for refresh token
+      const refreshExpiresIn = process.env.REFRESH_EXPIRES || '7d';
+      const expiresAt = new Date();
+      
+      // Parse expiration time
+      const match = refreshExpiresIn.match(/^(\d+)([dhms])$/);
+      if (match) {
+        const value = parseInt(match[1]);
+        const unit = match[2];
+        switch (unit) {
+          case 'd': expiresAt.setDate(expiresAt.getDate() + value); break;
+          case 'h': expiresAt.setHours(expiresAt.getHours() + value); break;
+          case 'm': expiresAt.setMinutes(expiresAt.getMinutes() + value); break;
+          case 's': expiresAt.setSeconds(expiresAt.getSeconds() + value); break;
+        }
+      } else {
+        // Default 7 days
+        expiresAt.setDate(expiresAt.getDate() + 7);
+      }
+
+      // Save refresh token to database
+      const refreshTokenRepo = AppDataSource.getRepository(RefreshToken);
+      const refreshTokenRecord = refreshTokenRepo.create({
+        tokenId,
+        userId: user.id,
+        expiresAt,
+        ipAddress,
+        userAgent,
+        deviceFingerprint: null
+      });
+
+      await refreshTokenRepo.save(refreshTokenRecord);
 
       // Aktualizuj ostatnie logowanie
       user.lastLogin = new Date();
@@ -86,7 +169,7 @@ export class AuthController {
 
   /**
    * POST /api/auth/refresh
-   * Odświeżenie tokenu dostępu
+   * Odświeżenie tokenu dostępu z rotacją refresh tokenu
    */
   static async refresh(req: Request, res: Response): Promise<void> {
     try {
@@ -101,26 +184,140 @@ export class AuthController {
       }
 
       try {
-        const payload = verifyToken(refreshToken);
+        // Verify the refresh token
+        const decoded = verifyRefreshToken(refreshToken);
+        
+        if (!decoded.jti) {
+          res.status(401).json({
+            success: false,
+            message: 'Token nie zawiera identyfikatora (jti)'
+          });
+          return;
+        }
 
-        // Generuj nowy access token
-        const newAccessToken = generateAccessToken({
-          userId: payload.userId,
-          username: payload.username,
-          role: payload.role
+        const refreshTokenRepo = AppDataSource.getRepository(RefreshToken);
+
+        // Check if table exists
+        const queryRunner = AppDataSource.createQueryRunner();
+        await queryRunner.connect();
+        const tableExists = await queryRunner.hasTable('refresh_tokens');
+        await queryRunner.release();
+
+        if (!tableExists) {
+          res.status(503).json({
+            success: false,
+            message: 'System rotacji tokenów nie jest skonfigurowany. Uruchom migrację bazy danych.',
+            code: 'MIGRATION_REQUIRED'
+          });
+          return;
+        }
+
+        // Find the token in database
+        const tokenRecord = await refreshTokenRepo.findOne({
+          where: { tokenId: decoded.jti }
         });
+
+        // TOKEN REUSE DETECTION
+        if (!tokenRecord || tokenRecord.revoked) {
+          // Token reuse detected! Revoke all user's tokens
+          await refreshTokenRepo.update(
+            { userId: decoded.userId, revoked: false },
+            { revoked: true, revokedAt: new Date() }
+          );
+
+          const ipAddress = getClientIP(req);
+          await logSecurityEvent(
+            'TOKEN_REUSE_ATTACK',
+            decoded.userId,
+            ipAddress,
+            {
+              attemptedTokenId: decoded.jti,
+              revokedAllTokens: true,
+              userAgent: req.headers['user-agent']
+            }
+          );
+
+          res.status(401).json({
+            success: false,
+            message: 'Wykryto próbę ponownego użycia tokenu. Wszystkie sesje zostały unieważnione.',
+            code: 'TOKEN_REUSE_ATTACK'
+          });
+          return;
+        }
+
+        // Check if token is expired
+        if (tokenRecord.expiresAt < new Date()) {
+          res.status(401).json({
+            success: false,
+            message: 'Refresh token wygasł'
+          });
+          return;
+        }
+
+        // Generate new tokens
+        const newTokenId = uuidv4();
+        const ipAddress = getClientIP(req);
+        const userAgent = req.headers['user-agent'] || null;
+
+        const payload = {
+          userId: decoded.userId,
+          username: decoded.username,
+          role: decoded.role
+        };
+
+        const newAccessToken = generateAccessToken(payload, newTokenId);
+        const newRefreshToken = generateRefreshToken(payload, newTokenId);
+
+        // Calculate new expiration
+        const refreshExpiresIn = process.env.REFRESH_EXPIRES || '7d';
+        const expiresAt = new Date();
+        const match = refreshExpiresIn.match(/^(\d+)([dhms])$/);
+        if (match) {
+          const value = parseInt(match[1]);
+          const unit = match[2];
+          switch (unit) {
+            case 'd': expiresAt.setDate(expiresAt.getDate() + value); break;
+            case 'h': expiresAt.setHours(expiresAt.getHours() + value); break;
+            case 'm': expiresAt.setMinutes(expiresAt.getMinutes() + value); break;
+            case 's': expiresAt.setSeconds(expiresAt.getSeconds() + value); break;
+          }
+        } else {
+          expiresAt.setDate(expiresAt.getDate() + 7);
+        }
+
+        // Revoke old token
+        tokenRecord.revoked = true;
+        tokenRecord.revokedAt = new Date();
+        tokenRecord.revokedByTokenId = newTokenId;
+        await refreshTokenRepo.save(tokenRecord);
+
+        // Create new token record
+        const newTokenRecord = refreshTokenRepo.create({
+          tokenId: newTokenId,
+          userId: decoded.userId,
+          expiresAt,
+          ipAddress,
+          userAgent,
+          deviceFingerprint: null
+        });
+        await refreshTokenRepo.save(newTokenRecord);
 
         res.json({
           success: true,
           data: {
-            accessToken: newAccessToken
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken
           }
         });
-      } catch (error) {
-        res.status(401).json({
-          success: false,
-          message: 'Nieprawidłowy refresh token'
-        });
+      } catch (error: any) {
+        if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+          res.status(401).json({
+            success: false,
+            message: 'Nieprawidłowy lub wygasły refresh token'
+          });
+        } else {
+          throw error;
+        }
       }
     } catch (error) {
       console.error('Błąd odświeżania tokenu:', error);
@@ -133,15 +330,137 @@ export class AuthController {
 
   /**
    * POST /api/auth/logout
-   * Wylogowanie użytkownika
+   * Wylogowanie użytkownika (unieważnienie tokenu)
    */
   static async logout(req: Request, res: Response): Promise<void> {
-    // W implementacji JWT logout jest obsługiwany po stronie klienta
-    // (usunięcie tokenu z localStorage/cookies)
-    res.json({
-      success: true,
-      message: 'Wylogowano pomyślnie'
-    });
+    try {
+      const { refreshToken } = req.body;
+      const authHeader = req.headers.authorization;
+
+      let tokenId: string | undefined;
+
+      // Try to get token ID from refresh token or access token
+      if (refreshToken) {
+        const decoded = decodeToken(refreshToken);
+        tokenId = decoded?.jti;
+      } else if (authHeader?.startsWith('Bearer ')) {
+        const accessToken = authHeader.substring(7);
+        const decoded = decodeToken(accessToken);
+        tokenId = decoded?.jti;
+      }
+
+      if (tokenId) {
+        const refreshTokenRepo = AppDataSource.getRepository(RefreshToken);
+        await refreshTokenRepo.update(
+          { tokenId, revoked: false },
+          { revoked: true, revokedAt: new Date() }
+        );
+      }
+
+      res.json({
+        success: true,
+        message: 'Wylogowano pomyślnie'
+      });
+    } catch (error) {
+      console.error('Błąd wylogowania:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Błąd serwera podczas wylogowania'
+      });
+    }
+  }
+
+  /**
+   * POST /api/auth/logout/all
+   * Wylogowanie ze wszystkich sesji (unieważnienie wszystkich tokenów użytkownika)
+   */
+  static async logoutAll(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Brak autoryzacji'
+        });
+        return;
+      }
+
+      const refreshTokenRepo = AppDataSource.getRepository(RefreshToken);
+      const result = await refreshTokenRepo.update(
+        { userId, revoked: false },
+        { revoked: true, revokedAt: new Date() }
+      );
+
+      res.json({
+        success: true,
+        message: 'Wylogowano ze wszystkich sesji',
+        data: {
+          revokedCount: result.affected || 0
+        }
+      });
+    } catch (error) {
+      console.error('Błąd wylogowania ze wszystkich sesji:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Błąd serwera podczas wylogowania'
+      });
+    }
+  }
+
+  /**
+   * GET /api/auth/sessions
+   * Pobierz listę aktywnych sesji użytkownika
+   */
+  static async getActiveSessions(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Brak autoryzacji'
+        });
+        return;
+      }
+
+      const refreshTokenRepo = AppDataSource.getRepository(RefreshToken);
+      const sessions = await refreshTokenRepo.find({
+        where: {
+          userId,
+          revoked: false
+        },
+        order: {
+          createdAt: 'DESC'
+        }
+      });
+
+      // Filter out expired sessions
+      const now = new Date();
+      const activeSessions = sessions
+        .filter(session => session.expiresAt > now)
+        .map(session => ({
+          tokenId: session.tokenId,
+          ipAddress: session.ipAddress,
+          userAgent: session.userAgent,
+          createdAt: session.createdAt,
+          expiresAt: session.expiresAt
+        }));
+
+      res.json({
+        success: true,
+        data: {
+          sessions: activeSessions,
+          count: activeSessions.length
+        }
+      });
+    } catch (error) {
+      console.error('Błąd pobierania aktywnych sesji:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Błąd serwera podczas pobierania sesji'
+      });
+    }
   }
 
   /**
