@@ -44,6 +44,14 @@ der-mag-platform/
 │   │   └── dto/         # Data Transfer Objects
 │   ├── scripts/         # Skrypty SQL
 │   └── README.md        # Dokumentacja backend
+├── frontend/            # Demo Frontend (React + TypeScript)
+│   ├── src/
+│   │   ├── components/  # Komponenty React
+│   │   ├── pages/       # Strony aplikacji
+│   │   ├── services/    # API clients
+│   │   ├── hooks/       # Custom hooks
+│   │   └── types/       # TypeScript types
+│   └── README.md        # Dokumentacja frontend
 ├── LICENSE
 └── README.md            # Ten plik
 ```
@@ -61,6 +69,20 @@ npm run dev
 ```
 
 Szczegółowa dokumentacja: [backend/README.md](backend/README.md)
+
+### Frontend (Demo)
+
+```bash
+cd frontend
+npm install
+cp .env.example .env
+# Domyślnie używa http://localhost:3000/api
+npm run dev
+```
+
+Frontend będzie dostępny pod adresem: `http://localhost:5173`
+
+Szczegółowa dokumentacja: [frontend/README.md](frontend/README.md)
 
 ## 📚 API Endpoints
 
