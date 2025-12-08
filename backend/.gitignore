@@ -30,6 +30,10 @@ uploads/thumbnails/*
 !uploads/photos/.gitkeep
 !uploads/thumbnails/.gitkeep
 
+# Generated files
+src/generated/*
+!src/generated/.gitkeep
+
 # IDE
 .vscode/
 .idea/
