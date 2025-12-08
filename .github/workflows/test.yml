@@ -16,6 +16,10 @@ jobs:
     name: Run Backend Tests
     runs-on: ubuntu-latest
     
+    permissions:
+      contents: read
+      pull-requests: write
+    
     defaults:
       run:
         working-directory: backend
@@ -67,6 +71,9 @@ jobs:
   lint:
     name: Lint Code
     runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
     
     defaults:
       run:
