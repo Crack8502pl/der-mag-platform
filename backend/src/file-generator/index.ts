@@ -38,3 +38,7 @@ export const {
   stopServer: stopWebDAVServer,
   isRunning: isWebDAVServerRunning,
 } = WebDAVServer;
+
+// Export configuration and utilities
+export * from './config';
+export { default as integrationExample } from './integration-example';

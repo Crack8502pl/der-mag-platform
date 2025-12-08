@@ -45,6 +45,31 @@ backend/src/
 
 ## Użycie
 
+### Konfiguracja
+
+Moduł używa konfiguracji z pliku `config.ts`:
+
+```typescript
+import { FileGeneratorConfig, getTemplatePath, generateUniqueFilename } from './file-generator';
+
+// Dostęp do konfiguracji
+console.log(FileGeneratorConfig.templatesDir);
+console.log(FileGeneratorConfig.webdav.port);
+
+// Pomocnicze funkcje
+const excelTemplate = getTemplatePath('excel');
+const uniqueName = generateUniqueFilename('raport', 'xlsx');
+```
+
+Konfiguracja może być dostosowana przez zmienne środowiskowe:
+- `WEBDAV_PORT` - port serwera WebDAV (domyślnie: 1900)
+- `WEBDAV_REQUIRE_AUTH` - wymagaj uwierzytelniania (domyślnie: false)
+- `WEBDAV_HOSTNAME` - nazwa hosta (domyślnie: localhost)
+- `FILE_GEN_MAX_SIZE` - maksymalny rozmiar pliku w bajtach (domyślnie: 50MB)
+- `FILE_GEN_COMPRESSION` - włącz kompresję (domyślnie: false)
+- `FILE_GEN_AUTO_CLEANUP` - automatyczne czyszczenie (domyślnie: false)
+- `FILE_GEN_MAX_AGE_HOURS` - maksymalny wiek plików w godzinach (domyślnie: 24)
+
 ### 1. Serwis Excel
 
 ```typescript
