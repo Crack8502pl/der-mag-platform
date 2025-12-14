@@ -9,6 +9,9 @@ export class BOMTemplate {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ type: 'uuid', unique: true, nullable: true, default: () => 'gen_random_uuid()' })
+  uuid?: string;
+
   @ManyToOne(() => TaskType, taskType => taskType.bomTemplates)
   @JoinColumn({ name: 'task_type_id' })
   taskType: TaskType;
@@ -36,6 +39,21 @@ export class BOMTemplate {
 
   @Column({ name: 'part_number', type: 'varchar', length: 100, nullable: true })
   partNumber: string;
+
+  @Column({ name: 'catalog_number', type: 'varchar', length: 100, nullable: true })
+  catalogNumber?: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  supplier?: string;
+
+  @Column({ name: 'unit_price', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  unitPrice?: number;
+
+  @Column({ name: 'is_required', default: false })
+  isRequired: boolean;
+
+  @Column({ name: 'sort_order', default: 0 })
+  sortOrder: number;
 
   @Column({ default: true })
   active: boolean;
