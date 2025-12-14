@@ -27,9 +27,10 @@ jest.setTimeout(30000);
 // Globalne mockowanie console.error dla czystszych logów
 const originalConsoleError = console.error;
 beforeAll(() => {
-  console.error = (...args: any[]) => {
+  console.error = function(...args) {
     // Filtruj niektóre błędy w testach
-    if (args[0]?.includes?.('ECONNREFUSED')) return;
+    const firstArg = args[0];
+    if (firstArg && typeof firstArg === 'string' && firstArg.includes('ECONNREFUSED')) return;
     originalConsoleError(...args);
   };
 });

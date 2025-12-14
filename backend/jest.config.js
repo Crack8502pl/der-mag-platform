@@ -31,13 +31,25 @@ module.exports = {
   projects: [
     {
       displayName: 'unit',
+      preset: 'ts-jest',
+      testEnvironment: 'node',
       testMatch: ['<rootDir>/tests/unit/**/*.test.ts'],
       setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+      moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/src/$1',
+      },
+      moduleFileExtensions: ['ts', 'js', 'json'],
     },
     {
       displayName: 'integration',
+      preset: 'ts-jest',
+      testEnvironment: 'node',
       testMatch: ['<rootDir>/tests/integration/**/*.test.ts'],
       setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+      moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/src/$1',
+      },
+      moduleFileExtensions: ['ts', 'js', 'json'],
     },
   ],
   // Ignoruj problematyczne moduły
