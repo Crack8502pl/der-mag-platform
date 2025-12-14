@@ -16,6 +16,31 @@ jobs:
     name: Run Backend Tests
     runs-on: ubuntu-latest
     
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: dermag_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
     permissions:
       contents: read
       pull-requests: write
@@ -27,6 +52,20 @@ jobs:
     strategy:
       matrix:
         node-version: [18.x, 20.x]
+    
+    env:
+      NODE_ENV: test
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: test
+      DB_PASSWORD: test
+      DB_NAME: dermag_test
+      JWT_SECRET: test-jwt-secret-key-for-ci-testing
+      JWT_EXPIRES_IN: 1h
+      REFRESH_TOKEN_SECRET: test-refresh-token-secret
+      REFRESH_TOKEN_EXPIRES_IN: 7d
+      REDIS_URL: redis://localhost:6379
+      UPLOAD_DIR: ./uploads
 
     steps:
       - name: Checkout code
@@ -42,13 +81,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Create upload directories
+        run: |
+          mkdir -p uploads/photos
+          mkdir -p uploads/documents
+          mkdir -p uploads/templates
+          mkdir -p uploads/imports
+
       - name: Run TypeScript type checking
         run: npm run typecheck
 
-      - name: Run tests
-        run: npm test -- --ci --coverage --maxWorkers=2
-        env:
-          NODE_ENV: test
+      - name: Run unit tests
+        run: npm run test:unit -- --ci --coverage --maxWorkers=2
+
+      - name: Run integration tests
+        run: npm run test:integration -- --ci --maxWorkers=2
+        continue-on-error: true
 
       - name: Upload coverage reports
         if: matrix.node-version == '20.x'

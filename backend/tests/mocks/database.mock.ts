@@ -91,3 +91,56 @@ export const createMockDataSource = () => {
  * Mock AppDataSource for testing
  */
 export const mockAppDataSource = createMockDataSource();
+
+/**
+ * Simple mockRepository for basic testing
+ */
+export const mockRepository = {
+  find: jest.fn(),
+  findOne: jest.fn(),
+  save: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+  remove: jest.fn(),
+  createQueryBuilder: jest.fn(() => ({
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    orWhere: jest.fn().mockReturnThis(),
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
+    innerJoinAndSelect: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    addOrderBy: jest.fn().mockReturnThis(),
+    skip: jest.fn().mockReturnThis(),
+    take: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    getOne: jest.fn(),
+    getMany: jest.fn(),
+    getManyAndCount: jest.fn(),
+    getRawOne: jest.fn(),
+    getRawMany: jest.fn(),
+    execute: jest.fn(),
+  })),
+};
+
+/**
+ * Simple mockDataSource for basic testing
+ */
+export const mockDataSource = {
+  getRepository: jest.fn(() => mockRepository),
+  createQueryRunner: jest.fn(() => ({
+    connect: jest.fn(),
+    startTransaction: jest.fn(),
+    commitTransaction: jest.fn(),
+    rollbackTransaction: jest.fn(),
+    release: jest.fn(),
+    manager: {
+      save: jest.fn(),
+      remove: jest.fn(),
+    },
+  })),
+  initialize: jest.fn().mockResolvedValue(true),
+  destroy: jest.fn().mockResolvedValue(true),
+  isInitialized: true,
+};
+
