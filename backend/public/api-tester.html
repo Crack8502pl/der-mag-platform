@@ -339,6 +339,18 @@
       <div class="nav-item" onclick="showSection('email')">
         📧 Email
       </div>
+      <div class="nav-item" onclick="showSection('documents')">
+        📄 Dokumenty
+      </div>
+      <div class="nav-item" onclick="showSection('templates')">
+        📋 Szablony
+      </div>
+      <div class="nav-item" onclick="showSection('import')">
+        📥 Import CSV
+      </div>
+      <div class="nav-item" onclick="showSection('bom-builder')">
+        🔧 BOM Builder
+      </div>
       <div class="nav-item" onclick="showSection('database')">
         🗄️ Baza danych
       </div>
@@ -558,6 +570,256 @@
             </div>
           </div>
           <div class="response" id="queueStatsResponse" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Documents Section -->
+      <div class="section" id="documents">
+        <div class="card">
+          <h3>📄 Upload dokumentu</h3>
+          <div class="form-group">
+            <label for="docName">Nazwa dokumentu</label>
+            <input type="text" id="docName" placeholder="Faktura VAT 2024/01/001">
+          </div>
+          <div class="form-group">
+            <label for="docDescription">Opis (opcjonalnie)</label>
+            <textarea id="docDescription" rows="2" placeholder="Opis dokumentu..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="docCategory">Kategoria</label>
+            <select id="docCategory">
+              <option value="invoice">Faktura</option>
+              <option value="protocol">Protokół</option>
+              <option value="report">Raport</option>
+              <option value="bom_list">Lista BOM</option>
+              <option value="other">Inne</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="docTaskId">ID zadania (opcjonalnie)</label>
+            <input type="number" id="docTaskId" placeholder="123">
+          </div>
+          <div class="form-group">
+            <label for="docFile">Plik (PDF, DOCX, XLSX, TXT)</label>
+            <input type="file" id="docFile" accept=".pdf,.docx,.xlsx,.txt">
+          </div>
+          <button onclick="uploadDocument()">📤 Upload dokument</button>
+          <div class="response" id="uploadDocResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>📋 Lista dokumentów</h3>
+          <div class="form-group">
+            <label for="filterDocCategory">Filtruj po kategorii</label>
+            <select id="filterDocCategory">
+              <option value="">Wszystkie</option>
+              <option value="invoice">Faktura</option>
+              <option value="protocol">Protokół</option>
+              <option value="report">Raport</option>
+              <option value="bom_list">Lista BOM</option>
+              <option value="other">Inne</option>
+            </select>
+          </div>
+          <button onclick="getDocuments()">Pobierz dokumenty</button>
+          <div class="response" id="documentsResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>🔍 Pobierz dokument po ID</h3>
+          <div class="form-group">
+            <label for="documentId">ID lub UUID dokumentu</label>
+            <input type="text" id="documentId" placeholder="1 lub uuid">
+          </div>
+          <button onclick="getDocument()">Pobierz szczegóły</button>
+          <button class="secondary" onclick="downloadDocument()">⬇️ Pobierz plik</button>
+          <button class="danger" onclick="deleteDocument()">🗑️ Usuń dokument</button>
+          <div class="response" id="documentResponse" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Templates Section -->
+      <div class="section" id="templates">
+        <div class="card">
+          <h3>📤 Upload szablonu dokumentu</h3>
+          <div class="form-group">
+            <label for="templateName">Nazwa szablonu</label>
+            <input type="text" id="templateName" placeholder="Szablon faktury">
+          </div>
+          <div class="form-group">
+            <label for="templateDescription">Opis (opcjonalnie)</label>
+            <textarea id="templateDescription" rows="2" placeholder="Opis szablonu..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="templateTaskType">ID typu zadania (opcjonalnie)</label>
+            <input type="number" id="templateTaskType" placeholder="1">
+          </div>
+          <div class="form-group">
+            <label for="templatePlaceholders">Placeholdery (JSON, opcjonalnie)</label>
+            <textarea id="templatePlaceholders" rows="3" placeholder='{"taskNumber": "Numer zadania", "clientName": "Nazwa klienta"}'></textarea>
+          </div>
+          <div class="form-group">
+            <label for="templateFile">Plik szablonu (DOCX, XLSX, PDF)</label>
+            <input type="file" id="templateFile" accept=".docx,.xlsx,.pdf">
+          </div>
+          <button onclick="uploadTemplate()">📤 Upload szablon</button>
+          <div class="response" id="uploadTemplateResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>📋 Lista szablonów</h3>
+          <button onclick="getTemplates()">Pobierz szablony</button>
+          <div class="response" id="templatesResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>🎨 Generuj dokument z szablonu</h3>
+          <div class="form-group">
+            <label for="generateTemplateId">ID szablonu</label>
+            <input type="number" id="generateTemplateId" placeholder="1">
+          </div>
+          <div class="form-group">
+            <label for="generateDocName">Nazwa dokumentu</label>
+            <input type="text" id="generateDocName" placeholder="Faktura_2024_01_001">
+          </div>
+          <div class="form-group">
+            <label for="generateTaskId">ID zadania (opcjonalnie)</label>
+            <input type="number" id="generateTaskId" placeholder="123">
+          </div>
+          <div class="form-group">
+            <label for="generateData">Dane do wypełnienia (JSON)</label>
+            <textarea id="generateData" rows="5" placeholder='{"taskNumber": "123456789", "clientName": "PKP PLK", "date": "2024-12-14"}'></textarea>
+          </div>
+          <button onclick="generateDocument()">🎨 Generuj dokument</button>
+          <div class="response" id="generateDocResponse" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Import CSV Section -->
+      <div class="section" id="import">
+        <div class="card">
+          <h3>📥 Import materiałów z CSV</h3>
+          <div class="form-group">
+            <label for="csvFile">Plik CSV</label>
+            <input type="file" id="csvFile" accept=".csv">
+          </div>
+          <button onclick="uploadCSV()">📤 Upload i preview</button>
+          <button class="secondary" onclick="downloadCSVTemplate()">⬇️ Pobierz wzór CSV</button>
+          <div class="response" id="uploadCSVResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card" id="csvPreviewCard" style="display:none;">
+          <h3>👁️ Preview importu</h3>
+          <div style="background: #f7fafc; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; text-align: center;">
+              <div>
+                <div style="font-size: 24px; font-weight: bold; color: #48bb78;" id="csvTotalRows">0</div>
+                <div style="font-size: 12px; color: #718096;">Razem wierszy</div>
+              </div>
+              <div>
+                <div style="font-size: 24px; font-weight: bold; color: #4299e1;" id="csvNewItems">0</div>
+                <div style="font-size: 12px; color: #718096;">Nowe</div>
+              </div>
+              <div>
+                <div style="font-size: 24px; font-weight: bold; color: #ed8936;" id="csvExistingItems">0</div>
+                <div style="font-size: 12px; color: #718096;">Istniejące</div>
+              </div>
+              <div>
+                <div style="font-size: 24px; font-weight: bold; color: #f56565;" id="csvErrorItems">0</div>
+                <div style="font-size: 12px; color: #718096;">Błędy</div>
+              </div>
+            </div>
+          </div>
+          <div id="csvPreviewContent"></div>
+          <input type="hidden" id="importUuid">
+          <button onclick="confirmImport()" style="background: #48bb78;">✓ Potwierdź import</button>
+          <button class="danger" onclick="cancelImport()">✗ Anuluj import</button>
+          <div class="response" id="confirmImportResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>📜 Historia importów</h3>
+          <button onclick="getImportHistory()">Pobierz historię</button>
+          <div class="response" id="importHistoryResponse" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- BOM Builder Section -->
+      <div class="section" id="bom-builder">
+        <div class="card">
+          <h3>📦 Lista wszystkich materiałów</h3>
+          <div class="form-group">
+            <label for="materialsSearch">Szukaj</label>
+            <input type="text" id="materialsSearch" placeholder="Nazwa lub numer katalogowy">
+          </div>
+          <div class="form-group">
+            <label for="materialsCategory">Kategoria</label>
+            <input type="text" id="materialsCategory" placeholder="np. kable">
+          </div>
+          <button onclick="getMaterials()">Pobierz materiały</button>
+          <button class="secondary" onclick="getCategories()">Pobierz kategorie</button>
+          <div class="response" id="materialsResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>🔧 Szablon BOM dla typu zadania</h3>
+          <div class="form-group">
+            <label for="bomTaskTypeId">ID typu zadania</label>
+            <input type="number" id="bomTaskTypeId" placeholder="1" value="1">
+          </div>
+          <button onclick="getTaskTypeBOM()">Pobierz szablon BOM</button>
+          <div class="response" id="taskTypeBOMResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>➕ Dodaj materiał</h3>
+          <div class="form-group">
+            <label for="materialTaskTypeId">ID typu zadania</label>
+            <input type="number" id="materialTaskTypeId" placeholder="1" value="1">
+          </div>
+          <div class="form-group">
+            <label for="materialName">Nazwa materiału</label>
+            <input type="text" id="materialName" placeholder="Kabel światłowodowy G.652D">
+          </div>
+          <div class="form-group">
+            <label for="materialCatalogNumber">Numer katalogowy</label>
+            <input type="text" id="materialCatalogNumber" placeholder="CAT-001">
+          </div>
+          <div class="form-group">
+            <label for="materialUnit">Jednostka</label>
+            <input type="text" id="materialUnit" placeholder="m" value="szt">
+          </div>
+          <div class="form-group">
+            <label for="materialQuantity">Domyślna ilość</label>
+            <input type="number" id="materialQuantity" placeholder="1" value="1">
+          </div>
+          <div class="form-group">
+            <label for="materialCategory">Kategoria</label>
+            <input type="text" id="materialCategory" placeholder="kable">
+          </div>
+          <div class="form-group">
+            <label for="materialSupplier">Dostawca</label>
+            <input type="text" id="materialSupplier" placeholder="Fibra Sp. z o.o.">
+          </div>
+          <div class="form-group">
+            <label for="materialUnitPrice">Cena jednostkowa</label>
+            <input type="number" step="0.01" id="materialUnitPrice" placeholder="2.50">
+          </div>
+          <button onclick="createMaterial()">➕ Dodaj materiał</button>
+          <div class="response" id="createMaterialResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>📋 Kopiuj szablon BOM</h3>
+          <div class="form-group">
+            <label for="sourceTaskTypeId">ID typu zadania źródłowego</label>
+            <input type="number" id="sourceTaskTypeId" placeholder="1">
+          </div>
+          <div class="form-group">
+            <label for="targetTaskTypeId">ID typu zadania docelowego</label>
+            <input type="number" id="targetTaskTypeId" placeholder="2">
+          </div>
+          <button onclick="copyBOMTemplate()">📋 Kopiuj szablon</button>
+          <div class="response" id="copyBOMResponse" style="display:none;"></div>
         </div>
       </div>
 
@@ -1052,6 +1314,352 @@
       };
 
       displayResponse('dbStatsResponse', stats, 200);
+    }
+
+    // ============================================
+    // DOCUMENTS
+    // ============================================
+
+    async function uploadDocument() {
+      const file = document.getElementById('docFile').files[0];
+      if (!file) {
+        alert('Wybierz plik do uploadu');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('name', document.getElementById('docName').value);
+      formData.append('description', document.getElementById('docDescription').value);
+      formData.append('category', document.getElementById('docCategory').value);
+      const taskId = document.getElementById('docTaskId').value;
+      if (taskId) formData.append('taskId', taskId);
+
+      const result = await apiRequest('/documents/upload', 'POST', formData, true);
+      displayResponse('uploadDocResponse', result.data, result.status);
+      
+      if (result.ok) {
+        alert('✅ Dokument przesłany pomyślnie');
+        document.getElementById('docFile').value = '';
+      }
+    }
+
+    async function getDocuments() {
+      const category = document.getElementById('filterDocCategory').value;
+      const url = category ? `/documents?category=${category}` : '/documents';
+      
+      const result = await apiRequest(url, 'GET');
+      displayResponse('documentsResponse', result.data, result.status);
+    }
+
+    async function getDocument() {
+      const id = document.getElementById('documentId').value;
+      if (!id) {
+        alert('Wprowadź ID dokumentu');
+        return;
+      }
+
+      const result = await apiRequest(`/documents/${id}`, 'GET');
+      displayResponse('documentResponse', result.data, result.status);
+    }
+
+    async function downloadDocument() {
+      const id = document.getElementById('documentId').value;
+      if (!id) {
+        alert('Wprowadź ID dokumentu');
+        return;
+      }
+
+      window.open(`${API_URL}/documents/${id}/download`, '_blank');
+    }
+
+    async function deleteDocument() {
+      const id = document.getElementById('documentId').value;
+      if (!id) {
+        alert('Wprowadź ID dokumentu');
+        return;
+      }
+
+      if (!confirm('Czy na pewno chcesz usunąć ten dokument?')) {
+        return;
+      }
+
+      const result = await apiRequest(`/documents/${id}`, 'DELETE');
+      displayResponse('documentResponse', result.data, result.status);
+      
+      if (result.ok) {
+        alert('✅ Dokument usunięty');
+      }
+    }
+
+    // ============================================
+    // TEMPLATES
+    // ============================================
+
+    async function uploadTemplate() {
+      const file = document.getElementById('templateFile').files[0];
+      if (!file) {
+        alert('Wybierz plik szablonu');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('name', document.getElementById('templateName').value);
+      formData.append('description', document.getElementById('templateDescription').value);
+      
+      const taskTypeId = document.getElementById('templateTaskType').value;
+      if (taskTypeId) formData.append('taskTypeId', taskTypeId);
+
+      const placeholders = document.getElementById('templatePlaceholders').value;
+      if (placeholders) {
+        try {
+          formData.append('placeholders', placeholders);
+        } catch (e) {
+          alert('Nieprawidłowy format JSON dla placeholderów');
+          return;
+        }
+      }
+
+      const result = await apiRequest('/bom-builder/templates', 'POST', formData, true);
+      displayResponse('uploadTemplateResponse', result.data, result.status);
+      
+      if (result.ok) {
+        alert('✅ Szablon przesłany pomyślnie');
+        document.getElementById('templateFile').value = '';
+      }
+    }
+
+    async function getTemplates() {
+      const result = await apiRequest('/bom-builder/templates', 'GET');
+      displayResponse('templatesResponse', result.data, result.status);
+    }
+
+    async function generateDocument() {
+      const templateId = document.getElementById('generateTemplateId').value;
+      const documentName = document.getElementById('generateDocName').value;
+      const dataStr = document.getElementById('generateData').value;
+
+      if (!templateId || !documentName || !dataStr) {
+        alert('Wypełnij wszystkie wymagane pola');
+        return;
+      }
+
+      let data;
+      try {
+        data = JSON.parse(dataStr);
+      } catch (e) {
+        alert('Nieprawidłowy format JSON dla danych');
+        return;
+      }
+
+      const body = {
+        documentName,
+        data,
+        taskId: document.getElementById('generateTaskId').value || undefined
+      };
+
+      const result = await apiRequest(`/bom-builder/templates/${templateId}/generate`, 'POST', body);
+      displayResponse('generateDocResponse', result.data, result.status);
+      
+      if (result.ok) {
+        alert('✅ Dokument wygenerowany pomyślnie');
+      }
+    }
+
+    // ============================================
+    // CSV IMPORT
+    // ============================================
+
+    async function uploadCSV() {
+      const file = document.getElementById('csvFile').files[0];
+      if (!file) {
+        alert('Wybierz plik CSV');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const result = await apiRequest('/import/materials/csv', 'POST', formData, true);
+      displayResponse('uploadCSVResponse', result.data, result.status);
+      
+      if (result.ok && result.data.success) {
+        const data = result.data.data;
+        document.getElementById('importUuid').value = data.uuid;
+        document.getElementById('csvTotalRows').textContent = data.totalRows;
+        document.getElementById('csvNewItems').textContent = data.newItems;
+        document.getElementById('csvExistingItems').textContent = data.existingItems;
+        document.getElementById('csvErrorItems').textContent = data.errorItems;
+        
+        // Wyświetl preview
+        let previewHtml = '';
+        
+        if (data.preview.new && data.preview.new.length > 0) {
+          previewHtml += '<h4 style="color: #4299e1; margin-top: 16px;">🆕 Nowe materiały (' + data.preview.new.length + '):</h4>';
+          previewHtml += '<div style="max-height: 200px; overflow-y: auto; background: #f7fafc; padding: 12px; border-radius: 6px;">';
+          data.preview.new.forEach(item => {
+            previewHtml += `<div style="margin-bottom: 8px; padding: 8px; background: white; border-radius: 4px;">
+              <strong>${item.catalog_number}</strong> - ${item.name} (${item.unit})
+              ${item.category ? ` | Kategoria: ${item.category}` : ''}
+              ${item.supplier ? ` | Dostawca: ${item.supplier}` : ''}
+            </div>`;
+          });
+          previewHtml += '</div>';
+        }
+
+        if (data.preview.existing && data.preview.existing.length > 0) {
+          previewHtml += '<h4 style="color: #ed8936; margin-top: 16px;">⚠️ Istniejące materiały (pominięte, ' + data.preview.existing.length + '):</h4>';
+          previewHtml += '<div style="max-height: 150px; overflow-y: auto; background: #f7fafc; padding: 12px; border-radius: 6px;">';
+          data.preview.existing.slice(0, 5).forEach(item => {
+            previewHtml += `<div style="margin-bottom: 4px;">${item.catalog_number} - ${item.name}</div>`;
+          });
+          if (data.preview.existing.length > 5) {
+            previewHtml += `<div style="margin-top: 8px; font-style: italic;">... i ${data.preview.existing.length - 5} więcej</div>`;
+          }
+          previewHtml += '</div>';
+        }
+
+        if (data.preview.errors && data.preview.errors.length > 0) {
+          previewHtml += '<h4 style="color: #f56565; margin-top: 16px;">❌ Błędy (' + data.preview.errors.length + '):</h4>';
+          previewHtml += '<div style="max-height: 150px; overflow-y: auto; background: #fff5f5; padding: 12px; border-radius: 6px;">';
+          data.preview.errors.forEach(err => {
+            previewHtml += `<div style="margin-bottom: 8px; padding: 8px; background: white; border-radius: 4px;">
+              <strong>Wiersz ${err.row}:</strong> ${err.error}
+            </div>`;
+          });
+          previewHtml += '</div>';
+        }
+
+        document.getElementById('csvPreviewContent').innerHTML = previewHtml;
+        document.getElementById('csvPreviewCard').style.display = 'block';
+        document.getElementById('csvFile').value = '';
+      }
+    }
+
+    async function confirmImport() {
+      const uuid = document.getElementById('importUuid').value;
+      if (!uuid) {
+        alert('Brak UUID importu');
+        return;
+      }
+
+      const result = await apiRequest(`/import/materials/${uuid}/confirm`, 'POST');
+      displayResponse('confirmImportResponse', result.data, result.status);
+      
+      if (result.ok) {
+        alert('✅ Import zakończony pomyślnie');
+        document.getElementById('csvPreviewCard').style.display = 'none';
+      }
+    }
+
+    async function cancelImport() {
+      const uuid = document.getElementById('importUuid').value;
+      if (!uuid) {
+        alert('Brak UUID importu');
+        return;
+      }
+
+      if (!confirm('Czy na pewno chcesz anulować import?')) {
+        return;
+      }
+
+      const result = await apiRequest(`/import/materials/${uuid}`, 'DELETE');
+      displayResponse('confirmImportResponse', result.data, result.status);
+      
+      if (result.ok) {
+        alert('Import anulowany');
+        document.getElementById('csvPreviewCard').style.display = 'none';
+      }
+    }
+
+    async function downloadCSVTemplate() {
+      window.open(`${API_URL}/import/materials/template`, '_blank');
+    }
+
+    async function getImportHistory() {
+      const result = await apiRequest('/import/history', 'GET');
+      displayResponse('importHistoryResponse', result.data, result.status);
+    }
+
+    // ============================================
+    // BOM BUILDER
+    // ============================================
+
+    async function getMaterials() {
+      const search = document.getElementById('materialsSearch').value;
+      const category = document.getElementById('materialsCategory').value;
+      
+      let url = '/bom-builder/materials?';
+      if (search) url += `search=${encodeURIComponent(search)}&`;
+      if (category) url += `category=${encodeURIComponent(category)}&`;
+      
+      const result = await apiRequest(url, 'GET');
+      displayResponse('materialsResponse', result.data, result.status);
+    }
+
+    async function getCategories() {
+      const result = await apiRequest('/bom-builder/categories', 'GET');
+      displayResponse('materialsResponse', result.data, result.status);
+    }
+
+    async function getTaskTypeBOM() {
+      const taskTypeId = document.getElementById('bomTaskTypeId').value;
+      if (!taskTypeId) {
+        alert('Wprowadź ID typu zadania');
+        return;
+      }
+
+      const result = await apiRequest(`/bom-builder/task-type/${taskTypeId}`, 'GET');
+      displayResponse('taskTypeBOMResponse', result.data, result.status);
+    }
+
+    async function createMaterial() {
+      const body = {
+        taskTypeId: parseInt(document.getElementById('materialTaskTypeId').value),
+        materialName: document.getElementById('materialName').value,
+        catalogNumber: document.getElementById('materialCatalogNumber').value,
+        unit: document.getElementById('materialUnit').value,
+        defaultQuantity: parseFloat(document.getElementById('materialQuantity').value) || 1,
+        category: document.getElementById('materialCategory').value,
+        supplier: document.getElementById('materialSupplier').value,
+        unitPrice: parseFloat(document.getElementById('materialUnitPrice').value) || undefined
+      };
+
+      if (!body.materialName || !body.unit) {
+        alert('Wypełnij wymagane pola (nazwa i jednostka)');
+        return;
+      }
+
+      const result = await apiRequest('/bom-builder/items', 'POST', body);
+      displayResponse('createMaterialResponse', result.data, result.status);
+      
+      if (result.ok) {
+        alert('✅ Materiał dodany pomyślnie');
+        // Wyczyść formularz
+        document.getElementById('materialName').value = '';
+        document.getElementById('materialCatalogNumber').value = '';
+        document.getElementById('materialCategory').value = '';
+        document.getElementById('materialSupplier').value = '';
+        document.getElementById('materialUnitPrice').value = '';
+      }
+    }
+
+    async function copyBOMTemplate() {
+      const sourceId = document.getElementById('sourceTaskTypeId').value;
+      const targetId = document.getElementById('targetTaskTypeId').value;
+
+      if (!sourceId || !targetId) {
+        alert('Wypełnij oba pola ID');
+        return;
+      }
+
+      const result = await apiRequest(`/bom-builder/task-type/${sourceId}/copy/${targetId}`, 'POST');
+      displayResponse('copyBOMResponse', result.data, result.status);
+      
+      if (result.ok) {
+        alert('✅ Szablon skopiowany pomyślnie');
+      }
     }
 
     // ============================================
