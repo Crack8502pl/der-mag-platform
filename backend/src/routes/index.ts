@@ -12,6 +12,9 @@ import ipRoutes from './ip.routes';
 import metricsRoutes from './metrics.routes';
 import userRoutes from './user.routes';
 import notificationRoutes from './notification.routes';
+import documentRoutes from './document.routes';
+import importRoutes from './import.routes';
+import bomBuilderRoutes from './bom-builder.routes';
 
 const router = Router();
 
@@ -26,10 +29,24 @@ router.use('/ip', ipRoutes);
 router.use('/metrics', metricsRoutes);
 router.use('/users', userRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/documents', documentRoutes);
+router.use('/import', importRoutes);
+router.use('/bom-builder', bomBuilderRoutes);
+
+// Importy dla aliasów szablonów dokumentów
+import { BOMBuilderController } from '../controllers/BOMBuilderController';
+import { uploadTemplate } from '../middleware/upload';
+import { authenticate, authorize } from '../middleware/auth';
+
+// Alias dla szablonów dokumentów (tylko endpointy związane z szablonami)
+router.get('/document-templates', authenticate, BOMBuilderController.getTemplates);
+router.post('/document-templates', authenticate, authorize('admin', 'manager'), uploadTemplate.single('file'), BOMBuilderController.uploadTemplate);
+router.get('/document-templates/:id', authenticate, BOMBuilderController.getTemplate);
+router.post('/document-templates/:id/generate', authenticate, BOMBuilderController.generateDocument);
+router.delete('/document-templates/:id', authenticate, authorize('admin', 'manager'), BOMBuilderController.deleteTemplate);
 
 // Dodatkowa trasa dla BOM zadań
 import { BOMController } from '../controllers/BOMController';
-import { authenticate } from '../middleware/auth';
 router.get('/tasks/:taskNumber/bom', authenticate, BOMController.getTaskMaterials);
 router.put('/tasks/:taskNumber/bom/:id', authenticate, BOMController.updateMaterial);
 

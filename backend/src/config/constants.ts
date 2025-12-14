@@ -79,3 +79,52 @@ export const RATE_LIMIT = {
   WINDOW_MS: 15 * 60 * 1000, // 15 minut
   MAX_REQUESTS: 100
 } as const;
+
+// Typy i kategorie dokumentów
+export const DOCUMENT_TYPES = {
+  UPLOADED: 'uploaded',
+  GENERATED: 'generated'
+} as const;
+
+export const DOCUMENT_CATEGORIES = {
+  INVOICE: 'invoice',
+  PROTOCOL: 'protocol',
+  REPORT: 'report',
+  BOM_LIST: 'bom_list',
+  OTHER: 'other'
+} as const;
+
+// Typy szablonów dokumentów
+export const TEMPLATE_TYPES = {
+  WORD: 'word',
+  EXCEL: 'excel',
+  PDF: 'pdf'
+} as const;
+
+// Statusy importu materiałów
+export const IMPORT_STATUSES = {
+  PENDING: 'pending',
+  PREVIEW: 'preview',
+  CONFIRMED: 'confirmed',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled'
+} as const;
+
+// Limity dla dokumentów i importów
+export const DOCUMENT_LIMITS = {
+  MAX_DOCUMENT_SIZE: 50 * 1024 * 1024, // 50MB
+  MAX_TEMPLATE_SIZE: 20 * 1024 * 1024, // 20MB
+  MAX_CSV_SIZE: 10 * 1024 * 1024, // 10MB
+  ALLOWED_DOCUMENT_TYPES: [
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/plain'
+  ],
+  ALLOWED_TEMPLATE_TYPES: [
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/pdf'
+  ],
+  ALLOWED_CSV_TYPE: 'text/csv'
+} as const;
