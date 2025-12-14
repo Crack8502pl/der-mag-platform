@@ -12,6 +12,9 @@ import ipRoutes from './ip.routes';
 import metricsRoutes from './metrics.routes';
 import userRoutes from './user.routes';
 import notificationRoutes from './notification.routes';
+import documentRoutes from './document.routes';
+import importRoutes from './import.routes';
+import bomBuilderRoutes from './bom-builder.routes';
 
 const router = Router();
 
@@ -26,6 +29,12 @@ router.use('/ip', ipRoutes);
 router.use('/metrics', metricsRoutes);
 router.use('/users', userRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/documents', documentRoutes);
+router.use('/import', importRoutes);
+router.use('/bom-builder', bomBuilderRoutes);
+
+// Montowanie tras dla szablonów dokumentów (aliasy)
+router.use('/document-templates', bomBuilderRoutes);
 
 // Dodatkowa trasa dla BOM zadań
 import { BOMController } from '../controllers/BOMController';

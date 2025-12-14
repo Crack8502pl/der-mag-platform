@@ -62,7 +62,7 @@ const documentStorage = multer.diskStorage({
 const documentFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowedTypes = DOCUMENT_LIMITS.ALLOWED_DOCUMENT_TYPES;
   
-  if (allowedTypes.includes(file.mimetype)) {
+  if (allowedTypes.includes(file.mimetype as any)) {
     cb(null, true);
   } else {
     cb(new Error('Nieobsługiwany typ dokumentu. Dozwolone: PDF, DOCX, XLSX, TXT'));
@@ -95,7 +95,7 @@ const templateStorage = multer.diskStorage({
 const templateFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowedTypes = DOCUMENT_LIMITS.ALLOWED_TEMPLATE_TYPES;
   
-  if (allowedTypes.includes(file.mimetype)) {
+  if (allowedTypes.includes(file.mimetype as any)) {
     cb(null, true);
   } else {
     cb(new Error('Nieobsługiwany typ szablonu. Dozwolone: DOCX, XLSX, PDF'));
