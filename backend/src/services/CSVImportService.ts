@@ -175,10 +175,13 @@ export class CSVImportService {
     // Dodaj tylko nowe materiały
     const importedIds: number[] = [];
     
+    // Parametryzacja taskTypeId - można w przyszłości dodać jako parametr lub pobrać z pierwszego materiału
+    const defaultTaskTypeId = 1; // Domyślny typ zadania
+    
     for (const material of newMaterials) {
       try {
         const bomTemplate = bomRepository.create({
-          taskTypeId: 1, // Domyślny typ zadania - można to parametryzować
+          taskTypeId: defaultTaskTypeId,
           materialName: material.name,
           catalogNumber: material.catalog_number,
           unit: material.unit,

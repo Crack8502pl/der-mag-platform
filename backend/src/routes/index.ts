@@ -33,12 +33,20 @@ router.use('/documents', documentRoutes);
 router.use('/import', importRoutes);
 router.use('/bom-builder', bomBuilderRoutes);
 
-// Montowanie tras dla szablonów dokumentów (aliasy)
-router.use('/document-templates', bomBuilderRoutes);
+// Importy dla aliasów szablonów dokumentów
+import { BOMBuilderController } from '../controllers/BOMBuilderController';
+import { uploadTemplate } from '../middleware/upload';
+import { authenticate, authorize } from '../middleware/auth';
+
+// Alias dla szablonów dokumentów (tylko endpointy związane z szablonami)
+router.get('/document-templates', authenticate, BOMBuilderController.getTemplates);
+router.post('/document-templates', authenticate, authorize('admin', 'manager'), uploadTemplate.single('file'), BOMBuilderController.uploadTemplate);
+router.get('/document-templates/:id', authenticate, BOMBuilderController.getTemplate);
+router.post('/document-templates/:id/generate', authenticate, BOMBuilderController.generateDocument);
+router.delete('/document-templates/:id', authenticate, authorize('admin', 'manager'), BOMBuilderController.deleteTemplate);
 
 // Dodatkowa trasa dla BOM zadań
 import { BOMController } from '../controllers/BOMController';
-import { authenticate } from '../middleware/auth';
 router.get('/tasks/:taskNumber/bom', authenticate, BOMController.getTaskMaterials);
 router.put('/tasks/:taskNumber/bom/:id', authenticate, BOMController.updateMaterial);
 

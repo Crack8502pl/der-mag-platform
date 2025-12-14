@@ -6,6 +6,7 @@ import { DocumentTemplate } from '../entities/DocumentTemplate';
 import { DocumentService } from './DocumentService';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 import { PDFDocument } from 'pdf-lib';
@@ -146,7 +147,8 @@ export class TemplateService {
     const buffer = doc.getZip().generate({ type: 'nodebuffer' });
     
     const uploadDir = process.env.UPLOAD_DIR || './uploads';
-    const outputPath = path.join(uploadDir, 'documents', `${Date.now()}-${documentName}.docx`);
+    const uniqueId = crypto.randomUUID();
+    const outputPath = path.join(uploadDir, 'documents', `${uniqueId}-${documentName}.docx`);
     
     fs.writeFileSync(outputPath, buffer);
     return outputPath;
@@ -180,7 +182,8 @@ export class TemplateService {
     });
 
     const uploadDir = process.env.UPLOAD_DIR || './uploads';
-    const outputPath = path.join(uploadDir, 'documents', `${Date.now()}-${documentName}.xlsx`);
+    const uniqueId = crypto.randomUUID();
+    const outputPath = path.join(uploadDir, 'documents', `${uniqueId}-${documentName}.xlsx`);
     
     await workbook.xlsx.writeFile(outputPath);
     return outputPath;
@@ -199,7 +202,8 @@ export class TemplateService {
     const content = fs.readFileSync(template.filePath);
     
     const uploadDir = process.env.UPLOAD_DIR || './uploads';
-    const outputPath = path.join(uploadDir, 'documents', `${Date.now()}-${documentName}.pdf`);
+    const uniqueId = crypto.randomUUID();
+    const outputPath = path.join(uploadDir, 'documents', `${uniqueId}-${documentName}.pdf`);
     
     fs.writeFileSync(outputPath, content);
     return outputPath;

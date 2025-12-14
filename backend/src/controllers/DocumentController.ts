@@ -27,7 +27,13 @@ export class DocumentController {
 
       if (errors.length > 0) {
         // Usuń przesłany plik jeśli walidacja nie powiodła się
-        fs.unlinkSync(req.file.path);
+        try {
+          if (req.file && req.file.path) {
+            fs.unlinkSync(req.file.path);
+          }
+        } catch (fileError) {
+          console.error('Błąd usuwania pliku:', fileError);
+        }
         res.status(400).json({
           success: false,
           message: 'Błąd walidacji',
