@@ -15,6 +15,7 @@ import notificationRoutes from './notification.routes';
 import documentRoutes from './document.routes';
 import importRoutes from './import.routes';
 import bomBuilderRoutes from './bom-builder.routes';
+import materialRoutes from './material.routes';
 
 const router = Router();
 
@@ -32,6 +33,7 @@ router.use('/notifications', notificationRoutes);
 router.use('/documents', documentRoutes);
 router.use('/import', importRoutes);
 router.use('/bom-builder', bomBuilderRoutes);
+router.use('/materials', materialRoutes);
 
 // Importy dla aliasów szablonów dokumentów
 import { BOMBuilderController } from '../controllers/BOMBuilderController';
