@@ -16,6 +16,8 @@ import { QualityPhoto } from '../entities/QualityPhoto';
 import { TaskAssignment } from '../entities/TaskAssignment';
 import { TaskMetric } from '../entities/TaskMetric';
 import { RefreshToken } from '../entities/RefreshToken';
+import { MaterialStock } from '../entities/MaterialStock';
+import { MaterialImportLog } from '../entities/MaterialImportLog';
 // New workflow entities
 import { Contract } from '../entities/Contract';
 import { Subsystem } from '../entities/Subsystem';
@@ -56,6 +58,8 @@ export const AppDataSource = new DataSource({
     TaskAssignment,
     TaskMetric,
     RefreshToken,
+    MaterialStock,
+    MaterialImportLog
     // New workflow entities
     Contract,
     Subsystem,

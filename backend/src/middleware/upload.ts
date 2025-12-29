@@ -131,3 +131,42 @@ export const uploadCSV = multer({
     fileSize: DOCUMENT_LIMITS.MAX_CSV_SIZE
   }
 });
+
+// Konfiguracja storage dla importu materiałów (CSV/Excel)
+const materialStorage = multer.diskStorage({
+  destination: (req: Request, file: Express.Multer.File, cb) => {
+    const uploadDir = process.env.UPLOAD_DIR || './uploads';
+    cb(null, path.join(uploadDir, 'imports'));
+  },
+  filename: (req: Request, file: Express.Multer.File, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `material-import-${uniqueSuffix}${ext}`);
+  }
+});
+
+// Filtr dla importu materiałów (CSV i Excel)
+const materialFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowedTypes = [
+    'text/csv',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  ];
+  
+  if (allowedTypes.includes(file.mimetype) || 
+      file.originalname.match(/\.(csv|xlsx|xls)$/)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Nieobsługiwany typ pliku. Dozwolone: CSV, Excel (XLSX, XLS)'));
+  }
+};
+
+// Middleware dla uploadowania plików materiałów
+export const uploadMaterials = multer({
+  storage: materialStorage,
+  fileFilter: materialFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB
+  }
+});
+
