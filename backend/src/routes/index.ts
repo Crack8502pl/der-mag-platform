@@ -15,10 +15,14 @@ import notificationRoutes from './notification.routes';
 import documentRoutes from './document.routes';
 import importRoutes from './import.routes';
 import bomBuilderRoutes from './bom-builder.routes';
+// New workflow routes
+import contractRoutes from './contract.routes';
+import subsystemRoutes from './subsystem.routes';
+import networkRoutes from './network.routes';
 
 const router = Router();
 
-// Montowanie tras
+// Existing routes
 router.use('/auth', authRoutes);
 router.use('/tasks', taskRoutes);
 router.use('/bom', bomRoutes);
@@ -32,6 +36,11 @@ router.use('/notifications', notificationRoutes);
 router.use('/documents', documentRoutes);
 router.use('/import', importRoutes);
 router.use('/bom-builder', bomBuilderRoutes);
+
+// New workflow routes
+router.use('/contracts', contractRoutes);
+router.use('/subsystems', subsystemRoutes);
+router.use('/network', networkRoutes);
 
 // Importy dla aliasów szablonów dokumentów
 import { BOMBuilderController } from '../controllers/BOMBuilderController';
