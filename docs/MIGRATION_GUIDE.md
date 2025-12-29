@@ -35,7 +35,7 @@
 
 3. **Uporządkuj numery katalogowe**
    - Usuń duplikaty
-   - Ujednolic format (np. MAT-001 vs MAT001)
+   - Ujednolić format (np. MAT-001 vs MAT001)
 
 ### Z arkuszy Excel
 

@@ -435,18 +435,12 @@ export class MaterialImportService {
    */
   static async checkAvailability(materials: Array<{ partNumber: string; quantity: number }>): Promise<any> {
     const stockRepo = AppDataSource.getRepository(MaterialStock);
-    
-    // Optymalizacja: pobierz wszystkie materiały jednym zapytaniem
-    const partNumbers = materials.map(m => m.partNumber);
-    const stocks = await stockRepo.find({
-      where: partNumbers.map(partNumber => ({ partNumber, isActive: true }))
-    });
-    
-    const stocksMap = new Map(stocks.map(stock => [stock.partNumber, stock]));
     const results = [];
 
     for (const material of materials) {
-      const stock = stocksMap.get(material.partNumber);
+      const stock = await stockRepo.findOne({
+        where: { partNumber: material.partNumber, isActive: true }
+      });
 
       if (!stock) {
         results.push({
@@ -482,17 +476,10 @@ export class MaterialImportService {
   ): Promise<void> {
     const stockRepo = AppDataSource.getRepository(MaterialStock);
 
-    // Optymalizacja: pobierz wszystkie materiały jednym zapytaniem
-    const partNumbers = materials.map(m => m.partNumber);
-    const stocks = await stockRepo.find({
-      where: partNumbers.map(partNumber => ({ partNumber, isActive: true }))
-    });
-    
-    const stocksMap = new Map(stocks.map(stock => [stock.partNumber, stock]));
-    const toUpdate: MaterialStock[] = [];
-
     for (const material of materials) {
-      const stock = stocksMap.get(material.partNumber);
+      const stock = await stockRepo.findOne({
+        where: { partNumber: material.partNumber, isActive: true }
+      });
 
       if (!stock) {
         throw new Error(`Materiał ${material.partNumber} nie znaleziony`);
@@ -504,12 +491,7 @@ export class MaterialImportService {
       }
 
       stock.quantityReserved += material.quantity;
-      toUpdate.push(stock);
-    }
-    
-    // Batch save
-    if (toUpdate.length > 0) {
-      await stockRepo.save(toUpdate);
+      await stockRepo.save(stock);
     }
   }
 
@@ -521,27 +503,15 @@ export class MaterialImportService {
   ): Promise<void> {
     const stockRepo = AppDataSource.getRepository(MaterialStock);
 
-    // Optymalizacja: pobierz wszystkie materiały jednym zapytaniem
-    const partNumbers = materials.map(m => m.partNumber);
-    const stocks = await stockRepo.find({
-      where: partNumbers.map(partNumber => ({ partNumber, isActive: true }))
-    });
-    
-    const stocksMap = new Map(stocks.map(stock => [stock.partNumber, stock]));
-    const toUpdate: MaterialStock[] = [];
-
     for (const material of materials) {
-      const stock = stocksMap.get(material.partNumber);
+      const stock = await stockRepo.findOne({
+        where: { partNumber: material.partNumber, isActive: true }
+      });
 
       if (stock) {
         stock.quantityReserved = Math.max(0, stock.quantityReserved - material.quantity);
-        toUpdate.push(stock);
+        await stockRepo.save(stock);
       }
-    }
-    
-    // Batch save
-    if (toUpdate.length > 0) {
-      await stockRepo.save(toUpdate);
     }
   }
 

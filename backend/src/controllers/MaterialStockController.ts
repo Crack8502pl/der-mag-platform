@@ -184,7 +184,7 @@ export class MaterialStockController {
       }
 
       const { delimiter = ';', mappingType = 'symfonia' } = req.body;
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.id; // TODO: Extend Express Request interface with user property
 
       const fileType = req.file.mimetype;
       let result;
