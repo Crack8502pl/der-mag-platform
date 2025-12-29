@@ -232,17 +232,17 @@ export class MaterialImportService {
       // Pobierz nagłówki z pierwszego wiersza
       const headerRow = worksheet.getRow(1);
       const headers: Record<number, string> = {};
-      headerRow.eachCell((cell, colNumber) => {
+      headerRow.eachCell((cell: ExcelJS.Cell, colNumber: number) => {
         headers[colNumber] = cell.value?.toString().trim() || '';
       });
 
       // Konwertuj wiersze na obiekty
       const records: Record<string, any>[] = [];
-      worksheet.eachRow((row, rowNumber) => {
+      worksheet.eachRow((row: ExcelJS.Row, rowNumber: number) => {
         if (rowNumber === 1) return; // Pomiń nagłówki
 
         const record: Record<string, any> = {};
-        row.eachCell((cell, colNumber) => {
+        row.eachCell((cell: ExcelJS.Cell, colNumber: number) => {
           const header = headers[colNumber];
           if (header) {
             record[header] = cell.value;
