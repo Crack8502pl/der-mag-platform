@@ -18,6 +18,21 @@ import { TaskMetric } from '../entities/TaskMetric';
 import { RefreshToken } from '../entities/RefreshToken';
 import { MaterialStock } from '../entities/MaterialStock';
 import { MaterialImportLog } from '../entities/MaterialImportLog';
+// New workflow entities
+import { Contract } from '../entities/Contract';
+import { Subsystem } from '../entities/Subsystem';
+import { NetworkPool } from '../entities/NetworkPool';
+import { NetworkAllocation } from '../entities/NetworkAllocation';
+import { DeviceIPAssignment } from '../entities/DeviceIPAssignment';
+import { WorkflowBomTemplate } from '../entities/WorkflowBomTemplate';
+import { WorkflowBomTemplateItem } from '../entities/WorkflowBomTemplateItem';
+import { WorkflowGeneratedBom } from '../entities/WorkflowGeneratedBom';
+import { WorkflowGeneratedBomItem } from '../entities/WorkflowGeneratedBomItem';
+import { CompletionOrder } from '../entities/CompletionOrder';
+import { CompletionItem } from '../entities/CompletionItem';
+import { Pallet } from '../entities/Pallet';
+import { PrefabricationTask } from '../entities/PrefabricationTask';
+import { PrefabricationDevice } from '../entities/PrefabricationDevice';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -45,6 +60,21 @@ export const AppDataSource = new DataSource({
     RefreshToken,
     MaterialStock,
     MaterialImportLog
+    // New workflow entities
+    Contract,
+    Subsystem,
+    NetworkPool,
+    NetworkAllocation,
+    DeviceIPAssignment,
+    WorkflowBomTemplate,
+    WorkflowBomTemplateItem,
+    WorkflowGeneratedBom,
+    WorkflowGeneratedBomItem,
+    CompletionOrder,
+    CompletionItem,
+    Pallet,
+    PrefabricationTask,
+    PrefabricationDevice
   ],
   subscribers: [],
   migrations: [],
