@@ -1,0 +1,43 @@
+/* src/components/layout/ForbiddenPage.css */
+
+.forbidden-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  background: linear-gradient(135deg, var(--bg-dark) 0%, #0d0d0d 100%);
+}
+
+.forbidden-content {
+  text-align: center;
+  max-width: 500px;
+}
+
+.forbidden-icon {
+  font-size: 5rem;
+  margin-bottom: var(--spacing-lg);
+}
+
+.forbidden-title {
+  font-size: 5rem;
+  font-weight: 700;
+  color: var(--error);
+  margin-bottom: var(--spacing-sm);
+}
+
+.forbidden-subtitle {
+  font-size: 2rem;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.forbidden-message {
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xl);
+  line-height: 1.6;
+}
+
+.forbidden-container .btn {
+  margin-top: var(--spacing-lg);
+}
