@@ -59,7 +59,7 @@ export const AppDataSource = new DataSource({
     TaskMetric,
     RefreshToken,
     MaterialStock,
-    MaterialImportLog
+    MaterialImportLog,
     // New workflow entities
     Contract,
     Subsystem,
