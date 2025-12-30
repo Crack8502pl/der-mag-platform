@@ -102,7 +102,7 @@ function App() {
           path="/admin"
           element={
             <ProtectedRoute>
-              <RoleBasedRoute requiredPermission={{ module: 'all' }}>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
                 <AdminDashboard />
               </RoleBasedRoute>
             </ProtectedRoute>
@@ -112,7 +112,7 @@ function App() {
           path="/admin/users"
           element={
             <ProtectedRoute>
-              <RoleBasedRoute requiredPermission={{ module: 'all' }}>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
                 <UserManagementPage />
               </RoleBasedRoute>
             </ProtectedRoute>
@@ -122,7 +122,7 @@ function App() {
           path="/admin/smtp"
           element={
             <ProtectedRoute>
-              <RoleBasedRoute requiredPermission={{ module: 'all' }}>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
                 <SMTPConfigPage />
               </RoleBasedRoute>
             </ProtectedRoute>
@@ -132,7 +132,7 @@ function App() {
           path="/admin/portal"
           element={
             <ProtectedRoute>
-              <RoleBasedRoute requiredPermission={{ module: 'all' }}>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
                 <PortalConfigPage />
               </RoleBasedRoute>
             </ProtectedRoute>
@@ -142,7 +142,7 @@ function App() {
           path="/admin/password"
           element={
             <ProtectedRoute>
-              <RoleBasedRoute requiredPermission={{ module: 'all' }}>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
                 <AdminPasswordChange />
               </RoleBasedRoute>
             </ProtectedRoute>
@@ -152,7 +152,7 @@ function App() {
           path="/admin/bom"
           element={
             <ProtectedRoute>
-              <RoleBasedRoute requiredPermission={{ module: 'all' }}>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
                 <BOMBuilderPage />
               </RoleBasedRoute>
             </ProtectedRoute>
@@ -162,7 +162,7 @@ function App() {
           path="/admin/bom/import"
           element={
             <ProtectedRoute>
-              <RoleBasedRoute requiredPermission={{ module: 'all' }}>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
                 <MaterialImportPage />
               </RoleBasedRoute>
             </ProtectedRoute>

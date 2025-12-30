@@ -99,7 +99,8 @@ export const useBarcodeScanner = (
 
       setIsScanning(true);
     } catch (err) {
-      const errorMsg = err?.message || 'Nie udało się uruchomić skanera';
+      const error = err as Error;
+      const errorMsg = error?.message || 'Nie udało się uruchomić skanera';
       setError(errorMsg);
       setIsScanning(false);
       if (onError) {

@@ -7,7 +7,6 @@ import type {
   CreateUserDto,
   CreateUserResponse,
   SmtpConfig,
-  PortalConfig,
   SmtpTestResult,
   ChangePasswordDto,
   Role,
@@ -68,7 +67,6 @@ export class AdminService {
    * Get all roles
    */
   async getRoles(): Promise<Role[]> {
-    const response = await api.get('/users'); // This might need to be adjusted
     // For now, return hardcoded roles that match backend
     return [
       { id: 1, name: 'admin', description: 'Administrator', permissions: {} },
