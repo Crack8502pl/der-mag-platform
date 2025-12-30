@@ -9,6 +9,7 @@ import { TaskActivity } from '../../../src/entities/TaskActivity';
 import { ActivityTemplate } from '../../../src/entities/ActivityTemplate';
 import { TaskNumberGenerator } from '../../../src/services/TaskNumberGenerator';
 import { createMockRepository } from '../../mocks/database.mock';
+import { BomTriggerService } from '../../../src/services/BomTriggerService';
 
 // Mock dependencies
 jest.mock('../../../src/config/database', () => ({
@@ -18,6 +19,12 @@ jest.mock('../../../src/config/database', () => ({
 }));
 
 jest.mock('../../../src/services/TaskNumberGenerator');
+
+jest.mock('../../../src/services/BomTriggerService', () => ({
+  BomTriggerService: {
+    executeTriggers: jest.fn(),
+  },
+}));
 
 describe('TaskService', () => {
   let mockTaskRepository: any;

@@ -351,6 +351,9 @@
       <div class="nav-item" onclick="showSection('bom-builder')">
         🔧 BOM Builder
       </div>
+      <div class="nav-item" onclick="showSection('bom-triggers')">
+        ⚡ BOM Triggery
+      </div>
       <div class="nav-item" onclick="showSection('database')">
         🗄️ Baza danych
       </div>
@@ -820,6 +823,131 @@
           </div>
           <button onclick="copyBOMTemplate()">📋 Kopiuj szablon</button>
           <div class="response" id="copyBOMResponse" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- BOM Triggers Section -->
+      <div class="section" id="bom-triggers">
+        <div class="card">
+          <h3>⚡ Lista triggerów BOM</h3>
+          <div class="form-group">
+            <label for="triggerFilterActive">Filtruj po aktywności:</label>
+            <select id="triggerFilterActive">
+              <option value="">Wszystkie</option>
+              <option value="true">Aktywne</option>
+              <option value="false">Nieaktywne</option>
+            </select>
+          </div>
+          <button onclick="listBomTriggers()">📋 Pobierz listę triggerów</button>
+          <div class="response" id="listTriggersResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>➕ Utwórz trigger BOM</h3>
+          <div class="form-group">
+            <label for="triggerName">Nazwa triggera:</label>
+            <input type="text" id="triggerName" placeholder="np. Auto-dodaj kabel UTP">
+          </div>
+          <div class="form-group">
+            <label for="triggerDescription">Opis:</label>
+            <textarea id="triggerDescription" rows="2" placeholder="Opis triggera"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="triggerEvent">Typ eventu:</label>
+            <select id="triggerEvent">
+              <option value="ON_TASK_CREATE">ON_TASK_CREATE - Przy tworzeniu zadania</option>
+              <option value="ON_STATUS_CHANGE">ON_STATUS_CHANGE - Przy zmianie statusu</option>
+              <option value="ON_BOM_UPDATE">ON_BOM_UPDATE - Przy aktualizacji BOM</option>
+              <option value="ON_MATERIAL_ADD">ON_MATERIAL_ADD - Przy dodaniu materiału</option>
+              <option value="ON_QUANTITY_CHANGE">ON_QUANTITY_CHANGE - Przy zmianie ilości</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="triggerCondition">Warunek triggera (JSON):</label>
+            <textarea id="triggerCondition" rows="3" placeholder='{"taskTypeCode": "LAN"}'>{}</textarea>
+          </div>
+          <div class="form-group">
+            <label for="triggerActionType">Typ akcji:</label>
+            <select id="triggerActionType">
+              <option value="ADD_MATERIAL">ADD_MATERIAL - Dodaj materiał</option>
+              <option value="UPDATE_QUANTITY">UPDATE_QUANTITY - Aktualizuj ilość</option>
+              <option value="COPY_BOM">COPY_BOM - Kopiuj BOM</option>
+              <option value="NOTIFY">NOTIFY - Wyślij powiadomienie</option>
+              <option value="CALCULATE_COST">CALCULATE_COST - Przelicz koszty</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="triggerActionConfig">Konfiguracja akcji (JSON):</label>
+            <textarea id="triggerActionConfig" rows="4" placeholder='{"materialName": "Kabel UTP", "defaultQuantity": 100, "unit": "m"}'>{"materialName": "Kabel UTP Cat6", "defaultQuantity": 100, "unit": "m"}</textarea>
+          </div>
+          <div class="form-group">
+            <label for="triggerPriority">Priorytet (1-100):</label>
+            <input type="number" id="triggerPriority" value="10" min="1" max="100">
+          </div>
+          <button onclick="createBomTrigger()">➕ Utwórz trigger</button>
+          <div class="response" id="createTriggerResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>🔍 Szczegóły triggera</h3>
+          <div class="form-group">
+            <label for="getTriggerById">ID triggera:</label>
+            <input type="number" id="getTriggerById" placeholder="np. 1">
+          </div>
+          <button onclick="getBomTrigger()">🔍 Pobierz szczegóły</button>
+          <div class="response" id="getTriggerResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>🔄 Przełącz aktywność triggera</h3>
+          <div class="form-group">
+            <label for="toggleTriggerId">ID triggera:</label>
+            <input type="number" id="toggleTriggerId" placeholder="np. 1">
+          </div>
+          <button onclick="toggleBomTrigger()">🔄 Przełącz aktywność</button>
+          <div class="response" id="toggleTriggerResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>🧪 Testuj trigger</h3>
+          <div class="form-group">
+            <label for="testTriggerId">ID triggera:</label>
+            <input type="number" id="testTriggerId" placeholder="np. 1">
+          </div>
+          <div class="form-group">
+            <label for="testTriggerData">Dane testowe (JSON):</label>
+            <textarea id="testTriggerData" rows="4" placeholder='{"taskId": 1, "taskTypeCode": "LAN"}'>{"taskId": 1}</textarea>
+          </div>
+          <button onclick="testBomTrigger()">🧪 Wykonaj test</button>
+          <div class="response" id="testTriggerResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>📊 Logi wykonania triggera</h3>
+          <div class="form-group">
+            <label for="triggerLogsId">ID triggera:</label>
+            <input type="number" id="triggerLogsId" placeholder="np. 1">
+          </div>
+          <button onclick="getBomTriggerLogs()">📊 Pobierz logi</button>
+          <div class="response" id="triggerLogsResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>📚 Dostępne eventy i akcje</h3>
+          <button onclick="getBomTriggerEvents()">📋 Pobierz eventy</button>
+          <div class="response" id="triggerEventsResponse" style="display:none;"></div>
+          <button onclick="getBomTriggerActions()" style="margin-top: 10px;">⚡ Pobierz akcje</button>
+          <div class="response" id="triggerActionsResponse" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>🗑️ Usuń trigger</h3>
+          <div class="form-group">
+            <label for="deleteTriggerId">ID triggera:</label>
+            <input type="number" id="deleteTriggerId" placeholder="np. 1">
+          </div>
+          <button class="danger" onclick="deleteBomTrigger()">🗑️ Usuń trigger</button>
+          <div class="response" id="deleteTriggerResponse" style="display:none;"></div>
         </div>
       </div>
 
@@ -1659,6 +1787,160 @@
       
       if (result.ok) {
         alert('✅ Szablon skopiowany pomyślnie');
+      }
+    }
+
+    // ============================================
+    // BOM TRIGGERS
+    // ============================================
+
+    async function listBomTriggers() {
+      const isActive = document.getElementById('triggerFilterActive').value;
+      let endpoint = '/bom-triggers';
+      
+      if (isActive) {
+        endpoint += `?isActive=${isActive}`;
+      }
+
+      const result = await apiRequest(endpoint, 'GET');
+      displayResponse('listTriggersResponse', result.data, result.status);
+    }
+
+    async function getBomTrigger() {
+      const id = document.getElementById('getTriggerById').value;
+      
+      if (!id) {
+        alert('Podaj ID triggera');
+        return;
+      }
+
+      const result = await apiRequest(`/bom-triggers/${id}`, 'GET');
+      displayResponse('getTriggerResponse', result.data, result.status);
+    }
+
+    async function createBomTrigger() {
+      const name = document.getElementById('triggerName').value;
+      const description = document.getElementById('triggerDescription').value;
+      const triggerEvent = document.getElementById('triggerEvent').value;
+      const triggerCondition = document.getElementById('triggerCondition').value;
+      const actionType = document.getElementById('triggerActionType').value;
+      const actionConfig = document.getElementById('triggerActionConfig').value;
+      const priority = document.getElementById('triggerPriority').value;
+
+      if (!name || !triggerEvent || !actionType) {
+        alert('Wypełnij wymagane pola (nazwa, event, akcja)');
+        return;
+      }
+
+      let parsedCondition, parsedConfig;
+      
+      try {
+        parsedCondition = JSON.parse(triggerCondition);
+        parsedConfig = JSON.parse(actionConfig);
+      } catch (error) {
+        alert('Błąd parsowania JSON: ' + error.message);
+        return;
+      }
+
+      const body = {
+        name,
+        description: description || undefined,
+        triggerEvent,
+        triggerCondition: parsedCondition,
+        actionType,
+        actionConfig: parsedConfig,
+        priority: parseInt(priority),
+        isActive: true
+      };
+
+      const result = await apiRequest('/bom-triggers', 'POST', body);
+      displayResponse('createTriggerResponse', result.data, result.status);
+      
+      if (result.ok) {
+        alert('✅ Trigger utworzony pomyślnie');
+        // Wyczyść formularz
+        document.getElementById('triggerName').value = '';
+        document.getElementById('triggerDescription').value = '';
+      }
+    }
+
+    async function toggleBomTrigger() {
+      const id = document.getElementById('toggleTriggerId').value;
+      
+      if (!id) {
+        alert('Podaj ID triggera');
+        return;
+      }
+
+      const result = await apiRequest(`/bom-triggers/${id}/toggle`, 'POST');
+      displayResponse('toggleTriggerResponse', result.data, result.status);
+      
+      if (result.ok) {
+        alert('✅ Status triggera zmieniony');
+      }
+    }
+
+    async function testBomTrigger() {
+      const id = document.getElementById('testTriggerId').value;
+      const testData = document.getElementById('testTriggerData').value;
+      
+      if (!id) {
+        alert('Podaj ID triggera');
+        return;
+      }
+
+      let parsedData;
+      try {
+        parsedData = JSON.parse(testData);
+      } catch (error) {
+        alert('Błąd parsowania JSON: ' + error.message);
+        return;
+      }
+
+      const result = await apiRequest(`/bom-triggers/${id}/test`, 'POST', { testData: parsedData });
+      displayResponse('testTriggerResponse', result.data, result.status);
+    }
+
+    async function getBomTriggerLogs() {
+      const id = document.getElementById('triggerLogsId').value;
+      
+      if (!id) {
+        alert('Podaj ID triggera');
+        return;
+      }
+
+      const result = await apiRequest(`/bom-triggers/${id}/logs`, 'GET');
+      displayResponse('triggerLogsResponse', result.data, result.status);
+    }
+
+    async function getBomTriggerEvents() {
+      const result = await apiRequest('/bom-triggers/events', 'GET');
+      displayResponse('triggerEventsResponse', result.data, result.status);
+    }
+
+    async function getBomTriggerActions() {
+      const result = await apiRequest('/bom-triggers/actions', 'GET');
+      displayResponse('triggerActionsResponse', result.data, result.status);
+    }
+
+    async function deleteBomTrigger() {
+      const id = document.getElementById('deleteTriggerId').value;
+      
+      if (!id) {
+        alert('Podaj ID triggera');
+        return;
+      }
+
+      if (!confirm('Czy na pewno chcesz usunąć ten trigger?')) {
+        return;
+      }
+
+      const result = await apiRequest(`/bom-triggers/${id}`, 'DELETE');
+      displayResponse('deleteTriggerResponse', result.data, result.status);
+      
+      if (result.ok) {
+        alert('✅ Trigger usunięty');
+        document.getElementById('deleteTriggerId').value = '';
       }
     }
 

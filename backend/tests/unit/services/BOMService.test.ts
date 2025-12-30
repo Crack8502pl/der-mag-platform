@@ -4,11 +4,18 @@ import { AppDataSource } from '../../../src/config/database';
 import { BOMTemplate } from '../../../src/entities/BOMTemplate';
 import { TaskMaterial } from '../../../src/entities/TaskMaterial';
 import { createMockRepository } from '../../mocks/database.mock';
+import { BomTriggerService } from '../../../src/services/BomTriggerService';
 
 // Mock dependencies
 jest.mock('../../../src/config/database', () => ({
   AppDataSource: {
     getRepository: jest.fn(),
+  },
+}));
+
+jest.mock('../../../src/services/BomTriggerService', () => ({
+  BomTriggerService: {
+    executeTriggers: jest.fn(),
   },
 }));
 
