@@ -10,6 +10,7 @@ import { TaskActivity } from '../entities/TaskActivity';
 import { ActivityTemplate } from '../entities/ActivityTemplate';
 import { TaskNumberGenerator } from './TaskNumberGenerator';
 import { CreateTaskDto } from '../dto/CreateTaskDto';
+import { BomTriggerService } from './BomTriggerService';
 
 export class TaskService {
   /**
@@ -45,6 +46,19 @@ export class TaskService {
 
     // Inicjalizuj aktywności z szablonów
     await this.initializeTaskActivities(task.id, data.taskTypeId);
+
+    // Wykonaj triggery ON_TASK_CREATE
+    try {
+      await BomTriggerService.executeTriggers('ON_TASK_CREATE', {
+        taskId: task.id,
+        taskTypeId: data.taskTypeId,
+        taskNumber: task.taskNumber,
+        taskTypeCode: taskType.code || taskType.name
+      });
+    } catch (error) {
+      console.error('Błąd wykonania triggerów ON_TASK_CREATE:', error);
+      // Nie przerywamy procesu tworzenia zadania w przypadku błędu triggerów
+    }
 
     // Pobierz zadanie z relacjami
     return await taskRepository.findOne({
@@ -130,6 +144,20 @@ export class TaskService {
     }
 
     await taskRepository.save(task);
+
+    // Wykonaj triggery ON_STATUS_CHANGE
+    try {
+      await BomTriggerService.executeTriggers('ON_STATUS_CHANGE', {
+        taskId: task.id,
+        taskNumber: task.taskNumber,
+        oldStatus: task.status !== status ? task.status : undefined,
+        newStatus: status,
+        status: status // dla kompatybilności z warunkami
+      });
+    } catch (error) {
+      console.error('Błąd wykonania triggerów ON_STATUS_CHANGE:', error);
+      // Nie przerywamy procesu zmiany statusu w przypadku błędu triggerów
+    }
 
     return task;
   }
