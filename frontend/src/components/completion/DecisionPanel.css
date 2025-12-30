@@ -1,0 +1,86 @@
+/* src/components/completion/DecisionPanel.css */
+/* Decision panel styles */
+
+.decision-panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+}
+
+.decision-panel {
+  width: 100%;
+  max-width: 600px;
+  padding: var(--spacing-xl);
+}
+
+.decision-panel h2 {
+  margin-bottom: var(--spacing-lg);
+  text-align: center;
+}
+
+.decision-warning {
+  text-align: center;
+  color: var(--warning);
+  margin-bottom: var(--spacing-xl);
+  font-size: 1.125rem;
+}
+
+.decision-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+
+.decision-option {
+  padding: var(--spacing-lg);
+  background: var(--bg-dark);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.decision-option:hover {
+  border-color: var(--primary-color);
+  background: var(--bg-hover);
+}
+
+.decision-option.selected {
+  border-color: var(--primary-color);
+  background: rgba(255, 107, 53, 0.1);
+}
+
+.decision-option-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.decision-option-header input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.decision-option-desc {
+  margin-left: 32px;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.decision-buttons {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+}
+
+.decision-buttons button {
+  flex: 1;
+}

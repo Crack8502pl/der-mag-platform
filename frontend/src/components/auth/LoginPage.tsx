@@ -38,8 +38,9 @@ export const LoginPage: React.FC = () => {
       } else {
         navigate('/dashboard');
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Błąd logowania. Sprawdź swoje dane.');
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Błąd logowania. Sprawdź swoje dane.');
     } finally {
       setLoading(false);
     }

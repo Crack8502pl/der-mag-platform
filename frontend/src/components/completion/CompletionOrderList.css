@@ -1,0 +1,178 @@
+/* src/components/completion/CompletionOrderList.css */
+/* Completion order list styles */
+
+.completion-order-list {
+  padding: var(--spacing-xl);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.completion-list-loading,
+.completion-list-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: var(--spacing-lg);
+}
+
+.completion-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xl);
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.completion-filters {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.completion-list-empty {
+  text-align: center;
+  padding: var(--spacing-xl);
+  color: var(--text-secondary);
+}
+
+.completion-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.completion-card {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.completion-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--primary-color);
+}
+
+.completion-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+  gap: var(--spacing-md);
+}
+
+.completion-card-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.badge-gray {
+  background: rgba(160, 174, 192, 0.2);
+  color: var(--text-muted);
+}
+
+.badge-blue {
+  background: rgba(66, 153, 225, 0.2);
+  color: var(--info);
+}
+
+.badge-yellow {
+  background: rgba(237, 137, 54, 0.2);
+  color: var(--warning);
+}
+
+.badge-green {
+  background: rgba(72, 187, 120, 0.2);
+  color: var(--success);
+}
+
+.badge-red {
+  background: rgba(245, 101, 101, 0.2);
+  color: var(--error);
+}
+
+.completion-card-detail {
+  margin-bottom: var(--spacing-sm);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.completion-card-detail strong {
+  color: var(--text-primary);
+  margin-right: var(--spacing-xs);
+}
+
+.completion-progress {
+  margin: var(--spacing-md) 0;
+}
+
+.completion-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-dark);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: var(--spacing-xs);
+}
+
+.completion-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color), var(--success));
+  transition: width 0.3s ease;
+}
+
+.completion-progress-text {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.completion-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-color);
+}
+
+.completion-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.completion-action {
+  font-size: 0.875rem;
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* Mobile optimization */
+@media (max-width: 768px) {
+  .completion-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .completion-list-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .completion-filters {
+    width: 100%;
+  }
+
+  .completion-filters button {
+    flex: 1;
+  }
+}
