@@ -7,6 +7,8 @@ import { User } from '../entities/User';
 import { RefreshToken } from '../entities/RefreshToken';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken, decodeToken } from '../config/jwt';
 import { v4 as uuidv4 } from 'uuid';
+import EmailService from '../services/EmailService';
+import { PasswordChangedEmailContext } from '../types/EmailTypes';
 
 // Helper function to log security events
 const logSecurityEvent = async (
@@ -148,6 +150,7 @@ export class AuthController {
         data: {
           accessToken,
           refreshToken,
+          requirePasswordChange: user.forcePasswordChange,
           user: {
             id: user.id,
             username: user.username,
@@ -495,6 +498,7 @@ export class AuthController {
           lastName: user.lastName,
           phone: user.phone,
           role: user.role.name,
+          permissions: user.role.permissions,
           lastLogin: user.lastLogin
         }
       });
@@ -503,6 +507,75 @@ export class AuthController {
       res.status(500).json({
         success: false,
         message: 'Błąd serwera'
+      });
+    }
+  }
+
+  /**
+   * POST /api/auth/change-password
+   * Zmiana jednorazowego hasła przez użytkownika
+   */
+  static async changePassword(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.userId;
+      const { newPassword, confirmPassword } = req.body;
+
+      // Verify passwords match
+      if (newPassword !== confirmPassword) {
+        res.status(400).json({
+          success: false,
+          message: 'Hasła nie są identyczne'
+        });
+        return;
+      }
+
+      const userRepository = AppDataSource.getRepository(User);
+      const user = await userRepository.findOne({
+        where: { id: userId },
+        relations: ['role']
+      });
+
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          message: 'Użytkownik nie znaleziony'
+        });
+        return;
+      }
+
+      // Update password
+      user.password = newPassword; // Will be hashed by @BeforeUpdate hook
+      user.forcePasswordChange = false;
+      user.passwordChangedAt = new Date();
+
+      await userRepository.save(user);
+
+      // Send email with new credentials
+      try {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const emailContext: PasswordChangedEmailContext = {
+          username: user.username,
+          firstName: user.firstName,
+          newPassword: newPassword, // Send plain password in email as per requirements
+          loginUrl: `${frontendUrl}/login`,
+          supportEmail: process.env.SUPPORT_EMAIL || 'support@grover.pl'
+        };
+
+        await EmailService.sendPasswordChangedEmail(user.email, emailContext);
+      } catch (emailError) {
+        console.error('Błąd wysyłania emaila po zmianie hasła:', emailError);
+        // Don't fail the request if email fails
+      }
+
+      res.json({
+        success: true,
+        message: 'Hasło zostało zmienione pomyślnie. Dane logowania wysłano na email.'
+      });
+    } catch (error) {
+      console.error('Błąd zmiany hasła:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Błąd serwera podczas zmiany hasła'
       });
     }
   }
