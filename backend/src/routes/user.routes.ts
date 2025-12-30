@@ -11,4 +11,7 @@ router.get('/', authenticate, UserController.list);
 router.post('/', authenticate, authorize('admin'), validateDto(CreateUserDto), UserController.create);
 router.put('/:id', authenticate, authorize('admin'), UserController.update);
 
+// User self-service: change own password
+router.post('/change-password', authenticate, UserController.changePassword);
+
 export default router;
