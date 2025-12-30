@@ -1,8 +1,8 @@
-# Der-Mag Platform - Workflow Kontraktowy
+# Grover Platform - Workflow Kontraktowy
 
 ## Przegląd implementacji
 
-Został zaimplementowany pełny system workflow kontraktowego dla platformy Der-Mag, obejmujący 8 modułów.
+Został zaimplementowany pełny system workflow kontraktowego dla platformy Grover, obejmujący 8 modułów.
 
 ## Status implementacji
 

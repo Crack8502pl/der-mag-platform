@@ -4,7 +4,7 @@
 1. [Eksport stanów magazynowych](#eksport-stanów-magazynowych)
 2. [Eksport kartoteki towarów](#eksport-kartoteki-towarów)
 3. [Format pliku CSV](#format-pliku-csv)
-4. [Import do Der-Mag Platform](#import-do-der-mag-platform)
+4. [Import do Grover Platform](#import-do-grover-platform)
 5. [Rozwiązywanie problemów](#rozwiązywanie-problemów)
 
 ---
@@ -82,7 +82,7 @@
 
 ## 3. Format pliku CSV
 
-### Wymagana struktura dla Der-Mag Platform
+### Wymagana struktura dla Grover Platform
 
 ```csv
 Indeks;Nazwa;Stan;JM;Cena;Magazyn;Dostawca;KodKreskowy;EAN
@@ -114,7 +114,7 @@ MAT-003;Patch panel 24-port;25;szt;180.00;MAG-02;Panduit;;4902778123458
 
 ---
 
-## 4. Import do Der-Mag Platform
+## 4. Import do Grover Platform
 
 ### Przez interfejs webowy
 

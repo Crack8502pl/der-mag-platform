@@ -1,4 +1,4 @@
-# Der-Mag Platform - Podsumowanie Sesji Developerskiej
+# Grover Platform - Podsumowanie Sesji Developerskiej
 
 **Data:** 2025-11-09  
 **Czas:** 20:20 - 02:22 UTC (6 godzin 2 minuty)  

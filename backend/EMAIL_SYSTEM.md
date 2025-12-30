@@ -1,4 +1,4 @@
-# System Emaili - Der-Mag Platform
+# System Emaili - Grover Platform
 
 Kompletny system wysyłania powiadomień email z integracją serwera SMTP nazwa.pl.
 

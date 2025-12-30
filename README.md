@@ -1,4 +1,4 @@
-# Der-Mag Platform (Grover)
+# Grover Platform
 
 **Platforma Zarządzania Zadaniami Infrastrukturalnymi**
 
@@ -6,7 +6,7 @@ System zarządzania projektami infrastrukturalnymi dla branży kolejowej i telek
 
 ## 📋 Opis
 
-Der-Mag Platform to kompleksowy system do zarządzania zadaniami infrastrukturalnymi, obsługujący 13 różnych typów projektów - od systemów monitoringu wizyjnego (SMW) po struktury światłowodowe.
+Grover Platform to kompleksowy system do zarządzania zadaniami infrastrukturalnymi, obsługujący 13 różnych typów projektów - od systemów monitoringu wizyjnego (SMW) po struktury światłowodowe.
 
 ## 🚀 Funkcjonalności
 
@@ -67,7 +67,7 @@ Der-Mag Platform to kompleksowy system do zarządzania zadaniami infrastruktural
 ## 📦 Struktura projektu
 
 ```
-der-mag-platform/
+grover-platform/
 ├── backend/              # Backend API (Node.js + TypeScript)
 │   ├── src/
 │   │   ├── config/      # Konfiguracja
@@ -85,6 +85,10 @@ der-mag-platform/
 │   │   └── integrations/    # Integracje zewnętrzne
 │   │       └── symfonia/    # Integracja Symfonia Handel
 │   ├── scripts/         # Skrypty SQL i migracje
+│   │   ├── backup-db.sh       # Backup bazy danych
+│   │   ├── restore-db.sh      # Przywracanie bazy
+│   │   └── setup-backup-cron.sh # Konfiguracja automatycznych backupów
+│   ├── backups/         # Katalog backupów bazy danych
 │   ├── docs/            # Dokumentacja backend
 │   │   ├── ENCRYPTED_ENV_SETUP.md
 │   │   ├── SECURITY_SECRETS_GUIDE.md
@@ -284,6 +288,35 @@ System obsługuje 13 typów zadań:
 - 🔐 [Security & Secrets Guide](backend/docs/SECURITY_SECRETS_GUIDE.md) - Best practices i procedury
 - 🔄 [Token Rotation Guide](backend/docs/TOKEN_ROTATION.md) - System rotacji tokenów
 
+## 💾 System Backup-u Bazy Danych
+
+Platforma Grover zawiera kompletny system automatycznych backupów bazy PostgreSQL.
+
+### Dostępne skrypty
+
+```bash
+# Ręczny backup bazy danych
+npm run db:backup
+
+# Przywracanie z backupu
+npm run db:restore backups/grover_backup_YYYYMMDD_HHMMSS.sql.gz
+
+# Konfiguracja automatycznych backupów (cron)
+npm run db:setup-cron
+```
+
+### Funkcjonalności systemu backup-u
+
+- ✅ **Automatyczny backup** - pg_dump z kompresją gzip
+- ✅ **Retencja 30 dni** - automatyczne usuwanie starszych backupów
+- ✅ **Cron integration** - codzienne backupy o 2:00 w nocy
+- ✅ **Informacyjne logi** - kolorowe emoji i statusy
+- ✅ **Bezpieczne przywracanie** - potwierdzenie użytkownika przed nadpisaniem
+- ✅ **Format nazwy** - `grover_backup_YYYYMMDD_HHMMSS.sql.gz`
+- ✅ **Katalog** - `backend/backups/`
+
+Szczegółowe informacje w [backend/README.md](backend/README.md)
+
 ## 📄 Licencja
 
 MIT License - zobacz [LICENSE](LICENSE)
@@ -294,4 +327,4 @@ Dla szczegółowej dokumentacji API, patrz [backend/README.md](backend/README.md
 
 ---
 
-**Der-Mag Platform (Grover)** © 2025
+**Grover Platform** © 2025 Cr@ck8502PL

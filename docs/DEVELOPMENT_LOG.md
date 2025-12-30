@@ -1,4 +1,4 @@
-# Der-Mag Platform - Szczegółowy Log Developerski
+# Grover Platform - Szczegółowy Log Developerski
 
 **Sesja:** 2025-11-09  
 **Czas trwania:** 20:20 - 02:22 UTC (6 godzin 2 minuty)  

@@ -1,4 +1,4 @@
-# Der-Mag Platform - Architektura Systemu
+# Grover Platform - Architektura Systemu
 
 **Wersja:** 1.0.0  
 **Data:** 2025-11-09  
@@ -8,7 +8,7 @@
 
 ## 📐 Przegląd architektury
 
-Der-Mag Platform to zaawansowany system zarządzania zadaniami infrastrukturalnymi zbudowany w architekturze trzywarstwowej (three-tier architecture) z separacją warstw prezentacji, logiki biznesowej i danych.
+Grover Platform to zaawansowany system zarządzania zadaniami infrastrukturalnymi zbudowany w architekturze trzywarstwowej (three-tier architecture) z separacją warstw prezentacji, logiki biznesowej i danych.
 
 ### Główne komponenty:
 

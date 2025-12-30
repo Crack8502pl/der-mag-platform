@@ -1,6 +1,6 @@
 # Token Rotation and Session Management
 
-This document explains the refresh token rotation system implemented in the Der-Mag Platform backend.
+This document explains the refresh token rotation system implemented in the Grover Platform backend.
 
 ## Overview
 

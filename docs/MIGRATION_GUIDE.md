@@ -1,4 +1,4 @@
-# 🔄 Przewodnik migracji danych do Der-Mag Platform
+# 🔄 Przewodnik migracji danych do Grover Platform
 
 ## Spis treści
 1. [Migracja z istniejących systemów](#migracja-z-istniejących-systemów)

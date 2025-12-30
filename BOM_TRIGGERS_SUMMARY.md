@@ -2,7 +2,7 @@
 
 ## ✅ Implementation Complete
 
-The BOM (Bill of Materials) Trigger System has been successfully implemented for the Der-Mag Platform. This system enables automated actions based on task and BOM lifecycle events.
+The BOM (Bill of Materials) Trigger System has been successfully implemented for the Grover Platform. This system enables automated actions based on task and BOM lifecycle events.
 
 ---
 

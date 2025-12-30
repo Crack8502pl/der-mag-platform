@@ -1,5 +1,5 @@
 -- scripts/init-db.sql
--- Skrypt inicjalizacji bazy danych PostgreSQL dla Der-Mag Platform
+-- Skrypt inicjalizacji bazy danych PostgreSQL dla Grover Platform
 
 -- Tworzenie bazy danych (jeśli nie istnieje)
 -- CREATE DATABASE dermag_platform;

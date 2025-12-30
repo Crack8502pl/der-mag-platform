@@ -1,7 +1,7 @@
 # BOM Trigger System - Implementation Documentation
 
 ## Overview
-This document describes the BOM (Bill of Materials) Trigger System implementation for the Der-Mag Platform. The system enables automated actions to be triggered by various events in the task and BOM lifecycle.
+This document describes the BOM (Bill of Materials) Trigger System implementation for the Grover Platform. The system enables automated actions to be triggered by various events in the task and BOM lifecycle.
 
 ## Architecture
 

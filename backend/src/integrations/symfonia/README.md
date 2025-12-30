@@ -78,4 +78,4 @@ W razie pytań lub po otrzymaniu dokumentacji API Symfonia, zaktualizuj ten modu
 ---
 
 **Data utworzenia:** 2025-12-29  
-**Autor:** Der-Mag Platform Development Team
+**Autor:** Grover Platform Development Team
