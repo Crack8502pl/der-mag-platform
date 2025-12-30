@@ -98,6 +98,16 @@ export class MaterialImportService {
       let updatedCount = 0;
       let errorCount = 0;
 
+      // Fetch all existing stocks in one query (optimization)
+      const existingStocks = await stockRepo.find({
+        where: { isActive: true }
+      });
+      const existingStocksMap = new Map(existingStocks.map((stock: MaterialStock) => [stock.partNumber, stock]));
+
+      // Arrays for batch save
+      const toCreate: MaterialStock[] = [];
+      const toUpdate: MaterialStock[] = [];
+
       // Automatyczne rozpoznawanie kolumn
       const columnMapping = mappingType === 'symfonia' 
         ? this.autoDetectColumns(records[0])
@@ -158,6 +168,14 @@ export class MaterialImportService {
           });
           errorCount++;
         }
+      }
+
+      // Batch save - save all at once (performance optimization)
+      if (toCreate.length > 0) {
+        await stockRepo.save(toCreate);
+      }
+      if (toUpdate.length > 0) {
+        await stockRepo.save(toUpdate);
       }
 
       // Zaktualizuj log
