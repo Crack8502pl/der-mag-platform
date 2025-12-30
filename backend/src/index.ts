@@ -1,6 +1,6 @@
 // src/index.ts
 // Punkt wejścia aplikacji
-import 'dotenv-vault/config';
+import 'dotenv/config';
 import 'reflect-metadata';
 import app from './app';
 import { initializeDatabase } from './config/database';
