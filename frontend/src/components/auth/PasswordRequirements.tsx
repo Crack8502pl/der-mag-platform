@@ -10,19 +10,20 @@ interface PasswordRequirementsProps {
   confirmPassword?: string;
 }
 
+// Move RequirementItem outside the component to avoid creating it during render
+const RequirementItem: React.FC<{ met: boolean; text: string }> = ({ met, text }) => (
+  <div className={`requirement-item ${met ? 'met' : 'unmet'}`}>
+    <span className="requirement-icon">{met ? '✓' : '✗'}</span>
+    <span className="requirement-text">{text}</span>
+  </div>
+);
+
 export const PasswordRequirements: React.FC<PasswordRequirementsProps> = ({
   password,
   confirmPassword,
 }) => {
   const validation = usePasswordValidation(password);
   const passwordsMatch = confirmPassword ? password === confirmPassword : true;
-
-  const RequirementItem: React.FC<{ met: boolean; text: string }> = ({ met, text }) => (
-    <div className={`requirement-item ${met ? 'met' : 'unmet'}`}>
-      <span className="requirement-icon">{met ? '✓' : '✗'}</span>
-      <span className="requirement-text">{text}</span>
-    </div>
-  );
 
   return (
     <div className="password-requirements">

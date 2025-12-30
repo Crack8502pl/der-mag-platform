@@ -45,8 +45,9 @@ export const PasswordChangeForm: React.FC = () => {
     try {
       await changePassword(formData.newPassword, formData.confirmPassword);
       navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Błąd zmiany hasła. Spróbuj ponownie.');
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Błąd zmiany hasła. Spróbuj ponownie.');
     } finally {
       setLoading(false);
     }

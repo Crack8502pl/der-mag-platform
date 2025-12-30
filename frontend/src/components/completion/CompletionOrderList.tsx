@@ -27,8 +27,9 @@ export const CompletionOrderList: React.FC = () => {
         all: filter === 'all',
       });
       setOrders(response.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Błąd ładowania zleceń');
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Błąd ładowania zleceń');
     } finally {
       setLoading(false);
     }

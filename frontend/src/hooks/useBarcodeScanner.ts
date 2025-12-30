@@ -98,7 +98,7 @@ export const useBarcodeScanner = (
       );
 
       setIsScanning(true);
-    } catch (err: any) {
+    } catch (err) {
       const errorMsg = err?.message || 'Nie udało się uruchomić skanera';
       setError(errorMsg);
       setIsScanning(false);
@@ -115,7 +115,7 @@ export const useBarcodeScanner = (
         scannerRef.current = null;
       }
       setIsScanning(false);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error stopping scanner:', err);
     }
   }, []);

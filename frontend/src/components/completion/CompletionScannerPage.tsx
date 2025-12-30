@@ -30,8 +30,8 @@ export const CompletionScannerPage: React.FC = () => {
       setLoading(true);
       const response = await completionService.getOrder(parseInt(id!));
       setOrder(response.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Błąd ładowania zlecenia');
+    } catch (err) {
+      setError(const error = err as { response?: { data?: { message?: string } } }; error.response?.data?.message || 'Błąd ładowania zlecenia');
     } finally {
       setLoading(false);
     }
@@ -63,8 +63,8 @@ export const CompletionScannerPage: React.FC = () => {
 
       // Show success message
       alert(`✓ Zeskanowano: ${materialName}`);
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || 'Błąd skanowania';
+    } catch (err) {
+      const errorMsg = const error = err as { response?: { data?: { message?: string } } }; error.response?.data?.message || 'Błąd skanowania';
       
       setScanHistory([
         {
@@ -86,8 +86,8 @@ export const CompletionScannerPage: React.FC = () => {
       await completionService.reportMissing(order.id, { itemId, notes });
       await loadOrder();
       alert('✓ Zgłoszono brak pozycji');
-    } catch (err: any) {
-      alert(`✗ ${err.response?.data?.message || 'Błąd zgłaszania braku'}`);
+    } catch (err) {
+      alert(`✗ ${const error = err as { response?: { data?: { message?: string } } }; error.response?.data?.message || 'Błąd zgłaszania braku'}`);
     }
   };
 
@@ -105,8 +105,8 @@ export const CompletionScannerPage: React.FC = () => {
         await completionService.completeOrder(order.id);
         alert('✓ Kompletacja zakończona pomyślnie');
         navigate('/completion');
-      } catch (err: any) {
-        alert(`✗ ${err.response?.data?.message || 'Błąd kończenia kompletacji'}`);
+      } catch (err) {
+        alert(`✗ ${const error = err as { response?: { data?: { message?: string } } }; error.response?.data?.message || 'Błąd kończenia kompletacji'}`);
       }
     }
   };
@@ -118,8 +118,8 @@ export const CompletionScannerPage: React.FC = () => {
       await completionService.makeDecision(order.id, { decision, notes });
       alert('✓ Decyzja zapisana');
       navigate('/completion');
-    } catch (err: any) {
-      alert(`✗ ${err.response?.data?.message || 'Błąd zapisywania decyzji'}`);
+    } catch (err) {
+      alert(`✗ ${const error = err as { response?: { data?: { message?: string } } }; error.response?.data?.message || 'Błąd zapisywania decyzji'}`);
     }
   };
 
