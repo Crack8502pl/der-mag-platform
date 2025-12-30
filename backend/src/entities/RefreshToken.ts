@@ -13,7 +13,6 @@ export class RefreshToken {
   id: number;
 
   @Column({ name: 'token_id', type: 'uuid', unique: true })
-  @Index()
   tokenId: string;
 
   @Column({ name: 'user_id', type: 'int' })
