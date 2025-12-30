@@ -4,7 +4,7 @@
 import { Router } from 'express';
 import { CompletionController } from '../controllers/CompletionController';
 import { authenticate } from '../middleware/auth';
-import { checkPermission } from '../middleware/PermissionMiddleware';
+import { requirePermission } from '../middleware/PermissionMiddleware';
 
 const router = Router();
 
@@ -14,49 +14,49 @@ router.use(authenticate);
 // List all completion orders
 router.get(
   '/orders',
-  checkPermission('completion', 'read'),
+  requirePermission('completion', 'read'),
   CompletionController.listOrders
 );
 
 // Get single completion order
 router.get(
   '/orders/:id',
-  checkPermission('completion', 'read'),
+  requirePermission('completion', 'read'),
   CompletionController.getOrder
 );
 
 // Scan item
 router.post(
   '/orders/:id/scan',
-  checkPermission('completion', 'scan'),
+  requirePermission('completion', 'scan'),
   CompletionController.scanItem
 );
 
 // Report missing item
 router.post(
   '/orders/:id/report-missing',
-  checkPermission('completion', 'reportMissing'),
+  requirePermission('completion', 'reportMissing'),
   CompletionController.reportMissing
 );
 
 // Assign items to pallet
 router.post(
   '/orders/:id/assign-pallet',
-  checkPermission('completion', 'assignPallet'),
+  requirePermission('completion', 'assignPallet'),
   CompletionController.assignPallet
 );
 
 // Make decision on partial completion
 router.patch(
   '/orders/:id/decision',
-  checkPermission('completion', 'decideContinue'),
+  requirePermission('completion', 'decideContinue'),
   CompletionController.makeDecision
 );
 
 // Complete order
 router.post(
   '/orders/:id/complete',
-  checkPermission('completion', 'complete'),
+  requirePermission('completion', 'complete'),
   CompletionController.completeOrder
 );
 

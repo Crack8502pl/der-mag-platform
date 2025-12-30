@@ -1,38 +1,44 @@
 // src/types/completion.types.ts
 // Types for completion/scanner functionality
 
-export enum CompletionOrderStatus {
-  CREATED = 'CREATED',
-  IN_PROGRESS = 'IN_PROGRESS',
-  WAITING_DECISION = 'WAITING_DECISION',
-  COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED'
-}
+export const CompletionOrderStatus = {
+  CREATED: 'CREATED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  WAITING_DECISION: 'WAITING_DECISION',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED'
+} as const;
 
-export enum CompletionItemStatus {
-  PENDING = 'PENDING',
-  SCANNED = 'SCANNED',
-  MISSING = 'MISSING',
-  PARTIAL = 'PARTIAL'
-}
+export type CompletionOrderStatus = typeof CompletionOrderStatus[keyof typeof CompletionOrderStatus];
 
-export enum CompletionDecision {
-  CONTINUE_PARTIAL = 'CONTINUE_PARTIAL',
-  WAIT_FOR_COMPLETE = 'WAIT_FOR_COMPLETE'
-}
+export const CompletionItemStatus = {
+  PENDING: 'PENDING',
+  SCANNED: 'SCANNED',
+  MISSING: 'MISSING',
+  PARTIAL: 'PARTIAL'
+} as const;
 
-export interface MaterialStock {
+export type CompletionItemStatus = typeof CompletionItemStatus[keyof typeof CompletionItemStatus];
+
+export const CompletionDecision = {
+  CONTINUE_PARTIAL: 'CONTINUE_PARTIAL',
+  WAIT_FOR_COMPLETE: 'WAIT_FOR_COMPLETE'
+} as const;
+
+export type CompletionDecision = typeof CompletionDecision[keyof typeof CompletionDecision];
+
+export interface TemplateItem {
   id: number;
+  partNumber: string;
   name: string;
-  barcode?: string;
-  ean?: string;
-  unit?: string;
+  description?: string;
+  unit: string;
 }
 
 export interface BomItem {
   id: number;
   quantity: number;
-  materialStock?: MaterialStock;
+  templateItem?: TemplateItem;
 }
 
 export interface CompletionItem {
@@ -52,7 +58,7 @@ export interface CompletionItem {
 
 export interface Pallet {
   id: number;
-  code: string;
+  palletNumber: string;
   status: string;
   completionOrderId: number;
 }

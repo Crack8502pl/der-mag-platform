@@ -8,7 +8,7 @@ import { ScanHistory } from '../scanner/ScanHistory';
 import { CompletionItemList } from './CompletionItemList';
 import { DecisionPanel } from './DecisionPanel';
 import completionService from '../../services/completion.service';
-import type { CompletionOrder, ScanResult, CompletionItemStatus } from '../../types/completion.types';
+import type { CompletionOrder, ScanResult, CompletionItemStatus, CompletionDecision } from '../../types/completion.types';
 import './CompletionScannerPage.css';
 
 export const CompletionScannerPage: React.FC = () => {
@@ -45,7 +45,8 @@ export const CompletionScannerPage: React.FC = () => {
       
       // Add to scan history
       const bomItem = response.data.scannedItem.bomItem;
-      const materialName = bomItem?.materialStock?.name || 'Nieznany materiał';
+      const templateItem = bomItem?.templateItem;
+      const materialName = templateItem?.name || 'Nieznany materiał';
       
       setScanHistory([
         {
@@ -110,7 +111,7 @@ export const CompletionScannerPage: React.FC = () => {
     }
   };
 
-  const handleDecision = async (decision: 'CONTINUE_PARTIAL' | 'WAIT_FOR_COMPLETE', notes: string) => {
+  const handleDecision = async (decision: CompletionDecision, notes: string) => {
     if (!order) return;
 
     try {

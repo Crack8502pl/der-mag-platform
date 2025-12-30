@@ -71,7 +71,7 @@ function App() {
           path="/completion"
           element={
             <ProtectedRoute>
-              <RoleBasedRoute module="completion" action="read">
+              <RoleBasedRoute requiredPermission={{ module: 'completion', action: 'read' }}>
                 <CompletionOrderList />
               </RoleBasedRoute>
             </ProtectedRoute>
@@ -81,7 +81,7 @@ function App() {
           path="/completion/:id/scanner"
           element={
             <ProtectedRoute>
-              <RoleBasedRoute module="completion" action="scan">
+              <RoleBasedRoute requiredPermission={{ module: 'completion', action: 'scan' }}>
                 <CompletionScannerPage />
               </RoleBasedRoute>
             </ProtectedRoute>

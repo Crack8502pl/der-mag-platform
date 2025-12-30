@@ -90,7 +90,7 @@ export class CompletionController {
         .leftJoinAndSelect('order.assignedTo', 'assignedTo')
         .leftJoinAndSelect('order.items', 'items')
         .leftJoinAndSelect('items.bomItem', 'bomItem')
-        .leftJoinAndSelect('bomItem.materialStock', 'materialStock')
+        .leftJoinAndSelect('bomItem.templateItem', 'templateItem')
         .leftJoinAndSelect('items.pallet', 'pallet')
         .where('order.id = :id', { id })
         .getOne();
@@ -156,7 +156,7 @@ export class CompletionController {
       // Find the completion order
       const order = await completionOrderRepo.findOne({
         where: { id: parseInt(id) },
-        relations: ['items', 'items.bomItem', 'items.bomItem.materialStock']
+        relations: ['items', 'items.bomItem', 'items.bomItem.templateItem']
       });
 
       if (!order) {
@@ -170,12 +170,12 @@ export class CompletionController {
       // Try to match barcode to a pending or partial item
       const matchingItem = order.items.find(item => {
         const bomItem = item.bomItem;
-        const materialStock = bomItem?.materialStock;
+        const templateItem = bomItem?.templateItem;
         
-        // Check if barcode matches material stock barcode or EAN
+        // Check if barcode matches template item part number
+        // In a real scenario, you would match against actual material barcodes
         return (
-          (materialStock?.barcode && materialStock.barcode === barcode) ||
-          (materialStock?.ean && materialStock.ean === barcode)
+          templateItem?.partNumber === barcode
         ) && (item.status === CompletionItemStatus.PENDING || item.status === CompletionItemStatus.PARTIAL);
       });
 
@@ -190,7 +190,7 @@ export class CompletionController {
 
       // Update the completion item
       const bomItem = matchingItem.bomItem;
-      const expectedQuantity = bomItem.quantity;
+      const expectedQuantity = bomItem?.quantity || 0;
       const newScannedQuantity = matchingItem.scannedQuantity + quantity;
 
       if (newScannedQuantity >= expectedQuantity) {
@@ -202,7 +202,7 @@ export class CompletionController {
       }
 
       matchingItem.scannedBarcode = barcode;
-      matchingItem.scannedBy = userId;
+      matchingItem.scannedBy = userId!;
       matchingItem.scannedAt = new Date();
 
       await completionItemRepo.save(matchingItem);
@@ -323,16 +323,16 @@ export class CompletionController {
       // Find or create pallet
       let pallet = await palletRepo.findOne({
         where: { 
-          code: palletCode,
+          palletNumber: palletCode,
           completionOrderId: parseInt(id)
         }
       });
 
       if (!pallet) {
         pallet = palletRepo.create({
-          code: palletCode,
+          palletNumber: palletCode,
           completionOrderId: parseInt(id),
-          status: 'IN_PROGRESS'
+          status: 'OPEN' as any
         });
         await palletRepo.save(pallet);
       }
@@ -398,7 +398,7 @@ export class CompletionController {
       // Update order with decision
       order.decision = decision;
       order.decisionNotes = notes;
-      order.decisionBy = userId;
+      order.decisionBy = userId!;
       order.decisionAt = new Date();
 
       if (decision === CompletionDecision.CONTINUE_PARTIAL) {

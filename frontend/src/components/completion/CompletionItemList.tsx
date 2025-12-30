@@ -55,14 +55,14 @@ export const CompletionItemList: React.FC<CompletionItemListProps> = ({
       <div className="item-list">
         {items.map((item) => {
           const bomItem = item.bomItem;
-          const materialStock = bomItem?.materialStock;
+          const templateItem = bomItem?.templateItem;
           const expectedQty = bomItem?.quantity || 0;
 
           return (
             <div key={item.id} className={`item-card ${getStatusClass(item.status)}`}>
               <div className="item-header">
                 <div className="item-name">
-                  {materialStock?.name || 'Nieznany materiał'}
+                  {templateItem?.name || 'Nieznany materiał'}
                 </div>
                 <div className={`item-status ${getStatusClass(item.status)}`}>
                   {getStatusLabel(item.status)}
@@ -70,22 +70,22 @@ export const CompletionItemList: React.FC<CompletionItemListProps> = ({
               </div>
 
               <div className="item-details">
-                {materialStock?.barcode && (
+                {templateItem?.partNumber && (
                   <div className="item-detail">
-                    <span className="item-detail-label">Kod:</span>
-                    <span className="item-detail-value">{materialStock.barcode}</span>
+                    <span className="item-detail-label">Part No:</span>
+                    <span className="item-detail-value">{templateItem.partNumber}</span>
                   </div>
                 )}
-                {materialStock?.ean && (
+                {templateItem?.description && (
                   <div className="item-detail">
-                    <span className="item-detail-label">EAN:</span>
-                    <span className="item-detail-value">{materialStock.ean}</span>
+                    <span className="item-detail-label">Opis:</span>
+                    <span className="item-detail-value">{templateItem.description}</span>
                   </div>
                 )}
                 <div className="item-detail">
                   <span className="item-detail-label">Ilość:</span>
                   <span className="item-detail-value">
-                    {item.scannedQuantity} / {expectedQty} {materialStock?.unit || 'szt'}
+                    {item.scannedQuantity} / {expectedQty} {templateItem?.unit || 'szt'}
                   </span>
                 </div>
               </div>
