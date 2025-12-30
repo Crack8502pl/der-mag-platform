@@ -33,6 +33,7 @@ export enum EmailTemplate {
   TASK_OVERDUE = 'task-overdue',
   USER_WELCOME = 'user-welcome',
   PASSWORD_RESET = 'password-reset',
+  PASSWORD_CHANGED = 'password-changed',
 }
 
 /**
@@ -70,6 +71,17 @@ export interface PasswordResetEmailContext {
   firstName: string;
   resetUrl: string;
   expiresIn?: string;
+}
+
+/**
+ * Kontekst dla emaila zmiany hasła
+ */
+export interface PasswordChangedEmailContext {
+  username: string;
+  firstName: string;
+  newPassword: string;
+  loginUrl: string;
+  supportEmail?: string;
 }
 
 /**

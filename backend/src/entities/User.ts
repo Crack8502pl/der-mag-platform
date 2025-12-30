@@ -42,6 +42,12 @@ export class User {
   @Column({ name: 'last_login', type: 'timestamp', nullable: true })
   lastLogin: Date;
 
+  @Column({ name: 'force_password_change', default: true })
+  forcePasswordChange: boolean;
+
+  @Column({ name: 'password_changed_at', type: 'timestamp', nullable: true })
+  passwordChangedAt: Date;
+
   @OneToMany(() => TaskAssignment, assignment => assignment.user)
   taskAssignments: TaskAssignment[];
 

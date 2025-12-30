@@ -11,7 +11,8 @@ import {
   EmailTemplate,
   TaskEmailContext,
   UserWelcomeEmailContext,
-  PasswordResetEmailContext
+  PasswordResetEmailContext,
+  PasswordChangedEmailContext
 } from '../types/EmailTypes';
 
 /**
@@ -208,7 +209,7 @@ class EmailService {
   ): Promise<void> {
     await this.sendEmail({
       to,
-      subject: 'Witaj w Der-Mag Platform!',
+      subject: 'Witaj w Grover Platform!',
       template: EmailTemplate.USER_WELCOME,
       context,
     });
@@ -223,8 +224,24 @@ class EmailService {
   ): Promise<void> {
     await this.sendEmail({
       to,
-      subject: 'Reset hasła - Der-Mag Platform',
+      subject: 'Reset hasła - Grover Platform',
       template: EmailTemplate.PASSWORD_RESET,
+      context,
+      priority: 'high',
+    });
+  }
+
+  /**
+   * Wysyła email z nowymi danymi logowania po zmianie hasła
+   */
+  async sendPasswordChangedEmail(
+    to: string,
+    context: PasswordChangedEmailContext
+  ): Promise<void> {
+    await this.sendEmail({
+      to,
+      subject: 'Twoje nowe hasło - Grover Platform',
+      template: EmailTemplate.PASSWORD_CHANGED,
       context,
       priority: 'high',
     });
