@@ -21,7 +21,7 @@ export class SystemConfigController {
             secure: false,
             user: '',
             password: '', // Never return actual password
-            fromName: 'Der-Mag Platform',
+            fromName: 'Grover Platform',
             fromEmail: 'noreply@dermag.pl',
           },
         });

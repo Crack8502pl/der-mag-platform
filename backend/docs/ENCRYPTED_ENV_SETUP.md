@@ -15,7 +15,7 @@
 
 ## Wprowadzenie
 
-Der-Mag Platform używa **dotenv-vault** do zarządzania wrażliwymi danymi środowiskowymi. Zamiast trzymać hasła i klucze w plaintext plikach `.env`, system szyfruje je i przechowuje w zaszyfrowanym pliku `.env.vault`.
+Grover Platform używa **dotenv-vault** do zarządzania wrażliwymi danymi środowiskowymi. Zamiast trzymać hasła i klucze w plaintext plikach `.env`, system szyfruje je i przechowuje w zaszyfrowanym pliku `.env.vault`.
 
 ### Dlaczego dotenv-vault?
 
@@ -232,12 +232,12 @@ Treść service file:
 
 ```ini
 [Unit]
-Description=Der-Mag Platform Backend
+Description=Grover Platform Backend
 After=network.target postgresql.service
 
 [Service]
 Type=simple
-User=dermag
+User=grover
 WorkingDirectory=/home/dermag/der-mag-platform/backend
 Environment="NODE_ENV=production"
 Environment="DOTENV_VAULT_PRODUCTION_KEY=dotenv://:key_production_xxxxxxxxxxxxx"
@@ -718,4 +718,4 @@ DEBUG=dotenv* npm run dev  # Verbose logging
 
 ---
 
-**Der-Mag Platform** - Bezpieczne zarządzanie secrets 🔒
+**Grover Platform** © 2025 Cr@ck8502PL - Bezpieczne zarządzanie secrets 🔒

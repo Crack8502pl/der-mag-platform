@@ -23,7 +23,7 @@ const startServer = async () => {
     // Start serwera
     app.listen(PORT, () => {
       console.log('╔════════════════════════════════════════╗');
-      console.log('║   Der-Mag Platform Backend API        ║');
+      console.log('║   Grover Platform Backend API         ║');
       console.log('╠════════════════════════════════════════╣');
       console.log(`║   🚀 Serwer działa na porcie: ${PORT}    ║`);
       console.log(`║   🌍 Environment: ${process.env.NODE_ENV || 'development'}           ║`);

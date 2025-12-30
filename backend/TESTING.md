@@ -1,6 +1,6 @@
-# Testing Guide for Der-Mag Platform Backend
+# Testing Guide for Grover Platform Backend
 
-This document provides comprehensive instructions for testing the Der-Mag Platform backend application.
+This document provides comprehensive instructions for testing the Grover Platform backend application.
 
 ## Table of Contents
 
@@ -377,5 +377,9 @@ describe.each([
 
 ---
 
-**Last Updated**: December 2024
-**Maintained By**: Der-Mag Platform Team
+**Last Updated**: December 2024  
+**Maintained By**: Grover Platform Team  
+
+---
+
+**Grover Platform** © 2025 Cr@ck8502PL

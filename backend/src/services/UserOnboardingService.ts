@@ -78,7 +78,7 @@ export class UserOnboardingService {
         
         await EmailQueueService.addToQueue({
           to: user.email,
-          subject: 'Witaj w Der-Mag Platform - Twoje tymczasowe hasło',
+          subject: 'Witaj w Grover Platform - Twoje tymczasowe hasło',
           template: 'user-otp-created',
           context: {
             firstName: user.firstName,
@@ -133,7 +133,7 @@ export class UserOnboardingService {
         
         await EmailQueueService.addToQueue({
           to: user.email,
-          subject: 'Reset hasła - Der-Mag Platform',
+          subject: 'Reset hasła - Grover Platform',
           template: 'password-reset-otp',
           context: {
             firstName: user.firstName,
@@ -198,7 +198,7 @@ export class UserOnboardingService {
         
         await EmailQueueService.addToQueue({
           to: user.email,
-          subject: 'Hasło zostało zmienione - Der-Mag Platform',
+          subject: 'Hasło zostało zmienione - Grover Platform',
           template: 'password-changed-confirmation',
           context: {
             firstName: user.firstName,

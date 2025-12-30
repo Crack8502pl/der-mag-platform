@@ -1,4 +1,4 @@
-# Der-Mag Platform - System Ról i Uprawnień
+# Grover Platform - System Ról i Uprawnień
 
 **Wersja:** 2.0.0 (rozszerzona)  
 **Data:** 2025-11-09  
@@ -8,7 +8,7 @@
 
 ## 📋 Przegląd systemu
 
-Der-Mag Platform wykorzystuje **Role-Based Access Control (RBAC)** z granularnymi uprawnieniami przechowywanymi w formacie JSON. System został rozszerzony z 4 do 6 ról w PR #2, aby lepiej odpowiadać wymaganiom biznesowym.
+Grover Platform wykorzystuje **Role-Based Access Control (RBAC)** z granularnymi uprawnieniami przechowywanymi w formacie JSON. System został rozszerzony z 4 do 6 ról w PR #2, aby lepiej odpowiadać wymaganiom biznesowym.
 
 ### Hierarchia ról:
 

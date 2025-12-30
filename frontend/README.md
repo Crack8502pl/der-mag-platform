@@ -1,6 +1,6 @@
 # Grover Platform - Frontend
 
-React + TypeScript frontend application for the Grover platform (formerly Der-Mag) with role-based access control (RBAC) and granular permissions.
+React + TypeScript frontend application for the Grover platform with role-based access control (RBAC) and granular permissions.
 
 ## 🚀 Features
 
@@ -229,6 +229,10 @@ npm run build
 ## 📝 License
 
 MIT
+
+---
+
+**Grover Platform** © 2025 Cr@ck8502PL
 
 ## 👥 Contributors
 

@@ -282,4 +282,4 @@ The refresh token rotation system has been successfully implemented with all req
 - ✅ Test skeletons
 - ✅ Zero security vulnerabilities
 
-The implementation follows OAuth 2.0 best practices and provides a secure foundation for authentication in the Der-Mag Platform.
+The implementation follows OAuth 2.0 best practices and provides a secure foundation for authentication in the Grover Platform.

@@ -1117,4 +1117,4 @@ echo "Pre-commit hook will prevent .env commits"
 
 ---
 
-**Der-Mag Platform** - Security First 🛡️
+**Grover Platform** © 2025 Cr@ck8502PL - Security First 🛡️

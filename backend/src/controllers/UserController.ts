@@ -35,7 +35,7 @@ export class UserController {
         if (newUser.email) {
           await EmailQueueService.addToQueue({
             to: newUser.email,
-            subject: 'Witaj w Der-Mag Platform!',
+            subject: 'Witaj w Grover Platform!',
             template: EmailTemplate.USER_WELCOME,
             context: {
               username: newUser.username,

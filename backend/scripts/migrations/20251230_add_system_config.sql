@@ -34,7 +34,7 @@ INSERT INTO system_config (key, value, category, is_encrypted) VALUES
 ('smtp_user', '', 'smtp', false),
 ('smtp_password', '', 'smtp', true),
 ('smtp_secure', 'false', 'smtp', false),
-('smtp_from_name', 'Der-Mag Platform', 'smtp', false),
+('smtp_from_name', 'Grover Platform', 'smtp', false),
 ('smtp_from_email', 'noreply@dermag.pl', 'smtp', false)
 ON CONFLICT (key) DO NOTHING;
 

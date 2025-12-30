@@ -117,7 +117,7 @@ export class SystemConfigService {
         secure: secure === 'true',
         user,
         password: password || '',
-        fromName: fromName || 'Der-Mag Platform',
+        fromName: fromName || 'Grover Platform',
         fromEmail: fromEmail || 'noreply@dermag.pl',
       };
     } catch (error) {

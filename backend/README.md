@@ -1,6 +1,6 @@
-# Der-Mag Platform - Backend API
+# Grover Platform - Backend API
 
-Pełnoprawny backend API dla platformy zarządzania zadaniami infrastrukturalnymi Der-Mag.
+Pełnoprawny backend API dla platformy zarządzania zadaniami infrastrukturalnymi Grover.
 
 ## 📋 Spis treści
 
@@ -13,12 +13,13 @@ Pełnoprawny backend API dla platformy zarządzania zadaniami infrastrukturalnym
 - [Struktura projektu](#struktura-projektu)
 - [API Endpoints](#api-endpoints)
 - [Baza danych](#baza-danych)
+- [System Backup-u](#system-backup-u)
 - [Deployment](#deployment)
 - [Testowanie](#testowanie)
 
 ## 🎯 Opis projektu
 
-Der-Mag Platform to zaawansowany system zarządzania zadaniami infrastrukturalnymi, dedykowany dla branży kolejowej i telekomunikacyjnej. System obsługuje 13 różnych typów zadań, od systemów monitoringu wizyjnego (SMW) po struktury światłowodowe.
+Grover Platform to zaawansowany system zarządzania zadaniami infrastrukturalnymi, dedykowany dla branży kolejowej i telekomunikacyjnej. System obsługuje 13 różnych typów zadań, od systemów monitoringu wizyjnego (SMW) po struktury światłowodowe.
 
 ### Główne funkcjonalności:
 
@@ -89,7 +90,7 @@ psql -U dermag_user -d dermag_platform -f scripts/seed-data.sql
 
 ### 🔒 Encrypted Secrets Management
 
-Der-Mag Platform używa **dotenv-vault** do bezpiecznego zarządzania wrażliwymi danymi. Zamiast trzymać hasła w plaintext, wszystkie secrets są szyfrowane.
+Grover Platform używa **dotenv-vault** do bezpiecznego zarządzania wrażliwymi danymi. Zamiast trzymać hasła w plaintext, wszystkie secrets są szyfrowane.
 
 #### Quick Start
 
@@ -302,6 +303,84 @@ PUT    /api/users/:id   - Aktualizacja użytkownika
 - Indeksy na `serial_number` dla urządzeń
 - Indeksy kompozytowe dla wydajności
 
+## 💾 System Backup-u
+
+Grover Platform posiada kompleksowy system automatycznych backupów bazy danych PostgreSQL.
+
+### Skrypty backup-u
+
+Dostępne są 3 skrypty bash w katalogu `scripts/`:
+
+#### 1. `backup-db.sh` - Ręczny backup bazy
+
+```bash
+# Użycie
+npm run db:backup
+
+# Lub bezpośrednio
+bash scripts/backup-db.sh
+```
+
+**Funkcjonalności:**
+- Backup PostgreSQL z użyciem `pg_dump`
+- Automatyczna kompresja gzip
+- Format nazwy: `grover_backup_YYYYMMDD_HHMMSS.sql.gz`
+- Retencja 30 dni (automatyczne usuwanie starszych backupów)
+- Informacyjne logi z emoji
+- Katalog: `./backups/`
+
+#### 2. `restore-db.sh` - Przywracanie bazy
+
+```bash
+# Użycie
+npm run db:restore backups/grover_backup_20231215_120000.sql.gz
+
+# Lub bezpośrednio
+bash scripts/restore-db.sh backups/grover_backup_20231215_120000.sql.gz
+```
+
+**Funkcjonalności:**
+- Automatyczne rozpakowanie .gz
+- Potwierdzenie użytkownika przed nadpisaniem
+- Ostrzeżenie o utracie danych
+- Walidacja pliku backup
+
+#### 3. `setup-backup-cron.sh` - Automatyczne backupy
+
+```bash
+# Użycie
+npm run db:setup-cron
+
+# Lub bezpośrednio  
+bash scripts/setup-backup-cron.sh
+```
+
+**Konfiguracja:**
+- Dodaje cron job dla codziennych backupów o 2:00 w nocy
+- Logowanie do `/var/log/grover-backup.log`
+- Automatyczne wykrywanie duplikatów
+
+### Zmienne środowiskowe
+
+Skrypty używają zmiennych z `.env`:
+
+```env
+DB_NAME=dermag_platform
+DB_USER=postgres
+DB_HOST=localhost
+DB_PASSWORD=your-password
+```
+
+### Lista backupów
+
+```bash
+# Zobacz wszystkie backupy
+ls -lh backups/
+
+# Sprawdź rozmiar
+du -sh backups/
+```
+
 ## 🐳 Deployment
 
 ### Docker
@@ -309,7 +388,7 @@ PUT    /api/users/:id   - Aktualizacja użytkownika
 Build obrazu:
 
 ```bash
-docker build -t der-mag-backend:latest .
+docker build -t grover-backend:latest .
 ```
 
 Uruchomienie kontenera:
@@ -319,8 +398,8 @@ docker run -d \
   -p 3000:3000 \
   -e DB_HOST=postgres \
   -e DB_PASSWORD=secret \
-  --name der-mag-api \
-  der-mag-backend:latest
+  --name grover-api \
+  grover-backend:latest
 ```
 
 ### Docker Compose
@@ -438,14 +517,14 @@ MIT License - siehe [LICENSE](../LICENSE)
 
 ## 👥 Autorzy
 
-Der-Mag Platform Development Team
+Grover Platform Development Team
 
 ## 📞 Wsparcie
 
 W przypadku problemów lub pytań:
-- 📧 Email: support@dermag.lan
-- 🌐 URL: https://api.dermag.lan
+- 📧 Email: support@grover.lan
+- 🌐 URL: https://api.grover.lan
 
 ---
 
-**Der-Mag Platform** - Profesjonalne zarządzanie zadaniami infrastrukturalnymi 🚀
+**Grover Platform** © 2025 Cr@ck8502PL

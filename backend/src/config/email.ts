@@ -21,7 +21,7 @@ export const emailConfig = {
   
   // Dane nadawcy
   from: {
-    name: process.env.EMAIL_FROM_NAME || 'Der-Mag Platform',
+    name: process.env.EMAIL_FROM_NAME || 'Grover Platform',
     address: process.env.EMAIL_FROM_ADDRESS || 'noreply@dermag.lan',
   },
   

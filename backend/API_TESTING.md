@@ -1,4 +1,4 @@
-# Der-Mag Platform - API Testing Guide
+# Grover Platform - API Testing Guide
 
 Przewodnik testowania API dla platformy Der-Mag.
 
