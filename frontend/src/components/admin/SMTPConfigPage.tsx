@@ -14,7 +14,7 @@ export const SMTPConfigPage: React.FC = () => {
     secure: false,
     user: '',
     password: '',
-    fromName: 'Der-Mag Platform',
+    fromName: 'Grover Platform',
     fromEmail: 'noreply@dermag.pl',
   });
   const [loading, setLoading] = useState(true);

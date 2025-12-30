@@ -34,7 +34,7 @@ export class NotificationController {
       // Wysyłka testowego emaila
       await EmailService.sendEmail({
         to,
-        subject: 'Test emaila - Der-Mag Platform',
+        subject: 'Test emaila - Grover Platform',
         template: 'user-welcome',
         context: {
           username: 'test-user',

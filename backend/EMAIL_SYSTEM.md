@@ -33,7 +33,7 @@ SMTP_USER=your-email@your-domain.pl
 SMTP_PASSWORD=your-password
 
 # Dane nadawcy
-EMAIL_FROM_NAME=Der-Mag Platform
+EMAIL_FROM_NAME=Grover Platform
 EMAIL_FROM_ADDRESS=noreply@your-domain.pl
 
 # Redis dla kolejki emaili
