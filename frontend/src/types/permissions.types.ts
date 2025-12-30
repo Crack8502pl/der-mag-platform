@@ -63,5 +63,5 @@ export interface RolePermissions {
   [key: string]: any;
 }
 
-export type PermissionModule = 'contracts' | 'subsystems' | 'network' | 'completion' | 'prefabrication' | 'notifications';
+export type PermissionModule = 'all' | 'contracts' | 'subsystems' | 'network' | 'completion' | 'prefabrication' | 'notifications';
 export type PermissionAction = string; // Flexible to allow any action string

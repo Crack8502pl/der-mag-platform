@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Witaj w Der-Mag Platform</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      background-color: #2c3e50;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 5px 5px 0 0;
+    }
+    .content {
+      background-color: #f9f9f9;
+      padding: 30px;
+      border: 1px solid #ddd;
+      border-top: none;
+    }
+    .credentials {
+      background-color: #fff;
+      padding: 20px;
+      border-left: 4px solid #3498db;
+      margin: 20px 0;
+    }
+    .credentials strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+    .otp {
+      font-size: 24px;
+      font-weight: bold;
+      color: #e74c3c;
+      letter-spacing: 2px;
+      font-family: monospace;
+    }
+    .warning {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    .button {
+      display: inline-block;
+      padding: 12px 30px;
+      background-color: #3498db;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #777;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>{{platformName}}</h1>
+  </div>
+  
+  <div class="content">
+    <h2>Witaj {{firstName}}!</h2>
+    
+    <p>Twoje konto w systemie Der-Mag Platform zostało pomyślnie utworzone.</p>
+    
+    <div class="credentials">
+      <p><strong>Login:</strong> {{username}}</p>
+      <p><strong>Tymczasowe hasło (OTP):</strong></p>
+      <p class="otp">{{otp}}</p>
+    </div>
+    
+    <div class="warning">
+      <p><strong>⚠️ Ważne informacje:</strong></p>
+      <ul>
+        <li>To hasło wygasa za <strong>{{expiresIn}}</strong></li>
+        <li>Przy pierwszym logowaniu będziesz musiał ustawić nowe, bezpieczne hasło</li>
+        <li>To hasło jest jednorazowe i nie może być ponownie użyte</li>
+      </ul>
+    </div>
+    
+    <p>Kliknij poniższy przycisk, aby zalogować się do systemu:</p>
+    
+    <a href="{{portalUrl}}/login" class="button">Zaloguj się do platformy</a>
+    
+    <p>Lub skopiuj poniższy link do przeglądarki:</p>
+    <p style="word-break: break-all; color: #3498db;">{{portalUrl}}/login</p>
+    
+    <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+    
+    <p><strong>Wymagania dla nowego hasła:</strong></p>
+    <ul>
+      <li>Minimum 8 znaków</li>
+      <li>Co najmniej jedna wielka litera</li>
+      <li>Co najmniej jedna mała litera</li>
+      <li>Co najmniej jedna cyfra</li>
+      <li>Co najmniej jeden znak specjalny</li>
+    </ul>
+  </div>
+  
+  <div class="footer">
+    <p>Pozdrawiamy,<br>Zespół Der-Mag Platform</p>
+    <p>&copy; {{currentYear}} Der-Mag Platform. Wszystkie prawa zastrzeżone.</p>
+  </div>
+</body>
+</html>

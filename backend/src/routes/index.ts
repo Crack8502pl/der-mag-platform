@@ -22,6 +22,7 @@ import subsystemRoutes from './subsystem.routes';
 import networkRoutes from './network.routes';
 import completionRoutes from './completion.routes';
 import bomTriggerRoutes from './bom-trigger.routes';
+import adminRoutes from './admin.routes';
 
 const router = Router();
 
@@ -47,6 +48,9 @@ router.use('/subsystems', subsystemRoutes);
 router.use('/network', networkRoutes);
 router.use('/completion', completionRoutes);
 router.use('/bom-triggers', bomTriggerRoutes);
+
+// Admin routes
+router.use('/admin', adminRoutes);
 
 // Importy dla aliasów szablonów dokumentów
 import { BOMBuilderController } from '../controllers/BOMBuilderController';

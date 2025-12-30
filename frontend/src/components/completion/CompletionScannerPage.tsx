@@ -31,7 +31,8 @@ export const CompletionScannerPage: React.FC = () => {
       const response = await completionService.getOrder(parseInt(id!));
       setOrder(response.data);
     } catch (err) {
-      setError(const error = err as { response?: { data?: { message?: string } } }; error.response?.data?.message || 'Błąd ładowania zlecenia');
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Błąd ładowania zlecenia');
     } finally {
       setLoading(false);
     }
@@ -64,7 +65,8 @@ export const CompletionScannerPage: React.FC = () => {
       // Show success message
       alert(`✓ Zeskanowano: ${materialName}`);
     } catch (err) {
-      const errorMsg = const error = err as { response?: { data?: { message?: string } } }; error.response?.data?.message || 'Błąd skanowania';
+      const error = err as { response?: { data?: { message?: string } } };
+      const errorMsg = error.response?.data?.message || 'Błąd skanowania';
       
       setScanHistory([
         {
@@ -87,7 +89,8 @@ export const CompletionScannerPage: React.FC = () => {
       await loadOrder();
       alert('✓ Zgłoszono brak pozycji');
     } catch (err) {
-      alert(`✗ ${const error = err as { response?: { data?: { message?: string } } }; error.response?.data?.message || 'Błąd zgłaszania braku'}`);
+      const error = err as { response?: { data?: { message?: string } } };
+      alert(`✗ ${error.response?.data?.message || 'Błąd zgłaszania braku'}`);
     }
   };
 
@@ -106,7 +109,8 @@ export const CompletionScannerPage: React.FC = () => {
         alert('✓ Kompletacja zakończona pomyślnie');
         navigate('/completion');
       } catch (err) {
-        alert(`✗ ${const error = err as { response?: { data?: { message?: string } } }; error.response?.data?.message || 'Błąd kończenia kompletacji'}`);
+        const error = err as { response?: { data?: { message?: string } } };
+        alert(`✗ ${error.response?.data?.message || 'Błąd kończenia kompletacji'}`);
       }
     }
   };
@@ -119,7 +123,8 @@ export const CompletionScannerPage: React.FC = () => {
       alert('✓ Decyzja zapisana');
       navigate('/completion');
     } catch (err) {
-      alert(`✗ ${const error = err as { response?: { data?: { message?: string } } }; error.response?.data?.message || 'Błąd zapisywania decyzji'}`);
+      const error = err as { response?: { data?: { message?: string } } };
+      alert(`✗ ${error.response?.data?.message || 'Błąd zapisywania decyzji'}`);
     }
   };
 

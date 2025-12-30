@@ -10,6 +10,13 @@ import { ForbiddenPage } from './components/layout/ForbiddenPage';
 import { RoleBasedRoute } from './components/layout/RoleBasedRoute';
 import { CompletionOrderList } from './components/completion/CompletionOrderList';
 import { CompletionScannerPage } from './components/completion/CompletionScannerPage';
+import { AdminDashboard } from './components/admin/AdminDashboard';
+import { UserManagementPage } from './components/admin/UserManagementPage';
+import { SMTPConfigPage } from './components/admin/SMTPConfigPage';
+import { PortalConfigPage } from './components/admin/PortalConfigPage';
+import { AdminPasswordChange } from './components/admin/AdminPasswordChange';
+import { MaterialImportPage } from './components/admin/MaterialImportPage';
+import { BOMBuilderPage } from './components/admin/BOMBuilderPage';
 import { useAuth } from './hooks/useAuth';
 import './styles/grover-theme.css';
 
@@ -89,6 +96,78 @@ function App() {
         />
 
         <Route path="/forbidden" element={<ForbiddenPage />} />
+
+        {/* Admin Routes - Require admin role */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
+                <AdminDashboard />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
+                <UserManagementPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/smtp"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
+                <SMTPConfigPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/portal"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
+                <PortalConfigPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/password"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
+                <AdminPasswordChange />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/bom"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
+                <BOMBuilderPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/bom/import"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
+                <MaterialImportPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
 
         {/* Default redirect */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
