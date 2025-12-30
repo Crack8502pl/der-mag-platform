@@ -20,6 +20,7 @@ import materialRoutes from './material.routes';
 import contractRoutes from './contract.routes';
 import subsystemRoutes from './subsystem.routes';
 import networkRoutes from './network.routes';
+import completionRoutes from './completion.routes';
 
 const router = Router();
 
@@ -43,6 +44,7 @@ router.use('/materials', materialRoutes);
 router.use('/contracts', contractRoutes);
 router.use('/subsystems', subsystemRoutes);
 router.use('/network', networkRoutes);
+router.use('/completion', completionRoutes);
 
 // Importy dla aliasów szablonów dokumentów
 import { BOMBuilderController } from '../controllers/BOMBuilderController';

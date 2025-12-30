@@ -7,6 +7,9 @@ import { LoginPage } from './components/auth/LoginPage';
 import { PasswordChangeForm } from './components/auth/PasswordChangeForm';
 import { Dashboard } from './components/layout/Dashboard';
 import { ForbiddenPage } from './components/layout/ForbiddenPage';
+import { RoleBasedRoute } from './components/layout/RoleBasedRoute';
+import { CompletionOrderList } from './components/completion/CompletionOrderList';
+import { CompletionScannerPage } from './components/completion/CompletionScannerPage';
 import { useAuth } from './hooks/useAuth';
 import './styles/grover-theme.css';
 
@@ -59,6 +62,28 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Completion Routes */}
+        <Route
+          path="/completion"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute module="completion" action="read">
+                <CompletionOrderList />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/completion/:id/scanner"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute module="completion" action="scan">
+                <CompletionScannerPage />
+              </RoleBasedRoute>
             </ProtectedRoute>
           }
         />

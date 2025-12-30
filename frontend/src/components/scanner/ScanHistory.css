@@ -1,0 +1,91 @@
+/* src/components/scanner/ScanHistory.css */
+/* Scan history styles */
+
+.scan-history {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.scan-history-empty {
+  text-align: center;
+  padding: var(--spacing-xl);
+  color: var(--text-secondary);
+}
+
+.scan-history-title {
+  font-size: 1.125rem;
+  margin-bottom: var(--spacing-md);
+  color: var(--text-secondary);
+}
+
+.scan-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.scan-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--border-color);
+  transition: all 0.2s;
+}
+
+.scan-history-item.success {
+  border-left-color: var(--success);
+}
+
+.scan-history-item.error {
+  border-left-color: var(--error);
+}
+
+.scan-history-item-content {
+  flex: 1;
+}
+
+.scan-history-barcode {
+  font-family: var(--font-mono);
+  font-weight: bold;
+  margin-bottom: var(--spacing-xs);
+}
+
+.scan-history-item.success .scan-history-barcode {
+  color: var(--success);
+}
+
+.scan-history-item.error .scan-history-barcode {
+  color: var(--error);
+}
+
+.scan-history-item-name {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.scan-history-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.scan-history-remove {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: var(--spacing-sm);
+  transition: all 0.2s;
+}
+
+.scan-history-remove:hover {
+  color: var(--primary-color);
+  transform: scale(1.1);
+}
