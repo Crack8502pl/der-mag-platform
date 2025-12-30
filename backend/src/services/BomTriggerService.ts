@@ -281,7 +281,7 @@ export class BomTriggerService {
     const taskMaterialRepository = AppDataSource.getRepository(TaskMaterial);
 
     const templates = await bomTemplateRepository.find({
-      where: { taskTypeId: sourceTaskTypeId || trigger.sourceTaskTypeId, active: true }
+      where: { taskTypeId: sourceTaskTypeId ?? trigger.sourceTaskTypeId, active: true }
     });
 
     const materials: TaskMaterial[] = [];

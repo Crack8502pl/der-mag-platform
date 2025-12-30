@@ -134,6 +134,8 @@ export class TaskService {
       throw new Error('Zadanie nie znalezione');
     }
 
+    // Zachowaj stary status przed zmianą
+    const oldStatus = task.status;
     task.status = status;
 
     // Ustawia daty w zależności od statusu
@@ -150,7 +152,7 @@ export class TaskService {
       await BomTriggerService.executeTriggers('ON_STATUS_CHANGE', {
         taskId: task.id,
         taskNumber: task.taskNumber,
-        oldStatus: task.status !== status ? task.status : undefined,
+        oldStatus,
         newStatus: status,
         status: status // dla kompatybilności z warunkami
       });

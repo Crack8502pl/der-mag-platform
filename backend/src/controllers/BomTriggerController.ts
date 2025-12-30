@@ -216,7 +216,7 @@ export class BomTriggerController {
         return;
       }
 
-      const result = await BomTriggerService.executeTrigger(trigger, testData || {});
+      const result = await BomTriggerService.executeTrigger(trigger, testData ?? {});
       
       res.json({
         success: true,
