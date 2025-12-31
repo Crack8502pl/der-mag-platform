@@ -51,14 +51,18 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
-// Serwowanie interfejsu testowego (tylko w development)
-if (process.env.NODE_ENV !== 'production') {
+// Serwowanie interfejsu testowego
+// Kontrolowane przez zmienną ENABLE_API_TESTER (domyślnie włączone w dev)
+const enableApiTester = process.env.ENABLE_API_TESTER === 'true' || process.env.NODE_ENV !== 'production';
+
+if (enableApiTester) {
   app.use('/test', express.static(path.join(__dirname, '../public')));
-  console.log('🧪 Test interface dostępny na: http://localhost:3000/test/api-tester.html');
+  console.log('🧪 Test interface dostępny na: /test/api-tester.html');
 }
 
 // API routes

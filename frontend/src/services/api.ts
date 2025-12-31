@@ -4,7 +4,10 @@
 import axios, { AxiosError } from 'axios';
 import type { AxiosInstance } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+// Dynamiczne wykrywanie API URL:
+// 1. Jeśli ustawione VITE_API_BASE_URL - użyj tego
+// 2. W przeciwnym razie użyj tego samego origin co frontend + /api
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `${window.location.origin}/api`;
 
 export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
