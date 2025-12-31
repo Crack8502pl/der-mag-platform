@@ -33,7 +33,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO users (username, email, password, first_name, last_name, phone, role_id, active, created_at, updated_at)
 SELECT 
     'admin',
-    'admin@dermag.lan',
+    'r.krakowski@der-mag.pl',
     '$2b$10$rKvDQmXyN5K5JZJr5t.Hku7FNxdqr5v5qPQx0ZjVX.8vO6J9Uk8Hm',
     'Administrator',
     'Systemu',
