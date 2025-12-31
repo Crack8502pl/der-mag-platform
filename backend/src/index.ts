@@ -4,6 +4,7 @@ import 'dotenv/config';
 import 'reflect-metadata';
 import app from './app';
 import { initializeDatabase } from './config/database';
+import { DatabaseSeeder } from './services/DatabaseSeeder';
 import EmailService from './services/EmailService';
 import EmailQueueService from './services/EmailQueueService';
 
@@ -14,6 +15,9 @@ const startServer = async () => {
   try {
     // Inicjalizacja bazy danych
     await initializeDatabase();
+
+    // Automatyczne seedowanie (tylko jeśli baza pusta)
+    await DatabaseSeeder.seed();
 
     // Inicjalizacja systemu emaili
     console.log('📧 Inicjalizacja systemu emaili...');
