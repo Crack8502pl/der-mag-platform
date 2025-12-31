@@ -29,7 +29,7 @@ export class DatabaseSeeder {
     console.log('📋 Domyślne dane logowania:');
     console.log('   Username: admin');
     console.log('   Password: Admin123!');
-    console.log('   Email: r.krakowski@der-mag.pl');
+    console.log(`   Email: ${process.env.ADMIN_EMAIL || 'r.krakowski@der-mag.pl'}`);
     console.log('');
   }
   
@@ -56,7 +56,7 @@ export class DatabaseSeeder {
     const taskTypeRepo = AppDataSource.getRepository(TaskType);
     
     const taskTypes = [
-      { name: 'System Monitoringu Wizyjnego', code: 'SMW', description: 'SMW', active: true, configuration: { has_bom: true, has_ip_config: true } },
+      { name: 'System Monitoringu Wizyjnego', code: 'SMW', description: 'System Monitoringu Wizyjnego', active: true, configuration: { has_bom: true, has_ip_config: true } },
       { name: 'CSDIP', code: 'CSDIP', description: 'Cyfrowe Systemy Dźwiękowego Informowania Pasażerów', active: true, configuration: { has_bom: true, has_ip_config: true } },
       { name: 'LAN PKP PLK', code: 'LAN_PKP_PLK', description: 'Sieci LAN PKP PLK', active: true, configuration: { has_bom: true, has_ip_config: true } },
       { name: 'SMOK-IP/CMOK-IP (Wariant A/SKP)', code: 'SMOK_IP_A', description: 'Wariant A', active: true, configuration: { has_bom: true, has_ip_config: true } },
