@@ -1161,14 +1161,6 @@
         `;
         listElement.appendChild(userDiv);
       });
-      
-      // Add event listeners to edit buttons
-      document.querySelectorAll('.edit-user-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const userId = parseInt(this.getAttribute('data-user-id'));
-          editUser(userId);
-        });
-      });
     }
 
     async function createUser() {
@@ -2005,6 +1997,17 @@
       
       const cancelEditUserBtn = document.getElementById('cancelEditUserBtn');
       if (cancelEditUserBtn) cancelEditUserBtn.addEventListener('click', cancelEditUser);
+
+      // Event delegation for dynamically created edit user buttons
+      const usersList = document.getElementById('usersList');
+      if (usersList) {
+        usersList.addEventListener('click', function(e) {
+          if (e.target && e.target.classList.contains('edit-user-btn')) {
+            const userId = parseInt(e.target.getAttribute('data-user-id'));
+            editUser(userId);
+          }
+        });
+      }
 
       // Tasks section
       const getTasksBtn = document.getElementById('getTasksBtn');
