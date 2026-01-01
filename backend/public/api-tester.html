@@ -324,37 +324,37 @@
       <h1>🧪 API Tester</h1>
       <p>Grover Platform Backend</p>
       
-      <div class="nav-item active" onclick="showSection('auth')">
+      <div class="nav-item active" data-section="auth">
         🔐 Autoryzacja
       </div>
-      <div class="nav-item" onclick="showSection('users')">
+      <div class="nav-item" data-section="users">
         👥 Użytkownicy
       </div>
-      <div class="nav-item" onclick="showSection('tasks')">
+      <div class="nav-item" data-section="tasks">
         📋 Zadania
       </div>
-      <div class="nav-item" onclick="showSection('devices')">
+      <div class="nav-item" data-section="devices">
         📱 Urządzenia
       </div>
-      <div class="nav-item" onclick="showSection('email')">
+      <div class="nav-item" data-section="email">
         📧 Email
       </div>
-      <div class="nav-item" onclick="showSection('documents')">
+      <div class="nav-item" data-section="documents">
         📄 Dokumenty
       </div>
-      <div class="nav-item" onclick="showSection('templates')">
+      <div class="nav-item" data-section="templates">
         📋 Szablony
       </div>
-      <div class="nav-item" onclick="showSection('import')">
+      <div class="nav-item" data-section="import">
         📥 Import CSV
       </div>
-      <div class="nav-item" onclick="showSection('bom-builder')">
+      <div class="nav-item" data-section="bom-builder">
         🔧 BOM Builder
       </div>
-      <div class="nav-item" onclick="showSection('bom-triggers')">
+      <div class="nav-item" data-section="bom-triggers">
         ⚡ BOM Triggery
       </div>
-      <div class="nav-item" onclick="showSection('database')">
+      <div class="nav-item" data-section="database">
         🗄️ Baza danych
       </div>
     </div>
@@ -380,17 +380,17 @@
             <label for="password">Hasło</label>
             <div class="password-wrapper">
               <input type="password" id="password" placeholder="Admin123!" value="Admin123!">
-              <span class="password-toggle" onclick="togglePassword('password')">👁️</span>
+              <span class="password-toggle" data-target="password">👁️</span>
             </div>
           </div>
-          <button onclick="login()">Zaloguj się</button>
-          <button class="secondary" onclick="logout()">Wyloguj</button>
+          <button id="loginBtn">Zaloguj się</button>
+          <button id="logoutBtn" class="secondary">Wyloguj</button>
           <div class="response" id="loginResponse" style="display:none;"></div>
         </div>
 
         <div class="card">
           <h3>👤 Moje dane</h3>
-          <button onclick="getMe()">Pobierz dane zalogowanego użytkownika</button>
+          <button id="getMeBtn">Pobierz dane zalogowanego użytkownika</button>
           <div class="response" id="meResponse" style="display:none;"></div>
         </div>
       </div>
@@ -399,8 +399,8 @@
       <div class="section" id="users">
         <div class="card">
           <h3>📋 Lista użytkowników</h3>
-          <button onclick="getUsers()">Pobierz użytkowników</button>
-          <button class="success" onclick="checkUsersInDB()">✓ Sprawdź w bazie</button>
+          <button id="getUsersBtn">Pobierz użytkowników</button>
+          <button id="checkUsersBtn" class="success">✓ Sprawdź w bazie</button>
           <div id="usersList" class="user-list"></div>
           <div class="response" id="usersResponse" style="display:none;"></div>
         </div>
@@ -419,7 +419,7 @@
             <label for="newPassword">Hasło</label>
             <div class="password-wrapper">
               <input type="password" id="newPassword" placeholder="Haslo123!">
-              <span class="password-toggle" onclick="togglePassword('newPassword')">👁️</span>
+              <span class="password-toggle" data-target="newPassword">👁️</span>
             </div>
           </div>
           <div class="form-group">
@@ -441,7 +441,7 @@
               <option value="6" selected>Pracownik</option>
             </select>
           </div>
-          <button onclick="createUser()">Utwórz użytkownika</button>
+          <button id="createUserBtn">Utwórz użytkownika</button>
           <div class="response" id="createUserResponse" style="display:none;"></div>
         </div>
 
@@ -465,8 +465,8 @@
             <label for="editLastName">Nazwisko</label>
             <input type="text" id="editLastName">
           </div>
-          <button onclick="updateUser()">Zapisz zmiany</button>
-          <button class="secondary" onclick="cancelEditUser()">Anuluj</button>
+          <button id="updateUserBtn">Zapisz zmiany</button>
+          <button id="cancelEditUserBtn" class="secondary">Anuluj</button>
           <div class="response" id="editUserResponse" style="display:none;"></div>
         </div>
       </div>
@@ -475,8 +475,8 @@
       <div class="section" id="tasks">
         <div class="card">
           <h3>📋 Lista zadań</h3>
-          <button onclick="getTasks()">Pobierz zadania</button>
-          <button class="success" onclick="checkTasksInDB()">✓ Sprawdź w bazie</button>
+          <button id="getTasksBtn">Pobierz zadania</button>
+          <button id="checkTasksBtn" class="success">✓ Sprawdź w bazie</button>
           <div class="response" id="tasksResponse" style="display:none;"></div>
         </div>
 
@@ -499,7 +499,7 @@
               <option value="4">Awaria</option>
             </select>
           </div>
-          <button onclick="createTask()">Utwórz zadanie</button>
+          <button id="createTaskBtn">Utwórz zadanie</button>
           <div class="response" id="createTaskResponse" style="display:none;"></div>
         </div>
       </div>
@@ -508,8 +508,8 @@
       <div class="section" id="devices">
         <div class="card">
           <h3>📱 Lista urządzeń</h3>
-          <button onclick="getDevices()">Pobierz urządzenia</button>
-          <button class="success" onclick="checkDevicesInDB()">✓ Sprawdź w bazie</button>
+          <button id="getDevicesBtn">Pobierz urządzenia</button>
+          <button id="checkDevicesBtn" class="success">✓ Sprawdź w bazie</button>
           <div class="response" id="devicesResponse" style="display:none;"></div>
         </div>
 
@@ -527,7 +527,7 @@
             <label for="deviceMac">Adres MAC</label>
             <input type="text" id="deviceMac" placeholder="AA:BB:CC:DD:EE:FF">
           </div>
-          <button onclick="createDevice()">Utwórz urządzenie</button>
+          <button id="createDeviceBtn">Utwórz urządzenie</button>
           <div class="response" id="createDeviceResponse" style="display:none;"></div>
         </div>
       </div>
@@ -536,8 +536,8 @@
       <div class="section" id="email">
         <div class="card">
           <h3>⚙️ Konfiguracja Email</h3>
-          <button onclick="checkEmailConfig()">Sprawdź konfigurację</button>
-          <button class="secondary" onclick="testSmtp()">Test połączenia SMTP</button>
+          <button id="checkEmailConfigBtn">Sprawdź konfigurację</button>
+          <button id="testSmtpBtn" class="secondary">Test połączenia SMTP</button>
           <div class="response" id="emailConfigResponse" style="display:none;"></div>
         </div>
 
@@ -547,13 +547,13 @@
             <label for="testEmailTo">Adres email odbiorcy</label>
             <input type="email" id="testEmailTo" placeholder="twoj-email@example.com">
           </div>
-          <button onclick="sendTestEmail()">Wyślij testowy email</button>
+          <button id="sendTestEmailBtn">Wyślij testowy email</button>
           <div class="response" id="testEmailResponse" style="display:none;"></div>
         </div>
 
         <div class="card">
           <h3>📊 Statystyki kolejki</h3>
-          <button onclick="getQueueStats()">Pobierz statystyki</button>
+          <button id="getQueueStatsBtn">Pobierz statystyki</button>
           <div class="stats-grid" id="queueStatsGrid" style="display:none;">
             <div class="stat-card">
               <div class="value" id="statWaiting">0</div>
@@ -606,7 +606,7 @@
             <label for="docFile">Plik (PDF, DOCX, XLSX, TXT)</label>
             <input type="file" id="docFile" accept=".pdf,.docx,.xlsx,.txt">
           </div>
-          <button onclick="uploadDocument()">📤 Upload dokument</button>
+          <button id="uploadDocBtn">📤 Upload dokument</button>
           <div class="response" id="uploadDocResponse" style="display:none;"></div>
         </div>
 
@@ -623,7 +623,7 @@
               <option value="other">Inne</option>
             </select>
           </div>
-          <button onclick="getDocuments()">Pobierz dokumenty</button>
+          <button id="getDocumentsBtn">Pobierz dokumenty</button>
           <div class="response" id="documentsResponse" style="display:none;"></div>
         </div>
 
@@ -633,9 +633,9 @@
             <label for="documentId">ID lub UUID dokumentu</label>
             <input type="text" id="documentId" placeholder="1 lub uuid">
           </div>
-          <button onclick="getDocument()">Pobierz szczegóły</button>
-          <button class="secondary" onclick="downloadDocument()">⬇️ Pobierz plik</button>
-          <button class="danger" onclick="deleteDocument()">🗑️ Usuń dokument</button>
+          <button id="getDocumentBtn">Pobierz szczegóły</button>
+          <button id="downloadDocumentBtn" class="secondary">⬇️ Pobierz plik</button>
+          <button id="deleteDocumentBtn" class="danger">🗑️ Usuń dokument</button>
           <div class="response" id="documentResponse" style="display:none;"></div>
         </div>
       </div>
@@ -664,13 +664,13 @@
             <label for="templateFile">Plik szablonu (DOCX, XLSX, PDF)</label>
             <input type="file" id="templateFile" accept=".docx,.xlsx,.pdf">
           </div>
-          <button onclick="uploadTemplate()">📤 Upload szablon</button>
+          <button id="uploadTemplateBtn">📤 Upload szablon</button>
           <div class="response" id="uploadTemplateResponse" style="display:none;"></div>
         </div>
 
         <div class="card">
           <h3>📋 Lista szablonów</h3>
-          <button onclick="getTemplates()">Pobierz szablony</button>
+          <button id="getTemplatesBtn">Pobierz szablony</button>
           <div class="response" id="templatesResponse" style="display:none;"></div>
         </div>
 
@@ -692,7 +692,7 @@
             <label for="generateData">Dane do wypełnienia (JSON)</label>
             <textarea id="generateData" rows="5" placeholder='{"taskNumber": "123456789", "clientName": "PKP PLK", "date": "2024-12-14"}'></textarea>
           </div>
-          <button onclick="generateDocument()">🎨 Generuj dokument</button>
+          <button id="generateDocBtn">🎨 Generuj dokument</button>
           <div class="response" id="generateDocResponse" style="display:none;"></div>
         </div>
       </div>
@@ -705,8 +705,8 @@
             <label for="csvFile">Plik CSV</label>
             <input type="file" id="csvFile" accept=".csv">
           </div>
-          <button onclick="uploadCSV()">📤 Upload i preview</button>
-          <button class="secondary" onclick="downloadCSVTemplate()">⬇️ Pobierz wzór CSV</button>
+          <button id="uploadCSVBtn">📤 Upload i preview</button>
+          <button id="downloadCSVTemplateBtn" class="secondary">⬇️ Pobierz wzór CSV</button>
           <div class="response" id="uploadCSVResponse" style="display:none;"></div>
         </div>
 
@@ -734,14 +734,14 @@
           </div>
           <div id="csvPreviewContent"></div>
           <input type="hidden" id="importUuid">
-          <button onclick="confirmImport()" style="background: #48bb78;">✓ Potwierdź import</button>
-          <button class="danger" onclick="cancelImport()">✗ Anuluj import</button>
+          <button id="confirmImportBtn" style="background: #48bb78;">✓ Potwierdź import</button>
+          <button id="cancelImportBtn" class="danger">✗ Anuluj import</button>
           <div class="response" id="confirmImportResponse" style="display:none;"></div>
         </div>
 
         <div class="card">
           <h3>📜 Historia importów</h3>
-          <button onclick="getImportHistory()">Pobierz historię</button>
+          <button id="getImportHistoryBtn">Pobierz historię</button>
           <div class="response" id="importHistoryResponse" style="display:none;"></div>
         </div>
       </div>
@@ -758,8 +758,8 @@
             <label for="materialsCategory">Kategoria</label>
             <input type="text" id="materialsCategory" placeholder="np. kable">
           </div>
-          <button onclick="getMaterials()">Pobierz materiały</button>
-          <button class="secondary" onclick="getCategories()">Pobierz kategorie</button>
+          <button id="getMaterialsBtn">Pobierz materiały</button>
+          <button id="getCategoriesBtn" class="secondary">Pobierz kategorie</button>
           <div class="response" id="materialsResponse" style="display:none;"></div>
         </div>
 
@@ -769,7 +769,7 @@
             <label for="bomTaskTypeId">ID typu zadania</label>
             <input type="number" id="bomTaskTypeId" placeholder="1" value="1">
           </div>
-          <button onclick="getTaskTypeBOM()">Pobierz szablon BOM</button>
+          <button id="getTaskTypeBOMBtn">Pobierz szablon BOM</button>
           <div class="response" id="taskTypeBOMResponse" style="display:none;"></div>
         </div>
 
@@ -807,7 +807,7 @@
             <label for="materialUnitPrice">Cena jednostkowa</label>
             <input type="number" step="0.01" id="materialUnitPrice" placeholder="2.50">
           </div>
-          <button onclick="createMaterial()">➕ Dodaj materiał</button>
+          <button id="createMaterialBtn">➕ Dodaj materiał</button>
           <div class="response" id="createMaterialResponse" style="display:none;"></div>
         </div>
 
@@ -821,7 +821,7 @@
             <label for="targetTaskTypeId">ID typu zadania docelowego</label>
             <input type="number" id="targetTaskTypeId" placeholder="2">
           </div>
-          <button onclick="copyBOMTemplate()">📋 Kopiuj szablon</button>
+          <button id="copyBOMTemplateBtn">📋 Kopiuj szablon</button>
           <div class="response" id="copyBOMResponse" style="display:none;"></div>
         </div>
       </div>
@@ -838,7 +838,7 @@
               <option value="false">Nieaktywne</option>
             </select>
           </div>
-          <button onclick="listBomTriggers()">📋 Pobierz listę triggerów</button>
+          <button id="listBomTriggersBtn">📋 Pobierz listę triggerów</button>
           <div class="response" id="listTriggersResponse" style="display:none;"></div>
         </div>
 
@@ -884,7 +884,7 @@
             <label for="triggerPriority">Priorytet (1-100):</label>
             <input type="number" id="triggerPriority" value="10" min="1" max="100">
           </div>
-          <button onclick="createBomTrigger()">➕ Utwórz trigger</button>
+          <button id="createBomTriggerBtn">➕ Utwórz trigger</button>
           <div class="response" id="createTriggerResponse" style="display:none;"></div>
         </div>
 
@@ -894,7 +894,7 @@
             <label for="getTriggerById">ID triggera:</label>
             <input type="number" id="getTriggerById" placeholder="np. 1">
           </div>
-          <button onclick="getBomTrigger()">🔍 Pobierz szczegóły</button>
+          <button id="getBomTriggerBtn">🔍 Pobierz szczegóły</button>
           <div class="response" id="getTriggerResponse" style="display:none;"></div>
         </div>
 
@@ -904,7 +904,7 @@
             <label for="toggleTriggerId">ID triggera:</label>
             <input type="number" id="toggleTriggerId" placeholder="np. 1">
           </div>
-          <button onclick="toggleBomTrigger()">🔄 Przełącz aktywność</button>
+          <button id="toggleBomTriggerBtn">🔄 Przełącz aktywność</button>
           <div class="response" id="toggleTriggerResponse" style="display:none;"></div>
         </div>
 
@@ -918,7 +918,7 @@
             <label for="testTriggerData">Dane testowe (JSON):</label>
             <textarea id="testTriggerData" rows="4" placeholder='{"taskId": 1, "taskTypeCode": "LAN"}'>{"taskId": 1}</textarea>
           </div>
-          <button onclick="testBomTrigger()">🧪 Wykonaj test</button>
+          <button id="testBomTriggerBtn">🧪 Wykonaj test</button>
           <div class="response" id="testTriggerResponse" style="display:none;"></div>
         </div>
 
@@ -928,15 +928,15 @@
             <label for="triggerLogsId">ID triggera:</label>
             <input type="number" id="triggerLogsId" placeholder="np. 1">
           </div>
-          <button onclick="getBomTriggerLogs()">📊 Pobierz logi</button>
+          <button id="getBomTriggerLogsBtn">📊 Pobierz logi</button>
           <div class="response" id="triggerLogsResponse" style="display:none;"></div>
         </div>
 
         <div class="card">
           <h3>📚 Dostępne eventy i akcje</h3>
-          <button onclick="getBomTriggerEvents()">📋 Pobierz eventy</button>
+          <button id="getBomTriggerEventsBtn">📋 Pobierz eventy</button>
           <div class="response" id="triggerEventsResponse" style="display:none;"></div>
-          <button onclick="getBomTriggerActions()" style="margin-top: 10px;">⚡ Pobierz akcje</button>
+          <button id="getBomTriggerActionsBtn" style="margin-top: 10px;">⚡ Pobierz akcje</button>
           <div class="response" id="triggerActionsResponse" style="display:none;"></div>
         </div>
 
@@ -946,7 +946,7 @@
             <label for="deleteTriggerId">ID triggera:</label>
             <input type="number" id="deleteTriggerId" placeholder="np. 1">
           </div>
-          <button class="danger" onclick="deleteBomTrigger()">🗑️ Usuń trigger</button>
+          <button id="deleteBomTriggerBtn" class="danger">🗑️ Usuń trigger</button>
           <div class="response" id="deleteTriggerResponse" style="display:none;"></div>
         </div>
       </div>
@@ -959,17 +959,17 @@
             Uwaga: Te operacje mogą nieodwracalnie usunąć dane. Używaj ostrożnie!
           </p>
           
-          <button class="danger" onclick="clearUsers()">🗑️ Wyczyść użytkowników (oprócz admin)</button>
-          <button class="danger" onclick="clearTasks()">🗑️ Wyczyść zadania</button>
-          <button class="danger" onclick="clearDevices()">🗑️ Wyczyść urządzenia</button>
-          <button class="danger" onclick="clearEmailQueue()">🗑️ Wyczyść kolejkę emaili</button>
+          <button id="clearUsersBtn" class="danger">🗑️ Wyczyść użytkowników (oprócz admin)</button>
+          <button id="clearTasksBtn" class="danger">🗑️ Wyczyść zadania</button>
+          <button id="clearDevicesBtn" class="danger">🗑️ Wyczyść urządzenia</button>
+          <button id="clearEmailQueueBtn" class="danger">🗑️ Wyczyść kolejkę emaili</button>
           
           <div class="response" id="dbResponse" style="display:none;"></div>
         </div>
 
         <div class="card">
           <h3>📊 Statystyki bazy danych</h3>
-          <button onclick="getDBStats()">Pobierz statystyki</button>
+          <button id="getDBStatsBtn">Pobierz statystyki</button>
           <div class="response" id="dbStatsResponse" style="display:none;"></div>
         </div>
       </div>
@@ -1060,14 +1060,14 @@
     // Toggle password visibility
     function togglePassword(inputId) {
       const input = document.getElementById(inputId);
-      const toggle = event.target;
+      const toggles = document.querySelectorAll(`.password-toggle[data-target="${inputId}"]`);
       
       if (input.type === 'password') {
         input.type = 'text';
-        toggle.textContent = '🙈';
+        toggles.forEach(toggle => toggle.textContent = '🙈');
       } else {
         input.type = 'password';
-        toggle.textContent = '👁️';
+        toggles.forEach(toggle => toggle.textContent = '👁️');
       }
     }
 
@@ -1076,7 +1076,12 @@
       document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       
-      event.target.classList.add('active');
+      // Find and activate the nav item for this section
+      document.querySelectorAll('.nav-item').forEach(item => {
+        if (item.getAttribute('data-section') === sectionId) {
+          item.classList.add('active');
+        }
+      });
       document.getElementById(sectionId).classList.add('active');
     }
 
@@ -1151,10 +1156,18 @@
             <br><small>${user.email} | Rola: ${user.role?.name || 'Brak'}</small>
           </div>
           <div class="user-actions">
-            <button class="secondary" onclick="editUser(${user.id})">Edytuj</button>
+            <button class="secondary edit-user-btn" data-user-id="${user.id}">Edytuj</button>
           </div>
         `;
         listElement.appendChild(userDiv);
+      });
+      
+      // Add event listeners to edit buttons
+      document.querySelectorAll('.edit-user-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const userId = parseInt(this.getAttribute('data-user-id'));
+          editUser(userId);
+        });
       });
     }
 
@@ -1947,14 +1960,192 @@
     }
 
     // ============================================
-    // INICJALIZACJA
+    // EVENT LISTENERS INITIALIZATION
     // ============================================
 
-    window.onload = function() {
+    document.addEventListener('DOMContentLoaded', function() {
+      // Navigation
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+          const section = this.getAttribute('data-section');
+          if (section) showSection(section);
+        });
+      });
+
+      // Auth section
+      const loginBtn = document.getElementById('loginBtn');
+      if (loginBtn) loginBtn.addEventListener('click', login);
+      
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) logoutBtn.addEventListener('click', logout);
+      
+      const getMeBtn = document.getElementById('getMeBtn');
+      if (getMeBtn) getMeBtn.addEventListener('click', getMe);
+
+      // Password toggles
+      document.querySelectorAll('.password-toggle').forEach(toggle => {
+        toggle.addEventListener('click', function() {
+          const targetId = this.getAttribute('data-target');
+          if (targetId) togglePassword(targetId);
+        });
+      });
+
+      // Users section
+      const getUsersBtn = document.getElementById('getUsersBtn');
+      if (getUsersBtn) getUsersBtn.addEventListener('click', getUsers);
+      
+      const checkUsersBtn = document.getElementById('checkUsersBtn');
+      if (checkUsersBtn) checkUsersBtn.addEventListener('click', checkUsersInDB);
+      
+      const createUserBtn = document.getElementById('createUserBtn');
+      if (createUserBtn) createUserBtn.addEventListener('click', createUser);
+      
+      const updateUserBtn = document.getElementById('updateUserBtn');
+      if (updateUserBtn) updateUserBtn.addEventListener('click', updateUser);
+      
+      const cancelEditUserBtn = document.getElementById('cancelEditUserBtn');
+      if (cancelEditUserBtn) cancelEditUserBtn.addEventListener('click', cancelEditUser);
+
+      // Tasks section
+      const getTasksBtn = document.getElementById('getTasksBtn');
+      if (getTasksBtn) getTasksBtn.addEventListener('click', getTasks);
+      
+      const checkTasksBtn = document.getElementById('checkTasksBtn');
+      if (checkTasksBtn) checkTasksBtn.addEventListener('click', checkTasksInDB);
+      
+      const createTaskBtn = document.getElementById('createTaskBtn');
+      if (createTaskBtn) createTaskBtn.addEventListener('click', createTask);
+
+      // Devices section
+      const getDevicesBtn = document.getElementById('getDevicesBtn');
+      if (getDevicesBtn) getDevicesBtn.addEventListener('click', getDevices);
+      
+      const checkDevicesBtn = document.getElementById('checkDevicesBtn');
+      if (checkDevicesBtn) checkDevicesBtn.addEventListener('click', checkDevicesInDB);
+      
+      const createDeviceBtn = document.getElementById('createDeviceBtn');
+      if (createDeviceBtn) createDeviceBtn.addEventListener('click', createDevice);
+
+      // Email section
+      const checkEmailConfigBtn = document.getElementById('checkEmailConfigBtn');
+      if (checkEmailConfigBtn) checkEmailConfigBtn.addEventListener('click', checkEmailConfig);
+      
+      const testSmtpBtn = document.getElementById('testSmtpBtn');
+      if (testSmtpBtn) testSmtpBtn.addEventListener('click', testSmtp);
+      
+      const sendTestEmailBtn = document.getElementById('sendTestEmailBtn');
+      if (sendTestEmailBtn) sendTestEmailBtn.addEventListener('click', sendTestEmail);
+      
+      const getQueueStatsBtn = document.getElementById('getQueueStatsBtn');
+      if (getQueueStatsBtn) getQueueStatsBtn.addEventListener('click', getQueueStats);
+
+      // Documents section
+      const uploadDocBtn = document.getElementById('uploadDocBtn');
+      if (uploadDocBtn) uploadDocBtn.addEventListener('click', uploadDocument);
+      
+      const getDocumentsBtn = document.getElementById('getDocumentsBtn');
+      if (getDocumentsBtn) getDocumentsBtn.addEventListener('click', getDocuments);
+      
+      const getDocumentBtn = document.getElementById('getDocumentBtn');
+      if (getDocumentBtn) getDocumentBtn.addEventListener('click', getDocument);
+      
+      const downloadDocumentBtn = document.getElementById('downloadDocumentBtn');
+      if (downloadDocumentBtn) downloadDocumentBtn.addEventListener('click', downloadDocument);
+      
+      const deleteDocumentBtn = document.getElementById('deleteDocumentBtn');
+      if (deleteDocumentBtn) deleteDocumentBtn.addEventListener('click', deleteDocument);
+
+      // Templates section
+      const uploadTemplateBtn = document.getElementById('uploadTemplateBtn');
+      if (uploadTemplateBtn) uploadTemplateBtn.addEventListener('click', uploadTemplate);
+      
+      const getTemplatesBtn = document.getElementById('getTemplatesBtn');
+      if (getTemplatesBtn) getTemplatesBtn.addEventListener('click', getTemplates);
+      
+      const generateDocBtn = document.getElementById('generateDocBtn');
+      if (generateDocBtn) generateDocBtn.addEventListener('click', generateDocument);
+
+      // Import section
+      const uploadCSVBtn = document.getElementById('uploadCSVBtn');
+      if (uploadCSVBtn) uploadCSVBtn.addEventListener('click', uploadCSV);
+      
+      const downloadCSVTemplateBtn = document.getElementById('downloadCSVTemplateBtn');
+      if (downloadCSVTemplateBtn) downloadCSVTemplateBtn.addEventListener('click', downloadCSVTemplate);
+      
+      const confirmImportBtn = document.getElementById('confirmImportBtn');
+      if (confirmImportBtn) confirmImportBtn.addEventListener('click', confirmImport);
+      
+      const cancelImportBtn = document.getElementById('cancelImportBtn');
+      if (cancelImportBtn) cancelImportBtn.addEventListener('click', cancelImport);
+      
+      const getImportHistoryBtn = document.getElementById('getImportHistoryBtn');
+      if (getImportHistoryBtn) getImportHistoryBtn.addEventListener('click', getImportHistory);
+
+      // BOM Builder section
+      const getMaterialsBtn = document.getElementById('getMaterialsBtn');
+      if (getMaterialsBtn) getMaterialsBtn.addEventListener('click', getMaterials);
+      
+      const getCategoriesBtn = document.getElementById('getCategoriesBtn');
+      if (getCategoriesBtn) getCategoriesBtn.addEventListener('click', getCategories);
+      
+      const getTaskTypeBOMBtn = document.getElementById('getTaskTypeBOMBtn');
+      if (getTaskTypeBOMBtn) getTaskTypeBOMBtn.addEventListener('click', getTaskTypeBOM);
+      
+      const createMaterialBtn = document.getElementById('createMaterialBtn');
+      if (createMaterialBtn) createMaterialBtn.addEventListener('click', createMaterial);
+      
+      const copyBOMTemplateBtn = document.getElementById('copyBOMTemplateBtn');
+      if (copyBOMTemplateBtn) copyBOMTemplateBtn.addEventListener('click', copyBOMTemplate);
+
+      // BOM Triggers section
+      const listBomTriggersBtn = document.getElementById('listBomTriggersBtn');
+      if (listBomTriggersBtn) listBomTriggersBtn.addEventListener('click', listBomTriggers);
+      
+      const createBomTriggerBtn = document.getElementById('createBomTriggerBtn');
+      if (createBomTriggerBtn) createBomTriggerBtn.addEventListener('click', createBomTrigger);
+      
+      const getBomTriggerBtn = document.getElementById('getBomTriggerBtn');
+      if (getBomTriggerBtn) getBomTriggerBtn.addEventListener('click', getBomTrigger);
+      
+      const toggleBomTriggerBtn = document.getElementById('toggleBomTriggerBtn');
+      if (toggleBomTriggerBtn) toggleBomTriggerBtn.addEventListener('click', toggleBomTrigger);
+      
+      const testBomTriggerBtn = document.getElementById('testBomTriggerBtn');
+      if (testBomTriggerBtn) testBomTriggerBtn.addEventListener('click', testBomTrigger);
+      
+      const getBomTriggerLogsBtn = document.getElementById('getBomTriggerLogsBtn');
+      if (getBomTriggerLogsBtn) getBomTriggerLogsBtn.addEventListener('click', getBomTriggerLogs);
+      
+      const getBomTriggerEventsBtn = document.getElementById('getBomTriggerEventsBtn');
+      if (getBomTriggerEventsBtn) getBomTriggerEventsBtn.addEventListener('click', getBomTriggerEvents);
+      
+      const getBomTriggerActionsBtn = document.getElementById('getBomTriggerActionsBtn');
+      if (getBomTriggerActionsBtn) getBomTriggerActionsBtn.addEventListener('click', getBomTriggerActions);
+      
+      const deleteBomTriggerBtn = document.getElementById('deleteBomTriggerBtn');
+      if (deleteBomTriggerBtn) deleteBomTriggerBtn.addEventListener('click', deleteBomTrigger);
+
+      // Database section
+      const clearUsersBtn = document.getElementById('clearUsersBtn');
+      if (clearUsersBtn) clearUsersBtn.addEventListener('click', clearUsers);
+      
+      const clearTasksBtn = document.getElementById('clearTasksBtn');
+      if (clearTasksBtn) clearTasksBtn.addEventListener('click', clearTasks);
+      
+      const clearDevicesBtn = document.getElementById('clearDevicesBtn');
+      if (clearDevicesBtn) clearDevicesBtn.addEventListener('click', clearDevices);
+      
+      const clearEmailQueueBtn = document.getElementById('clearEmailQueueBtn');
+      if (clearEmailQueueBtn) clearEmailQueueBtn.addEventListener('click', clearEmailQueue);
+      
+      const getDBStatsBtn = document.getElementById('getDBStatsBtn');
+      if (getDBStatsBtn) getDBStatsBtn.addEventListener('click', getDBStats);
+
+      // Initialize auth status
       updateAuthStatus();
       console.log('🧪 API Tester initialized');
       console.log('API URL:', API_URL);
-    };
+    });
   </script>
 </body>
 </html>
