@@ -180,8 +180,13 @@ describe('AuthController', () => {
         firstName: 'Test',
         lastName: 'User',
         phone: '123456789',
+        active: true,
         lastLogin: new Date('2024-01-01'),
-        role: { id: 1, name: 'admin' },
+        role: { 
+          id: 1, 
+          name: 'admin',
+          permissions: { all: true }
+        },
       } as any;
 
       mockUserRepository.findOne.mockResolvedValue(mockUser);
@@ -203,6 +208,7 @@ describe('AuthController', () => {
           lastName: 'User',
           phone: '123456789',
           role: 'admin',
+          permissions: { all: true },
           lastLogin: mockUser.lastLogin,
         },
       });
@@ -211,6 +217,29 @@ describe('AuthController', () => {
     it('should return 404 if user not found', async () => {
       mockUserRepository.findOne.mockResolvedValue(null);
       req.userId = 999;
+
+      await AuthController.me(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Użytkownik nie znaleziony',
+      });
+    });
+
+    it('should return 404 if user is not active', async () => {
+      const mockUser = {
+        id: 1,
+        username: 'testuser',
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        active: false,
+        role: { id: 1, name: 'admin', permissions: { all: true } },
+      } as any;
+
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      req.userId = 1;
 
       await AuthController.me(req as Request, res as Response);
 
