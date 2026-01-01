@@ -480,7 +480,7 @@ export class AuthController {
         relations: ['role']
       });
 
-      if (!user) {
+      if (!user || !user.active) {
         res.status(404).json({
           success: false,
           message: 'Użytkownik nie znaleziony'
