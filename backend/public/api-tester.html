@@ -978,7 +978,8 @@
 
   <script>
     // Konfiguracja API
-    const API_URL = window.location.origin + '/api';
+    const API_URL = (window.location.origin || 'http://localhost:3000') + '/api';
+    console.log('🔗 API URL:', API_URL);
     
     // Globalne zmienne
     let authToken = localStorage.getItem('authToken') || null;
@@ -1003,6 +1004,7 @@
       }
 
       try {
+        console.log(`🌐 ${method} ${API_URL}${endpoint}`);
         const response = await fetch(API_URL + endpoint, options);
         const data = await response.json();
         
@@ -1012,7 +1014,7 @@
           data: data
         };
       } catch (error) {
-        console.error('API Request Error:', error);
+        console.error('❌ API Request Error:', error);
         return {
           ok: false,
           status: 0,
