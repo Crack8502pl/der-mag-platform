@@ -8,6 +8,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
+import fs from 'fs';
 import routes from './routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { RATE_LIMIT } from './config/constants';
@@ -17,13 +18,30 @@ const app: Application = express();
 // Security middleware
 app.use(helmet());
 
-// CORS configuration
+// CORS configuration - bardziej permisywna dla development
 const corsOrigins = process.env.CORS_ORIGIN 
   ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
   : ['http://localhost:5173', 'http://localhost:3001', 'http://localhost:3000'];
 
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    // Pozwól na requesty bez origin (curl, Postman, same-origin)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Sprawdź czy origin jest na liście
+    if (corsOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // W development pozwól na wszystkie origins z localhost
+    if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 
@@ -46,7 +64,7 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('combined'));
 }
 
-// Health check endpoint
+// Health check endpoint (przed wszystkim innym)
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -57,18 +75,38 @@ app.get('/health', (req, res) => {
 });
 
 // Serwowanie interfejsu testowego
-// Kontrolowane przez zmienną ENABLE_API_TESTER (domyślnie włączone w dev)
 const enableApiTester = process.env.ENABLE_API_TESTER === 'true' || process.env.NODE_ENV !== 'production';
-
 if (enableApiTester) {
   app.use('/test', express.static(path.join(__dirname, '../public')));
   console.log('🧪 Test interface dostępny na: /test/api-tester.html');
 }
 
-// API routes
+// API routes (MUSZĄ być przed serwowaniem frontendu)
 app.use('/api', routes);
 
-// Error handlers
+// Serwowanie frontendu z tego samego portu co backend
+const frontendPath = path.join(__dirname, '../../frontend/dist');
+if (fs.existsSync(frontendPath)) {
+  console.log('🌐 Frontend będzie serwowany z: ' + frontendPath);
+  
+  // Serwuj statyczne pliki frontendu
+  app.use(express.static(frontendPath, {
+    maxAge: '1d',
+    etag: true
+  }));
+  
+  // Obsługa React Router - wszystkie pozostałe ścieżki zwracają index.html
+  // MUSI być PRZED error handlers
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  });
+} else {
+  console.warn('⚠️  Frontend dist nie znaleziony w: ' + frontendPath);
+  console.warn('   Uruchom: cd frontend && npm run build');
+}
+
+// Error handlers (MUSZĄ być na samym końcu, ale tylko dla API routes)
+// Catch-all dla React Router jest powyżej
 app.use(notFoundHandler);
 app.use(errorHandler);
 
