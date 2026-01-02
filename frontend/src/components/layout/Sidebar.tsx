@@ -21,13 +21,21 @@ export const Sidebar: React.FC = () => {
   const { hasPermission, hasAnyPermissionInModule, isAdmin } = usePermissions();
 
   const menuItems: MenuItem[] = [
-    { label: 'Dashboard', path: '/dashboard', icon: '📊' },
+    { label: 'Dashboard', path: '/dashboard', icon: '📊', module: 'dashboard', action: 'read' },
     { label: 'Kontrakty', path: '/contracts', icon: '📝', module: 'contracts', action: 'read' },
     { label: 'Podsystemy', path: '/subsystems', icon: '🔧', module: 'subsystems', action: 'read' },
-    { label: 'Sieć', path: '/network', icon: '🌐', module: 'network', action: 'read' },
+    { label: 'Zadania', path: '/tasks', icon: '📋', module: 'tasks', action: 'read' },
     { label: 'Kompletacja', path: '/completion', icon: '📦', module: 'completion', action: 'read' },
     { label: 'Prefabrykacja', path: '/prefabrication', icon: '🏭', module: 'prefabrication', action: 'read' },
+    { label: 'Sieć/IP', path: '/network', icon: '🌐', module: 'network', action: 'read' },
+    { label: 'Materiały BOM', path: '/bom', icon: '🔩', module: 'bom', action: 'read' },
+    { label: 'Urządzenia', path: '/devices', icon: '📱', module: 'devices', action: 'read' },
+    { label: 'Użytkownicy', path: '/admin/users', icon: '👥', module: 'users', action: 'read' },
+    { label: 'Raporty', path: '/reports', icon: '📈', module: 'reports', action: 'read' },
+    { label: 'Dokumenty', path: '/documents', icon: '📄', module: 'documents', action: 'read' },
+    { label: 'Zdjęcia', path: '/photos', icon: '📷', module: 'photos', action: 'read' },
     { label: 'Powiadomienia', path: '/notifications', icon: '🔔', module: 'notifications' },
+    { label: 'Ustawienia', path: '/settings', icon: '⚙️', module: 'settings', action: 'read' },
   ];
 
   const handleLogout = async () => {

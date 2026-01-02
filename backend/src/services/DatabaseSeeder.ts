@@ -37,11 +37,156 @@ export class DatabaseSeeder {
     const roleRepo = AppDataSource.getRepository(Role);
     
     const roles = [
-      { name: 'admin', description: 'Administrator systemu z pełnymi uprawnieniami', permissions: { all: true } },
-      { name: 'manager', description: 'Menedżer projektów', permissions: { tasks: true, users: true } },
-      { name: 'coordinator', description: 'Koordynator zadań serwisowych', permissions: { tasks: { read: true, update: true, create: ['SERWIS'], assign: true }, users: { read: true } } },
-      { name: 'technician', description: 'Technik terenowy', permissions: { tasks: true } },
-      { name: 'viewer', description: 'Podgląd systemu', permissions: { read: true } }
+      {
+        name: 'admin',
+        description: 'Administrator Systemu - Pełny dostęp do wszystkich funkcji systemu',
+        permissions: { all: true }
+      },
+      {
+        name: 'management_board',
+        description: 'Zarząd - Zarządzanie Menadżerami, przydzielanie projektów, raporty dobowe',
+        permissions: {
+          dashboard: { read: true },
+          contracts: { read: true, create: true, update: true, approve: true, import: true },
+          subsystems: { read: true, create: true, update: true, generateBom: true, allocateNetwork: true },
+          tasks: { read: true, create: true, update: true, assign: true },
+          completion: { read: true, decideContinue: true },
+          prefabrication: { read: true },
+          network: { read: true, createPool: true, updatePool: true, allocate: true, viewMatrix: true },
+          bom: { read: true, create: true, update: true },
+          devices: { read: true, create: true, update: true },
+          users: { read: true, create: true, update: true },
+          reports: { read: true, create: true, export: true },
+          settings: { read: true, update: true },
+          photos: { read: true, approve: true },
+          documents: { read: true, create: true, delete: true },
+          notifications: { receiveAlerts: true, sendManual: true }
+        }
+      },
+      {
+        name: 'manager',
+        description: 'Menedżer - Zarządzanie projektami, użytkownikami i raportami',
+        permissions: {
+          dashboard: { read: true },
+          contracts: { read: true, create: true, update: true, approve: true, import: true },
+          subsystems: { read: true, create: true, update: true, generateBom: true, allocateNetwork: true },
+          tasks: { read: true, create: true, update: true, assign: true },
+          completion: { read: true, decideContinue: true },
+          prefabrication: { read: true },
+          network: { read: true, createPool: true, updatePool: true, allocate: true, viewMatrix: true },
+          bom: { read: true, create: true, update: true },
+          devices: { read: true, create: true, update: true },
+          users: { read: true },
+          reports: { read: true, create: true, export: true },
+          settings: { read: true, update: true },
+          photos: { read: true, approve: true },
+          documents: { read: true, create: true, delete: true },
+          notifications: { receiveAlerts: true, sendManual: true }
+        }
+      },
+      {
+        name: 'coordinator',
+        description: 'Koordynator - Koordynacja zadań serwisowych, przypisywanie pracowników',
+        permissions: {
+          dashboard: { read: true },
+          contracts: { read: true },
+          subsystems: { read: true },
+          tasks: { read: true, create: 'SERWIS', update: true, assign: true },
+          completion: { read: true },
+          prefabrication: { read: true },
+          network: { read: true, viewMatrix: true },
+          bom: { read: true },
+          devices: { read: true },
+          users: { read: true },
+          reports: { read: true, export: true },
+          settings: { read: true, update: true },
+          photos: { read: true },
+          documents: { read: true, create: true },
+          notifications: { receiveAlerts: true }
+        }
+      },
+      {
+        name: 'bom_editor',
+        description: 'Edytor BOM-ów - Zarządzanie materiałami i szablonami BOM',
+        permissions: {
+          dashboard: { read: true },
+          subsystems: { read: true, generateBom: true, allocateNetwork: true },
+          tasks: { read: true },
+          network: { read: true, allocate: true, viewMatrix: true },
+          bom: { read: true, create: true, update: true, delete: true },
+          devices: { read: true },
+          reports: { read: true },
+          settings: { read: true, update: true },
+          documents: { read: true },
+          notifications: { receiveAlerts: true, configureTriggers: true }
+        }
+      },
+      {
+        name: 'prefabricator',
+        description: 'Prefabrykant - Prefabrykacja urządzeń, weryfikacja numerów seryjnych',
+        permissions: {
+          dashboard: { read: true },
+          tasks: { read: true },
+          completion: { scan: true },
+          prefabrication: { 
+            read: true, receiveOrder: true, configure: true, 
+            verify: true, assignSerial: true, complete: true 
+          },
+          network: { read: true, viewMatrix: true },
+          bom: { read: true },
+          devices: { read: true, create: true, update: true, verify: true },
+          settings: { read: true, update: true },
+          documents: { read: true },
+          notifications: { receiveAlerts: true }
+        }
+      },
+      {
+        name: 'worker',
+        description: 'Pracownik - Realizacja zadań, kompletacja, upload zdjęć',
+        permissions: {
+          dashboard: { read: true },
+          tasks: { read: true, update: 'OWN' },
+          completion: { 
+            read: true, scan: true, assignPallet: true, 
+            reportMissing: true, complete: true 
+          },
+          network: { viewMatrix: true },
+          bom: { read: true },
+          devices: { read: true, update: true },
+          settings: { read: true, update: true },
+          photos: { read: true, create: true },
+          documents: { read: true },
+          notifications: { receiveAlerts: true }
+        }
+      },
+      {
+        name: 'order_picking',
+        description: 'Pracownik przygotowania - Kompletacja podzespołów, dodawanie numerów seryjnych',
+        permissions: {
+          dashboard: { read: true },
+          tasks: { read: true },
+          completion: { 
+            read: true, scan: true, assignPallet: true, 
+            reportMissing: true, complete: true 
+          },
+          bom: { read: true },
+          devices: { read: true, verify: true },
+          reports: { read: true },
+          settings: { read: true, update: true },
+          photos: { read: true, create: true },
+          documents: { read: true },
+          notifications: { receiveAlerts: true, sendManual: true }
+        }
+      },
+      {
+        name: 'integrator',
+        description: 'System - Integruje z platformami zewnętrznymi',
+        permissions: {
+          contracts: { read: true, create: true, update: true, import: true },
+          bom: { read: true, update: true },
+          devices: { read: true, create: true, update: true, verify: true }
+        }
+      }
     ];
     
     for (const role of roles) {
@@ -49,7 +194,7 @@ export class DatabaseSeeder {
       await roleRepo.save(newRole);
     }
     
-    console.log('   ✅ Role utworzone');
+    console.log('   ✅ Role utworzone (9 ról)');
   }
   
   private static async seedTaskTypes(): Promise<void> {

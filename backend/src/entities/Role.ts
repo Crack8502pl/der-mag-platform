@@ -5,6 +5,13 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { User } from './User';
 
 /**
+ * Granularne uprawnienia dla dashboard
+ */
+export interface DashboardPermissions {
+  read?: boolean;
+}
+
+/**
  * Granularne uprawnienia dla kontraktów
  */
 export interface ContractPermissions {
@@ -29,15 +36,14 @@ export interface SubsystemPermissions {
 }
 
 /**
- * Granularne uprawnienia dla sieci
+ * Granularne uprawnienia dla zadań
  */
-export interface NetworkPermissions {
+export interface TaskPermissions {
   read?: boolean;
-  createPool?: boolean;
-  updatePool?: boolean;
-  deletePool?: boolean;
-  allocate?: boolean;
-  viewMatrix?: boolean;
+  create?: boolean | string | string[]; // true | 'SERWIS' | ['wszystkie']
+  update?: boolean | string; // true | 'OWN'
+  delete?: boolean;
+  assign?: boolean;
 }
 
 /**
@@ -65,6 +71,83 @@ export interface PrefabricationPermissions {
 }
 
 /**
+ * Granularne uprawnienia dla sieci/IP
+ */
+export interface NetworkPermissions {
+  read?: boolean;
+  createPool?: boolean;
+  updatePool?: boolean;
+  deletePool?: boolean;
+  allocate?: boolean;
+  viewMatrix?: boolean;
+}
+
+/**
+ * Granularne uprawnienia dla BOM
+ */
+export interface BOMPermissions {
+  read?: boolean;
+  create?: boolean;
+  update?: boolean;
+  delete?: boolean;
+}
+
+/**
+ * Granularne uprawnienia dla urządzeń
+ */
+export interface DevicePermissions {
+  read?: boolean;
+  create?: boolean;
+  update?: boolean;
+  verify?: boolean;
+}
+
+/**
+ * Granularne uprawnienia dla użytkowników
+ */
+export interface UserPermissions {
+  read?: boolean;
+  create?: boolean;
+  update?: boolean;
+  delete?: boolean;
+}
+
+/**
+ * Granularne uprawnienia dla raportów
+ */
+export interface ReportPermissions {
+  read?: boolean;
+  create?: boolean;
+  export?: boolean;
+}
+
+/**
+ * Granularne uprawnienia dla ustawień
+ */
+export interface SettingsPermissions {
+  read?: boolean;
+  update?: boolean;
+}
+
+/**
+ * Granularne uprawnienia dla zdjęć
+ */
+export interface PhotoPermissions {
+  read?: boolean;
+  create?: boolean;
+  approve?: boolean;
+}
+
+/**
+ * Granularne uprawnienia dla dokumentów
+ */
+export interface DocumentPermissions {
+  read?: boolean;
+  create?: boolean;
+  delete?: boolean;
+}
+
+/**
  * Granularne uprawnienia dla powiadomień
  */
 export interface NotificationPermissions {
@@ -74,15 +157,24 @@ export interface NotificationPermissions {
 }
 
 /**
- * Struktura wszystkich uprawnień
+ * Struktura wszystkich uprawnień - 15 modułów, 27 akcji
  */
 export interface RolePermissions {
   all?: boolean; // Admin - pełny dostęp
+  dashboard?: DashboardPermissions;
   contracts?: ContractPermissions;
   subsystems?: SubsystemPermissions;
-  network?: NetworkPermissions;
+  tasks?: TaskPermissions;
   completion?: CompletionPermissions;
   prefabrication?: PrefabricationPermissions;
+  network?: NetworkPermissions;
+  bom?: BOMPermissions;
+  devices?: DevicePermissions;
+  users?: UserPermissions;
+  reports?: ReportPermissions;
+  settings?: SettingsPermissions;
+  photos?: PhotoPermissions;
+  documents?: DocumentPermissions;
   notifications?: NotificationPermissions;
   // Zachowanie kompatybilności z istniejącymi uprawnieniami
   [key: string]: any;
