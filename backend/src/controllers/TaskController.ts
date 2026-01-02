@@ -159,9 +159,24 @@ export class TaskController {
     try {
       const { taskTypeId } = req.body;
       const user = req.user;
+      const userRepository = AppDataSource.getRepository(User);
+
+      // Pobierz pełne dane użytkownika z rolą
+      const fullUser = await userRepository.findOne({
+        where: { id: req.userId },
+        relations: ['role']
+      });
+
+      if (!fullUser || !fullUser.role) {
+        res.status(403).json({
+          success: false,
+          message: 'Brak przypisanej roli użytkownika'
+        });
+        return;
+      }
 
       // Sprawdź uprawnienia koordynatora do tworzenia zadań
-      if (user?.role === 'coordinator') {
+      if (fullUser.role.name === 'coordinator') {
         // Pobierz typ zadania
         const taskTypeRepository = AppDataSource.getRepository(TaskType);
         const taskType = await taskTypeRepository.findOne({
@@ -180,7 +195,9 @@ export class TaskController {
         if (taskType.code !== 'SERWIS') {
           res.status(403).json({
             success: false,
-            message: 'Koordynator może tworzyć tylko zadania serwisowe'
+            message: 'Koordynator może tworzyć tylko zadania serwisowe',
+            allowedTypes: ['SERWIS'],
+            attemptedType: taskType.code
           });
           return;
         }
@@ -244,6 +261,22 @@ export class TaskController {
     try {
       const { taskNumber } = req.params;
       const taskRepository = AppDataSource.getRepository(Task);
+      const userRepository = AppDataSource.getRepository(User);
+      const assignmentRepository = AppDataSource.getRepository(TaskAssignment);
+
+      // Pobierz użytkownika z rolą
+      const user = await userRepository.findOne({
+        where: { id: req.userId },
+        relations: ['role']
+      });
+
+      if (!user || !user.role) {
+        res.status(403).json({
+          success: false,
+          message: 'Brak przypisanej roli użytkownika'
+        });
+        return;
+      }
 
       const task = await taskRepository.findOne({
         where: { taskNumber, deletedAt: null as any }
@@ -255,6 +288,25 @@ export class TaskController {
           message: 'Zadanie nie znalezione'
         });
         return;
+      }
+
+      // Worker może edytować tylko własne zadania
+      if (user.role.name === 'worker') {
+        const assignment = await assignmentRepository.findOne({
+          where: {
+            taskId: task.id,
+            userId: user.id
+          }
+        });
+
+        if (!assignment) {
+          res.status(403).json({
+            success: false,
+            message: 'Możesz edytować tylko zadania, które są do Ciebie przypisane',
+            code: 'TASK_NOT_ASSIGNED_TO_USER'
+          });
+          return;
+        }
       }
 
       Object.assign(task, req.body);
