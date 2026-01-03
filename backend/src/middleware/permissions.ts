@@ -5,6 +5,9 @@ import { Request, Response, NextFunction } from 'express';
 import { AppDataSource } from '../config/database';
 import { User } from '../entities/User';
 import { RolePermissions } from '../entities/Role';
+import { TaskType } from '../entities/TaskType';
+import { Task } from '../entities/Task';
+import { TaskAssignment } from '../entities/TaskAssignment';
 
 /**
  * Sprawdź czy użytkownik ma uprawnienie do modułu i akcji
@@ -186,7 +189,6 @@ export const validateCoordinatorTaskType = async (
       return;
     }
 
-    const TaskType = (await import('../entities/TaskType')).TaskType;
     const taskTypeRepository = AppDataSource.getRepository(TaskType);
     const taskType = await taskTypeRepository.findOne({
       where: { id: taskTypeId, active: true }
@@ -257,9 +259,6 @@ export const validateWorkerOwnTask = async (
       return;
     }
 
-    const Task = (await import('../entities/Task')).Task;
-    const TaskAssignment = (await import('../entities/TaskAssignment')).TaskAssignment;
-    
     const taskRepository = AppDataSource.getRepository(Task);
     const assignmentRepository = AppDataSource.getRepository(TaskAssignment);
 

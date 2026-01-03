@@ -40,7 +40,7 @@ export interface SubsystemPermissions {
  */
 export interface TaskPermissions {
   read?: boolean;
-  create?: boolean | string | string[]; // true | 'SERWIS' | ['wszystkie']
+  create?: boolean | string; // true | 'SERWIS'
   update?: boolean | string; // true | 'OWN'
   delete?: boolean;
   assign?: boolean;
