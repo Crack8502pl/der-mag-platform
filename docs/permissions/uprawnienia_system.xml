@@ -1,0 +1,510 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  System Uprawnień Grover Platform
+  Pełna matryca uprawnień dla 9 ról, 15 modułów, 27 akcji
+  Data: 2026-01-02
+  Źródło prawdy dla implementacji systemu uprawnień
+-->
+<permissions_system version="2.0">
+  
+  <!-- ============================================ -->
+  <!-- SEKCJA 1: ROLE (9 ról) -->
+  <!-- ============================================ -->
+  <roles>
+    <role id="1" code="admin" display_name="Administrator Systemu" level="100" is_admin="true">
+      <description>Pełny dostęp do wszystkich funkcji systemu</description>
+      <permissions type="all">
+        <all>true</all>
+      </permissions>
+    </role>
+    
+    <role id="2" code="management_board" display_name="Zarząd" level="90" is_admin="false">
+      <description>Zarządzanie Menadżerami, przydzielanie projektów, stałe raporty dobowe z realizacji prac, Ocena z realizacji projektów</description>
+    </role>
+    
+    <role id="3" code="manager" display_name="Menedżer" level="80" is_admin="false">
+      <description>Zarządzanie projektami, użytkownikami i raportami</description>
+    </role>
+    
+    <role id="4" code="coordinator" display_name="Koordynator" level="60" is_admin="false">
+      <description>Koordynacja zadań serwisowych, przypisywanie pracowników</description>
+    </role>
+    
+    <role id="5" code="bom_editor" display_name="Edytor BOM-ów" level="50" is_admin="false">
+      <description>Zarządzanie materiałami i szablonami BOM</description>
+    </role>
+    
+    <role id="6" code="prefabricator" display_name="Prefabrykant" level="40" is_admin="false">
+      <description>Prefabrykacja urządzeń, weryfikacja numerów seryjnych (przypisywanie do adresów IP)</description>
+    </role>
+    
+    <role id="7" code="worker" display_name="Pracownik" level="20" is_admin="false">
+      <description>Realizacja zadań, kompletacja, upload zdjęć</description>
+    </role>
+    
+    <role id="8" code="order_picking" display_name="Pracownik przygotowania" level="40" is_admin="false">
+      <description>Kompletacja podzespołów, Dodawanie numerów seryjnych do urządzeń</description>
+    </role>
+    
+    <role id="9" code="integrator" display_name="System" level="90" is_admin="false">
+      <description>Integruje z platformami zewnętrznymi</description>
+    </role>
+  </roles>
+  
+  <!-- ============================================ -->
+  <!-- SEKCJA 2: MODUŁY (15 modułów) -->
+  <!-- ============================================ -->
+  <modules>
+    <module id="1" code="dashboard" name="Dashboard" frontend_path="/dashboard" icon="📊"/>
+    <module id="2" code="contracts" name="Kontrakty" frontend_path="/contracts" api_endpoint="/api/contracts" icon="📝"/>
+    <module id="3" code="subsystems" name="Podsystemy" frontend_path="/subsystems" api_endpoint="/api/subsystems" icon="🔧"/>
+    <module id="4" code="tasks" name="Zadania" frontend_path="/tasks" api_endpoint="/api/tasks" icon="📋"/>
+    <module id="5" code="completion" name="Kompletacja" frontend_path="/completion" api_endpoint="/api/completion" icon="📦"/>
+    <module id="6" code="prefabrication" name="Prefabrykacja" frontend_path="/prefabrication" api_endpoint="/api/prefabrication" icon="🏭"/>
+    <module id="7" code="network" name="Sieć/IP" frontend_path="/network" api_endpoint="/api/network" icon="🌐"/>
+    <module id="8" code="bom" name="Materiały BOM" frontend_path="/bom" api_endpoint="/api/bom" icon="🔩"/>
+    <module id="9" code="devices" name="Urządzenia" frontend_path="/devices" api_endpoint="/api/devices" icon="📱"/>
+    <module id="10" code="users" name="Użytkownicy" frontend_path="/admin/users" api_endpoint="/api/users" icon="👥"/>
+    <module id="11" code="reports" name="Raporty" frontend_path="/reports" api_endpoint="/api/reports" icon="📈"/>
+    <module id="12" code="settings" name="Ustawienia konta" frontend_path="/settings" api_endpoint="/api/auth" icon="⚙️"/>
+    <module id="13" code="notifications" name="Powiadomienia" frontend_path="/notifications" api_endpoint="/api/notifications" icon="🔔"/>
+    <module id="14" code="documents" name="Dokumenty" frontend_path="/documents" api_endpoint="/api/documents" icon="📄"/>
+    <module id="15" code="photos" name="Zdjęcia" frontend_path="/photos" api_endpoint="/api/photos" icon="📷"/>
+  </modules>
+  
+  <!-- ============================================ -->
+  <!-- SEKCJA 3: AKCJE (27 akcji) -->
+  <!-- ============================================ -->
+  <actions>
+    <!-- Podstawowe -->
+    <action id="1" code="read" name="Odczyt" type="PODSTAWOWA"/>
+    <action id="2" code="create" name="Tworzenie" type="PODSTAWOWA"/>
+    <action id="3" code="update" name="Edycja" type="PODSTAWOWA"/>
+    <action id="4" code="delete" name="Usuwanie" type="PODSTAWOWA"/>
+    
+    <!-- Workflow -->
+    <action id="5" code="approve" name="Zatwierdzanie" type="WORKFLOW"/>
+    <action id="6" code="assign" name="Przypisywanie" type="WORKFLOW"/>
+    <action id="7" code="scan" name="Skanowanie" type="SPECJALNA"/>
+    
+    <!-- Raportowanie -->
+    <action id="8" code="export" name="Eksport" type="RAPORTOWANIE"/>
+    <action id="9" code="import" name="Import" type="RAPORTOWANIE"/>
+    
+    <!-- Workflow -->
+    <action id="10" code="verify" name="Weryfikacja" type="WORKFLOW"/>
+    <action id="11" code="configure" name="Konfiguracja" type="ADMIN"/>
+    <action id="12" code="complete" name="Zakończenie" type="WORKFLOW"/>
+    
+    <!-- Specjalne -->
+    <action id="13" code="viewMatrix" name="Podgląd macierzy" type="SPECJALNA"/>
+    <action id="14" code="allocate" name="Alokacja" type="SPECJALNA"/>
+    <action id="15" code="generateBom" name="Generuj BOM" type="SPECJALNA"/>
+    
+    <!-- Powiadomienia -->
+    <action id="16" code="receiveAlerts" name="Odbieranie alertów" type="POWIADOMIENIA"/>
+    <action id="17" code="sendManual" name="Wysyłka ręczna" type="POWIADOMIENIA"/>
+    
+    <!-- Specjalne kontynuacja -->
+    <action id="18" code="allocateNetwork" name="Przypisywanie zakresu IP" type="SPECJALNA"/>
+    <action id="19" code="assignPallet" name="Przypisanie do palety" type="WORKFLOW"/>
+    <action id="20" code="assignSerial" name="Przypisanie numeru seryjnego" type="WORKFLOW"/>
+    <action id="21" code="configureTriggers" name="Tworzenie trigerów" type="ADMIN"/>
+    <action id="22" code="createPool" name="Tworzenie puli adresowej" type="SPECJALNA"/>
+    <action id="23" code="decideContinue" name="Warunkowa zgoda przy braku materiałów" type="WORKFLOW"/>
+    <action id="24" code="deletePool" name="Zwalnianie adresów IP" type="SPECJALNA"/>
+    <action id="25" code="receiveOrder" name="Otrzymanie zadania" type="WORKFLOW"/>
+    <action id="26" code="reportMissing" name="Zgłoszenie braków" type="WORKFLOW"/>
+    <action id="27" code="updatePool" name="Aktualizacja puli adresowej" type="SPECJALNA"/>
+  </actions>
+  
+  <!-- ============================================ -->
+  <!-- SEKCJA 4: MATRYCA UPRAWNIEŃ -->
+  <!-- ============================================ -->
+  <permissions_matrix>
+    
+    <!-- Dashboard -->
+    <module_permissions module="dashboard">
+      <permission role="admin" action="read" granted="true"/>
+      <permission role="management_board" action="read" granted="true"/>
+      <permission role="manager" action="read" granted="true"/>
+      <permission role="coordinator" action="read" granted="true"/>
+      <permission role="bom_editor" action="read" granted="true"/>
+      <permission role="prefabricator" action="read" granted="true"/>
+      <permission role="worker" action="read" granted="true"/>
+      <permission role="order_picking" action="read" granted="true"/>
+      <permission role="integrator" action="read" granted="false"/>
+    </module_permissions>
+    
+    <!-- Contracts -->
+    <module_permissions module="contracts">
+      <permission role="admin" action="read" granted="true"/>
+      <permission role="admin" action="create" granted="true"/>
+      <permission role="admin" action="update" granted="true"/>
+      <permission role="admin" action="delete" granted="true"/>
+      <permission role="admin" action="approve" granted="true"/>
+      <permission role="admin" action="import" granted="true"/>
+      
+      <permission role="management_board" action="read" granted="true"/>
+      <permission role="management_board" action="create" granted="true"/>
+      <permission role="management_board" action="update" granted="true"/>
+      <permission role="management_board" action="approve" granted="true"/>
+      <permission role="management_board" action="import" granted="true"/>
+      
+      <permission role="manager" action="read" granted="true"/>
+      <permission role="manager" action="create" granted="true"/>
+      <permission role="manager" action="update" granted="true"/>
+      <permission role="manager" action="approve" granted="true"/>
+      <permission role="manager" action="import" granted="true"/>
+      
+      <permission role="coordinator" action="read" granted="true"/>
+      
+      <permission role="integrator" action="read" granted="true"/>
+      <permission role="integrator" action="create" granted="true"/>
+      <permission role="integrator" action="update" granted="true"/>
+      <permission role="integrator" action="import" granted="true"/>
+    </module_permissions>
+    
+    <!-- Subsystems -->
+    <module_permissions module="subsystems">
+      <permission role="admin" action="read" granted="true"/>
+      <permission role="admin" action="create" granted="true"/>
+      <permission role="admin" action="update" granted="true"/>
+      <permission role="admin" action="delete" granted="true"/>
+      <permission role="admin" action="generateBom" granted="true"/>
+      <permission role="admin" action="allocateNetwork" granted="true"/>
+      
+      <permission role="management_board" action="read" granted="true"/>
+      <permission role="management_board" action="create" granted="true"/>
+      <permission role="management_board" action="update" granted="true"/>
+      <permission role="management_board" action="generateBom" granted="true"/>
+      <permission role="management_board" action="allocateNetwork" granted="true"/>
+      
+      <permission role="manager" action="read" granted="true"/>
+      <permission role="manager" action="create" granted="true"/>
+      <permission role="manager" action="update" granted="true"/>
+      <permission role="manager" action="generateBom" granted="true"/>
+      <permission role="manager" action="allocateNetwork" granted="true"/>
+      
+      <permission role="coordinator" action="read" granted="true"/>
+      <permission role="bom_editor" action="read" granted="true"/>
+      <permission role="bom_editor" action="generateBom" granted="true"/>
+      <permission role="bom_editor" action="allocateNetwork" granted="true"/>
+    </module_permissions>
+    
+    <!-- Tasks -->
+    <module_permissions module="tasks">
+      <permission role="admin" action="read" granted="true"/>
+      <permission role="admin" action="create" granted="true"/>
+      <permission role="admin" action="update" granted="true"/>
+      <permission role="admin" action="delete" granted="true"/>
+      <permission role="admin" action="assign" granted="true"/>
+      
+      <permission role="management_board" action="read" granted="true"/>
+      <permission role="management_board" action="create" granted="true" note="wszystkie typy"/>
+      <permission role="management_board" action="update" granted="true"/>
+      <permission role="management_board" action="assign" granted="true"/>
+      
+      <permission role="manager" action="read" granted="true"/>
+      <permission role="manager" action="create" granted="true"/>
+      <permission role="manager" action="update" granted="true"/>
+      <permission role="manager" action="assign" granted="true"/>
+      
+      <permission role="coordinator" action="read" granted="true"/>
+      <permission role="coordinator" action="create" granted="SERWIS" note="Tylko zadania typu SERWIS"/>
+      <permission role="coordinator" action="update" granted="true"/>
+      <permission role="coordinator" action="assign" granted="true"/>
+      
+      <permission role="bom_editor" action="read" granted="true"/>
+      <permission role="prefabricator" action="read" granted="true"/>
+      <permission role="worker" action="read" granted="true"/>
+      <permission role="worker" action="update" granted="OWN" note="Tylko własne zadania"/>
+      <permission role="order_picking" action="read" granted="true"/>
+    </module_permissions>
+    
+    <!-- Completion -->
+    <module_permissions module="completion">
+      <permission role="admin" action="read" granted="true"/>
+      <permission role="admin" action="scan" granted="true"/>
+      <permission role="admin" action="assignPallet" granted="true"/>
+      <permission role="admin" action="reportMissing" granted="true"/>
+      <permission role="admin" action="decideContinue" granted="true"/>
+      <permission role="admin" action="complete" granted="true"/>
+      
+      <permission role="management_board" action="read" granted="true"/>
+      <permission role="management_board" action="decideContinue" granted="true"/>
+      
+      <permission role="manager" action="read" granted="true"/>
+      <permission role="manager" action="decideContinue" granted="true"/>
+      
+      <permission role="coordinator" action="read" granted="true"/>
+      
+      <permission role="prefabricator" action="scan" granted="true"/>
+      
+      <permission role="worker" action="read" granted="true"/>
+      <permission role="worker" action="scan" granted="true"/>
+      <permission role="worker" action="assignPallet" granted="true"/>
+      <permission role="worker" action="reportMissing" granted="true"/>
+      <permission role="worker" action="complete" granted="true"/>
+      
+      <permission role="order_picking" action="read" granted="true"/>
+      <permission role="order_picking" action="scan" granted="true"/>
+      <permission role="order_picking" action="assignPallet" granted="true"/>
+      <permission role="order_picking" action="reportMissing" granted="true"/>
+      <permission role="order_picking" action="complete" granted="true"/>
+    </module_permissions>
+    
+    <!-- Prefabrication -->
+    <module_permissions module="prefabrication">
+      <permission role="admin" action="read" granted="true"/>
+      <permission role="admin" action="receiveOrder" granted="true"/>
+      <permission role="admin" action="configure" granted="true"/>
+      <permission role="admin" action="verify" granted="true"/>
+      <permission role="admin" action="assignSerial" granted="true"/>
+      <permission role="admin" action="complete" granted="true"/>
+      
+      <permission role="management_board" action="read" granted="true"/>
+      <permission role="manager" action="read" granted="true"/>
+      <permission role="coordinator" action="read" granted="true"/>
+      
+      <permission role="prefabricator" action="read" granted="true"/>
+      <permission role="prefabricator" action="receiveOrder" granted="true"/>
+      <permission role="prefabricator" action="configure" granted="true"/>
+      <permission role="prefabricator" action="verify" granted="true"/>
+      <permission role="prefabricator" action="assignSerial" granted="true"/>
+      <permission role="prefabricator" action="complete" granted="true"/>
+    </module_permissions>
+    
+    <!-- Network -->
+    <module_permissions module="network">
+      <permission role="admin" action="read" granted="true"/>
+      <permission role="admin" action="createPool" granted="true"/>
+      <permission role="admin" action="updatePool" granted="true"/>
+      <permission role="admin" action="deletePool" granted="true"/>
+      <permission role="admin" action="allocate" granted="true"/>
+      <permission role="admin" action="viewMatrix" granted="true"/>
+      
+      <permission role="management_board" action="read" granted="true"/>
+      <permission role="management_board" action="createPool" granted="true"/>
+      <permission role="management_board" action="updatePool" granted="true"/>
+      <permission role="management_board" action="allocate" granted="true"/>
+      <permission role="management_board" action="viewMatrix" granted="true"/>
+      
+      <permission role="manager" action="read" granted="true"/>
+      <permission role="manager" action="createPool" granted="true"/>
+      <permission role="manager" action="updatePool" granted="true"/>
+      <permission role="manager" action="allocate" granted="true"/>
+      <permission role="manager" action="viewMatrix" granted="true"/>
+      
+      <permission role="coordinator" action="read" granted="true"/>
+      <permission role="coordinator" action="viewMatrix" granted="true"/>
+      
+      <permission role="bom_editor" action="read" granted="true"/>
+      <permission role="bom_editor" action="allocate" granted="true"/>
+      <permission role="bom_editor" action="viewMatrix" granted="true"/>
+      
+      <permission role="prefabricator" action="read" granted="true"/>
+      <permission role="prefabricator" action="viewMatrix" granted="true"/>
+      
+      <permission role="worker" action="viewMatrix" granted="true"/>
+    </module_permissions>
+    
+    <!-- BOM -->
+    <module_permissions module="bom">
+      <permission role="admin" action="read" granted="true"/>
+      <permission role="admin" action="create" granted="true"/>
+      <permission role="admin" action="update" granted="true"/>
+      <permission role="admin" action="delete" granted="true"/>
+      
+      <permission role="management_board" action="read" granted="true"/>
+      <permission role="management_board" action="create" granted="true"/>
+      <permission role="management_board" action="update" granted="true"/>
+      
+      <permission role="manager" action="read" granted="true"/>
+      <permission role="manager" action="create" granted="true"/>
+      <permission role="manager" action="update" granted="true"/>
+      
+      <permission role="coordinator" action="read" granted="true"/>
+      
+      <permission role="bom_editor" action="read" granted="true"/>
+      <permission role="bom_editor" action="create" granted="true"/>
+      <permission role="bom_editor" action="update" granted="true"/>
+      <permission role="bom_editor" action="delete" granted="true"/>
+      
+      <permission role="prefabricator" action="read" granted="true"/>
+      <permission role="worker" action="read" granted="true"/>
+      <permission role="order_picking" action="read" granted="true"/>
+      
+      <permission role="integrator" action="read" granted="true"/>
+      <permission role="integrator" action="update" granted="true"/>
+    </module_permissions>
+    
+    <!-- Devices -->
+    <module_permissions module="devices">
+      <permission role="admin" action="read" granted="true"/>
+      <permission role="admin" action="create" granted="true"/>
+      <permission role="admin" action="update" granted="true"/>
+      <permission role="admin" action="verify" granted="true"/>
+      
+      <permission role="management_board" action="read" granted="true"/>
+      <permission role="management_board" action="create" granted="true"/>
+      <permission role="management_board" action="update" granted="true"/>
+      
+      <permission role="manager" action="read" granted="true"/>
+      <permission role="manager" action="create" granted="true"/>
+      <permission role="manager" action="update" granted="true"/>
+      
+      <permission role="coordinator" action="read" granted="true"/>
+      <permission role="bom_editor" action="read" granted="true"/>
+      
+      <permission role="prefabricator" action="read" granted="true"/>
+      <permission role="prefabricator" action="create" granted="true"/>
+      <permission role="prefabricator" action="update" granted="true"/>
+      <permission role="prefabricator" action="verify" granted="true"/>
+      
+      <permission role="worker" action="read" granted="true"/>
+      <permission role="worker" action="update" granted="true"/>
+      
+      <permission role="order_picking" action="read" granted="true"/>
+      <permission role="order_picking" action="verify" granted="true"/>
+      
+      <permission role="integrator" action="read" granted="true"/>
+      <permission role="integrator" action="create" granted="true"/>
+      <permission role="integrator" action="update" granted="true"/>
+      <permission role="integrator" action="verify" granted="true"/>
+    </module_permissions>
+    
+    <!-- Users -->
+    <module_permissions module="users">
+      <permission role="admin" action="read" granted="true"/>
+      <permission role="admin" action="create" granted="true"/>
+      <permission role="admin" action="update" granted="true"/>
+      <permission role="admin" action="delete" granted="true"/>
+      
+      <permission role="management_board" action="read" granted="true"/>
+      <permission role="management_board" action="create" granted="true"/>
+      <permission role="management_board" action="update" granted="true"/>
+      
+      <permission role="manager" action="read" granted="true"/>
+      <permission role="coordinator" action="read" granted="true"/>
+    </module_permissions>
+    
+    <!-- Reports -->
+    <module_permissions module="reports">
+      <permission role="admin" action="read" granted="true"/>
+      <permission role="admin" action="create" granted="true"/>
+      <permission role="admin" action="export" granted="true"/>
+      
+      <permission role="management_board" action="read" granted="true"/>
+      <permission role="management_board" action="create" granted="true"/>
+      <permission role="management_board" action="export" granted="true"/>
+      
+      <permission role="manager" action="read" granted="true"/>
+      <permission role="manager" action="create" granted="true"/>
+      <permission role="manager" action="export" granted="true"/>
+      
+      <permission role="coordinator" action="read" granted="true"/>
+      <permission role="coordinator" action="export" granted="true"/>
+      
+      <permission role="bom_editor" action="read" granted="true"/>
+      <permission role="order_picking" action="read" granted="true"/>
+    </module_permissions>
+    
+    <!-- Settings -->
+    <module_permissions module="settings">
+      <permission role="admin" action="read" granted="true"/>
+      <permission role="admin" action="update" granted="true"/>
+      
+      <permission role="management_board" action="read" granted="true"/>
+      <permission role="management_board" action="update" granted="true"/>
+      
+      <permission role="manager" action="read" granted="true"/>
+      <permission role="manager" action="update" granted="true"/>
+      
+      <permission role="coordinator" action="read" granted="true"/>
+      <permission role="coordinator" action="update" granted="true"/>
+      
+      <permission role="bom_editor" action="read" granted="true"/>
+      <permission role="bom_editor" action="update" granted="true"/>
+      
+      <permission role="prefabricator" action="read" granted="true"/>
+      <permission role="prefabricator" action="update" granted="true"/>
+      
+      <permission role="worker" action="read" granted="true"/>
+      <permission role="worker" action="update" granted="true"/>
+      
+      <permission role="order_picking" action="read" granted="true"/>
+      <permission role="order_picking" action="update" granted="true"/>
+    </module_permissions>
+    
+    <!-- Photos -->
+    <module_permissions module="photos">
+      <permission role="admin" action="read" granted="true"/>
+      <permission role="admin" action="create" granted="true"/>
+      <permission role="admin" action="approve" granted="true"/>
+      
+      <permission role="management_board" action="read" granted="true"/>
+      <permission role="management_board" action="approve" granted="true"/>
+      
+      <permission role="manager" action="read" granted="true"/>
+      <permission role="manager" action="approve" granted="true"/>
+      
+      <permission role="coordinator" action="read" granted="true"/>
+      
+      <permission role="worker" action="read" granted="true"/>
+      <permission role="worker" action="create" granted="true"/>
+      
+      <permission role="order_picking" action="read" granted="true"/>
+      <permission role="order_picking" action="create" granted="true"/>
+    </module_permissions>
+    
+    <!-- Documents -->
+    <module_permissions module="documents">
+      <permission role="admin" action="read" granted="true"/>
+      <permission role="admin" action="create" granted="true"/>
+      <permission role="admin" action="delete" granted="true"/>
+      
+      <permission role="management_board" action="read" granted="true"/>
+      <permission role="management_board" action="create" granted="true"/>
+      <permission role="management_board" action="delete" granted="true"/>
+      
+      <permission role="manager" action="read" granted="true"/>
+      <permission role="manager" action="create" granted="true"/>
+      <permission role="manager" action="delete" granted="true"/>
+      
+      <permission role="coordinator" action="read" granted="true"/>
+      <permission role="coordinator" action="create" granted="true"/>
+      
+      <permission role="bom_editor" action="read" granted="true"/>
+      <permission role="prefabricator" action="read" granted="true"/>
+      <permission role="worker" action="read" granted="true"/>
+      <permission role="order_picking" action="read" granted="true"/>
+    </module_permissions>
+    
+    <!-- Notifications -->
+    <module_permissions module="notifications">
+      <permission role="admin" action="receiveAlerts" granted="true"/>
+      <permission role="admin" action="sendManual" granted="true"/>
+      <permission role="admin" action="configureTriggers" granted="true"/>
+      
+      <permission role="management_board" action="receiveAlerts" granted="true"/>
+      <permission role="management_board" action="sendManual" granted="true"/>
+      
+      <permission role="manager" action="receiveAlerts" granted="true"/>
+      <permission role="manager" action="sendManual" granted="true"/>
+      
+      <permission role="coordinator" action="receiveAlerts" granted="true"/>
+      
+      <permission role="bom_editor" action="receiveAlerts" granted="true"/>
+      <permission role="bom_editor" action="configureTriggers" granted="true"/>
+      
+      <permission role="prefabricator" action="receiveAlerts" granted="true"/>
+      <permission role="worker" action="receiveAlerts" granted="true"/>
+      
+      <permission role="order_picking" action="receiveAlerts" granted="true"/>
+      <permission role="order_picking" action="sendManual" granted="true"/>
+    </module_permissions>
+    
+  </permissions_matrix>
+  
+</permissions_system>
