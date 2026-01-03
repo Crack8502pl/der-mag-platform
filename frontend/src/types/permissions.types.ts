@@ -26,8 +26,8 @@ export interface SubsystemPermissions {
 
 export interface TaskPermissions {
   read?: boolean;
-  create?: boolean | string; // true | 'SERWIS'
-  update?: boolean | string; // true | 'OWN'
+  create?: boolean | string; // true | 'SERWIS' (conditional: coordinator can only create SERWIS tasks)
+  update?: boolean | string; // true | 'OWN' (conditional: worker can only edit own tasks)
   delete?: boolean;
   assign?: boolean;
 }

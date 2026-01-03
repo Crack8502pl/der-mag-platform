@@ -161,7 +161,8 @@ export class TaskController {
       const user = req.user;
       const userRepository = AppDataSource.getRepository(User);
 
-      // Pobierz pełne dane użytkownika z rolą
+      // Fetch full user with role relation to access role permissions
+      // req.user from JWT doesn't include the role relation by default
       const fullUser = await userRepository.findOne({
         where: { id: req.userId },
         relations: ['role']
@@ -264,7 +265,8 @@ export class TaskController {
       const userRepository = AppDataSource.getRepository(User);
       const assignmentRepository = AppDataSource.getRepository(TaskAssignment);
 
-      // Pobierz użytkownika z rolą
+      // Fetch user with role relation to check permissions
+      // req.user from JWT doesn't include role relation by default
       const user = await userRepository.findOne({
         where: { id: req.userId },
         relations: ['role']

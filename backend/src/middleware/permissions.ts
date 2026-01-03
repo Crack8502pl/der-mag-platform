@@ -57,7 +57,7 @@ export const checkPermission = (module: string, action: string) => {
       }
 
       // Sprawdź konkretną akcję
-      const hasPermission = (modulePermissions as any)[action] === true;
+      const hasPermission = (modulePermissions as Record<string, any>)[action] === true;
 
       if (!hasPermission) {
         res.status(403).json({
@@ -129,7 +129,7 @@ export const checkAnyPermission = (module: string, actions: string[]) => {
 
       // Sprawdź czy użytkownik ma jakąkolwiek z wymaganych akcji
       const hasAnyPermission = actions.some(action => 
-        (modulePermissions as any)[action] === true
+        (modulePermissions as Record<string, any>)[action] === true
       );
 
       if (!hasAnyPermission) {
@@ -263,7 +263,10 @@ export const validateWorkerOwnTask = async (
     const assignmentRepository = AppDataSource.getRepository(TaskAssignment);
 
     const task = await taskRepository.findOne({
-      where: { taskNumber, deletedAt: null as any }
+      where: { 
+        taskNumber, 
+        deletedAt: null as unknown as Date  // TypeORM expects Date type for nullable datetime columns
+      }
     });
 
     if (!task) {
