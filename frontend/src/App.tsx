@@ -17,6 +17,19 @@ import { PortalConfigPage } from './components/admin/PortalConfigPage';
 import { AdminPasswordChange } from './components/admin/AdminPasswordChange';
 import { MaterialImportPage } from './components/admin/MaterialImportPage';
 import { BOMBuilderPage } from './components/admin/BOMBuilderPage';
+import { ContractsPage } from './components/modules/ContractsPage';
+import { SubsystemsPage } from './components/modules/SubsystemsPage';
+import { TasksPage } from './components/modules/TasksPage';
+import { PrefabricationPage } from './components/modules/PrefabricationPage';
+import { NetworkPage } from './components/modules/NetworkPage';
+import { BOMPage } from './components/modules/BOMPage';
+import { DevicesPage } from './components/modules/DevicesPage';
+import { UsersPage } from './components/modules/UsersPage';
+import { ReportsPage } from './components/modules/ReportsPage';
+import { DocumentsPage } from './components/modules/DocumentsPage';
+import { PhotosPage } from './components/modules/PhotosPage';
+import { NotificationsPage } from './components/modules/NotificationsPage';
+import { SettingsPage } from './components/modules/SettingsPage';
 import { useAuth } from './hooks/useAuth';
 import './styles/grover-theme.css';
 
@@ -69,6 +82,138 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Module Routes */}
+        <Route
+          path="/contracts"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'contracts', action: 'read' }}>
+                <ContractsPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/subsystems"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'subsystems', action: 'read' }}>
+                <SubsystemsPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tasks"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'tasks', action: 'read' }}>
+                <TasksPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/prefabrication"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'prefabrication', action: 'read' }}>
+                <PrefabricationPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/network"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'network', action: 'read' }}>
+                <NetworkPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/bom"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'bom', action: 'read' }}>
+                <BOMPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/devices"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'devices', action: 'read' }}>
+                <DevicesPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'users', action: 'read' }}>
+                <UsersPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'reports', action: 'read' }}>
+                <ReportsPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/documents"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'documents', action: 'read' }}>
+                <DocumentsPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/photos"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'photos', action: 'read' }}>
+                <PhotosPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'notifications', action: 'receiveAlerts' }}>
+                <NotificationsPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'settings', action: 'read' }}>
+                <SettingsPage />
+              </RoleBasedRoute>
             </ProtectedRoute>
           }
         />

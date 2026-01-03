@@ -1,0 +1,101 @@
+/* ModulePage.css - Shared styles for all module pages */
+
+.module-page {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.module-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.module-icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.module-header h1 {
+  color: var(--text-primary);
+  font-size: 32px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.module-content {
+  padding: 32px;
+}
+
+.module-description {
+  color: var(--text-secondary);
+  font-size: 16px;
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+
+.module-status {
+  background: var(--bg-input);
+  border-left: 4px solid var(--warning);
+  padding: 20px;
+  border-radius: var(--radius-md);
+  margin-bottom: 32px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.status-badge.status-development {
+  background: rgba(237, 137, 54, 0.2);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+}
+
+.status-text {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
+.module-features {
+  margin-top: 32px;
+}
+
+.module-features h3 {
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.module-features ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.module-features li {
+  color: var(--text-secondary);
+  padding: 8px 0;
+  padding-left: 24px;
+  position: relative;
+  font-size: 15px;
+}
+
+.module-features li::before {
+  content: '▪';
+  position: absolute;
+  left: 0;
+  color: var(--primary-color);
+  font-size: 20px;
+}

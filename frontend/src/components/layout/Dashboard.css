@@ -1,82 +1,82 @@
 /* src/components/layout/Dashboard.css */
 
-.dashboard-layout {
-  display: flex;
-  min-height: 100vh;
-  background-color: var(--bg-dark);
-}
-
-.dashboard-main {
-  flex: 1;
-  padding: var(--spacing-xl);
+.dashboard-container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-xl);
-  padding-bottom: var(--spacing-lg);
-  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 30px;
 }
 
 .dashboard-header h1 {
-  font-size: 2rem;
   color: var(--text-primary);
+  font-size: 32px;
+  margin: 0 0 8px 0;
+  font-weight: 600;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 16px;
   margin: 0;
 }
 
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.user-name {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.user-role {
-  padding: 0.25rem 0.75rem;
-  background-color: var(--bg-hover);
-  border-radius: var(--radius-sm);
-  font-size: 0.875rem;
+.btn-secondary {
+  background: transparent;
   color: var(--text-secondary);
+  border: 1px solid var(--border-color);
 }
 
-.admin-badge {
-  padding: 0.25rem 0.75rem;
-  background-color: var(--primary-color);
-  border-radius: var(--radius-sm);
-  font-size: 0.875rem;
-  font-weight: 600;
+.btn-secondary:hover {
+  background: var(--bg-hover);
   color: var(--text-primary);
+  border-color: var(--text-secondary);
 }
 
-.dashboard-content {
-  max-width: 800px;
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
 }
 
-.dashboard-content h2 {
-  color: var(--primary-color);
-  margin-bottom: var(--spacing-lg);
+.dashboard-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 30px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
 }
 
-.dashboard-content p {
+.dashboard-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary-color);
+}
+
+.card-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+  line-height: 1;
+}
+
+.dashboard-card h3 {
+  color: var(--text-primary);
+  margin-bottom: 10px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.dashboard-card p {
   color: var(--text-secondary);
-  margin-bottom: var(--spacing-md);
-  line-height: 1.6;
-}
-
-.dashboard-info {
-  margin-top: var(--spacing-xl);
-  padding: var(--spacing-lg);
-  background-color: var(--bg-hover);
-  border-left: 4px solid var(--primary-color);
-  border-radius: var(--radius-md);
-}
-
-.dashboard-info p {
+  font-size: 14px;
+  line-height: 1.5;
   margin: 0;
 }
+
