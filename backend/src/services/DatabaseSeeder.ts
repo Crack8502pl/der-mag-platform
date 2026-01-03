@@ -186,6 +186,27 @@ export class DatabaseSeeder {
           bom: { read: true, update: true },
           devices: { read: true, create: true, update: true, verify: true }
         }
+      },
+      {
+        name: 'viewer',
+        description: 'Podgląd - tylko odczyt wszystkich modułów',
+        permissions: {
+          dashboard: { read: true },
+          contracts: { read: true },
+          subsystems: { read: true },
+          tasks: { read: true },
+          completion: { read: true },
+          prefabrication: { read: true },
+          network: { read: true, viewMatrix: true },
+          bom: { read: true },
+          devices: { read: true },
+          users: { read: true },
+          reports: { read: true },
+          settings: { read: true },
+          photos: { read: true },
+          documents: { read: true },
+          notifications: { receiveAlerts: true }
+        }
       }
     ];
     
@@ -194,7 +215,7 @@ export class DatabaseSeeder {
       await roleRepo.save(newRole);
     }
     
-    console.log('   ✅ Role utworzone (9 ról)');
+    console.log('   ✅ Role utworzone (10 ról)');
   }
   
   private static async seedTaskTypes(): Promise<void> {
