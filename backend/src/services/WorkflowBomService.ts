@@ -93,7 +93,7 @@ export class WorkflowBomService {
       const deviceCategory = detectDeviceCategoryFromName(nazwa);
       const requiresIp = deviceCategory ? isNetworkDevice(deviceCategory) : false;
 
-      const item = itemRepo.create({
+      const item: WorkflowBomTemplateItem = itemRepo.create({
         template,
         templateId: template.id,
         itemName: nazwa.trim(),
@@ -103,7 +103,7 @@ export class WorkflowBomService {
         requiresIp,
         deviceCategory: deviceCategory || undefined,
         sequence: parseInt(lpStr, 10) || items.length + 1
-      } as any);
+      } as any) as unknown as WorkflowBomTemplateItem;
 
       items.push(item);
     }
@@ -190,7 +190,7 @@ export class WorkflowBomService {
     for (const templateItem of template.items) {
       const finalQuantity = Math.ceil(templateItem.quantity * multiplier * (subsystem.quantity || 1));
 
-      const generatedItem = generatedItemRepo.create({
+      const generatedItem: WorkflowGeneratedBomItem = generatedItemRepo.create({
         generatedBom,
         generatedBomId: generatedBom.id,
         templateItem,
@@ -203,7 +203,7 @@ export class WorkflowBomService {
         requiresIp: templateItem.requiresIp,
         deviceCategory: templateItem.deviceCategory || null,
         sequence: templateItem.sequence
-      } as any);
+      } as any) as unknown as WorkflowGeneratedBomItem;
 
       generatedItems.push(generatedItem);
     }
