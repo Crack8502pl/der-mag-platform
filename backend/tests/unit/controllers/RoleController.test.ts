@@ -57,20 +57,7 @@ describe('RoleController', () => {
       });
       expect(res.json).toHaveBeenCalledWith({
         success: true,
-        data: [
-          {
-            id: 1,
-            name: 'admin',
-            description: 'Administrator Systemu',
-            permissions: { all: true }
-          },
-          {
-            id: 2,
-            name: 'manager',
-            description: 'Menedżer',
-            permissions: { contracts: { read: true, create: true } }
-          }
-        ]
+        data: mockRoles
       });
     });
 

@@ -9,6 +9,7 @@ import { ResetPasswordModal } from './ResetPasswordModal';
 import { DeactivateUserModal } from './DeactivateUserModal';
 import { UserStatusBadge } from './UserStatusBadge';
 import axios from 'axios';
+import { FALLBACK_ROLES } from '../../constants/roles';
 import './UserListPage.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -132,6 +133,7 @@ export const UserListPage: React.FC = () => {
       });
       
       // Bezpieczne pobieranie ról z różnych formatów odpowiedzi
+      // Handle different response formats for backward compatibility
       const rolesData = response.data?.data || response.data || [];
       
       if (!Array.isArray(rolesData)) {
@@ -144,18 +146,7 @@ export const UserListPage: React.FC = () => {
       console.error('Błąd pobierania ról:', err);
       
       // Fallback - podstawowe role gdy endpoint nie działa
-      setRoles([
-        { id: 1, name: 'admin', description: 'Administrator Systemu' },
-        { id: 2, name: 'management_board', description: 'Zarząd' },
-        { id: 3, name: 'manager', description: 'Menedżer' },
-        { id: 4, name: 'coordinator', description: 'Koordynator' },
-        { id: 5, name: 'bom_editor', description: 'Edytor BOM' },
-        { id: 6, name: 'prefabricator', description: 'Prefabrykant' },
-        { id: 7, name: 'worker', description: 'Pracownik' },
-        { id: 8, name: 'order_picking', description: 'Pracownik przygotowania' },
-        { id: 9, name: 'integrator', description: 'Integrator' },
-        { id: 10, name: 'viewer', description: 'Podgląd' }
-      ]);
+      setRoles(FALLBACK_ROLES);
     }
   };
 

@@ -17,12 +17,7 @@ export class RoleController {
 
       res.json({
         success: true,
-        data: roles.map((role: Role) => ({
-          id: role.id,
-          name: role.name,
-          description: role.description,
-          permissions: role.permissions
-        }))
+        data: roles
       });
     } catch (error) {
       console.error('Błąd pobierania ról:', error);
