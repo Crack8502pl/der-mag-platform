@@ -290,6 +290,7 @@ export class ContractController {
   /**
    * POST /api/contracts/wizard
    * Utworzenie kontraktu z kreatora wieloetapowego
+   * Obsługuje wiele podsystemów na kontrakt
    */
   createContractWithWizard = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -298,6 +299,8 @@ export class ContractController {
         orderDate,
         projectManagerId,
         managerCode,
+        subsystems, // New: array of subsystems
+        // Legacy support:
         subsystemType,
         subsystemParams,
         tasks
@@ -312,14 +315,6 @@ export class ContractController {
         return;
       }
 
-      if (!Array.isArray(tasks) || tasks.length === 0) {
-        res.status(400).json({
-          success: false,
-          message: 'Kreator wymaga co najmniej jednego zadania'
-        });
-        return;
-      }
-
       // 1. Utwórz kontrakt
       const contract = await this.contractService.createContract({
         customName,
@@ -328,38 +323,98 @@ export class ContractController {
         projectManagerId: parseInt(projectManagerId)
       });
 
-      // 2. Utwórz podsystem jeśli określony typ
-      if (subsystemType) {
-        // Validate that subsystemType is a valid SystemType
-        if (!Object.values(SystemType).includes(subsystemType as SystemType)) {
+      // 2. Utwórz podsystemy
+      const createdSubsystems = [];
+      
+      // New format: multiple subsystems
+      if (Array.isArray(subsystems) && subsystems.length > 0) {
+        for (const subsystemData of subsystems) {
+          const { type, params, tasks: subsystemTasks } = subsystemData;
+          
+          // Validate subsystem type
+          if (!Object.values(SystemType).includes(type as SystemType)) {
+            res.status(400).json({
+              success: false,
+              message: `Nieprawidłowy typ podsystemu: ${type}`
+            });
+            return;
+          }
+          
+          const subsystem = await this.subsystemService.createSubsystem({
+            contractId: contract.id,
+            systemType: type as SystemType,
+            quantity: subsystemTasks?.length || 0
+          });
+          
+          createdSubsystems.push({
+            ...subsystem,
+            params,
+            tasks: subsystemTasks || []
+          });
+        }
+        
+        const totalTasks = createdSubsystems.reduce((sum, s) => sum + (s.tasks?.length || 0), 0);
+        
+        res.status(201).json({
+          success: true,
+          message: `Kontrakt utworzony pomyślnie z ${createdSubsystems.length} podsystemami i ${totalTasks} zadaniami`,
+          data: {
+            ...contract,
+            subsystems: createdSubsystems
+          }
+        });
+      }
+      // Legacy format: single subsystem
+      else if (subsystemType || (Array.isArray(tasks) && tasks.length > 0)) {
+        if (!Array.isArray(tasks) || tasks.length === 0) {
           res.status(400).json({
             success: false,
-            message: `Nieprawidłowy typ podsystemu: ${subsystemType}`
+            message: 'Kreator wymaga co najmniej jednego zadania'
           });
           return;
         }
         
-        await this.subsystemService.createSubsystem({
-          contractId: contract.id,
-          systemType: subsystemType as SystemType,
-          quantity: tasks.length
+        if (subsystemType) {
+          // Validate that subsystemType is a valid SystemType
+          if (!Object.values(SystemType).includes(subsystemType as SystemType)) {
+            res.status(400).json({
+              success: false,
+              message: `Nieprawidłowy typ podsystemu: ${subsystemType}`
+            });
+            return;
+          }
+          
+          await this.subsystemService.createSubsystem({
+            contractId: contract.id,
+            systemType: subsystemType as SystemType,
+            quantity: tasks.length
+          });
+        }
+
+        res.status(201).json({
+          success: true,
+          message: `Kontrakt utworzony pomyślnie z ${tasks.length} zadaniami`,
+          data: {
+            ...contract,
+            tasks: tasks,
+            subsystemType,
+            subsystemParams
+          }
         });
+      }
+      // No subsystems specified
+      else {
+        res.status(400).json({
+          success: false,
+          message: 'Kontrakt musi mieć co najmniej jeden podsystem'
+        });
+        return;
       }
 
       // 3. TODO: W przyszłości - utworzenie poszczególnych zadań w bazie
       // Na razie zadania są tylko w metadanych subsystemu
       // Można rozszerzyć o dedykowaną tabelę Task z pełną strukturą
 
-      res.status(201).json({
-        success: true,
-        message: `Kontrakt utworzony pomyślnie z ${tasks.length} zadaniami`,
-        data: {
-          ...contract,
-          tasks: tasks,
-          subsystemType,
-          subsystemParams
-        }
-      });
     } catch (error: any) {
       console.error('Błąd tworzenia kontraktu przez kreatora:', error);
       res.status(400).json({

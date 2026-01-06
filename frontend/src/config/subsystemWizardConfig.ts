@@ -28,7 +28,7 @@ export interface SubsystemConfig {
   fields: WizardField[];
 }
 
-export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType | 'DEFAULT', SubsystemConfig> = {
+export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
   'SMOKIP_A': {
     label: '🔵 SMOK-A',
     icon: '🔵',
@@ -143,58 +143,71 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType | 'DEFAULT', Subsyste
       { name: 'iloscPomieszczen', label: '3.2 Ilość pomieszczeń', type: 'number' },
       { name: 'iloscKontenerow', label: '3.3 Ilość kontenerów', type: 'number' }
     ]
-  },
-  'DEFAULT': {
-    label: 'Standardowy',
-    icon: '📋',
-    fields: [
-      { name: 'iloscBudynkow', label: '3.1 Ilość budynków', type: 'number' },
-      { name: 'iloscPomieszczen', label: '3.2 Ilość pomieszczeń', type: 'number' },
-      { name: 'iloscKontenerow', label: '3.3 Ilość kontenerów', type: 'number' }
-    ]
   }
 };
 
-// Detect subsystem type from contract name
-export const detectSubsystemType = (name: string): SubsystemType | null => {
+// Detect subsystem types from contract name (returns array)
+export const detectSubsystemTypes = (name: string): SubsystemType[] => {
   const upperName = name.toUpperCase();
+  const detected: SubsystemType[] = [];
   
+  // SPECIAL CASE: SMOK without letter → SMOK-A + SMOK-B
+  // Must check this BEFORE checking for specific SMOK-A/SMOK-B
+  const hasGenericSmok = (upperName.includes('SMOK') || upperName.includes('CMOK')) && 
+                         !upperName.includes('SMOK-A') && 
+                         !upperName.includes('SMOK-B') &&
+                         !upperName.includes('SMOKIP-A') && 
+                         !upperName.includes('SMOKIP-B') &&
+                         !upperName.includes('CMOKIP-A') && 
+                         !upperName.includes('CMOKIP-B');
+  
+  if (hasGenericSmok) {
+    return ['SMOKIP_A', 'SMOKIP_B'];
+  }
+  
+  // Detect individual systems
   if (upperName.includes('SMOK-A') || upperName.includes('SMOKIP-A') || upperName.includes('CMOKIP-A')) {
-    return 'SMOKIP_A';
+    detected.push('SMOKIP_A');
   }
   if (upperName.includes('SMOK-B') || upperName.includes('SMOKIP-B') || upperName.includes('CMOKIP-B')) {
-    return 'SMOKIP_B';
+    detected.push('SMOKIP_B');
   }
   if (upperName.includes('SKD') || upperName.includes('KONTROLI DOSTĘPU')) {
-    return 'SKD';
+    detected.push('SKD');
   }
   if (upperName.includes('SSWIN') || upperName.includes('WŁAMANIA')) {
-    return 'SSWIN';
+    detected.push('SSWIN');
   }
   if (upperName.includes('CCTV') || upperName.includes('TELEWIZJI PRZEMYSŁOWEJ')) {
-    return 'CCTV';
+    detected.push('CCTV');
   }
   if (upperName.includes('SMW') || upperName.includes('MONITORINGU WIZYJNEGO')) {
-    return 'SMW';
+    detected.push('SMW');
   }
   if (upperName.includes('SDIP') || upperName.includes('CSDIP') || upperName.includes('INFORMACJI PASAŻERSKIEJ')) {
-    return 'SDIP';
+    detected.push('SDIP');
   }
   if (upperName.includes('SUG') || upperName.includes('GAŚNIC')) {
-    return 'SUG';
+    detected.push('SUG');
   }
   if (upperName.includes('SSP') || upperName.includes('POŻAR')) {
-    return 'SSP';
+    detected.push('SSP');
   }
   if (upperName.includes('LAN') || upperName.includes('OKABLOWANIE')) {
-    return 'LAN';
+    detected.push('LAN');
   }
   if (upperName.includes('OTK')) {
-    return 'OTK';
+    detected.push('OTK');
   }
   if (upperName.includes('ZASILANIE') || upperName.includes('ZAS')) {
-    return 'ZASILANIE';
+    detected.push('ZASILANIE');
   }
   
-  return null;
+  return detected;
+};
+
+// Legacy function for backwards compatibility (returns first detected or null)
+export const detectSubsystemType = (name: string): SubsystemType | null => {
+  const types = detectSubsystemTypes(name);
+  return types.length > 0 ? types[0] : null;
 };
