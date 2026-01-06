@@ -38,6 +38,15 @@ interface GeneratedTask {
   type: string;
 }
 
+interface TaskDetail {
+  index: number;
+  type: string;
+  name: string;           // Wprowadzona przez użytkownika nazwa
+  kilometer?: string;     // Format: XXX,XXX
+  category?: string;      // Dla przejazdów: KAT A, KAT F, KAT B, KAT C, KAT E
+  location?: string;      // Dla nastawni, LCS, CUID
+}
+
 export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -53,6 +62,37 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
   });
   
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
+  const [taskDetails, setTaskDetails] = useState<TaskDetail[]>([]);
+
+  // Helper functions for dynamic steps
+  const getTotalSteps = () => {
+    // SMOK-A i SMOK-B mają 5 kroków (dodatkowy krok szczegółów)
+    if (wizardData.detectedSubsystem === 'SMOKIP_A' || wizardData.detectedSubsystem === 'SMOKIP_B') {
+      return 5;
+    }
+    // Inne podsystemy mają 4 kroki
+    return 4;
+  };
+
+  const getStepLabel = (step: number) => {
+    const totalSteps = getTotalSteps();
+    
+    if (totalSteps === 5) {
+      // SMOK-A/SMOK-B
+      if (step === 1) return 'Dane';
+      if (step === 2) return 'Ilości';
+      if (step === 3) return 'Szczegóły';
+      if (step === 4) return 'Podgląd';
+      if (step === 5) return 'Sukces';
+    } else {
+      // Inne
+      if (step === 1) return 'Dane';
+      if (step === 2) return 'Podsystem';
+      if (step === 3) return 'Podgląd';
+      if (step === 4) return 'Sukces';
+    }
+    return '';
+  };
 
   // Step 1: Detect subsystem from name
   const handleNameChange = (name: string) => {
@@ -227,12 +267,60 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
     return tasks;
   };
 
+  // Generate tasks with detailed names (for SMOK-A/SMOK-B)
+  const generateTasksWithDetails = (): GeneratedTask[] => {
+    const tasks: GeneratedTask[] = [];
+    let taskIndex = 1;
+    
+    taskDetails.forEach((detail) => {
+      let taskName = '';
+      
+      if (detail.type === 'PRZEJAZD_KAT_A' || detail.type === 'PRZEJAZD_KAT_B') {
+        taskName = `${detail.kilometer} Km ${detail.category}`;
+      } else if (detail.type === 'SKP') {
+        taskName = `${detail.kilometer} Km SKP`;
+      } else if (detail.type === 'NASTAWNIA' || detail.type === 'LCS' || detail.type === 'CUID') {
+        taskName = detail.location || '';
+        if (detail.kilometer) {
+          taskName += ` ${detail.kilometer} Km`;
+        }
+      }
+      
+      tasks.push({
+        number: generateTaskNumber(taskIndex++),
+        name: taskName,
+        type: detail.type
+      });
+    });
+    
+    return tasks;
+  };
+
   const handleNextStep = () => {
-    if (currentStep === 2) {
-      // Generate tasks preview
-      const tasks = generateTasks();
-      setGeneratedTasks(tasks);
+    const totalSteps = getTotalSteps();
+    
+    // Dla SMOK-A/SMOK-B:
+    if (totalSteps === 5) {
+      if (currentStep === 2) {
+        // Po kroku 2 (ilości) - nie generuj jeszcze zadań, tylko przejdź do szczegółów
+        setCurrentStep(3);
+        return;
+      }
+      if (currentStep === 3) {
+        // Po kroku 3 (szczegóły) - teraz generuj zadania z nazwami
+        const tasks = generateTasksWithDetails();
+        setGeneratedTasks(tasks);
+        setCurrentStep(4);
+        return;
+      }
+    } else {
+      // Inne podsystemy - stara logika
+      if (currentStep === 2) {
+        const tasks = generateTasks();
+        setGeneratedTasks(tasks);
+      }
     }
+    
     setCurrentStep(currentStep + 1);
   };
 
@@ -256,8 +344,8 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
         tasks: generatedTasks
       });
       
-      // Success, move to step 4
-      setCurrentStep(4);
+      // Success, move to final step
+      setCurrentStep(getTotalSteps());
     } catch (err) {
       const error = err as Error;
       setError(error.message || 'Błąd tworzenia kontraktu');
@@ -266,24 +354,23 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
     }
   };
 
-  const renderStepIndicator = () => (
-    <div className="wizard-steps">
-      {[1, 2, 3, 4].map((step) => (
-        <div 
-          key={step}
-          className={`wizard-step ${currentStep === step ? 'active' : ''} ${currentStep > step ? 'completed' : ''}`}
-        >
-          <span className="step-number">{step}</span>
-          <span className="step-label">
-            {step === 1 && 'Dane'}
-            {step === 2 && 'Podsystem'}
-            {step === 3 && 'Podgląd'}
-            {step === 4 && 'Sukces'}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
+  const renderStepIndicator = () => {
+    const totalSteps = getTotalSteps();
+    
+    return (
+      <div className="wizard-steps">
+        {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
+          <div 
+            key={step}
+            className={`wizard-step ${currentStep === step ? 'active' : ''} ${currentStep > step ? 'completed' : ''}`}
+          >
+            <span className="step-number">{step}</span>
+            <span className="step-label">{getStepLabel(step)}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   const renderStep1 = () => {
     const config = wizardData.detectedSubsystem 
@@ -405,6 +492,261 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
     );
   };
 
+  const renderStep3DetailsSMOK = () => {
+    // Przygotuj listę zadań do wypełnienia
+    const tasksToFill: TaskDetail[] = [];
+    const params = wizardData.subsystemParams;
+    
+    let taskIndex = 0;
+    
+    if (wizardData.detectedSubsystem === 'SMOKIP_A') {
+      // Przejazdy Kat A
+      const przejazdyKatA = typeof params.przejazdyKatA === 'number' ? params.przejazdyKatA : 0;
+      for (let i = 0; i < przejazdyKatA; i++) {
+        tasksToFill.push({
+          index: taskIndex++,
+          type: 'PRZEJAZD_KAT_A',
+          name: '',
+          kilometer: '',
+          category: 'KAT A' // Default
+        });
+      }
+      
+      // SKP
+      const iloscSKP = typeof params.iloscSKP === 'number' ? params.iloscSKP : 0;
+      for (let i = 0; i < iloscSKP; i++) {
+        tasksToFill.push({
+          index: taskIndex++,
+          type: 'SKP',
+          name: '',
+          kilometer: ''
+        });
+      }
+      
+      // Nastawnie
+      const iloscNastawni = typeof params.iloscNastawni === 'number' ? params.iloscNastawni : 0;
+      for (let i = 0; i < iloscNastawni; i++) {
+        tasksToFill.push({
+          index: taskIndex++,
+          type: 'NASTAWNIA',
+          name: '',
+          location: '',
+          kilometer: ''
+        });
+      }
+      
+      // LCS
+      if (params.hasLCS) {
+        tasksToFill.push({
+          index: taskIndex++,
+          type: 'LCS',
+          name: '',
+          location: '',
+          kilometer: ''
+        });
+      }
+      
+      // CUID
+      if (params.hasCUID) {
+        tasksToFill.push({
+          index: taskIndex++,
+          type: 'CUID',
+          name: '',
+          location: '',
+          kilometer: ''
+        });
+      }
+    } 
+    else if (wizardData.detectedSubsystem === 'SMOKIP_B') {
+      // Przejazdy Kat B
+      const przejazdyKatB = typeof params.przejazdyKatB === 'number' ? params.przejazdyKatB : 0;
+      for (let i = 0; i < przejazdyKatB; i++) {
+        tasksToFill.push({
+          index: taskIndex++,
+          type: 'PRZEJAZD_KAT_B',
+          name: '',
+          kilometer: '',
+          category: 'KAT B' // Default
+        });
+      }
+      
+      // Nastawnie
+      const iloscNastawni = typeof params.iloscNastawni === 'number' ? params.iloscNastawni : 0;
+      for (let i = 0; i < iloscNastawni; i++) {
+        tasksToFill.push({
+          index: taskIndex++,
+          type: 'NASTAWNIA',
+          name: '',
+          location: '',
+          kilometer: ''
+        });
+      }
+      
+      // LCS
+      if (params.hasLCS) {
+        tasksToFill.push({
+          index: taskIndex++,
+          type: 'LCS',
+          name: '',
+          location: '',
+          kilometer: ''
+        });
+      }
+      
+      // CUID
+      if (params.hasCUID) {
+        tasksToFill.push({
+          index: taskIndex++,
+          type: 'CUID',
+          name: '',
+          location: '',
+          kilometer: ''
+        });
+      }
+    }
+    
+    // Inicjalizuj taskDetails jeśli puste
+    if (taskDetails.length === 0) {
+      setTaskDetails(tasksToFill);
+    }
+    
+    const updateTaskDetail = (index: number, field: keyof TaskDetail, value: string) => {
+      setTaskDetails(prev => {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], [field]: value };
+        return updated;
+      });
+    };
+    
+    const getTaskTypeLabel = (type: string) => {
+      if (type === 'PRZEJAZD_KAT_A') return 'Przejazd SMOK-A';
+      if (type === 'PRZEJAZD_KAT_B') return 'Przejazd SMOK-B';
+      if (type === 'SKP') return 'SKP';
+      if (type === 'NASTAWNIA') return 'Nastawnia';
+      if (type === 'LCS') return 'LCS';
+      if (type === 'CUID') return 'CUID';
+      return type;
+    };
+    
+    return (
+      <div className="wizard-step-content">
+        <h3>Krok 3: Szczegóły nazw zadań</h3>
+        <p className="step-description">
+          Wprowadź szczegółowe nazwy dla każdego zadania zgodnie z wymaganiami.
+        </p>
+        
+        <div className="task-details-form">
+          {taskDetails.map((task, idx) => (
+            <div key={idx} className="task-detail-card">
+              <h4>
+                {getTaskTypeLabel(task.type)} #{idx + 1}
+              </h4>
+              
+              {/* Przejazdy - kilometer + kategoria */}
+              {(task.type === 'PRZEJAZD_KAT_A' || task.type === 'PRZEJAZD_KAT_B') && (
+                <>
+                  <div className="form-group">
+                    <label>Kilometraż (XXX,XXX) *</label>
+                    <input
+                      type="text"
+                      placeholder="np. 123,456"
+                      value={task.kilometer || ''}
+                      onChange={(e) => updateTaskDetail(idx, 'kilometer', e.target.value)}
+                    />
+                    <small className="form-hint">Format: XXX,XXX (z przecinkiem)</small>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Kategoria *</label>
+                    <select
+                      value={task.category || ''}
+                      onChange={(e) => updateTaskDetail(idx, 'category', e.target.value)}
+                    >
+                      {task.type === 'PRZEJAZD_KAT_A' && (
+                        <>
+                          <option value="KAT A">KAT A</option>
+                          <option value="KAT F">KAT F</option>
+                        </>
+                      )}
+                      {task.type === 'PRZEJAZD_KAT_B' && (
+                        <>
+                          <option value="KAT B">KAT B</option>
+                          <option value="KAT C">KAT C</option>
+                          <option value="KAT E">KAT E</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+                  
+                  <div className="generated-name">
+                    <strong>Wygenerowana nazwa:</strong>
+                    <code>{task.kilometer && task.category ? `${task.kilometer} Km ${task.category}` : '(wprowadź dane)'}</code>
+                  </div>
+                </>
+              )}
+              
+              {/* SKP - tylko kilometraż */}
+              {task.type === 'SKP' && (
+                <>
+                  <div className="form-group">
+                    <label>Kilometraż (XXX,XXX) *</label>
+                    <input
+                      type="text"
+                      placeholder="np. 234,567"
+                      value={task.kilometer || ''}
+                      onChange={(e) => updateTaskDetail(idx, 'kilometer', e.target.value)}
+                    />
+                    <small className="form-hint">Format: XXX,XXX (z przecinkiem)</small>
+                  </div>
+                  
+                  <div className="generated-name">
+                    <strong>Wygenerowana nazwa:</strong>
+                    <code>{task.kilometer ? `${task.kilometer} Km SKP` : '(wprowadź dane)'}</code>
+                  </div>
+                </>
+              )}
+              
+              {/* Nastawnia, LCS, CUID - lokalizacja + opcjonalny kilometraż */}
+              {(task.type === 'NASTAWNIA' || task.type === 'LCS' || task.type === 'CUID') && (
+                <>
+                  <div className="form-group">
+                    <label>{task.type === 'NASTAWNIA' ? 'Nazwa nastawni/Miejscowość' : 'Nazwa/Miejscowość'} *</label>
+                    <input
+                      type="text"
+                      placeholder={task.type === 'NASTAWNIA' ? 'np. Nastawnia Warszawa Centralna' : 'np. LCS Poznań'}
+                      value={task.location || ''}
+                      onChange={(e) => updateTaskDetail(idx, 'location', e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Kilometraż (opcjonalnie)</label>
+                    <input
+                      type="text"
+                      placeholder="np. 100,500"
+                      value={task.kilometer || ''}
+                      onChange={(e) => updateTaskDetail(idx, 'kilometer', e.target.value)}
+                    />
+                    <small className="form-hint">Format: XXX,XXX (z przecinkiem)</small>
+                  </div>
+                  
+                  <div className="generated-name">
+                    <strong>Wygenerowana nazwa:</strong>
+                    <code>
+                      {task.location 
+                        ? `${task.location}${task.kilometer ? ' ' + task.kilometer + ' Km' : ''}`
+                        : '(wprowadź dane)'}
+                    </code>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const renderStep3 = () => (
     <div className="wizard-step-content">
       <h3>Krok 3: Podgląd zadań</h3>
@@ -469,7 +811,24 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
     if (currentStep === 2) {
       return true; // Can proceed with any config
     }
-    if (currentStep === 3) {
+    if (currentStep === 3 && getTotalSteps() === 5) {
+      // SMOK-A/SMOK-B: waliduj czy wszystkie wymagane pola są wypełnione
+      return taskDetails.every(task => {
+        if (task.type === 'PRZEJAZD_KAT_A' || task.type === 'PRZEJAZD_KAT_B') {
+          return task.kilometer && task.category;
+        }
+        if (task.type === 'SKP') {
+          return task.kilometer;
+        }
+        if (task.type === 'NASTAWNIA' || task.type === 'LCS' || task.type === 'CUID') {
+          return task.location; // Kilometraż opcjonalny
+        }
+        return false;
+      });
+    }
+    
+    const previewStep = getTotalSteps() === 5 ? 4 : 3;
+    if (currentStep === previewStep) {
       return generatedTasks.length > 0;
     }
     return false;
@@ -490,11 +849,18 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
         <div className="modal-body">
           {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
-          {currentStep === 3 && renderStep3()}
-          {currentStep === 4 && renderStep4()}
+          
+          {/* SMOK-A/SMOK-B: krok 3 = szczegóły, krok 4 = podgląd, krok 5 = sukces */}
+          {getTotalSteps() === 5 && currentStep === 3 && renderStep3DetailsSMOK()}
+          {getTotalSteps() === 5 && currentStep === 4 && renderStep3()}
+          {getTotalSteps() === 5 && currentStep === 5 && renderStep4()}
+          
+          {/* Inne podsystemy: krok 3 = podgląd, krok 4 = sukces */}
+          {getTotalSteps() === 4 && currentStep === 3 && renderStep3()}
+          {getTotalSteps() === 4 && currentStep === 4 && renderStep4()}
         </div>
         
-        {currentStep < 4 && (
+        {currentStep < getTotalSteps() && (
           <div className="modal-footer">
             {currentStep > 1 && (
               <button className="btn btn-secondary" onClick={handlePrevStep}>
@@ -502,7 +868,7 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
               </button>
             )}
             <div className="footer-spacer"></div>
-            {currentStep < 3 && (
+            {currentStep < getTotalSteps() - 1 && (
               <button 
                 className="btn btn-primary" 
                 onClick={handleNextStep}
@@ -511,7 +877,7 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
                 Dalej →
               </button>
             )}
-            {currentStep === 3 && (
+            {currentStep === getTotalSteps() - 1 && (
               <button 
                 className="btn btn-success" 
                 onClick={handleSubmit}
