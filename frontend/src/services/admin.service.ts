@@ -67,13 +67,25 @@ export class AdminService {
    * Get all roles
    */
   async getRoles(): Promise<Role[]> {
-    // For now, return hardcoded roles that match backend
-    return [
-      { id: 1, name: 'admin', description: 'Administrator', permissions: {} },
-      { id: 2, name: 'manager', description: 'Manager', permissions: {} },
-      { id: 3, name: 'technician', description: 'Technician', permissions: {} },
-      { id: 4, name: 'bom_editor', description: 'BOM Editor', permissions: {} },
-    ];
+    try {
+      const response = await api.get('/admin/roles');
+      return response.data.data || response.data || [];
+    } catch (error) {
+      console.error('Błąd pobierania ról z API:', error);
+      // Fallback - podstawowe role
+      return [
+        { id: 1, name: 'admin', description: 'Administrator Systemu', permissions: { all: true } },
+        { id: 2, name: 'management_board', description: 'Zarząd', permissions: {} },
+        { id: 3, name: 'manager', description: 'Menedżer', permissions: {} },
+        { id: 4, name: 'coordinator', description: 'Koordynator', permissions: {} },
+        { id: 5, name: 'bom_editor', description: 'Edytor BOM', permissions: {} },
+        { id: 6, name: 'prefabricator', description: 'Prefabrykant', permissions: {} },
+        { id: 7, name: 'worker', description: 'Pracownik', permissions: {} },
+        { id: 8, name: 'order_picking', description: 'Pracownik przygotowania', permissions: {} },
+        { id: 9, name: 'integrator', description: 'Integrator', permissions: {} },
+        { id: 10, name: 'viewer', description: 'Podgląd', permissions: {} }
+      ];
+    }
   }
 
   // ============================================
