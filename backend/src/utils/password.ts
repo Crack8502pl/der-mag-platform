@@ -13,10 +13,16 @@ import crypto from 'crypto';
  * - At least 1 number
  * - At least 1 special character
  * 
- * @param length - Length of the password to generate (default: 12)
+ * @param length - Length of the password to generate (default: 12, minimum: 8)
  * @returns A random password meeting the policy requirements
+ * @throws {Error} If length is less than 8
  */
 export function generateRandomPassword(length: number = 12): string {
+  // Validate minimum length
+  if (length < 8) {
+    throw new Error('Password length must be at least 8 characters');
+  }
+
   const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const lowercase = 'abcdefghijklmnopqrstuvwxyz';
   const numbers = '0123456789';

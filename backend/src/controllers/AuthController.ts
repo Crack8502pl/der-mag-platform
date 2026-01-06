@@ -614,10 +614,11 @@ export class AuthController {
 
       const userRepository = AppDataSource.getRepository(User);
       
-      // Znajdź użytkownika po username lub email
+      // Find user by username or email (using separate bindings for security)
       const user = await userRepository
         .createQueryBuilder('user')
-        .where('user.username = :value OR user.email = :value', { value: identifier })
+        .where('user.username = :username', { username: identifier })
+        .orWhere('user.email = :email', { email: identifier })
         .andWhere('user.active = :active', { active: true })
         .andWhere('user.deleted_at IS NULL')
         .getOne();

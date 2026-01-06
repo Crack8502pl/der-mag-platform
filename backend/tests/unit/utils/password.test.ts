@@ -13,6 +13,12 @@ describe('password utility', () => {
       expect(password).toHaveLength(16);
     });
 
+    it('should throw error for length less than 8', () => {
+      expect(() => generateRandomPassword(7)).toThrow('Password length must be at least 8 characters');
+      expect(() => generateRandomPassword(0)).toThrow('Password length must be at least 8 characters');
+      expect(() => generateRandomPassword(-5)).toThrow('Password length must be at least 8 characters');
+    });
+
     it('should contain at least one uppercase letter', () => {
       const password = generateRandomPassword();
       expect(password).toMatch(/[A-Z]/);

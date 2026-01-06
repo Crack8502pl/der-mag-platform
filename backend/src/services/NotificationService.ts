@@ -346,8 +346,8 @@ export class NotificationService {
   }
 
   /**
-   * Email przy resetowaniu/odzyskiwaniu hasła
-   * Odbiorcy: użytkownik który zgłosił zapomnienie hasła
+   * Password reset/recovery email
+   * Recipients: user who requested password reset
    */
   static async sendPasswordResetEmail(user: User, newPassword: string): Promise<void> {
     try {
@@ -371,9 +371,9 @@ export class NotificationService {
         }
       });
 
-      console.log(`✅ Wysłano email z resetowaniem hasła do użytkownika ${user.email}`);
+      console.log(`✅ Password reset email sent successfully (User ID: ${user.id})`);
     } catch (error) {
-      console.error('Błąd wysyłania emaila resetowania hasła:', error);
+      console.error('Error sending password reset email:', error);
       // Don't throw - email failure shouldn't prevent password reset
     }
   }
