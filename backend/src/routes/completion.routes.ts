@@ -11,6 +11,13 @@ const router = Router();
 // All routes require authentication
 router.use(authenticate);
 
+// Create new completion order
+router.post(
+  '/',
+  requirePermission('completion', 'create'),
+  CompletionController.createOrder
+);
+
 // List all completion orders
 router.get(
   '/orders',
@@ -39,6 +46,13 @@ router.post(
   CompletionController.reportMissing
 );
 
+// Create pallet
+router.post(
+  '/orders/:id/pallets',
+  requirePermission('completion', 'create'),
+  CompletionController.createPallet
+);
+
 // Assign items to pallet
 router.post(
   '/orders/:id/assign-pallet',
@@ -53,11 +67,25 @@ router.patch(
   CompletionController.makeDecision
 );
 
-// Complete order
+// Approve completion (full or partial)
+router.post(
+  '/orders/:id/approve',
+  requirePermission('completion', 'complete'),
+  CompletionController.approveCompletion
+);
+
+// Complete order (legacy endpoint)
 router.post(
   '/orders/:id/complete',
   requirePermission('completion', 'complete'),
   CompletionController.completeOrder
+);
+
+// Create prefabrication task after completion
+router.post(
+  '/orders/:id/create-prefab',
+  requirePermission('completion', 'complete'),
+  CompletionController.createPrefabTask
 );
 
 export default router;

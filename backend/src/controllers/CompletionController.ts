@@ -7,6 +7,8 @@ import { CompletionOrder, CompletionOrderStatus, CompletionDecision } from '../e
 import { CompletionItem, CompletionItemStatus } from '../entities/CompletionItem';
 import { WorkflowGeneratedBomItem } from '../entities/WorkflowGeneratedBomItem';
 import { Pallet } from '../entities/Pallet';
+import CompletionService from '../services/CompletionService';
+import NotificationService from '../services/NotificationService';
 
 export class CompletionController {
   /**
@@ -476,6 +478,164 @@ export class CompletionController {
       res.status(500).json({
         success: false,
         message: 'Błąd serwera podczas kończenia zlecenia'
+      });
+    }
+  }
+
+  /**
+   * POST /api/completion
+   * Tworzy nowe zlecenie kompletacji
+   */
+  static async createOrder(req: Request, res: Response): Promise<void> {
+    try {
+      const { subsystemId, generatedBomId, assignedToId } = req.body;
+
+      if (!subsystemId || !generatedBomId || !assignedToId) {
+        res.status(400).json({
+          success: false,
+          message: 'Brak wymaganych parametrów: subsystemId, generatedBomId, assignedToId'
+        });
+        return;
+      }
+
+      const order = await CompletionService.createCompletionOrder({
+        subsystemId,
+        generatedBomId,
+        assignedToId
+      });
+
+      // Wyślij powiadomienie
+      await NotificationService.notifyNewCompletionTask(order.id);
+
+      res.status(201).json({
+        success: true,
+        message: 'Zlecenie kompletacji utworzone',
+        data: order
+      });
+    } catch (error) {
+      console.error('Error creating completion order:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Błąd tworzenia zlecenia kompletacji'
+      });
+    }
+  }
+
+  /**
+   * POST /api/completion/:id/pallets
+   * Tworzy paletę dla zlecenia
+   */
+  static async createPallet(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { palletNumber } = req.body;
+
+      if (!palletNumber) {
+        res.status(400).json({
+          success: false,
+          message: 'Brak numeru palety'
+        });
+        return;
+      }
+
+      const pallet = await CompletionService.createPallet(
+        parseInt(id, 10),
+        palletNumber
+      );
+
+      res.status(201).json({
+        success: true,
+        message: 'Paleta utworzona',
+        data: pallet
+      });
+    } catch (error) {
+      console.error('Error creating pallet:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Błąd tworzenia palety'
+      });
+    }
+  }
+
+  /**
+   * POST /api/completion/:id/approve
+   * Zatwierdza kompletację (pełną lub częściową)
+   */
+  static async approveCompletion(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { partial, notes } = req.body;
+      const userId = req.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Brak autoryzacji'
+        });
+        return;
+      }
+
+      const order = await CompletionService.approveCompletion({
+        completionOrderId: parseInt(id, 10),
+        partial: partial || false,
+        notes,
+        userId
+      });
+
+      // Wyślij powiadomienie o zakończeniu
+      if (order.status === CompletionOrderStatus.COMPLETED) {
+        await NotificationService.notifyCompletionFinished(order.id);
+      }
+
+      res.json({
+        success: true,
+        message: partial ? 'Kompletacja częściowa zatwierdzona' : 'Kompletacja pełna zatwierdzona',
+        data: order
+      });
+    } catch (error) {
+      console.error('Error approving completion:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Błąd zatwierdzania kompletacji'
+      });
+    }
+  }
+
+  /**
+   * POST /api/completion/:id/create-prefab
+   * Tworzy zadanie prefabrykacji po zakończeniu kompletacji
+   */
+  static async createPrefabTask(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { assignedToId } = req.body;
+
+      if (!assignedToId) {
+        res.status(400).json({
+          success: false,
+          message: 'Brak ID użytkownika do przypisania'
+        });
+        return;
+      }
+
+      const prefabTask = await CompletionService.createPrefabricationTask(
+        parseInt(id, 10),
+        assignedToId
+      );
+
+      // Wyślij powiadomienie
+      await NotificationService.notifyNewPrefabricationTask(prefabTask.id);
+
+      res.status(201).json({
+        success: true,
+        message: 'Zadanie prefabrykacji utworzone',
+        data: prefabTask
+      });
+    } catch (error) {
+      console.error('Error creating prefabrication task:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Błąd tworzenia zadania prefabrykacji'
       });
     }
   }

@@ -23,6 +23,8 @@ import networkRoutes from './network.routes';
 import completionRoutes from './completion.routes';
 import bomTriggerRoutes from './bom-trigger.routes';
 import adminRoutes from './admin.routes';
+import workflowBomRoutes from './workflow-bom.routes';
+import prefabricationRoutes from './prefabrication.routes';
 
 const router = Router();
 
@@ -48,6 +50,8 @@ router.use('/subsystems', subsystemRoutes);
 router.use('/network', networkRoutes);
 router.use('/completion', completionRoutes);
 router.use('/bom-triggers', bomTriggerRoutes);
+router.use('/workflow-bom', workflowBomRoutes);
+router.use('/prefabrication', prefabricationRoutes);
 
 // Admin routes
 router.use('/admin', adminRoutes);

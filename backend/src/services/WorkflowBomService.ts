@@ -99,16 +99,16 @@ export class WorkflowBomService {
         itemName: nazwa.trim(),
         quantity,
         unit: 'szt',
-        partNumber: null, // Może być dodane później
+        partNumber: null,
         requiresIp,
         deviceCategory: deviceCategory || undefined,
         sequence: parseInt(lpStr, 10) || items.length + 1
-      });
+      } as any);
 
       items.push(item);
     }
 
-    await itemRepo.save(items);
+    await itemRepo.save(items as any);
 
     console.log(`✅ Zaimportowano szablon BOM: ${templateCode} z ${items.length} pozycjami`);
 
@@ -172,7 +172,7 @@ export class WorkflowBomService {
     }
 
     // Utwórz wygenerowany BOM
-    const generatedBom = generatedBomRepo.create({
+    const generatedBomData = generatedBomRepo.create({
       subsystem,
       subsystemId: subsystem.id,
       contract: subsystem.contract,
@@ -180,9 +180,9 @@ export class WorkflowBomService {
       template,
       templateId: template.id,
       status: 'GENERATED'
-    });
+    } as any);
 
-    await generatedBomRepo.save(generatedBom);
+    const generatedBom: WorkflowGeneratedBom = await generatedBomRepo.save(generatedBomData) as unknown as WorkflowGeneratedBom;
 
     // Utwórz pozycje wygenerowanego BOM
     const generatedItems: WorkflowGeneratedBomItem[] = [];
@@ -199,16 +199,16 @@ export class WorkflowBomService {
         quantity: finalQuantity,
         scannedQuantity: 0,
         unit: templateItem.unit,
-        partNumber: templateItem.partNumber,
+        partNumber: templateItem.partNumber || null,
         requiresIp: templateItem.requiresIp,
-        deviceCategory: templateItem.deviceCategory,
+        deviceCategory: templateItem.deviceCategory || null,
         sequence: templateItem.sequence
-      });
+      } as any);
 
       generatedItems.push(generatedItem);
     }
 
-    await generatedItemRepo.save(generatedItems);
+    await generatedItemRepo.save(generatedItems as any);
 
     console.log(`✅ Wygenerowano BOM dla podsystemu ${subsystem.subsystemNumber}: ${generatedItems.length} pozycji`);
 

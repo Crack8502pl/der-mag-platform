@@ -315,7 +315,7 @@ export class CompletionService {
     // Aktualizuj zlecenie
     if (params.partial && isPartialCompletion) {
       order.status = CompletionOrderStatus.WAITING_DECISION;
-      order.decisionNotes = params.notes;
+      order.decisionNotes = params.notes || '';
       order.decisionBy = params.userId;
       order.decisionAt = new Date();
     } else if (isFullCompletion || params.partial) {
@@ -370,9 +370,9 @@ export class CompletionService {
       completionOrderId,
       subsystemId: order.subsystemId,
       assignedToId,
-      status: 'CREATED',
+      status: 'CREATED' as any,
       ipMatrixReceived: false,
-      materialsReceived: true // Materiały są już skompletowane
+      materialsReceived: true
     });
 
     await prefabTaskRepo.save(prefabTask);
