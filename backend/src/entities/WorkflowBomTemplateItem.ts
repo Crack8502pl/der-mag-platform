@@ -17,11 +17,11 @@ export class WorkflowBomTemplateItem {
   @Column({ name: 'template_id' })
   templateId: number;
 
-  @Column({ name: 'part_number', type: 'varchar', length: 100 })
+  @Column({ name: 'part_number', type: 'varchar', length: 100, nullable: true })
   partNumber: string;
 
-  @Column({ type: 'varchar', length: 200 })
-  name: string;
+  @Column({ name: 'item_name', type: 'varchar', length: 200 })
+  itemName: string;
 
   @Column({ type: 'text', nullable: true })
   description: string;
@@ -32,17 +32,17 @@ export class WorkflowBomTemplateItem {
   @Column({ type: 'varchar', length: 20, default: 'szt' })
   unit: string; // szt, m, kg, etc.
 
-  @Column({ name: 'is_network_device', type: 'boolean', default: false })
-  isNetworkDevice: boolean;
+  @Column({ name: 'requires_ip', type: 'boolean', default: false })
+  requiresIp: boolean;
 
-  @Column({ name: 'network_category', type: 'varchar', length: 20, nullable: true })
-  networkCategory: DeviceCategory;
+  @Column({ name: 'device_category', type: 'varchar', length: 20, nullable: true })
+  deviceCategory: DeviceCategory;
 
   @Column({ name: 'requires_serial_number', type: 'boolean', default: false })
   requiresSerialNumber: boolean;
 
-  @Column({ name: 'requires_ip_address', type: 'boolean', default: false })
-  requiresIPAddress: boolean;
+  @Column({ type: 'int', default: 1 })
+  sequence: number;
 
   @Column({ name: 'estimated_price', type: 'decimal', precision: 10, scale: 2, nullable: true })
   estimatedPrice: number;

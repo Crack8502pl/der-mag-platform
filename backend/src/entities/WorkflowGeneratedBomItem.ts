@@ -31,8 +31,26 @@ export class WorkflowGeneratedBomItem {
   @Column({ name: 'template_item_id' })
   templateItemId: number;
 
+  @Column({ name: 'item_name', type: 'varchar', length: 200 })
+  itemName: string;
+
   @Column({ type: 'int' })
   quantity: number;
+
+  @Column({ type: 'varchar', length: 20, default: 'szt' })
+  unit: string;
+
+  @Column({ name: 'part_number', type: 'varchar', length: 100, nullable: true })
+  partNumber: string;
+
+  @Column({ name: 'requires_ip', type: 'boolean', default: false })
+  requiresIp: boolean;
+
+  @Column({ name: 'device_category', type: 'varchar', length: 20, nullable: true })
+  deviceCategory: string;
+
+  @Column({ type: 'int', default: 1 })
+  sequence: number;
 
   @Column({
     type: 'varchar',

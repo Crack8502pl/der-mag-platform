@@ -32,6 +32,12 @@ export class CompletionItem {
   @Column({ name: 'bom_item_id' })
   bomItemId: number;
 
+  @Column({ name: 'generated_bom_item_id', nullable: true })
+  generatedBomItemId: number;
+
+  @Column({ name: 'expected_quantity', type: 'int', default: 0 })
+  expectedQuantity: number;
+
   @Column({
     type: 'varchar',
     length: 20,
