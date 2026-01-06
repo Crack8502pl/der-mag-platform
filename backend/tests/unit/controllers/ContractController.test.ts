@@ -2,15 +2,18 @@
 import { Request, Response } from 'express';
 import { ContractController } from '../../../src/controllers/ContractController';
 import { ContractService } from '../../../src/services/ContractService';
+import { SubsystemService } from '../../../src/services/SubsystemService';
 import { ContractStatus } from '../../../src/entities/Contract';
 import { createMockRequest, createMockResponse } from '../../mocks/request.mock';
 
-// Mock the ContractService
+// Mock the ContractService and SubsystemService
 jest.mock('../../../src/services/ContractService');
+jest.mock('../../../src/services/SubsystemService');
 
 describe('ContractController', () => {
   let contractController: ContractController;
   let mockContractService: jest.Mocked<ContractService>;
+  let mockSubsystemService: jest.Mocked<SubsystemService>;
   let req: Partial<Request>;
   let res: Partial<Response>;
 
@@ -21,8 +24,9 @@ describe('ContractController', () => {
     // Create a new controller instance
     contractController = new ContractController();
     
-    // Get the mocked service
+    // Get the mocked services
     mockContractService = contractController['contractService'] as jest.Mocked<ContractService>;
+    mockSubsystemService = contractController['subsystemService'] as jest.Mocked<SubsystemService>;
 
     // Create mock request and response
     req = createMockRequest();
@@ -340,6 +344,37 @@ describe('ContractController', () => {
       expect(res.json).toHaveBeenCalledWith({
         success: false,
         message: 'Kreator wymaga co najmniej jednego zadania',
+      });
+    });
+
+    it('should return 400 when subsystemType is invalid', async () => {
+      const mockContract = {
+        id: 1,
+        contractNumber: 'R0000001_1',
+        customName: 'Test Contract',
+        status: ContractStatus.CREATED,
+        orderDate: new Date('2026-01-06'),
+        managerCode: 'ABC',
+        projectManagerId: 1,
+      };
+
+      mockContractService.createContract = jest.fn().mockResolvedValue(mockContract);
+
+      req.body = {
+        customName: 'Test Contract',
+        orderDate: '2026-01-06',
+        managerCode: 'ABC',
+        projectManagerId: 1,
+        subsystemType: 'INVALID_TYPE',
+        tasks: [{ number: 'P000010126', name: 'Task 1', type: 'TYPE_A' }],
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Nieprawidłowy typ podsystemu: INVALID_TYPE',
       });
     });
 

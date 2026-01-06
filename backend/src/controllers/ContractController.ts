@@ -4,12 +4,16 @@
 import { Request, Response } from 'express';
 import { ContractService } from '../services/ContractService';
 import { ContractStatus } from '../entities/Contract';
+import { SubsystemService } from '../services/SubsystemService';
+import { SystemType } from '../entities/Subsystem';
 
 export class ContractController {
   private contractService: ContractService;
+  private subsystemService: SubsystemService;
 
   constructor() {
     this.contractService = new ContractService();
+    this.subsystemService = new SubsystemService();
   }
 
   /**
@@ -326,12 +330,18 @@ export class ContractController {
 
       // 2. Utwórz podsystem jeśli określony typ
       if (subsystemType) {
-        const { SubsystemService } = await import('../services/SubsystemService');
-        const subsystemService = new SubsystemService();
+        // Validate that subsystemType is a valid SystemType
+        if (!Object.values(SystemType).includes(subsystemType as SystemType)) {
+          res.status(400).json({
+            success: false,
+            message: `Nieprawidłowy typ podsystemu: ${subsystemType}`
+          });
+          return;
+        }
         
-        await subsystemService.createSubsystem({
+        await this.subsystemService.createSubsystem({
           contractId: contract.id,
-          systemType: subsystemType as any,
+          systemType: subsystemType as SystemType,
           quantity: tasks.length
         });
       }
