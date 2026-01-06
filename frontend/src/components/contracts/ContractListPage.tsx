@@ -7,6 +7,7 @@ import { BackButton } from '../common/BackButton';
 import { ContractCreateModal } from './ContractCreateModal';
 import { ContractEditModal } from './ContractEditModal';
 import { ContractImportModal } from './ContractImportModal';
+import { ContractWizardModal } from './ContractWizardModal';
 import { ContractStatusBadge } from './ContractStatusBadge';
 import { useAuth } from '../../hooks/useAuth';
 import type { Contract } from '../../services/contract.service';
@@ -40,6 +41,7 @@ export const ContractListPage: React.FC = () => {
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showWizardModal, setShowWizardModal] = useState(false);
   const [editingContract, setEditingContract] = useState<Contract | null>(null);
   
   // Managers for filter
@@ -228,6 +230,14 @@ export const ContractListPage: React.FC = () => {
             )}
             {canCreate && (
               <button
+                className="btn btn-wizard"
+                onClick={() => setShowWizardModal(true)}
+              >
+                🧙‍♂️ Kreator
+              </button>
+            )}
+            {canCreate && (
+              <button
                 className="btn btn-primary"
                 onClick={() => setShowCreateModal(true)}
               >
@@ -345,43 +355,41 @@ export const ContractListPage: React.FC = () => {
                     {new Date(contract.createdAt).toLocaleDateString('pl-PL')}
                   </td>
                   <td>
-                    <div className="actions-dropdown">
-                      <button className="btn-icon" title="Akcje">⋮</button>
-                      <div className="dropdown-menu">
-                        <button
-                          onClick={() => navigate(`/contracts/${contract.id}`)}
-                          className="dropdown-item"
+                    <div className="action-buttons">
+                      <button 
+                        className="btn btn-icon" 
+                        title="Podgląd"
+                        onClick={() => navigate(`/contracts/${contract.id}`)}
+                      >
+                        👁️
+                      </button>
+                      {canUpdate && (
+                        <button 
+                          className="btn btn-icon" 
+                          title="Edytuj"
+                          onClick={() => setEditingContract(contract)}
                         >
-                          👁️ Szczegóły
+                          ✏️
                         </button>
-                        {canUpdate && (
-                          <button
-                            onClick={() => setEditingContract(contract)}
-                            className="dropdown-item"
-                          >
-                            ✏️ Edytuj
-                          </button>
-                        )}
-                        {canApprove && contract.status === 'CREATED' && (
-                          <button
-                            onClick={() => handleApprove(contract.id)}
-                            className="dropdown-item success"
-                          >
-                            ✅ Zatwierdź
-                          </button>
-                        )}
-                        {canDelete && (
-                          <>
-                            <hr className="dropdown-divider" />
-                            <button
-                              onClick={() => handleDelete(contract.id, contract.contractNumber)}
-                              className="dropdown-item danger"
-                            >
-                              🗑️ Usuń
-                            </button>
-                          </>
-                        )}
-                      </div>
+                      )}
+                      {canApprove && contract.status === 'CREATED' && (
+                        <button 
+                          className="btn btn-icon btn-success" 
+                          title="Zatwierdź"
+                          onClick={() => handleApprove(contract.id)}
+                        >
+                          ✅
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button 
+                          className="btn btn-icon btn-danger" 
+                          title="Usuń"
+                          onClick={() => handleDelete(contract.id, contract.contractNumber)}
+                        >
+                          🗑️
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -436,6 +444,14 @@ export const ContractListPage: React.FC = () => {
         <ContractImportModal
           onClose={() => setShowImportModal(false)}
           onSuccess={handleImportCompleted}
+        />
+      )}
+
+      {showWizardModal && (
+        <ContractWizardModal
+          managers={managers}
+          onClose={() => setShowWizardModal(false)}
+          onSuccess={handleContractCreated}
         />
       )}
     </div>
