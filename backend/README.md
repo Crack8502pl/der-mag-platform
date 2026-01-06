@@ -24,12 +24,24 @@ Grover Platform to zaawansowany system zarządzania zadaniami infrastrukturalnym
 ### Główne funkcjonalności:
 
 - ✅ **Zarządzanie zadaniami** - Tworzenie, edycja, usuwanie zadań z unikalnym 9-cyfrowym numerem
-- 👥 **System użytkowników** - Uwierzytelnianie JWT, role (admin, manager, technician, viewer)
+- 👥 **System użytkowników** - Uwierzytelnianie JWT, role (admin, manager, bom_editor, coordinator, prefabricator, worker)
+- 👤 **Moduł zarządzania użytkownikami** (Admin)
+  - Lista użytkowników z paginacją
+  - Tworzenie i edycja profili
+  - Zarządzanie rolami i uprawnieniami
+  - Historia aktywności
+  - Reset i odzyskiwanie haseł
 - 📦 **BOM (Bill of Materials)** - Zarządzanie materiałami i komponentami
+- 📋 **Workflow Kontraktowy** (Fazy 1-3)
+  - 12 podsystemów kontraktowych
+  - Kompletacja materiałów (skanowanie, palety, braki)
+  - Prefabrykacja urządzeń (konfiguracja, SN)
+  - Generowanie BOM i alokacja IP
 - 🔢 **Numery seryjne** - Śledzenie urządzeń i ich lokalizacji
 - 🌐 **IP Management** - Automatyczna alokacja adresów IP z puli CIDR
 - ✓ **Checklisty** - Szablony aktywności dla każdego typu zadania
 - 📸 **Kontrola jakości** - Upload zdjęć z EXIF, GPS, kompresja
+- 📧 **System powiadomień email** - SMTP (smokip@der-mag.pl), kolejka Bull+Redis
 - 📊 **Metryki i statystyki** - Dashboard z danymi w czasie rzeczywistym
 
 ## 🛠 Technologie
@@ -40,11 +52,13 @@ Grover Platform to zaawansowany system zarządzania zadaniami infrastrukturalnym
 - **ORM**: TypeORM 0.3
 - **Baza danych**: PostgreSQL 15
 - **Uwierzytelnianie**: JWT + Bcrypt
+- **Email**: Nodemailer + Bull Queue (Redis)
 - **Upload plików**: Multer
 - **Przetwarzanie obrazów**: Sharp
 - **EXIF**: exifr
 - **Walidacja**: class-validator
 - **Security**: Helmet, CORS, Rate Limiting
+- **Templating**: Handlebars (email templates)
 
 ## 📌 Wymagania
 
@@ -137,6 +151,25 @@ JWT_SECRET=your-super-secret-jwt-key-change-in-production
 JWT_EXPIRES_IN=8h
 REFRESH_TOKEN_EXPIRES_IN=7d
 
+# SMTP Configuration (Email Notifications)
+SMTP_HOST=smtp.nazwa.pl
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=smokip@der-mag.pl
+SMTP_PASS=your-smtp-password
+SMTP_FROM=smokip@der-mag.pl
+EMAIL_FROM_NAME=Grover Platform
+
+# Redis (for email queue)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+# REDIS_PASSWORD=optional
+
+# Application URLs
+APP_URL=http://localhost:3001
+FRONTEND_URL=http://localhost:3001
+SUPPORT_EMAIL=smokip@der-mag.pl
+
 # Upload
 UPLOAD_DIR=./uploads
 MAX_FILE_SIZE=10485760
@@ -178,18 +211,66 @@ backend/
 ├── src/
 │   ├── config/              # Konfiguracja (DB, JWT, stałe)
 │   ├── entities/            # Encje TypeORM (modele danych)
+│   │   ├── User.ts
+│   │   ├── Contract.ts
+│   │   ├── Subsystem.ts
+│   │   ├── CompletionOrder.ts
+│   │   ├── PrefabricationTask.ts
+│   │   └── ...
 │   ├── controllers/         # Kontrolery HTTP
+│   │   ├── UserController.ts
+│   │   ├── ContractController.ts
+│   │   ├── SubsystemController.ts
+│   │   ├── CompletionController.ts
+│   │   ├── NetworkController.ts
+│   │   ├── NotificationController.ts
+│   │   └── ...
 │   ├── services/            # Logika biznesowa
+│   │   ├── EmailService.ts
+│   │   ├── EmailQueueService.ts
+│   │   ├── UserOnboardingService.ts
+│   │   ├── ContractService.ts
+│   │   ├── SubsystemService.ts
+│   │   ├── NetworkPoolService.ts
+│   │   ├── NetworkAllocationService.ts
+│   │   └── ...
 │   ├── middleware/          # Middleware (auth, walidacja, upload)
+│   │   ├── auth.ts
+│   │   ├── PermissionMiddleware.ts
+│   │   └── ...
 │   ├── routes/              # Definicje tras API
+│   │   ├── user.routes.ts
+│   │   ├── contract.routes.ts
+│   │   ├── completion.routes.ts
+│   │   ├── network.routes.ts
+│   │   └── ...
+│   ├── templates/           # Szablony email (Handlebars)
+│   │   └── emails/
+│   │       ├── user-welcome.hbs
+│   │       ├── password-reset.hbs
+│   │       ├── completion-*.hbs
+│   │       └── ...
 │   ├── dto/                 # Data Transfer Objects
 │   ├── utils/               # Narzędzia pomocnicze
 │   ├── app.ts               # Konfiguracja Express
 │   └── index.ts             # Punkt wejścia
-├── scripts/                 # Skrypty SQL
+├── scripts/                 # Skrypty SQL i migracje
+│   ├── migrations/
+│   │   ├── 20251229_add_workflow_tables.sql
+│   │   ├── 20251229_add_granular_permissions.sql
+│   │   └── ...
+│   └── seeds/
+│       ├── network_pools.sql
+│       └── ...
 ├── uploads/                 # Przesłane pliki
+├── backups/                 # Backupy bazy danych
+├── docs/                    # Dokumentacja techniczna
+│   ├── ENCRYPTED_ENV_SETUP.md
+│   ├── SECURITY_SECRETS_GUIDE.md
+│   └── TOKEN_ROTATION.md
 ├── package.json
 ├── tsconfig.json
+├── EMAIL_SYSTEM.md          # Dokumentacja systemu email
 └── Dockerfile
 ```
 
@@ -198,10 +279,28 @@ backend/
 ### Uwierzytelnianie
 
 ```
-POST   /api/auth/login       - Logowanie
-POST   /api/auth/refresh     - Odświeżenie tokenu
-POST   /api/auth/logout      - Wylogowanie
-GET    /api/auth/me          - Dane zalogowanego użytkownika
+POST   /api/auth/login           - Logowanie
+POST   /api/auth/refresh         - Odświeżenie tokenu
+POST   /api/auth/logout          - Wylogowanie
+POST   /api/auth/change-password - Zmiana własnego hasła
+POST   /api/auth/forgot-password - Odzyskiwanie hasła (publiczne)
+GET    /api/auth/me              - Dane zalogowanego użytkownika
+```
+
+### Zarządzanie użytkownikami (Admin only)
+
+```
+GET    /api/users                      - Lista użytkowników
+GET    /api/users/:id                  - Szczegóły użytkownika
+POST   /api/users                      - Utworzenie użytkownika
+PUT    /api/users/:id                  - Aktualizacja użytkownika
+DELETE /api/users/:id                  - Soft delete (dezaktywacja)
+POST   /api/users/:id/reset-password   - Reset hasła (admin)
+POST   /api/users/:id/deactivate       - Dezaktywacja konta
+POST   /api/users/:id/activate         - Aktywacja konta
+PUT    /api/users/:id/role             - Zmiana roli
+GET    /api/users/:id/activity         - Historia aktywności
+GET    /api/users/:id/activity/export  - Eksport aktywności (CSV)
 ```
 
 ### Zadania
@@ -223,8 +322,78 @@ POST   /api/tasks/:number/assign - Przypisanie użytkowników
 GET    /api/bom/templates              - Szablony BOM
 GET    /api/bom/templates/:taskType    - Szablony dla typu zadania
 POST   /api/bom/templates              - Nowy szablon
+POST   /api/bom/import                 - Import BOM z CSV (L.P.;Nazwa;Suma ilości)
 GET    /api/tasks/:number/bom          - Materiały zadania
 PUT    /api/tasks/:number/bom/:id      - Aktualizacja materiału
+```
+
+### Workflow Kontraktowy
+
+#### Kontrakty i Podsystemy
+
+```
+GET    /api/contracts                          - Lista kontraktów
+GET    /api/contracts/:id                      - Szczegóły kontraktu
+POST   /api/contracts                          - Utworzenie kontraktu
+PUT    /api/contracts/:id                      - Aktualizacja kontraktu
+DELETE /api/contracts/:id                      - Usunięcie kontraktu
+POST   /api/contracts/:id/approve              - Zatwierdzenie kontraktu
+
+GET    /api/contracts/:contractId/subsystems   - Lista podsystemów kontraktu
+POST   /api/contracts/:contractId/subsystems   - Utworzenie podsystemu
+GET    /api/subsystems/:id                     - Szczegóły podsystemu
+PUT    /api/subsystems/:id                     - Aktualizacja podsystemu
+DELETE /api/subsystems/:id                     - Usunięcie podsystemu
+POST   /api/subsystems/:id/allocate-network    - Alokacja sieci dla podsystemu
+GET    /api/subsystems/:id/ip-matrix           - Macierz IP podsystemu
+```
+
+#### Network (Zarządzanie siecią)
+
+```
+GET    /api/network/pools              - Lista pul IP
+POST   /api/network/pools              - Utworzenie puli IP
+PUT    /api/network/pools/:id          - Aktualizacja puli
+DELETE /api/network/pools/:id          - Usunięcie puli
+GET    /api/network/allocations        - Lista alokacji
+POST   /api/network/assignments        - Przydzielenie IP urządzeniu
+POST   /api/network/assignments/:id/configure  - Konfiguracja urządzenia (NTP=Gateway)
+POST   /api/network/assignments/:id/verify     - Weryfikacja urządzenia
+```
+
+#### Kompletacja (Faza 2)
+
+```
+GET    /api/completion/orders                  - Lista zleceń kompletacji
+GET    /api/completion/orders/:id              - Szczegóły zlecenia
+POST   /api/completion/orders/:id/scan         - Skanowanie kodu kreskowego
+POST   /api/completion/orders/:id/assign-pallet - Przypisanie palety
+POST   /api/completion/orders/:id/report-missing - Zgłoszenie braków
+POST   /api/completion/orders/:id/decide       - Decyzja managera (kontynuować/wstrzymać)
+POST   /api/completion/orders/:id/complete     - Zakończenie kompletacji
+```
+
+#### Prefabrykacja (Faza 3)
+
+```
+GET    /api/prefabrication/tasks               - Lista zadań prefabrykacji
+GET    /api/prefabrication/tasks/:id           - Szczegóły zadania
+POST   /api/prefabrication/tasks/:id/receive   - Przyjęcie zlecenia
+POST   /api/prefabrication/tasks/:id/configure - Konfiguracja urządzenia
+POST   /api/prefabrication/tasks/:id/verify    - Weryfikacja konfiguracji
+POST   /api/prefabrication/tasks/:id/assign-sn - Przypisanie numeru seryjnego
+POST   /api/prefabrication/tasks/:id/complete  - Zakończenie prefabrykacji
+```
+
+### Powiadomienia Email
+
+```
+POST   /api/notifications/test                - Test wysyłki email
+GET    /api/notifications/config              - Status konfiguracji SMTP
+GET    /api/notifications/queue/stats         - Statystyki kolejki emaili
+GET    /api/notifications/queue/failed        - Nieudane wysyłki
+POST   /api/notifications/queue/retry/:jobId  - Ponowienie nieudanego zadania
+POST   /api/notifications/queue/clear         - Wyczyszczenie kolejki (admin)
 ```
 
 ### Urządzenia

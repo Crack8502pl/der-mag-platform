@@ -1107,6 +1107,305 @@ curl -X POST http://localhost:3000/api/tasks \
 
 ---
 
+## 🔐 Moduł Zarządzania Użytkownikami
+
+Moduł zarządzania użytkownikami jest dostępny **wyłącznie dla roli Admin**.
+
+### Uprawnienia wymagane
+
+Wszystkie operacje na użytkownikach wymagają uprawnienia `all: true` lub specyficznych uprawnień modułu `users`:
+
+```json
+{
+  "users": {
+    "read": true,      // Przeglądanie listy użytkowników
+    "create": true,    // Tworzenie nowych użytkowników
+    "update": true,    // Edycja danych użytkowników
+    "delete": true,    // Dezaktywacja kont (soft delete)
+    "manage": true     // Zarządzanie rolami i uprawnieniami
+  }
+}
+```
+
+### Operacje dostępne dla Admin
+
+#### ✅ Lista użytkowników
+- GET `/api/users` - paginacja, filtrowanie, sortowanie
+- Wyświetla: ID, imię, nazwisko, email, login, rola, status, daty
+
+#### ✅ Szczegóły użytkownika
+- GET `/api/users/:id` - pełny profil użytkownika
+- Historia zmian profilu
+- Historia aktywności
+- Aktywne sesje
+
+#### ✅ Tworzenie użytkownika
+- POST `/api/users` - formularz z walidacją
+- Automatyczne generowanie hasła pierwszego logowania
+- Wysyłka emaila z danymi logowania (smokip@der-mag.pl)
+- Flaga `requirePasswordChange: true`
+
+#### ✅ Edycja użytkownika
+- PUT `/api/users/:id` - aktualizacja danych
+- Zmiana roli: PUT `/api/users/:id/role`
+- Log wszystkich zmian
+
+#### ✅ Resetowanie hasła
+- POST `/api/users/:id/reset-password`
+- Admin wpisuje nowe hasło (lub generowane automatycznie)
+- Wysyłka emaila do użytkownika
+- Wymuszenie zmiany przy następnym logowaniu
+
+#### ✅ Dezaktywacja/Aktywacja
+- POST `/api/users/:id/deactivate` - ustawia `active: false`
+- POST `/api/users/:id/activate` - przywraca `active: true`
+- Nieaktywne konta nie blokują unikalności username/email
+
+#### ✅ Historia aktywności
+- GET `/api/users/:id/activity` - dziennik akcji
+- Eksport do CSV: GET `/api/users/:id/activity/export`
+- Rejestrowane: logowanie, wylogowanie, zmiana hasła, akcje CRUD
+
+### Komunikaty błędów logowania
+
+System zwraca odpowiednie komunikaty w zależności od sytuacji:
+
+| Sytuacja | Endpoint | Komunikat | HTTP Status |
+|----------|----------|-----------|-------------|
+| Nieistniejący login | POST `/api/auth/login` | "Konto nie istnieje" | 401 |
+| Błędne hasło | POST `/api/auth/login` | "Błędne hasło" | 401 |
+| Zablokowane konto | POST `/api/auth/login` | "Twoje konto zostało zablokowane. Skontaktuj się z administratorem." | 403 |
+| Wymagana zmiana hasła | POST `/api/auth/login` | Redirect do `/change-password` + flag | 200 |
+
+### Publiczne endpointy
+
+#### Odzyskiwanie hasła
+- POST `/api/auth/forgot-password` - **publiczny** (bez autoryzacji)
+- Rate limiting: max 3 próby na 15 minut na IP
+- Generuje nowe hasło i wysyła email
+- Generyczny komunikat (nie ujawnia czy konto istnieje)
+
+---
+
+## 🔄 Workflow Kontraktowy - Uprawnienia
+
+System workflow kontraktowego wprowadza nowe moduły uprawnień dla faz 1-3 procesu.
+
+### Moduł: contracts (Kontrakty)
+
+Zarządzanie kontraktami i generowanie numerów kontraktowych.
+
+**Uprawnienia:**
+- `read` - Przeglądanie kontraktów
+- `create` - Tworzenie nowych kontraktów (Manager, Admin)
+- `update` - Edycja kontraktów
+- `delete` - Usuwanie kontraktów
+- `approve` - Zatwierdzanie kontraktów (Manager, Admin)
+- `import` - Import kontraktów z systemów zewnętrznych
+
+**Role z dostępem:**
+- **admin** - Wszystkie operacje
+- **manager** - read, create, update, delete, approve
+- **contract_supervisor** - read, approve
+- **bom_editor** - read
+- **coordinator** - read
+- **prefabricator** - Brak dostępu
+- **worker** - Brak dostępu
+
+---
+
+### Moduł: subsystems (Podsystemy)
+
+Zarządzanie 12 typami podsystemów kontraktowych.
+
+**Uprawnienia:**
+- `read` - Przeglądanie podsystemów
+- `create` - Tworzenie podsystemów (Manager, Admin)
+- `update` - Edycja podsystemów
+- `delete` - Usuwanie podsystemów
+- `generateBom` - Generowanie BOM dla podsystemu
+- `allocateNetwork` - Alokacja adresów IP
+
+**12 typów podsystemów:**
+1. SMW, 2. CSDIP, 3. LAN PKP PLK
+4. SMOKIP_A, 5. SMOKIP_B
+6. SSWiN, 7. SSP, 8. SUG
+9. Obiekty Kubaturowe, 10. Kontrakty Liniowe
+11. LAN Strukturalny, 12. Struktury Światłowodowe
+
+**Role z dostępem:**
+- **admin** - Wszystkie operacje
+- **manager** - read, create, update, delete, generateBom, allocateNetwork
+- **bom_editor** - read, generateBom
+- **coordinator** - read
+- **prefabricator** - read (tylko przypisane)
+- **worker** - Brak dostępu
+
+---
+
+### Moduł: network (Zarządzanie siecią)
+
+Zarządzanie pulami IP i alokacja adresów dla podsystemów.
+
+**Uprawnienia:**
+- `read` - Przeglądanie pul IP
+- `createPool` - Tworzenie pul IP (Admin)
+- `updatePool` - Edycja pul IP (Admin)
+- `deletePool` - Usuwanie pul IP (Admin)
+- `allocate` - Alokacja adresów IP dla podsystemów
+- `viewMatrix` - Przeglądanie macierzy IP
+
+**Konfiguracja NTP:**
+- Dla podsystemów SMOKIP/CMOKIP: NTP Server = Gateway IP (automatycznie)
+
+**Role z dostępem:**
+- **admin** - Wszystkie operacje
+- **manager** - read, allocate, viewMatrix
+- **bom_editor** - read, allocate, viewMatrix
+- **coordinator** - read, viewMatrix
+- **prefabricator** - read (tylko przypisane podsystemy)
+- **worker** - Brak dostępu
+
+---
+
+### Moduł: completion (Kompletacja)
+
+Faza 2 workflow - kompletacja materiałów w magazynie.
+
+**Uprawnienia:**
+- `read` - Przeglądanie zleceń kompletacji
+- `scan` - Skanowanie kodów kreskowych materiałów (Worker)
+- `assignPallet` - Przypisywanie materiałów do palet (Worker)
+- `reportMissing` - Zgłaszanie brakujących pozycji (Worker)
+- `decideContinue` - Decyzja o kontynuacji pomimo braków (Manager)
+- `complete` - Zakończenie kompletacji (Worker + Manager approval)
+
+**Workflow kompletacji:**
+1. Worker skanuje materiały z BOM
+2. Przypisuje do palet logicznych
+3. Opcjonalnie zgłasza braki
+4. Manager decyduje: kontynuować/wstrzymać
+5. Zakończenie → email do smokip@der-mag.pl + prefabricators
+
+**Role z dostępem:**
+- **admin** - Wszystkie operacje
+- **manager** - read, decideContinue
+- **warehouse_manager** - Wszystkie operacje
+- **worker** - read, scan, assignPallet, reportMissing, complete
+- **coordinator** - read
+- **prefabricator** - read (otrzymuje zakończone zlecenia)
+- **bom_editor** - read
+
+---
+
+### Moduł: prefabrication (Prefabrykacja)
+
+Faza 3 workflow - konfiguracja urządzeń i przypisywanie SN.
+
+**Uprawnienia:**
+- `read` - Przeglądanie zleceń prefabrykacji
+- `receiveOrder` - Przyjęcie zlecenia prefabrykacji (Prefabricator)
+- `configure` - Konfiguracja urządzeń (IP, NTP=Gateway, parametry)
+- `verify` - Weryfikacja poprawności konfiguracji
+- `assignSerial` - Przypisywanie numerów seryjnych do urządzeń
+- `complete` - Zakończenie prefabrykacji
+
+**Workflow prefabrykacji:**
+1. Prefabricator odbiera skompletowane materiały
+2. Konfiguruje urządzenia (IP, NTP = Gateway)
+3. Weryfikuje konfigurację
+4. Przypisuje numery seryjne
+5. Zakończenie → email do managers + coordinators
+
+**Parametry konfiguracji:**
+- SMOKIP (1.x): NTP = Gateway, parametry monitoringu
+- SKD/CSDIP (2.x): Parametry dźwiękowe
+- SSWiN (3.x): Parametry alarmowe
+
+**Role z dostępem:**
+- **admin** - Wszystkie operacje
+- **manager** - read
+- **warehouse_manager** - read, receiveOrder
+- **prefabricator** - Wszystkie operacje
+- **coordinator** - read (otrzymuje zakończone)
+- **worker** - Brak dostępu
+- **bom_editor** - read
+
+---
+
+### Moduł: notifications (Powiadomienia)
+
+System powiadomień email dla workflow i zarządzania użytkownikami.
+
+**Uprawnienia:**
+- `receiveAlerts` - Otrzymywanie powiadomień email
+- `sendManual` - Wysyłanie ręcznych powiadomień (Admin, Manager)
+- `configureTriggers` - Konfiguracja triggerów BOM (Admin)
+
+**Typy powiadomień:**
+
+#### Zarządzanie użytkownikami:
+- Utworzenie konta → użytkownik
+- Reset hasła → użytkownik
+- Odzyskiwanie hasła → użytkownik
+
+#### Workflow kontraktowy:
+- Nowe zadanie kompletacji → workers, admins, managers
+- Zgłoszenie braków → smokip@der-mag.pl, managers
+- Zakończenie kompletacji → smokip@der-mag.pl, prefabricators, managers
+- Nowe zadanie prefabrykacji → prefabricators
+- Zakończenie prefabrykacji → managers, coordinators
+
+**Nadawca:** smokip@der-mag.pl
+
+**Role z dostępem:**
+- **admin** - Wszystkie operacje + configureTriggers
+- **manager** - receiveAlerts, sendManual
+- **warehouse_manager** - receiveAlerts
+- **prefabricator** - receiveAlerts
+- **coordinator** - receiveAlerts
+- **worker** - receiveAlerts
+- **bom_editor** - receiveAlerts
+
+---
+
+## 🗺️ Mapowanie Ról na Akcje Workflow
+
+### Kreator kontraktowy (Faza 1)
+
+| Akcja | admin | manager | bom_editor | coordinator | prefabricator | worker |
+|-------|-------|---------|------------|-------------|---------------|--------|
+| Utworzenie kontraktu | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Wybór podsystemów | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Generowanie BOM | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Alokacja IP | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+
+### Kompletacja (Faza 2)
+
+| Akcja | admin | manager | bom_editor | coordinator | prefabricator | worker |
+|-------|-------|---------|------------|-------------|---------------|--------|
+| Przeglądanie zleceń | ✅ | ✅ | ✅ | ✅ | 📖 | ✅ |
+| Skanowanie materiałów | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Przypisanie palety | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Zgłoszenie braków | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Decyzja o kontynuacji | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Zakończenie | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
+
+**Legenda:** ✅ Pełny dostęp | 📖 Tylko odczyt | ❌ Brak dostępu
+
+### Prefabrykacja (Faza 3)
+
+| Akcja | admin | manager | bom_editor | coordinator | prefabricator | worker |
+|-------|-------|---------|------------|-------------|---------------|--------|
+| Przeglądanie zadań | ✅ | ✅ | ✅ | 📖 | ✅ | ❌ |
+| Przyjęcie zlecenia | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| Konfiguracja urządzeń | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| Weryfikacja | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| Przypisanie SN | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| Zakończenie | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ |
+
+---
+
 ## 📊 Statistics
 
 **Utworzone role:** 6  

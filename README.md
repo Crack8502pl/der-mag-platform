@@ -16,17 +16,35 @@ Grover Platform to kompleksowy system do zarządzania zadaniami infrastrukturaln
   - JWT Token Rotation (8h access, 7d refresh)
   - Force Password Change - wymuszanie zmiany hasła przy pierwszym logowaniu
   - RBAC z granularnymi uprawnieniami (contracts, subsystems, network, completion, prefabrication, notifications)
+- 👤 **Zarządzanie użytkownikami** (moduł administratora)
+  - Lista użytkowników z paginacją i filtrowaniem
+  - Tworzenie i edycja profili użytkowników
+  - Zarządzanie rolami (admin, manager, bom_editor, coordinator, prefabricator, worker)
+  - Historia aktywności użytkowników
+  - Resetowanie i odzyskiwanie haseł
+  - Dezaktywacja kont użytkowników
+  - Automatyczne wysyłanie emaili z danymi logowania
 - 📦 **BOM (Bill of Materials)**
   - Zarządzanie materiałami i komponentami
   - BOM Triggers - automatyczne powiadomienia i akcje
   - Material Management Module - import CSV/Excel, integracja Symfonia
+  - Import BOM z CSV (format: L.P.;Nazwa;Suma ilości)
 - 📄 **Document Management** - zarządzanie dokumentami kontraktów (PDF, DOCX, XLSX)
-- 📋 **Contracts Workflow** - system kontraktowy z podsystemami (`/api/contracts/*`)
+- 📋 **Workflow Kontraktowy** (Fazy 1-3)
+  - System kontraktowy z 12 podsystemami
+  - Generowanie BOM dla podsystemów
+  - Kompletacja materiałów (skanowanie, palety, braki)
+  - Prefabrykacja urządzeń (konfiguracja, weryfikacja, numery seryjne)
+  - Konfiguracja NTP = Gateway
 - 🔢 **Śledzenie numerów seryjnych** urządzeń
 - 🌐 **Automatyczna alokacja adresów IP** z pul CIDR
 - ✓ **Szablony checklistów** dla każdego typu zadania
 - 📸 **Kontrola jakości** - upload zdjęć z EXIF, GPS, automatyczna kompresja
 - 📊 **Dashboard** z metrykami i statystykami w czasie rzeczywistym
+- 📧 **System powiadomień email** (SMTP: smokip@der-mag.pl)
+  - Powiadomienia o zarządzaniu użytkownikami
+  - Powiadomienia workflow kontraktowego
+  - Szablony email z polityką haseł
 - 📂 **File Generator**
   - Excel - generowanie raportów z ExcelJS
   - Word - generowanie dokumentów z docxtemplater
@@ -39,6 +57,12 @@ Grover Platform to kompleksowy system do zarządzania zadaniami infrastrukturaln
 - 🔐 **Protected Routes** - routing z granularnymi uprawnieniami
 - 🏪 **Zustand State Management** - zarządzanie stanem aplikacji
 - 🔄 **Force Password Change** - wymuszanie zmiany hasła z walidacją w czasie rzeczywistym
+- 👤 **Moduł zarządzania użytkownikami** - komponenty w `/users/`
+- 🔑 **Odzyskiwanie hasła** - strona "Zapomniałem hasła" (ForgotPasswordPage)
+- 📝 **Ulepszone komunikaty błędów logowania**:
+  - "Konto nie istnieje" - nieistniejący login
+  - "Błędne hasło" - nieprawidłowe hasło
+  - "Twoje konto zostało zablokowane" - zablokowane konto
 - 📱 **Responsive Design** - interfejs dostosowany do urządzeń mobilnych
 
 ## 🛠 Technologie
@@ -144,6 +168,20 @@ Szczegółowa dokumentacja: [frontend/README.md](frontend/README.md)
 
 ### Uwierzytelnianie
 - **Auth**: `/api/auth/*` - Login, logout, token rotation, session management
+  - `/api/auth/forgot-password` - Odzyskiwanie hasła
+
+### Zarządzanie użytkownikami
+- **Users**: `/api/users/*` - Zarządzanie użytkownikami (tylko admin)
+  - `/api/users` (GET) - Lista użytkowników
+  - `/api/users/:id` (GET) - Szczegóły użytkownika
+  - `/api/users` (POST) - Tworzenie użytkownika
+  - `/api/users/:id` (PUT) - Aktualizacja użytkownika
+  - `/api/users/:id` (DELETE) - Soft delete użytkownika
+  - `/api/users/:id/reset-password` (POST) - Reset hasła
+  - `/api/users/:id/deactivate` (POST) - Dezaktywacja konta
+  - `/api/users/:id/activate` (POST) - Aktywacja konta
+  - `/api/users/:id/role` (PUT) - Zmiana roli
+  - `/api/users/:id/activity` (GET) - Historia aktywności
 
 ### Zarządzanie zadaniami
 - **Tasks**: `/api/tasks/*` - Zarządzanie zadaniami
@@ -159,8 +197,22 @@ Szczegółowa dokumentacja: [frontend/README.md](frontend/README.md)
 
 ### Workflow kontraktowy
 - **Contracts**: `/api/contracts/*` - Zarządzanie kontraktami
-- **Subsystems**: `/api/subsystems/*` - Podsystemy kontraktów
+- **Subsystems**: `/api/subsystems/*` - Podsystemy kontraktów (12 typów)
 - **Network**: `/api/network/*` - Zarządzanie pulami IP i alokacja
+- **Completion**: `/api/completion/*` - Kompletacja materiałów
+  - `/api/completion/orders` (GET) - Lista zleceń kompletacji
+  - `/api/completion/orders/:id` (GET) - Szczegóły zlecenia
+  - `/api/completion/orders/:id/scan` (POST) - Skanowanie kodu kreskowego
+  - `/api/completion/orders/:id/assign-pallet` (POST) - Przypisanie palety
+  - `/api/completion/orders/:id/report-missing` (POST) - Zgłoszenie braków
+  - `/api/completion/orders/:id/complete` (POST) - Zakończenie kompletacji
+- **Prefabrication**: `/api/prefabrication/*` - Prefabrykacja urządzeń
+  - `/api/prefabrication/tasks` (GET) - Lista zadań prefabrykacji
+  - `/api/prefabrication/tasks/:id` (GET) - Szczegóły zadania
+  - `/api/prefabrication/tasks/:id/receive` (POST) - Przyjęcie zlecenia
+  - `/api/prefabrication/tasks/:id/configure` (POST) - Konfiguracja urządzenia
+  - `/api/prefabrication/tasks/:id/verify` (POST) - Weryfikacja konfiguracji
+  - `/api/prefabrication/tasks/:id/complete` (POST) - Zakończenie prefabrykacji
 
 ### Dokumenty i pliki
 - **Documents**: `/api/documents/*` - Zarządzanie dokumentami (PDF, DOCX, XLSX)
@@ -173,7 +225,7 @@ Szczegółowa dokumentacja: [frontend/README.md](frontend/README.md)
 - **Quality**: `/api/quality/*` - Kontrola jakości
 - **IP**: `/api/ip/*` - Zarządzanie IP (legacy)
 - **Metrics**: `/api/metrics/*` - Statystyki
-- **Users**: `/api/users/*` - Użytkownicy
+- **Notifications**: `/api/notifications/*` - System powiadomień email
 
 ## 🔑 System uprawnień (RBAC)
 

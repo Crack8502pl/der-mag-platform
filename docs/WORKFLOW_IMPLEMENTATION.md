@@ -2,7 +2,168 @@
 
 ## Przegląd implementacji
 
-Został zaimplementowany pełny system workflow kontraktowego dla platformy Grover, obejmujący 8 modułów.
+Został zaimplementowany pełny system workflow kontraktowego dla platformy Grover (Fazy 1-3), obejmujący 12 podsystemów i kompletny proces od generowania BOM do prefabrykacji urządzeń.
+
+## Przepływ Pracy (Workflow)
+
+### Faza 1: Kreator Kontraktowy
+1. **Utworzenie Kontraktu** - Manager tworzy kontrakt z datą zamówienia i kodem managera
+2. **Wybór Podsystemów** - Wybór z 12 dostępnych typów podsystemów
+3. **Generowanie BOM** - Automatyczne generowanie zestawienia materiałów dla każdego podsystemu
+4. **Alokacja Sieci** - Automatyczne przydzielanie adresów IP z pul (priorytety: Default > WAN > Mgmt)
+
+### Faza 2: Kompletacja (Magazyn)
+1. **Przyjęcie Zlecenia** - Worker otrzymuje zlecenie kompletacji
+2. **Skanowanie Materiałów** - Skanowanie kodów kreskowych z BOM
+3. **Przypisanie Palet** - Logiczne grupowanie materiałów na palety
+4. **Zgłaszanie Braków** - Opcjonalne zgłoszenie brakujących pozycji
+5. **Decyzja o Kontynuacji** - Manager decyduje czy kontynuować pomimo braków
+6. **Zakończenie** - Email do smokip@der-mag.pl i prefabricators z listą skompletowanych
+
+### Faza 3: Prefabrykacja
+1. **Przyjęcie Zlecenia** - Prefabricator otrzymuje komplet materiałów
+2. **Konfiguracja Urządzeń** - Konfiguracja IP, parametrów (NTP = Gateway)
+3. **Weryfikacja** - Sprawdzenie poprawności konfiguracji
+4. **Przypisanie Numerów Seryjnych** - Rejestracja SN w systemie
+5. **Zakończenie** - Email do managers i coordinators o gotowości do instalacji
+
+## Diagram Przepływu Pracy
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     FAZA 1: KREATOR                              │
+│                                                                   │
+│  Manager tworzy kontrakt                                        │
+│         │                                                         │
+│         ├─► Wybór podsystemów (1 lub więcej z 12 typów)        │
+│         │                                                         │
+│         ├─► Generowanie BOM (automatyczne)                      │
+│         │                                                         │
+│         └─► Alokacja IP (automatyczna, priorytet pul)          │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  FAZA 2: KOMPLETACJA                             │
+│                                                                   │
+│  Worker skanuje materiały                                        │
+│         │                                                         │
+│         ├─► Przypisanie do palet                                │
+│         │                                                         │
+│         ├─► Zgłoszenie braków (opcjonalnie)                     │
+│         │        │                                                │
+│         │        └─► Manager: Kontynuować? (TAK/NIE)            │
+│         │                                                         │
+│         └─► Zakończenie kompletacji                             │
+│                  │                                                │
+│                  └─► Email: smokip@der-mag.pl, managers          │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                 FAZA 3: PREFABRYKACJA                            │
+│                                                                   │
+│  Prefabricator odbiera materiały                                 │
+│         │                                                         │
+│         ├─► Konfiguracja urządzeń                               │
+│         │    • IP addresses                                      │
+│         │    • NTP = Gateway                                     │
+│         │    • Parametry specyficzne dla typu                   │
+│         │                                                         │
+│         ├─► Weryfikacja konfiguracji                            │
+│         │                                                         │
+│         ├─► Przypisanie numerów seryjnych                       │
+│         │                                                         │
+│         └─► Zakończenie prefabrykacji                           │
+│                  │                                                │
+│                  └─► Email: managers, coordinators               │
+└─────────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+                    Gotowe do instalacji
+```
+
+## 12 Podsystemów Kontraktowych
+
+### 1. SMW - System Monitoringu Wizyjnego
+Konfiguracja kamer IP, rejestratorów i serwerów monitoringu wizyjnego.
+**Parametry kreatora:** 1.1-1.9
+
+### 2. CSDIP - Cyfrowe Systemy Dźwiękowego Informowania Pasażerów
+Systemy nagłośnienia i informacji pasażerskiej na stacjach.
+**Parametry kreatora:** 2.1-2.9
+
+### 3. LAN PKP PLK
+Sieci LAN dla infrastruktury kolejowej.
+**Parametry kreatora:** 3.1-3.9
+
+### 4. SMOK-IP/CMOK-IP (Wariant A/SKP)
+System Monitoringu i Ostrzegania Kolejowego - wariant A.
+**Parametry kreatora:** 1.x → SMOKIP
+**Konfiguracja:** NTP = Gateway
+
+### 5. SMOK-IP/CMOK-IP (Wariant B)
+System Monitoringu i Ostrzegania Kolejowego - wariant B.
+**Parametry kreatora:** 1.x → SMOKIP
+**Konfiguracja:** NTP = Gateway
+
+### 6. SSWiN - System Sygnalizacji Włamania i Napadu
+Systemy alarmowe i zabezpieczeń.
+**Parametry kreatora:** 3.x → SSWIN
+
+### 7. SSP - System Sygnalizacji Pożaru
+Systemy przeciwpożarowe i detekcji dymu.
+**Parametry kreatora:** 3.x → SSWIN (podobna konfiguracja)
+
+### 8. SUG - Stałe Urządzenie Gaśnicze
+Instalacje gaśnicze (CO2, FM-200, etc.).
+
+### 9. Obiekty Kubaturowe
+Systemy dla budynków (BMS, HVAC, kontrola dostępu).
+
+### 10. Kontrakty Liniowe
+Infrastruktura liniowa wzdłuż torów kolejowych.
+
+### 11. LAN Strukturalny Miedziana
+Sieci strukturalne miedziane (Cat6, Cat7).
+
+### 12. Struktury Światłowodowe
+Instalacje światłowodowe i aktywne urządzenia optyczne.
+
+## Mapowanie Parametrów Kreatora
+
+| Prefiks | Podsystem | Opis |
+|---------|-----------|------|
+| 1.x | SMOKIP/CMOKIP | Parametry systemu monitoringu i ostrzegania |
+| 2.x | SKD (CSDIP) | Parametry systemów dźwiękowych |
+| 3.x | SSWIN/SSP | Parametry systemów alarmowych |
+
+**Uwaga:** Parametry kreatora będą wykorzystywane do automatycznej konfiguracji urządzeń w fazie prefabrykacji.
+
+## Format CSV dla Importu BOM
+
+System obsługuje import zestawienia materiałów (BOM) z pliku CSV w następującym formacie:
+
+```csv
+L.P.;Nazwa;Suma ilości
+1;Switch Cisco 2960;5
+2;Kamera IP Axis P1365;12
+3;Kabel UTP Cat6 305m;10
+```
+
+**Separator:** średnik (;)  
+**Kolumny:**
+- L.P. - Lp. pozycji
+- Nazwa - Nazwa materiału/komponentu
+- Suma ilości - Ilość do skompletowania
+
+**Endpoint:** `/api/bom/import` (POST, multipart/form-data)
+
+## Konfiguracja NTP
+
+Dla wszystkich urządzeń sieciowych w podsystemach SMOKIP/CMOKIP:
+- **NTP Server = Gateway IP** (automatycznie z alokacji)
+- Backup NTP: pool.ntp.org (opcjonalnie)
 
 ## Status implementacji
 
