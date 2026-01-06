@@ -1,0 +1,77 @@
+INSTRUKCJA MONTAŻU
+SYSTEM SMOKIP_A - PODSYSTEM EXAMPLE
+===================================
+
+WYMAGANE NARZĘDZIA:
+- Wkrętarka akumulatorowa
+- Zestaw kluczy imbusowych
+- Multimetr cyfrowy
+- Narzędzie do zaciskania RJ45
+- Nóż monterski
+- Taśma izolacyjna
+
+KROK 1: PRZYGOTOWANIE SZAFY RACK
+---------------------------------
+1. Rozpakować szafę rack i sprawdzić kompletność
+2. Zamontować szafę w miejscu docelowym (kotwienie do ściany/podłogi)
+3. Zamontować szyny montażowe w szafie
+4. Zamontować listwy zasilające w dolnej części szafy
+
+KROK 2: MONTAŻ CENTRALI
+------------------------
+1. Zamocować centralę SMOK-A na szynach rack (wysokość 2U)
+2. Podłączyć zasilanie 230V AC do centrali
+3. Sprawdzić wskazania LED na panelu przednim (POWER zielony)
+4. Zamontować panel operatorski nad centralą (wysokość 1U)
+
+KROK 3: INSTALACJA MODUŁÓW ROZSZERZEŃ
+--------------------------------------
+1. Zamontować moduły DI/DO w szafie (poniżej centrali)
+2. Poprowadzić kable RS485 od centrali do modułów
+3. Zachować właściwą polaryzację (A-żółty, B-zielony)
+4. Zamontować terminatory 120Ω na końcach magistrali
+
+KROK 4: PODŁĄCZENIE SIECI ETHERNET
+-----------------------------------
+1. Zamontować switch w szafie
+2. Podłączyć centralę do switcha kablem Ethernet
+3. Podłączyć switch do sieci LAN obiektu
+4. Skonfigurować adresację IP zgodnie ze schematem
+
+KROK 5: ZASILANIE I AKUMULATORY
+--------------------------------
+1. Zamontować zasilacz buforowany w szafie
+2. Podłączyć akumulatory (zachować polaryzację!)
+3. Podłączyć wyjście zasilacza do centrali (24V DC)
+4. Sprawdzić napięcie wyjściowe (powinno być 24-28V)
+
+KROK 6: TESTOWANIE
+-------------------
+1. Włączyć zasilanie główne
+2. Sprawdzić uruchomienie wszystkich komponentów
+3. Przetestować komunikację RS485 (odczyt stanów modułów)
+4. Przetestować komunikację Ethernet (ping do centrali)
+5. Przetestować panel operatorski (reakcja na dotyk)
+
+KROK 7: KONFIGURACJA
+---------------------
+1. Zalogować się do interfejsu WWW centrali
+2. Skonfigurować adresy IP i RS485
+3. Skonfigurować parametry alarmowe
+4. Wykonać test wszystkich wejść i wyjść
+5. Zapisać konfigurację do pamięci NVRAM
+
+UWAGI BEZPIECZEŃSTWA:
+---------------------
+⚠ Przed rozpoczęciem prac odłączyć zasilanie 230V AC
+⚠ Zachować ostrożność przy podłączaniu akumulatorów
+⚠ Nie przekraczać maksymalnych długości kabli
+⚠ Używać tylko oryginalnych części zamiennych
+⚠ Montaż może wykonywać tylko uprawniony elektryk
+
+CZAS MONTAŻU: 4-6 godzin (1 osoba)
+WYMAGANE KWALIFIKACJE: SEP grupa 1, certyfikat producenta
+
+Przygotował: Dział Techniczny
+Data: 2026-01-06
+Wersja: 1.0

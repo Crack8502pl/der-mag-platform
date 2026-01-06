@@ -1,0 +1,318 @@
+/* SubsystemDocumentationModal.css */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  max-height: 90vh;
+  overflow-y: auto;
+  width: 90%;
+  max-width: 1000px;
+}
+
+.documentation-modal {
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #999;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.modal-close:hover {
+  color: #333;
+}
+
+/* Subsystem Info */
+.subsystem-info {
+  display: flex;
+  gap: 2rem;
+  padding: 1rem 1.5rem;
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #eee;
+}
+
+.info-item {
+  font-size: 0.95rem;
+  color: #555;
+}
+
+.info-item strong {
+  color: #333;
+  margin-right: 0.5rem;
+}
+
+/* Error Message */
+.error-message {
+  margin: 1rem 1.5rem;
+  padding: 1rem;
+  background-color: #ffebee;
+  color: #d32f2f;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.error-message button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #d32f2f;
+  cursor: pointer;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* Upload Section */
+.upload-section {
+  padding: 1.5rem;
+}
+
+.drop-zone {
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.3s;
+  background-color: #fafafa;
+}
+
+.drop-zone.drag-over {
+  border-color: #4CAF50;
+  background-color: #f1f8f4;
+}
+
+.drop-zone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.upload-icon {
+  font-size: 3rem;
+}
+
+.drop-zone-content p {
+  margin: 0;
+  color: #555;
+}
+
+.upload-info {
+  font-size: 0.85rem;
+  color: #999;
+  line-height: 1.6;
+}
+
+/* Documents List */
+.documents-list {
+  padding: 1.5rem;
+}
+
+.documents-list h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.loading,
+.no-documents {
+  text-align: center;
+  padding: 2rem;
+  color: #999;
+}
+
+.documents-table-wrapper {
+  overflow-x: auto;
+}
+
+.documents-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.documents-table thead {
+  background-color: #f5f5f5;
+}
+
+.documents-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #ddd;
+}
+
+.documents-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #eee;
+}
+
+.documents-table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.doc-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.doc-size {
+  color: #999;
+  white-space: nowrap;
+}
+
+.doc-uploader {
+  color: #555;
+}
+
+.doc-date {
+  color: #999;
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+.doc-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.btn-icon:hover {
+  background-color: #f0f0f0;
+}
+
+.btn-delete:hover {
+  background-color: #ffebee;
+}
+
+/* Modal Footer */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 1.5rem;
+  border-top: 1px solid #eee;
+}
+
+/* Buttons */
+.btn-primary,
+.btn-secondary {
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  border: none;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #45a049;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.btn-secondary:hover {
+  background-color: #eeeeee;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .subsystem-info {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .documents-table {
+    font-size: 0.85rem;
+  }
+
+  .documents-table th,
+  .documents-table td {
+    padding: 0.5rem;
+  }
+
+  .doc-name {
+    max-width: 200px;
+  }
+}

@@ -1,0 +1,30 @@
+BOM - Bill of Materials
+Numer podsystemu: EXAMPLE
+System: SMOKIP_A
+Data: 2026-01-06
+
+Poz,Kod SAP,Nazwa,Producent,Ilość,Jednostka,Cena jedn.,Wartość
+1,MAT001234,Centrala SMOK-A v3.5,BOSCH,1,szt,12500.00,12500.00
+2,MAT001235,Panel dotykowy 15",SIEMENS,1,szt,3200.00,3200.00
+3,MAT001236,Moduł DI/DO 16-kan,BOSCH,2,szt,850.00,1700.00
+4,MAT001237,Switch Ethernet 8-port,CISCO,1,szt,1200.00,1200.00
+5,MAT001238,Zasilacz 24V/5A,MEANWELL,1,szt,450.00,450.00
+6,MAT001239,Akumulator 12V/7Ah,YUASA,2,szt,180.00,360.00
+7,MAT001240,Szafa rack 19" 12U,RITTAL,1,szt,2800.00,2800.00
+8,MAT001241,Kabel RS485 ekr. 2x2x0.5,LAPP,50,m,12.50,625.00
+9,MAT001242,Kabel Ethernet Cat6,BELDEN,30,m,8.00,240.00
+10,MAT001243,Kabel zasilający 3x2.5mm2,KABLO,20,m,15.00,300.00
+11,MAT001244,Listwy zaciskowe,PHOENIX,5,szt,45.00,225.00
+12,MAT001245,Terminator RS485 120Ω,WAGO,2,szt,15.00,30.00
+13,MAT001246,Wtyki RJ45 Cat6,TELEGÄRTNER,10,szt,8.50,85.00
+14,MAT001247,Opaska kablowa 4.8x200mm,HELLERMANN,100,szt,0.50,50.00
+15,MAT001248,Oznaczniki przewodów,BRADY,50,szt,2.00,100.00
+
+PODSUMOWANIE:
+Liczba pozycji: 15
+Wartość materiałów netto: 23,865.00 PLN
+VAT 23%: 5,488.95 PLN
+Wartość brutto: 29,353.95 PLN
+
+Przygotował: Jan Kowalski
+Zatwierdził: Anna Nowak

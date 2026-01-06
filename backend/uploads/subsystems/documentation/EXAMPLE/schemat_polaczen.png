@@ -1,0 +1,39 @@
+SCHEMAT POŁĄCZEŃ - PODSYSTEM EXAMPLE
+====================================
+
+[Schemat przedstawia połączenia elektryczne i komunikacyjne]
+
+GŁÓWNE POŁĄCZENIA:
+┌─────────────┐
+│   CENTRALA  │
+│   SMOK-A    │
+└──────┬──────┘
+       │
+       ├─── RS485 ──→ [Moduł DI/DO #1]
+       │
+       ├─── RS485 ──→ [Moduł DI/DO #2]
+       │
+       ├─── Ethernet ──→ [Switch zarządzalny]
+       │
+       └─── 24V DC ──→ [Zasilacz buforowany]
+
+ADRESACJA IP:
+- Centrala: 192.168.10.100/24
+- Switch: 192.168.10.1/24
+- Backup: 192.168.10.254/24
+
+ADRESY RS485:
+- Moduł #1: 0x01
+- Moduł #2: 0x02
+
+LEGENDA KOLORÓW PRZEWODÓW:
+- Czerwony: +24V DC
+- Czarny: GND
+- Żółty: RS485 A
+- Zielony: RS485 B
+- Niebieski: Ethernet
+
+UWAGI:
+* Maksymalna długość magistrali RS485: 1000m
+* Terminatory 120Ω na końcach magistrali RS485
+* Ekranowanie kabli RS485 obowiązkowe

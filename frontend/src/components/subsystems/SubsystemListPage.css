@@ -1,0 +1,292 @@
+/* SubsystemListPage.css */
+
+.subsystem-list-page {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.page-header .module-icon {
+  font-size: 3rem;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #333;
+}
+
+/* Filters Section */
+.filters-section {
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 200px;
+}
+
+.filter-group label {
+  font-weight: 600;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.filter-group input,
+.filter-group select {
+  padding: 0.6rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+/* Results Section */
+.results-section {
+  padding: 1.5rem;
+}
+
+.loading,
+.error-message,
+.no-results {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.1rem;
+}
+
+.error-message {
+  color: #d32f2f;
+  background-color: #ffebee;
+  border-radius: 4px;
+}
+
+/* Subsystems Table */
+.subsystems-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+}
+
+.subsystems-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.subsystems-table thead {
+  background-color: #f5f5f5;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.subsystems-table th {
+  padding: 1rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #ddd;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.subsystems-table th:hover {
+  background-color: #eeeeee;
+}
+
+.subsystems-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #eee;
+}
+
+.subsystems-table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+/* Table Cell Styles */
+.subsystem-number {
+  font-family: monospace;
+  font-weight: 600;
+  color: #1976d2;
+}
+
+.system-type {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.system-icon {
+  font-size: 1.5rem;
+}
+
+.system-name {
+  color: #555;
+}
+
+.quantity {
+  text-align: center;
+  font-weight: 600;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.status-created {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.status-badge.status-bom_generated {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.status-badge.status-ip_allocated {
+  background-color: #e8f5e9;
+  color: #388e3c;
+}
+
+.status-badge.status-in_completion {
+  background-color: #fff3e0;
+  color: #f57c00;
+}
+
+.status-badge.status-deployed {
+  background-color: #c8e6c9;
+  color: #2e7d32;
+}
+
+.contract-number {
+  font-family: monospace;
+  color: #555;
+}
+
+.project-manager {
+  color: #333;
+}
+
+/* Documents Button */
+.documents {
+  text-align: center;
+}
+
+.btn-documents {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.btn-documents:hover {
+  background-color: #45a049;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.page-info {
+  font-weight: 600;
+  color: #555;
+}
+
+/* Buttons */
+.btn-primary,
+.btn-secondary {
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  border: none;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #45a049;
+}
+
+.btn-secondary {
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.btn-secondary:hover {
+  background-color: #eeeeee;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Card */
+.card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .subsystem-list-page {
+    padding: 1rem;
+  }
+
+  .filters-section {
+    flex-direction: column;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .subsystems-table {
+    font-size: 0.85rem;
+  }
+
+  .subsystems-table th,
+  .subsystems-table td {
+    padding: 0.5rem;
+  }
+}
