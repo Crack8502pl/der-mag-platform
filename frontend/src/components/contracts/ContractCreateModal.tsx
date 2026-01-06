@@ -62,6 +62,11 @@ export const ContractCreateModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       return;
     }
     
+    if (!user || !user.id) {
+      setError('Nie znaleziono aktualnego użytkownika');
+      return;
+    }
+    
     setLoading(true);
     setError('');
     
@@ -70,7 +75,7 @@ export const ContractCreateModal: React.FC<Props> = ({ onClose, onSuccess }) => 
         customName: formData.customName,
         orderDate: formData.orderDate,
         managerCode: formData.managerCode.toUpperCase(),
-        projectManagerId: user!.id
+        projectManagerId: user.id
       };
       
       if (formData.contractNumber) {

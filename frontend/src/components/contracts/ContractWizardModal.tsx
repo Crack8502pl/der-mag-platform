@@ -407,6 +407,11 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
   };
 
   const handleSubmit = async () => {
+    if (!user || !user.id) {
+      setError('Nie znaleziono aktualnego użytkownika');
+      return;
+    }
+    
     setLoading(true);
     setError('');
     
@@ -428,7 +433,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       await contractService.createContractWithWizard({
         customName: wizardData.customName,
         orderDate: wizardData.orderDate,
-        projectManagerId: user!.id,
+        projectManagerId: user.id,
         managerCode: wizardData.managerCode,
         subsystems: subsystemsData
       });

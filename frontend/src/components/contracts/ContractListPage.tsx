@@ -60,8 +60,6 @@ export const ContractListPage: React.FC = () => {
       setError('');
       
       const token = localStorage.getItem('accessToken');
-      const userStr = localStorage.getItem('user');
-      const currentUser = userStr ? JSON.parse(userStr) : null;
       
       const params: any = {
         page: currentPage,
@@ -74,8 +72,8 @@ export const ContractListPage: React.FC = () => {
       if (filterStatus) params.status = filterStatus;
       
       // Auto-filter by current user for non-admin users
-      if (currentUser && currentUser.role !== 'admin' && currentUser.id) {
-        params.projectManagerId = currentUser.id;
+      if (user && user.role !== 'admin' && user.id) {
+        params.projectManagerId = user.id;
       }
       
       const response = await axios.get(`${API_BASE_URL}/contracts`, {
