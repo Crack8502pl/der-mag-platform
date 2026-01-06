@@ -6,21 +6,18 @@ import { Contract } from './Contract';
 import { NetworkAllocation } from './NetworkAllocation';
 
 export enum SystemType {
-  SMW = 'SMW',
-  CSDIP = 'CSDIP',
-  LAN_PKP_PLK = 'LAN_PKP_PLK',
-  SMOKIP_A = 'SMOKIP_A',
-  SMOKIP_B = 'SMOKIP_B',
-  CMOKIP_A = 'CMOKIP_A',
-  CMOKIP_B = 'CMOKIP_B',
-  SSWIN = 'SSWIN',
-  SSP = 'SSP',
-  SUG = 'SUG',
-  LAN_STRUKTURALNY = 'LAN_STRUKTURALNY',
-  ZASILANIA = 'ZASILANIA',
-  SWIATOWODY = 'SWIATOWODY',
-  OBIEKTY_KUBATUROWE = 'OBIEKTY_KUBATUROWE',
-  KONTRAKTY_LINIOWE = 'KONTRAKTY_LINIOWE'
+  SMOKIP_A = 'SMOKIP_A',       // 1. SMOK/CMOKIP-A
+  SMOKIP_B = 'SMOKIP_B',       // 2. SMOK/CMOKIP-B
+  SKD = 'SKD',                 // 3. SKD-System Kontroli Dostępu
+  SSWIN = 'SSWIN',             // 4. SSWiN-System Sygnalizacji Włamania i Napadu
+  CCTV = 'CCTV',               // 5. CCTV-System Telewizji Przemysłowej
+  SMW = 'SMW',                 // 6. SMW-System Monitoringu Wizyjnego
+  SDIP = 'SDIP',               // 7. SDIP-System Dynamicznej Informacji Pasażerskiej
+  SUG = 'SUG',                 // 8. SUG-Stałe Urządzenia Gaśnicze
+  SSP = 'SSP',                 // 9. SSP-System Stwierdzenia Pożaru
+  LAN = 'LAN',                 // 10. Okablowanie LAN
+  OTK = 'OTK',                 // 11. Okablowanie OTK
+  ZASILANIE = 'ZASILANIE'      // 12. Zasilanie
 }
 
 export enum SubsystemStatus {
