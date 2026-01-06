@@ -1,10 +1,139 @@
 # Grover Platform - Szczegółowy Log Developerski
 
+---
+
+## 📅 2026-01-06 - Aktualizacja Dokumentacji
+
+**Sesja:** 2026-01-06  
+**Czas trwania:** ~3 godziny  
+**Developer:** Crack8502pl  
+**Task:** Kompletna aktualizacja dokumentacji po implementacji modułów
+
+### Zmiany w dokumentacji
+
+#### 1. Główny README.md
+- ✅ Dodano sekcję **Moduł Zarządzania Użytkownikami**
+- ✅ Zaktualizowano listę funkcjonalności backendu
+- ✅ Dodano **Workflow Kontraktowy (Fazy 1-3)**
+- ✅ Dodano informacje o 12 podsystemach
+- ✅ Zaktualizowano API endpoints:
+  - `/api/users/*` - pełna lista operacji
+  - `/api/completion/*` - endpointy kompletacji
+  - `/api/prefabrication/*` - endpointy prefabrykacji
+  - `/api/auth/forgot-password` - publiczne odzyskiwanie hasła
+- ✅ Dodano konfigurację SMTP (smokip@der-mag.pl)
+- ✅ Dodano system powiadomień email
+- ✅ Zaktualizowano funkcjonalności frontendu:
+  - Komponenty zarządzania użytkownikami (`/users/`)
+  - ForgotPasswordPage
+  - Ulepszone komunikaty błędów logowania
+
+#### 2. docs/WORKFLOW_IMPLEMENTATION.md
+- ✅ Dodano pełny opis workflow (Fazy 1-3)
+- ✅ Dodano diagram ASCII przepływu pracy
+- ✅ Dodano listę 12 podsystemów z opisami:
+  1. SMW, 2. CSDIP, 3. LAN PKP PLK
+  4. SMOKIP_A, 5. SMOKIP_B
+  6. SSWiN, 7. SSP, 8. SUG
+  9. Obiekty Kubaturowe, 10. Kontrakty Liniowe
+  11. LAN Strukturalny, 12. Struktury Światłowodowe
+- ✅ Dodano mapowanie parametrów kreatora:
+  - 1.x → SMOKIP/CMOKIP
+  - 2.x → SKD (CSDIP)
+  - 3.x → SSWIN/SSP
+- ✅ Dodano format CSV dla importu BOM:
+  ```
+  L.P.;Nazwa;Suma ilości
+  ```
+- ✅ Dodano konfigurację NTP = Gateway dla SMOKIP
+- ✅ Zaktualizowano listę API endpoints
+
+#### 3. docs/USER_MANAGEMENT.md (NOWY)
+- ✅ Utworzono kompletną dokumentację modułu
+- ✅ Dodano przegląd funkcjonalności:
+  - Lista użytkowników (paginacja, filtrowanie, sortowanie)
+  - Profile użytkowników (edycja, historia zmian)
+  - Zarządzanie rolami (6 ról: admin, manager, bom_editor, coordinator, prefabricator, worker)
+  - Historia aktywności (dziennik akcji, eksport CSV)
+  - Tworzenie użytkownika (automatyczny email)
+  - Resetowanie hasła (przez admina)
+  - Dezaktywacja/aktywacja kont
+  - Odzyskiwanie hasła (publiczna strona)
+- ✅ Dodano tabelę API endpoints (12 endpointów)
+- ✅ Dodano przykłady użycia API (curl)
+- ✅ Dodano tabelę komunikatów błędów logowania:
+  - "Konto nie istnieje"
+  - "Błędne hasło"
+  - "Twoje konto zostało zablokowane"
+- ✅ Dodano konfigurację email (smokip@der-mag.pl)
+- ✅ Dodano szablony emaili z polityką haseł
+- ✅ Dodano diagram modułu
+
+#### 4. docs/EMAIL_NOTIFICATIONS.md (NOWY)
+- ✅ Utworzono dokumentację systemu powiadomień
+- ✅ Dodano konfigurację SMTP:
+  - Host: smtp.nazwa.pl
+  - Port: 587 (TLS)
+  - From: smokip@der-mag.pl
+- ✅ Dodano zmienne środowiskowe (SMTP_*, APP_URL)
+- ✅ Dodano typy powiadomień:
+  - **Zarządzanie użytkownikami** (3 typy)
+  - **Workflow kontraktowy** (7 typów)
+- ✅ Dodano pełne szablony email:
+  1. Utworzenie konta / Reset hasła
+  2. Odzyskiwanie hasła
+  3. Nowe zadanie kompletacji
+  4. Zgłoszenie braków
+  5. Zakończenie kompletacji
+  6. Nowe zadanie prefabrykacji
+  7. Zakończenie prefabrykacji
+- ✅ Dodano konfigurację kolejki (Bull + Redis)
+- ✅ Dodano sekcję monitoringu i debugowania
+- ✅ Dodano troubleshooting guide
+
+#### 5. docs/ROLES_AND_PERMISSIONS.md
+- ✅ Dodano sekcję **Moduł Zarządzania Użytkownikami**:
+  - Uprawnienia wymagane (users module)
+  - Operacje dostępne dla Admin (9 typów)
+  - Komunikaty błędów logowania (tabela)
+  - Publiczne endpointy (forgot-password)
+- ✅ Dodano sekcję **Workflow Kontraktowy - Uprawnienia**:
+  - Moduł contracts (6 uprawnień)
+  - Moduł subsystems (6 uprawnień, 12 typów)
+  - Moduł network (6 uprawnień, NTP=Gateway)
+  - Moduł completion (6 uprawnień, workflow)
+  - Moduł prefabrication (6 uprawnień, workflow)
+  - Moduł notifications (3 uprawnienia)
+- ✅ Dodano **Mapowanie Ról na Akcje Workflow**:
+  - Tabela Faza 1: Kreator kontraktowy
+  - Tabela Faza 2: Kompletacja
+  - Tabela Faza 3: Prefabrykacja
+  - Legenda: ✅ Pełny dostęp | 📖 Tylko odczyt | ❌ Brak dostępu
+
+### Statystyki aktualizacji
+- **Zaktualizowane pliki:** 3 (README.md, WORKFLOW_IMPLEMENTATION.md, ROLES_AND_PERMISSIONS.md)
+- **Nowe pliki:** 2 (USER_MANAGEMENT.md, EMAIL_NOTIFICATIONS.md)
+- **Dodane sekcje:** 15+
+- **Dodane tabele:** 8
+- **Dodane diagramy:** 3 (ASCII art)
+- **Dodane przykłady API:** 6+
+- **Dodane szablony email:** 7
+
+### Następne kroki
+- [ ] Aktualizacja backend/README.md
+- [ ] Aktualizacja frontend/README.md
+- [ ] Dodanie przykładów użycia workflow w dokumentacji
+- [ ] Utworzenie diagramów mermaid (opcjonalnie)
+
+---
+
+## 📅 2025-11-09 - Sesja Początkowa
+
 **Sesja:** 2025-11-09  
 **Czas trwania:** 20:20 - 02:22 UTC (6 godzin 2 minuty)  
 **Developer:** Crack8502pl  
 **Lokalizacja:** Remote development  
-**IDE:** GitHub Copilot  
+**IDE:** GitHub Copilot
 
 ---
 
