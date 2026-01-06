@@ -18,18 +18,35 @@ export class ContractController {
    */
   getContracts = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { status, projectManagerId } = req.query;
+      const { 
+        status, 
+        projectManagerId,
+        sortBy = 'createdAt',
+        sortOrder = 'DESC',
+        page = 1,
+        limit = 20
+      } = req.query;
 
       const filters: any = {};
       if (status) filters.status = status as ContractStatus;
       if (projectManagerId) filters.projectManagerId = parseInt(projectManagerId as string);
 
-      const contracts = await this.contractService.getAllContracts(filters);
+      const result = await this.contractService.getAllContracts(filters, {
+        sortBy: sortBy as string,
+        sortOrder: sortOrder as 'ASC' | 'DESC',
+        page: parseInt(page as string),
+        limit: parseInt(limit as string)
+      });
 
       res.json({
         success: true,
-        data: contracts,
-        count: contracts.length
+        data: result.contracts,
+        pagination: {
+          page: result.page,
+          limit: result.limit,
+          total: result.total,
+          totalPages: result.totalPages
+        }
       });
     } catch (error: any) {
       res.status(500).json({
