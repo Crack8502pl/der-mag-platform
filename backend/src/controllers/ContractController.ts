@@ -186,4 +186,78 @@ export class ContractController {
       });
     }
   };
+
+  /**
+   * POST /api/contracts/import
+   * Import kontraktów z pliku CSV/Excel
+   * 
+   * NOTE: File parsing is not yet implemented. This endpoint currently
+   * expects a pre-parsed array of contracts in req.body.contracts.
+   * In production, this should be enhanced to:
+   * 1. Accept multipart/form-data with file upload
+   * 2. Parse CSV/Excel files using appropriate libraries (e.g., papaparse, xlsx)
+   * 3. Validate and transform data before importing
+   */
+  importContracts = async (req: Request, res: Response): Promise<void> => {
+    try {
+      // TODO: Implement file parsing from multipart/form-data
+      // For now, expects parsed contracts array in body
+      const { contracts } = req.body;
+      
+      if (!Array.isArray(contracts)) {
+        res.status(400).json({
+          success: false,
+          message: 'Oczekiwano tablicy kontraktów w polu "contracts"'
+        });
+        return;
+      }
+      
+      const results = {
+        imported: 0,
+        errors: [] as any[]
+      };
+      
+      for (const contractData of contracts) {
+        try {
+          await this.contractService.createContract(contractData);
+          results.imported++;
+        } catch (error: any) {
+          results.errors.push({
+            data: contractData,
+            error: error.message
+          });
+        }
+      }
+      
+      res.json({
+        success: true,
+        data: results
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message: 'Błąd importu kontraktów',
+        error: error.message
+      });
+    }
+  };
+
+  /**
+   * GET /api/contracts/stats
+   * Statystyki kontraktów
+   */
+  getStats = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const stats = await this.contractService.getStats();
+      res.json({
+        success: true,
+        data: stats
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: 'Błąd pobierania statystyk'
+      });
+    }
+  };
 }
