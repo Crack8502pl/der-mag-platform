@@ -30,26 +30,43 @@ frontend/
 │   │   ├── auth/              # Authentication components
 │   │   │   ├── LoginPage.tsx
 │   │   │   ├── PasswordChangeForm.tsx
-│   │   │   └── PasswordRequirements.tsx
+│   │   │   ├── PasswordRequirements.tsx
+│   │   │   └── ForgotPasswordPage.tsx      # NEW: Password recovery
+│   │   ├── users/             # User management components (Admin)
+│   │   │   ├── UserListPage.tsx
+│   │   │   ├── UserDetailPage.tsx
+│   │   │   ├── UserCreateForm.tsx
+│   │   │   ├── UserEditForm.tsx
+│   │   │   ├── UserActivityLog.tsx
+│   │   │   └── RoleManagement.tsx
+│   │   ├── workflow/          # Workflow components
+│   │   │   ├── contracts/
+│   │   │   ├── completion/
+│   │   │   └── prefabrication/
 │   │   ├── layout/            # Layout components
 │   │   │   ├── Dashboard.tsx
 │   │   │   ├── Sidebar.tsx
 │   │   │   ├── RoleBasedRoute.tsx
 │   │   │   └── ForbiddenPage.tsx
 │   │   └── common/            # Shared components
-│   │       └── PasswordInput.tsx
+│   │       ├── PasswordInput.tsx
+│   │       └── ErrorMessage.tsx
 │   ├── hooks/                 # Custom React hooks
 │   │   ├── useAuth.ts
 │   │   ├── usePermissions.ts
 │   │   └── usePasswordValidation.ts
 │   ├── services/              # API services
 │   │   ├── api.ts
-│   │   └── auth.service.ts
+│   │   ├── auth.service.ts
+│   │   ├── user.service.ts
+│   │   └── workflow.service.ts
 │   ├── stores/                # Zustand stores
-│   │   └── authStore.ts
+│   │   ├── authStore.ts
+│   │   └── userStore.ts
 │   ├── types/                 # TypeScript types
 │   │   ├── auth.types.ts
-│   │   └── permissions.types.ts
+│   │   ├── permissions.types.ts
+│   │   └── user.types.ts
 │   └── styles/
 │       └── grover-theme.css   # Global theme
 └── ...
@@ -59,12 +76,39 @@ frontend/
 
 The frontend implements granular permissions matching the backend:
 
+- **users**: read, create, update, delete, manage (Admin only module)
 - **contracts**: read, create, update, delete, approve, import
 - **subsystems**: read, create, update, delete, generateBom, allocateNetwork
 - **network**: read, createPool, updatePool, deletePool, allocate, viewMatrix
 - **completion**: read, scan, assignPallet, reportMissing, decideContinue, complete
 - **prefabrication**: read, receiveOrder, configure, verify, assignSerial, complete
 - **notifications**: receiveAlerts, sendManual, configureTriggers
+
+## 🆕 New Features
+
+### User Management Module (Admin Only)
+- **UserListPage** - Table with pagination, filtering, and sorting
+- **UserDetailPage** - View user profile and activity history
+- **UserCreateForm** - Create new users with automatic email notifications
+- **UserEditForm** - Edit user data and roles
+- **UserActivityLog** - View and export user activity (CSV)
+- **RoleManagement** - Manage user roles and permissions
+
+### Authentication Improvements
+- **ForgotPasswordPage** - Public password recovery page
+  - User enters email/username
+  - System sends new temporary password
+  - Automatic redirect to change password on login
+- **Improved Error Messages**:
+  - "Konto nie istnieje" - Account doesn't exist
+  - "Błędne hasło" - Wrong password
+  - "Twoje konto zostało zablokowane" - Account blocked
+
+### Workflow Components
+- Contract creation and management
+- Subsystem configuration (12 types)
+- Completion workflow (scanning, pallets, missing items)
+- Prefabrication workflow (device configuration, serial numbers)
 
 ## 🛠️ Setup
 
