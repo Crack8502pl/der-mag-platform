@@ -105,15 +105,7 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
     });
   };
 
-  // Update subsystem task details
-  const updateSubsystemTaskDetails = (index: number, taskDetails: TaskDetail[]) => {
-    const newSubsystems = [...wizardData.subsystems];
-    newSubsystems[index].taskDetails = taskDetails;
-    setWizardData({
-      ...wizardData,
-      subsystems: newSubsystems
-    });
-  };
+
 
   // Generate task number in format P{XXXXX}{MM}{RR}
   const generateTaskNumber = (index: number): string => {
@@ -425,7 +417,7 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
     
     try {
       // Format data for backend
-      const subsystemsData = wizardData.subsystems.map((subsystem, index) => {
+      const subsystemsData = wizardData.subsystems.map((subsystem) => {
         const subsystemTasks = generatedTasks.filter(t => t.subsystemType === subsystem.type);
         return {
           type: subsystem.type,
@@ -702,7 +694,7 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
         <h3>Podgląd wszystkich zadań</h3>
         
         <div className="tasks-preview">
-          {tasksBySubsystem.map(({ config, subsystem, tasks }, index) => (
+          {tasksBySubsystem.map(({ config, tasks }, index) => (
             <div key={index} className="subsystem-tasks">
               <h4>{config.icon} {config.label} ({tasks.length} zadań)</h4>
               {tasks.length > 0 ? (
@@ -791,7 +783,6 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
     return null;
   };
 
-  const totalSteps = getTotalSteps();
   const stepInfo = getCurrentStepInfo();
   const isLastStep = stepInfo.type === 'success';
 
