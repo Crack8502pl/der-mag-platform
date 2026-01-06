@@ -26,6 +26,14 @@ router.get(
   contractController.getContract
 );
 
+// Wizard - tworzenie kontraktu z zadaniami (MUST be before generic POST '/')
+router.post(
+  '/wizard',
+  authenticate,
+  requirePermission('contracts', 'create'),
+  contractController.createContractWithWizard
+);
+
 router.post(
   '/',
   authenticate,
