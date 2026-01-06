@@ -29,7 +29,12 @@ export class ContractController {
 
       const filters: any = {};
       if (status) filters.status = status as ContractStatus;
-      if (projectManagerId) filters.projectManagerId = parseInt(projectManagerId as string);
+      if (projectManagerId) {
+        const parsedId = parseInt(projectManagerId as string);
+        if (!isNaN(parsedId)) {
+          filters.projectManagerId = parsedId;
+        }
+      }
 
       const result = await this.contractService.getAllContracts(filters, {
         sortBy: sortBy as string,
