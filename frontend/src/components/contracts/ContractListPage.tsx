@@ -43,7 +43,13 @@ export const ContractListPage: React.FC = () => {
   const [editingContract, setEditingContract] = useState<Contract | null>(null);
   
   // Managers for filter
-  const [managers, setManagers] = useState<any[]>([]);
+  const [managers, setManagers] = useState<Array<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    username: string;
+    email: string;
+  }>>([]);
 
   // Permission checks
   const canCreate = hasPermission('contracts', 'create');
@@ -54,8 +60,11 @@ export const ContractListPage: React.FC = () => {
 
   useEffect(() => {
     loadContracts();
-    loadManagers();
   }, [searchTerm, filterStatus, filterManager, sortBy, sortOrder, currentPage]);
+
+  useEffect(() => {
+    loadManagers();
+  }, []);
 
   const loadContracts = async () => {
     try {

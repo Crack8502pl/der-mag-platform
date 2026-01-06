@@ -3,10 +3,17 @@
 
 import React, { useState } from 'react';
 import type { Contract } from '../../services/contract.service';
+import contractService from '../../services/contract.service';
 
 interface Props {
   contract: Contract;
-  managers: any[];
+  managers: Array<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    username: string;
+    email: string;
+  }>;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -59,9 +66,6 @@ export const ContractEditModal: React.FC<Props> = ({ contract, managers, onClose
     setError('');
     
     try {
-      const token = localStorage.getItem('accessToken');
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-      
       const payload: any = {
         customName: formData.customName,
         orderDate: formData.orderDate,
@@ -73,21 +77,7 @@ export const ContractEditModal: React.FC<Props> = ({ contract, managers, onClose
         payload.jowiszRef = formData.jowiszRef;
       }
       
-      const response = await fetch(`${API_BASE_URL}/contracts/${contract.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Błąd aktualizacji kontraktu');
-      }
-      
+      await contractService.updateContract(contract.id, payload);
       onSuccess();
     } catch (err: any) {
       setError(err.message || 'Błąd aktualizacji kontraktu');

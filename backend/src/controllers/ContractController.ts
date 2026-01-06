@@ -190,11 +190,27 @@ export class ContractController {
   /**
    * POST /api/contracts/import
    * Import kontraktów z pliku CSV/Excel
+   * 
+   * NOTE: File parsing is not yet implemented. This endpoint currently
+   * expects a pre-parsed array of contracts in req.body.contracts.
+   * In production, this should be enhanced to:
+   * 1. Accept multipart/form-data with file upload
+   * 2. Parse CSV/Excel files using appropriate libraries (e.g., papaparse, xlsx)
+   * 3. Validate and transform data before importing
    */
   importContracts = async (req: Request, res: Response): Promise<void> => {
     try {
-      // TODO: Implement file parsing
+      // TODO: Implement file parsing from multipart/form-data
+      // For now, expects parsed contracts array in body
       const { contracts } = req.body;
+      
+      if (!Array.isArray(contracts)) {
+        res.status(400).json({
+          success: false,
+          message: 'Oczekiwano tablicy kontraktów w polu "contracts"'
+        });
+        return;
+      }
       
       const results = {
         imported: 0,

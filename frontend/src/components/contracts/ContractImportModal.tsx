@@ -2,6 +2,7 @@
 // Modal for importing contracts
 
 import React, { useState } from 'react';
+import contractService from '../../services/contract.service';
 
 interface Props {
   onClose: () => void;
@@ -32,27 +33,8 @@ export const ContractImportModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     setError('');
     
     try {
-      const token = localStorage.getItem('accessToken');
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-      
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const response = await fetch(`${API_BASE_URL}/contracts/import`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Błąd importu kontraktów');
-      }
-      
-      onSuccess(data.data.imported || 0);
+      const result = await contractService.importContracts(file);
+      onSuccess(result.imported || 0);
     } catch (err: any) {
       setError(err.message || 'Błąd importu kontraktów');
     } finally {

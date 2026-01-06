@@ -2,9 +2,16 @@
 // Modal for creating new contracts
 
 import React, { useState } from 'react';
+import contractService from '../../services/contract.service';
 
 interface Props {
-  managers: any[];
+  managers: Array<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    username: string;
+    email: string;
+  }>;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -63,9 +70,6 @@ export const ContractCreateModal: React.FC<Props> = ({ managers, onClose, onSucc
     setError('');
     
     try {
-      const token = localStorage.getItem('accessToken');
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-      
       const payload: any = {
         customName: formData.customName,
         orderDate: formData.orderDate,
@@ -81,21 +85,7 @@ export const ContractCreateModal: React.FC<Props> = ({ managers, onClose, onSucc
         payload.jowiszRef = formData.jowiszRef;
       }
       
-      const response = await fetch(`${API_BASE_URL}/contracts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Błąd tworzenia kontraktu');
-      }
-      
+      await contractService.createContract(payload);
       onSuccess();
     } catch (err: any) {
       setError(err.message || 'Błąd tworzenia kontraktu');
