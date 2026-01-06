@@ -34,8 +34,8 @@ export class ContractController {
       const result = await this.contractService.getAllContracts(filters, {
         sortBy: sortBy as string,
         sortOrder: sortOrder as 'ASC' | 'DESC',
-        page: parseInt(page as string),
-        limit: parseInt(limit as string)
+        page: parseInt(page as string) || 1,
+        limit: parseInt(limit as string) || 20
       });
 
       res.json({
