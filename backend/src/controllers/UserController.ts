@@ -198,14 +198,22 @@ export class UserController {
       });
 
       if (!user) {
-        res.status(404).json({ success: false, message: 'Użytkownik nie znaleziony' });
+        res.status(404).json({ 
+          success: false, 
+          error: 'USER_NOT_FOUND',
+          message: 'Użytkownik nie znaleziony' 
+        });
         return;
       }
 
       res.json({ success: true, data: user });
     } catch (error) {
       console.error('Błąd pobierania użytkownika:', error);
-      res.status(500).json({ success: false, message: 'Błąd serwera' });
+      res.status(500).json({ 
+        success: false, 
+        error: 'SERVER_ERROR',
+        message: 'Błąd serwera' 
+      });
     }
   }
 
@@ -221,6 +229,7 @@ export class UserController {
       if (!username || !email || !firstName || !lastName || !roleId || !password) {
         res.status(400).json({
           success: false,
+          error: 'MISSING_FIELDS',
           message: 'Wszystkie wymagane pola muszą być wypełnione'
         });
         return;
@@ -230,6 +239,7 @@ export class UserController {
       if (username.length < 3) {
         res.status(400).json({
           success: false,
+          error: 'INVALID_USERNAME',
           message: 'Login musi mieć minimum 3 znaki'
         });
         return;
@@ -238,6 +248,7 @@ export class UserController {
       if (firstName.length < 2 || lastName.length < 2) {
         res.status(400).json({
           success: false,
+          error: 'INVALID_NAME',
           message: 'Imię i nazwisko muszą mieć minimum 2 znaki'
         });
         return;
@@ -246,6 +257,7 @@ export class UserController {
       if (password.length < 8) {
         res.status(400).json({
           success: false,
+          error: 'INVALID_PASSWORD',
           message: 'Hasło musi mieć minimum 8 znaków'
         });
         return;
@@ -265,11 +277,13 @@ export class UserController {
         if (existingUser.email === email) {
           res.status(400).json({
             success: false,
+            error: 'EMAIL_EXISTS',
             message: 'Użytkownik z tym adresem email już istnieje'
           });
         } else {
           res.status(400).json({
             success: false,
+            error: 'USERNAME_EXISTS',
             message: 'Użytkownik z tym loginem już istnieje'
           });
         }
@@ -324,7 +338,11 @@ export class UserController {
       });
     } catch (error) {
       console.error('Błąd tworzenia użytkownika:', error);
-      res.status(500).json({ success: false, message: 'Błąd serwera' });
+      res.status(500).json({ 
+        success: false, 
+        error: 'SERVER_ERROR',
+        message: 'Błąd serwera' 
+      });
     }
   }
 
@@ -432,7 +450,11 @@ export class UserController {
       });
 
       if (!user) {
-        res.status(404).json({ success: false, message: 'Użytkownik nie znaleziony' });
+        res.status(404).json({ 
+          success: false, 
+          error: 'USER_NOT_FOUND',
+          message: 'Użytkownik nie znaleziony' 
+        });
         return;
       }
 
@@ -445,6 +467,7 @@ export class UserController {
         if (existingUser && existingUser.id !== user.id) {
           res.status(400).json({
             success: false,
+            error: 'EMAIL_EXISTS',
             message: 'Użytkownik z tym adresem email już istnieje'
           });
           return;
@@ -466,7 +489,11 @@ export class UserController {
       });
     } catch (error) {
       console.error('Błąd aktualizacji użytkownika:', error);
-      res.status(500).json({ success: false, message: 'Błąd serwera' });
+      res.status(500).json({ 
+        success: false, 
+        error: 'SERVER_ERROR',
+        message: 'Błąd serwera' 
+      });
     }
   }
 
@@ -484,7 +511,11 @@ export class UserController {
       });
 
       if (!user) {
-        res.status(404).json({ success: false, message: 'Użytkownik nie znaleziony' });
+        res.status(404).json({ 
+          success: false, 
+          error: 'USER_NOT_FOUND',
+          message: 'Użytkownik nie znaleziony' 
+        });
         return;
       }
 
@@ -500,7 +531,11 @@ export class UserController {
       });
     } catch (error) {
       console.error('Błąd usuwania użytkownika:', error);
-      res.status(500).json({ success: false, message: 'Błąd serwera' });
+      res.status(500).json({ 
+        success: false, 
+        error: 'SERVER_ERROR',
+        message: 'Błąd serwera' 
+      });
     }
   }
 
@@ -516,6 +551,7 @@ export class UserController {
       if (!password || password.length < 8) {
         res.status(400).json({
           success: false,
+          error: 'INVALID_PASSWORD',
           message: 'Hasło musi mieć minimum 8 znaków'
         });
         return;
@@ -527,7 +563,11 @@ export class UserController {
       });
 
       if (!user) {
-        res.status(404).json({ success: false, message: 'Użytkownik nie znaleziony' });
+        res.status(404).json({ 
+          success: false, 
+          error: 'USER_NOT_FOUND',
+          message: 'Użytkownik nie znaleziony' 
+        });
         return;
       }
 
@@ -566,7 +606,11 @@ export class UserController {
       });
     } catch (error) {
       console.error('Błąd resetowania hasła:', error);
-      res.status(500).json({ success: false, message: 'Błąd serwera' });
+      res.status(500).json({ 
+        success: false, 
+        error: 'SERVER_ERROR',
+        message: 'Błąd serwera' 
+      });
     }
   }
 
@@ -585,7 +629,11 @@ export class UserController {
       });
 
       if (!user) {
-        res.status(404).json({ success: false, message: 'Użytkownik nie znaleziony' });
+        res.status(404).json({ 
+          success: false, 
+          error: 'USER_NOT_FOUND',
+          message: 'Użytkownik nie znaleziony' 
+        });
         return;
       }
 
@@ -603,7 +651,11 @@ export class UserController {
       });
     } catch (error) {
       console.error('Błąd dezaktywacji użytkownika:', error);
-      res.status(500).json({ success: false, message: 'Błąd serwera' });
+      res.status(500).json({ 
+        success: false, 
+        error: 'SERVER_ERROR',
+        message: 'Błąd serwera' 
+      });
     }
   }
 
@@ -621,7 +673,11 @@ export class UserController {
       });
 
       if (!user) {
-        res.status(404).json({ success: false, message: 'Użytkownik nie znaleziony' });
+        res.status(404).json({ 
+          success: false, 
+          error: 'USER_NOT_FOUND',
+          message: 'Użytkownik nie znaleziony' 
+        });
         return;
       }
 
@@ -634,7 +690,11 @@ export class UserController {
       });
     } catch (error) {
       console.error('Błąd aktywacji użytkownika:', error);
-      res.status(500).json({ success: false, message: 'Błąd serwera' });
+      res.status(500).json({ 
+        success: false, 
+        error: 'SERVER_ERROR',
+        message: 'Błąd serwera' 
+      });
     }
   }
 
@@ -650,6 +710,7 @@ export class UserController {
       if (!roleId) {
         res.status(400).json({
           success: false,
+          error: 'MISSING_ROLE_ID',
           message: 'ID roli jest wymagane'
         });
         return;
@@ -662,7 +723,11 @@ export class UserController {
       });
 
       if (!user) {
-        res.status(404).json({ success: false, message: 'Użytkownik nie znaleziony' });
+        res.status(404).json({ 
+          success: false, 
+          error: 'USER_NOT_FOUND',
+          message: 'Użytkownik nie znaleziony' 
+        });
         return;
       }
 
@@ -682,7 +747,11 @@ export class UserController {
       });
     } catch (error) {
       console.error('Błąd zmiany roli użytkownika:', error);
-      res.status(500).json({ success: false, message: 'Błąd serwera' });
+      res.status(500).json({ 
+        success: false, 
+        error: 'SERVER_ERROR',
+        message: 'Błąd serwera' 
+      });
     }
   }
 
@@ -712,7 +781,11 @@ export class UserController {
       });
     } catch (error) {
       console.error('Błąd pobierania historii aktywności:', error);
-      res.status(500).json({ success: false, message: 'Błąd serwera' });
+      res.status(500).json({ 
+        success: false, 
+        error: 'SERVER_ERROR',
+        message: 'Błąd serwera' 
+      });
     }
   }
 
@@ -731,7 +804,11 @@ export class UserController {
       });
 
       if (!user) {
-        res.status(404).json({ success: false, message: 'Użytkownik nie znaleziony' });
+        res.status(404).json({ 
+          success: false, 
+          error: 'USER_NOT_FOUND',
+          message: 'Użytkownik nie znaleziony' 
+        });
         return;
       }
 
@@ -744,7 +821,11 @@ export class UserController {
       });
     } catch (error) {
       console.error('Błąd pobierania uprawnień użytkownika:', error);
-      res.status(500).json({ success: false, message: 'Błąd serwera' });
+      res.status(500).json({ 
+        success: false, 
+        error: 'SERVER_ERROR',
+        message: 'Błąd serwera' 
+      });
     }
   }
 
@@ -757,13 +838,18 @@ export class UserController {
       const { currentPassword, newPassword } = req.body;
 
       if (!userId) {
-        res.status(401).json({ success: false, message: 'Unauthorized' });
+        res.status(401).json({ 
+          success: false, 
+          error: 'UNAUTHORIZED',
+          message: 'Unauthorized' 
+        });
         return;
       }
 
       if (!currentPassword || !newPassword) {
         res.status(400).json({
           success: false,
+          error: 'MISSING_FIELDS',
           message: 'Current password and new password are required',
         });
         return;
@@ -777,7 +863,11 @@ export class UserController {
         .getOne();
 
       if (!user) {
-        res.status(404).json({ success: false, message: 'User not found' });
+        res.status(404).json({ 
+          success: false, 
+          error: 'USER_NOT_FOUND',
+          message: 'User not found' 
+        });
         return;
       }
 
@@ -786,6 +876,7 @@ export class UserController {
       if (!isValid) {
         res.status(400).json({
           success: false,
+          error: 'INVALID_PASSWORD',
           message: 'Current password is incorrect',
         });
         return;
@@ -807,6 +898,7 @@ export class UserController {
       console.error('Error changing password:', error);
       res.status(400).json({
         success: false,
+        error: 'SERVER_ERROR',
         message: errorMessage,
       });
     }
