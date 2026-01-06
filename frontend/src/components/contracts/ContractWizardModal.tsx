@@ -2,18 +2,12 @@
 // Multi-step wizard for creating contracts with multiple subsystems
 
 import React, { useState } from 'react';
+import { useAuth } from '../../hooks/useAuth';
 import { SUBSYSTEM_WIZARD_CONFIG, detectSubsystemTypes } from '../../config/subsystemWizardConfig';
 import type { SubsystemType } from '../../config/subsystemWizardConfig';
 import contractService from '../../services/contract.service';
 
 interface Props {
-  managers: Array<{
-    id: number;
-    firstName: string;
-    lastName: string;
-    username: string;
-    email: string;
-  }>;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -50,7 +44,8 @@ interface GeneratedTask {
   subsystemType: SubsystemType;
 }
 
-export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSuccess }) => {
+export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => {
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -59,7 +54,7 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
   const [wizardData, setWizardData] = useState<WizardData>({
     customName: '',
     orderDate: '',
-    projectManagerId: '',
+    projectManagerId: user?.id?.toString() || '',
     managerCode: '',
     subsystems: []
   });
@@ -433,7 +428,7 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
       await contractService.createContractWithWizard({
         customName: wizardData.customName,
         orderDate: wizardData.orderDate,
-        projectManagerId: parseInt(wizardData.projectManagerId),
+        projectManagerId: user!.id,
         managerCode: wizardData.managerCode,
         subsystems: subsystemsData
       });
@@ -452,7 +447,7 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
     
     if (stepInfo.type === 'basic') {
       return wizardData.customName && wizardData.orderDate && 
-             wizardData.projectManagerId && wizardData.managerCode.length === 3;
+             user && user.id && wizardData.managerCode.length === 3;
     }
     if (stepInfo.type === 'selection') {
       return wizardData.subsystems.length > 0;
@@ -526,17 +521,14 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
       
       <div className="form-group">
         <label>Kierownik projektu *</label>
-        <select
-          value={wizardData.projectManagerId}
-          onChange={(e) => setWizardData({...wizardData, projectManagerId: e.target.value})}
-        >
-          <option value="">Wybierz kierownika...</option>
-          {managers.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.firstName} {m.lastName}
-            </option>
-          ))}
-        </select>
+        <input
+          type="text"
+          className="form-control-readonly"
+          value={user ? `${user.firstName} ${user.lastName} (${user.username})` : ''}
+          disabled
+          readOnly
+        />
+        <span className="text-muted">Automatycznie ustawiony na aktualnego użytkownika</span>
       </div>
       
       <div className="form-group">

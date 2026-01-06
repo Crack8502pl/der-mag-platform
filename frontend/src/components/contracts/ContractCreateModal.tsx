@@ -2,27 +2,23 @@
 // Modal for creating new contracts
 
 import React, { useState } from 'react';
+import { useAuth } from '../../hooks/useAuth';
 import contractService from '../../services/contract.service';
 
 interface Props {
-  managers: Array<{
-    id: number;
-    firstName: string;
-    lastName: string;
-    username: string;
-    email: string;
-  }>;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export const ContractCreateModal: React.FC<Props> = ({ managers, onClose, onSuccess }) => {
+export const ContractCreateModal: React.FC<Props> = ({ onClose, onSuccess }) => {
+  const { user } = useAuth();
+  
   const [formData, setFormData] = useState({
     contractNumber: '',
     customName: '',
     orderDate: '',
     managerCode: '',
-    projectManagerId: '',
+    projectManagerId: user?.id?.toString() || '',
     jowiszRef: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -46,8 +42,8 @@ export const ContractCreateModal: React.FC<Props> = ({ managers, onClose, onSucc
       newErrors.managerCode = 'Kod kierownika musi mieć 3 znaki';
     }
     
-    if (!formData.projectManagerId) {
-      newErrors.projectManagerId = 'Kierownik projektu jest wymagany';
+    if (!user || !user.id) {
+      newErrors.projectManagerId = 'Nie znaleziono aktualnego użytkownika';
     }
     
     // Validate contract number format if provided
@@ -74,7 +70,7 @@ export const ContractCreateModal: React.FC<Props> = ({ managers, onClose, onSucc
         customName: formData.customName,
         orderDate: formData.orderDate,
         managerCode: formData.managerCode.toUpperCase(),
-        projectManagerId: parseInt(formData.projectManagerId)
+        projectManagerId: user!.id
       };
       
       if (formData.contractNumber) {
@@ -169,20 +165,15 @@ export const ContractCreateModal: React.FC<Props> = ({ managers, onClose, onSucc
             <label htmlFor="projectManagerId">
               Kierownik projektu <span className="required">*</span>
             </label>
-            <select
+            <input
               id="projectManagerId"
-              className={errors.projectManagerId ? 'error' : ''}
-              value={formData.projectManagerId}
-              onChange={(e) => setFormData({ ...formData, projectManagerId: e.target.value })}
-            >
-              <option value="">Wybierz kierownika...</option>
-              {Array.isArray(managers) && managers.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.firstName} {m.lastName} ({m.username})
-                </option>
-              ))}
-            </select>
-            {errors.projectManagerId && <span className="error-text">{errors.projectManagerId}</span>}
+              type="text"
+              className="form-control-readonly"
+              value={user ? `${user.firstName} ${user.lastName} (${user.username})` : ''}
+              disabled
+              readOnly
+            />
+            <span className="text-muted">Automatycznie ustawiony na aktualnego użytkownika</span>
           </div>
           
           <div className="form-group">

@@ -28,7 +28,6 @@ export const ContractListPage: React.FC = () => {
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [filterManager, setFilterManager] = useState('');
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
   
@@ -43,15 +42,6 @@ export const ContractListPage: React.FC = () => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showWizardModal, setShowWizardModal] = useState(false);
   const [editingContract, setEditingContract] = useState<Contract | null>(null);
-  
-  // Managers for filter
-  const [managers, setManagers] = useState<Array<{
-    id: number;
-    firstName: string;
-    lastName: string;
-    username: string;
-    email: string;
-  }>>([]);
 
   // Permission checks
   const canCreate = hasPermission('contracts', 'create');
@@ -62,11 +52,7 @@ export const ContractListPage: React.FC = () => {
 
   useEffect(() => {
     loadContracts();
-  }, [searchTerm, filterStatus, filterManager, sortBy, sortOrder, currentPage]);
-
-  useEffect(() => {
-    loadManagers();
-  }, []);
+  }, [searchTerm, filterStatus, sortBy, sortOrder, currentPage]);
 
   const loadContracts = async () => {
     try {
@@ -74,6 +60,9 @@ export const ContractListPage: React.FC = () => {
       setError('');
       
       const token = localStorage.getItem('accessToken');
+      const userStr = localStorage.getItem('user');
+      const currentUser = userStr ? JSON.parse(userStr) : null;
+      
       const params: any = {
         page: currentPage,
         limit: itemsPerPage,
@@ -83,7 +72,11 @@ export const ContractListPage: React.FC = () => {
       
       if (searchTerm) params.search = searchTerm;
       if (filterStatus) params.status = filterStatus;
-      if (filterManager) params.projectManagerId = filterManager;
+      
+      // Auto-filter by current user for non-admin users
+      if (currentUser && currentUser.role !== 'admin' && currentUser.id) {
+        params.projectManagerId = currentUser.id;
+      }
       
       const response = await axios.get(`${API_BASE_URL}/contracts`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -99,20 +92,6 @@ export const ContractListPage: React.FC = () => {
       setContracts([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadManagers = async () => {
-    try {
-      const token = localStorage.getItem('accessToken');
-      const response = await axios.get(`${API_BASE_URL}/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: { role: 'manager' }
-      });
-      const data = response.data.data || response.data;
-      setManagers(data.users || data || []);
-    } catch (err) {
-      console.error('Błąd pobierania kierowników:', err);
     }
   };
 
@@ -264,21 +243,9 @@ export const ContractListPage: React.FC = () => {
             <option value="CANCELLED">Anulowany</option>
           </select>
           
-          <select
-            className="filter-select"
-            value={filterManager}
-            onChange={(e) => {
-              setFilterManager(e.target.value);
-              setCurrentPage(1);
-            }}
-          >
-            <option value="">Wszyscy kierownicy</option>
-            {Array.isArray(managers) && managers.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.firstName} {m.lastName}
-              </option>
-            ))}
-          </select>
+          <div className="filter-info">
+            📋 Wyświetlam tylko moje kontrakty
+          </div>
           
           <div className="contracts-count">
             Znaleziono: <strong>{totalContracts}</strong> kontraktów
@@ -425,7 +392,6 @@ export const ContractListPage: React.FC = () => {
       {/* Modals */}
       {showCreateModal && (
         <ContractCreateModal
-          managers={managers}
           onClose={() => setShowCreateModal(false)}
           onSuccess={handleContractCreated}
         />
@@ -434,7 +400,6 @@ export const ContractListPage: React.FC = () => {
       {editingContract && (
         <ContractEditModal
           contract={editingContract}
-          managers={managers}
           onClose={() => setEditingContract(null)}
           onSuccess={handleContractUpdated}
         />
@@ -449,7 +414,6 @@ export const ContractListPage: React.FC = () => {
 
       {showWizardModal && (
         <ContractWizardModal
-          managers={managers}
           onClose={() => setShowWizardModal(false)}
           onSuccess={handleContractCreated}
         />
