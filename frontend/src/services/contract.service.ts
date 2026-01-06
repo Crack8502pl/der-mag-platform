@@ -90,11 +90,17 @@ class ContractService {
     orderDate: string;
     projectManagerId: number;
     managerCode: string;
-    subsystemType: string | null;
-    subsystemParams: {
+    subsystems?: Array<{
+      type: string;
+      params: Record<string, number | boolean>;
+      tasks: Array<{ number: string; name: string; type: string }>;
+    }>;
+    // Legacy support:
+    subsystemType?: string | null;
+    subsystemParams?: {
       [key: string]: number | boolean;
     };
-    tasks: Array<{ number: string; name: string; type: string }>;
+    tasks?: Array<{ number: string; name: string; type: string }>;
   }): Promise<Contract> {
     const response = await api.post('/contracts/wizard', data);
     return response.data.data;
