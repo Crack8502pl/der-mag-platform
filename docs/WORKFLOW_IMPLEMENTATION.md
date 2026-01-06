@@ -219,6 +219,22 @@ Dla wszystkich urządzeń sieciowych w podsystemach SMOKIP/CMOKIP:
 - [x] Generator numerów kontraktów (RXXXXXXX_Y)
 - [x] Generator numerów podsystemów (PXXXXXYYZZ)
 
+### Generator numerów kontraktów
+
+Format: **RXXXXXXX_Y**
+- `R` - prefix (stały)
+- `XXXXXXX` - numer kolejny 7-cyfrowy (0000001-9999999)
+- `_` - separator
+- `Y` - **litera rewizji/wersji** (A-Z)
+
+**Przykłady:**
+- `R0000001_A` - pierwszy kontrakt, wersja A
+- `R0000001_B` - rewizja pierwszego kontraktu, wersja B
+- `R0000002_A` - drugi kontrakt, wersja A
+
+**Uwaga:** Każdy nowy kontrakt zaczyna od wersji `A`. Wersje B, C, D... są tworzone przy rewizjach istniejącego kontraktu.
+
+
 ### ✅ Moduł 3: System adresacji IP
 - [x] Encje: `NetworkPool`, `NetworkAllocation`, `DeviceIPAssignment`
 - [x] Serwisy: `NetworkPoolService`, `NetworkAllocationService`, `IPAssignmentService`

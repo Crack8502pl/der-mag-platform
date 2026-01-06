@@ -39,7 +39,7 @@ describe('ContractController', () => {
         contracts: [
           {
             id: 1,
-            contractNumber: 'R0000001_1',
+            contractNumber: 'R0000001_A',
             customName: 'Test Contract',
             status: ContractStatus.CREATED,
           },
@@ -251,7 +251,7 @@ describe('ContractController', () => {
     it('should create contract with wizard successfully without subsystem', async () => {
       const mockContract = {
         id: 1,
-        contractNumber: 'R0000001_1',
+        contractNumber: 'R0000001_A',
         customName: 'Modernizacja SMOK-A Warszawa',
         status: ContractStatus.CREATED,
         orderDate: new Date('2026-01-06'),
@@ -287,7 +287,7 @@ describe('ContractController', () => {
         message: 'Kontrakt utworzony pomyślnie z 2 zadaniami',
         data: expect.objectContaining({
           id: 1,
-          contractNumber: 'R0000001_1',
+          contractNumber: 'R0000001_A',
           tasks: expect.arrayContaining([
             expect.objectContaining({ number: 'P000010126' }),
             expect.objectContaining({ number: 'P000020126' }),
@@ -350,7 +350,7 @@ describe('ContractController', () => {
     it('should return 400 when subsystemType is invalid', async () => {
       const mockContract = {
         id: 1,
-        contractNumber: 'R0000001_1',
+        contractNumber: 'R0000001_A',
         customName: 'Test Contract',
         status: ContractStatus.CREATED,
         orderDate: new Date('2026-01-06'),

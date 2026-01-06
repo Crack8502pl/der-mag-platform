@@ -17,10 +17,10 @@ export class ContractService {
    * Walidacja numeru kontraktu w formacie RXXXXXXX_Y
    * R = prefix
    * XXXXXXX = 7-cyfrowy numer (0000001-9999999)
-   * _Y = suffix (1-9)
+   * _Y = litera rewizji/wersji (A-Z)
    */
   validateContractNumber(contractNumber: string): boolean {
-    const regex = /^R\d{7}_\d$/;
+    const regex = /^R\d{7}_[A-Z]$/;
     return regex.test(contractNumber);
   }
 
@@ -36,18 +36,22 @@ export class ContractService {
       .getOne();
 
     let nextNumber = 1;
+    let revisionLetter = 'A';  // Domyślnie wersja A
+    
     if (lastContract && lastContract.contractNumber) {
       // Wyciągnij numer z formatu RXXXXXXX_Y
-      const match = lastContract.contractNumber.match(/^R(\d{7})_(\d)$/);
+      const match = lastContract.contractNumber.match(/^R(\d{7})_([A-Z])$/);
       if (match) {
         const baseNumber = parseInt(match[1], 10);
         nextNumber = baseNumber + 1;
+        // Nowy kontrakt zawsze zaczyna od wersji A
+        revisionLetter = 'A';
       }
     }
 
-    // Format: R0000001_1 (domyślnie suffix = 1)
+    // Format: R0000001_A (domyślnie wersja A)
     const paddedNumber = nextNumber.toString().padStart(7, '0');
-    return `R${paddedNumber}_1`;
+    return `R${paddedNumber}_${revisionLetter}`;
   }
 
   /**
