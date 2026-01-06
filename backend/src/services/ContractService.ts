@@ -44,8 +44,6 @@ export class ContractService {
       if (match) {
         const baseNumber = parseInt(match[1], 10);
         nextNumber = baseNumber + 1;
-        // Nowy kontrakt zawsze zaczyna od wersji A
-        revisionLetter = 'A';
       }
     }
 

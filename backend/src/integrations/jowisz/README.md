@@ -59,13 +59,13 @@ const status = await jowiszClient.testConnection();
 console.log(status);
 
 // Pobierz kontrakt
-const contract = await jowiszClient.getContract('R0000123_1');
+const contract = await jowiszClient.getContract('R0000123_A');
 
 // Wyszukaj kontrakty
 const results = await jowiszClient.searchContracts('PKP', 1, 10);
 
 // Import kontraktu
-const imported = await jowiszClient.importContract('R0000123_1');
+const imported = await jowiszClient.importContract('R0000123_A');
 ```
 
 ## Dostępne endpointy (po implementacji)
