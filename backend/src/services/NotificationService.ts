@@ -322,18 +322,19 @@ export class NotificationService {
       
       const subject = 'Twoje konto w systemie Grover Platform zostało utworzone';
       
-      // For now, send a simple HTML email directly
-      // In the future, this should use a proper template
+      // Use the same template as in UserController.create method
       await EmailService.sendEmail({
         to: user.email,
         subject: subject,
-        template: 'user-created-simple',
+        template: 'user-created-with-password',
         context: {
           firstName: user.firstName,
           lastName: user.lastName,
           username: user.username,
           password: password,
-          appUrl: process.env.APP_URL || 'http://localhost:3000'
+          systemUrl: process.env.APP_URL || 'http://localhost:3000',
+          loginUrl: `${process.env.APP_URL || 'http://localhost:3000'}/login`,
+          supportEmail: process.env.SUPPORT_EMAIL || 'smokip@der-mag.pl'
         }
       });
 

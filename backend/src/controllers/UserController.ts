@@ -138,8 +138,11 @@ export class UserController {
         qb.andWhere('user.active = :active', { active: status === 'active' });
       }
 
-      // Sorting
-      qb.orderBy(`user.${sortBy}`, sortOrder as 'ASC' | 'DESC');
+      // Sorting - validate sortBy to prevent SQL injection
+      const allowedSortFields = ['id', 'firstName', 'lastName', 'email', 'username', 'createdAt', 'lastLogin', 'created_at', 'last_login'];
+      const sortField = allowedSortFields.includes(sortBy as string) ? sortBy as string : 'created_at';
+      const order = sortOrder === 'ASC' ? 'ASC' : 'DESC';
+      qb.orderBy(`user.${sortField}`, order);
 
       // Pagination
       const pageNum = parseInt(page as string);
@@ -355,16 +358,13 @@ export class UserController {
         return;
       }
 
-      // Hash password
-      const hashedPassword = await bcrypt.hash(otp_password, 10);
-
-      // Create user
+      // Create user (password will be hashed by @BeforeInsert hook)
       const user = userRepo.create({
         username,
         email,
         firstName: first_name,
         lastName: last_name,
-        password: hashedPassword,
+        password: otp_password,
         roleId: role_id,
         forcePasswordChange: true, // Force password change on first login
         active: true
