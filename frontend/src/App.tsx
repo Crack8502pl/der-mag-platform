@@ -18,7 +18,6 @@ import { PortalConfigPage } from './components/admin/PortalConfigPage';
 import { AdminPasswordChange } from './components/admin/AdminPasswordChange';
 import { MaterialImportPage } from './components/admin/MaterialImportPage';
 import { BOMBuilderPage } from './components/admin/BOMBuilderPage';
-import { ContractsPage } from './components/modules/ContractsPage';
 import { SubsystemsPage } from './components/modules/SubsystemsPage';
 import { TasksPage } from './components/modules/TasksPage';
 import { PrefabricationPage } from './components/modules/PrefabricationPage';
@@ -31,6 +30,8 @@ import { DocumentsPage } from './components/modules/DocumentsPage';
 import { PhotosPage } from './components/modules/PhotosPage';
 import { NotificationsPage } from './components/modules/NotificationsPage';
 import { SettingsPage } from './components/modules/SettingsPage';
+import { ContractListPage } from './components/contracts/ContractListPage';
+import { ContractDetailPage } from './components/contracts/ContractDetailPage';
 import { useAuth } from './hooks/useAuth';
 import './styles/grover-theme.css';
 
@@ -95,7 +96,17 @@ function App() {
           element={
             <ProtectedRoute>
               <RoleBasedRoute requiredPermission={{ module: 'contracts', action: 'read' }}>
-                <ContractsPage />
+                <ContractListPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contracts/:id"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'contracts', action: 'read' }}>
+                <ContractDetailPage />
               </RoleBasedRoute>
             </ProtectedRoute>
           }

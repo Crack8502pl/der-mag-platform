@@ -57,6 +57,21 @@ export const useAuth = () => {
     storeLogout();
   };
 
+  const hasPermission = (module: string, action: string): boolean => {
+    if (!user || !user.permissions) return false;
+    
+    const permissions = user.permissions;
+    
+    // Admin has all permissions
+    if (permissions.all === true) return true;
+    
+    // Check specific module permission
+    const modulePerms = permissions[module];
+    if (!modulePerms) return false;
+    
+    return modulePerms[action] === true;
+  };
+
   return {
     user,
     isAuthenticated,
@@ -64,5 +79,6 @@ export const useAuth = () => {
     login,
     changePassword,
     logout,
+    hasPermission,
   };
 };

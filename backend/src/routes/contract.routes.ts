@@ -54,6 +54,20 @@ router.post(
   contractController.approveContract
 );
 
+router.post(
+  '/import',
+  authenticate,
+  requirePermission('contracts', 'import'),
+  contractController.importContracts
+);
+
+router.get(
+  '/stats',
+  authenticate,
+  requirePermission('contracts', 'read'),
+  contractController.getStats
+);
+
 // Podsystemy kontraktu
 router.get(
   '/:contractId/subsystems',

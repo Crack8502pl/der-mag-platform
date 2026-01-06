@@ -198,4 +198,28 @@ export class ContractService {
 
     await this.contractRepository.remove(contract);
   }
+
+  /**
+   * Statystyki kontraktów
+   */
+  async getStats(): Promise<{ total: number; byStatus: Record<string, number> }> {
+    const contracts = await this.contractRepository.find();
+    
+    const byStatus: Record<string, number> = {
+      CREATED: 0,
+      APPROVED: 0,
+      IN_PROGRESS: 0,
+      COMPLETED: 0,
+      CANCELLED: 0
+    };
+    
+    contracts.forEach(c => {
+      byStatus[c.status] = (byStatus[c.status] || 0) + 1;
+    });
+    
+    return {
+      total: contracts.length,
+      byStatus
+    };
+  }
 }

@@ -186,4 +186,62 @@ export class ContractController {
       });
     }
   };
+
+  /**
+   * POST /api/contracts/import
+   * Import kontraktów z pliku CSV/Excel
+   */
+  importContracts = async (req: Request, res: Response): Promise<void> => {
+    try {
+      // TODO: Implement file parsing
+      const { contracts } = req.body;
+      
+      const results = {
+        imported: 0,
+        errors: [] as any[]
+      };
+      
+      for (const contractData of contracts) {
+        try {
+          await this.contractService.createContract(contractData);
+          results.imported++;
+        } catch (error: any) {
+          results.errors.push({
+            data: contractData,
+            error: error.message
+          });
+        }
+      }
+      
+      res.json({
+        success: true,
+        data: results
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message: 'Błąd importu kontraktów',
+        error: error.message
+      });
+    }
+  };
+
+  /**
+   * GET /api/contracts/stats
+   * Statystyki kontraktów
+   */
+  getStats = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const stats = await this.contractService.getStats();
+      res.json({
+        success: true,
+        data: stats
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: 'Błąd pobierania statystyk'
+      });
+    }
+  };
 }
