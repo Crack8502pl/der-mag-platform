@@ -152,27 +152,34 @@ export class UserController {
       const [users, total] = await qb.getManyAndCount();
 
       res.json({
-        users: users.map(u => ({
-          id: u.id,
-          username: u.username,
-          email: u.email,
-          first_name: u.firstName,
-          last_name: u.lastName,
-          role: u.role?.name,
-          active: u.active,
-          created_at: u.createdAt,
-          last_login: u.lastLogin
-        })),
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          totalPages: Math.ceil(total / limitNum)
+        success: true,
+        data: {
+          users: users.map(u => ({
+            id: u.id,
+            username: u.username,
+            email: u.email,
+            firstName: u.firstName,
+            lastName: u.lastName,
+            role: u.role?.name,
+            active: u.active,
+            createdAt: u.createdAt,
+            lastLogin: u.lastLogin
+          })),
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            totalPages: Math.ceil(total / limitNum)
+          }
         }
       });
     } catch (error) {
       console.error('Error listing users:', error);
-      res.status(500).json({ error: 'Failed to list users' });
+      res.status(500).json({ 
+        success: false, 
+        error: 'SERVER_ERROR',
+        message: 'Failed to list users' 
+      });
     }
   }
 
@@ -331,7 +338,11 @@ export class UserController {
 
       // Validation
       if (!username || !email || !first_name || !last_name || !role_id || !otp_password) {
-        res.status(400).json({ error: 'Missing required fields' });
+        res.status(400).json({ 
+          success: false,
+          error: 'MISSING_FIELDS',
+          message: 'Missing required fields' 
+        });
         return;
       }
 
@@ -347,14 +358,22 @@ export class UserController {
       });
 
       if (existingUser) {
-        res.status(409).json({ error: 'User with this username or email already exists' });
+        res.status(409).json({ 
+          success: false,
+          error: 'USER_EXISTS',
+          message: 'User with this username or email already exists' 
+        });
         return;
       }
 
       // Check if role exists
       const role = await roleRepo.findOne({ where: { id: role_id } });
       if (!role) {
-        res.status(404).json({ error: 'Role not found' });
+        res.status(404).json({ 
+          success: false,
+          error: 'ROLE_NOT_FOUND',
+          message: 'Role not found' 
+        });
         return;
       }
 
@@ -376,19 +395,24 @@ export class UserController {
       await NotificationService.sendUserCreatedEmail(user, otp_password);
 
       res.status(201).json({
-        message: 'User created successfully',
-        user: {
+        success: true,
+        data: {
           id: user.id,
           username: user.username,
           email: user.email,
-          first_name: user.firstName,
-          last_name: user.lastName,
-          role_id: user.roleId
-        }
+          firstName: user.firstName,
+          lastName: user.lastName,
+          roleId: user.roleId
+        },
+        message: 'User created successfully'
       });
     } catch (error) {
       console.error('Error creating user:', error);
-      res.status(500).json({ error: 'Failed to create user' });
+      res.status(500).json({ 
+        success: false,
+        error: 'SERVER_ERROR',
+        message: 'Failed to create user' 
+      });
     }
   }
 

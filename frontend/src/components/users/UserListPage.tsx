@@ -75,6 +75,13 @@ export const UserListPage: React.FC = () => {
       setError('');
       
       const token = localStorage.getItem('accessToken');
+      
+      if (!token) {
+        setError('Brak tokenu autoryzacji. Zaloguj się ponownie.');
+        setLoading(false);
+        return;
+      }
+      
       const params: any = {
         page: currentPage,
         limit: itemsPerPage,
@@ -91,12 +98,27 @@ export const UserListPage: React.FC = () => {
         params
       });
       
-      setUsers(response.data.data.users);
-      setTotalPages(response.data.data.pagination.totalPages);
-      setTotalUsers(response.data.data.pagination.total);
+      // Obsługa różnych formatów odpowiedzi (backward compatibility)
+      const responseData = response.data.data || response.data;
+      const users = responseData.users || [];
+      const pagination = responseData.pagination || { totalPages: 1, total: 0 };
+      
+      if (!Array.isArray(users)) {
+        throw new Error('Nieprawidłowy format odpowiedzi serwera');
+      }
+      
+      setUsers(users);
+      setTotalPages(pagination.totalPages);
+      setTotalUsers(pagination.total);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Błąd pobierania użytkowników');
-      console.error(err);
+      const errorMessage = err.response?.data?.message || err.message || 'Błąd pobierania użytkowników';
+      setError(errorMessage);
+      console.error('Error loading users:', err);
+      
+      // Ustaw puste dane w przypadku błędu
+      setUsers([]);
+      setTotalPages(1);
+      setTotalUsers(0);
     } finally {
       setLoading(false);
     }
