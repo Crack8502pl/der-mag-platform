@@ -51,8 +51,8 @@ export const ContractCreateModal: React.FC<Props> = ({ managers, onClose, onSucc
     }
     
     // Validate contract number format if provided
-    if (formData.contractNumber && !/^R\d{7}_\d$/.test(formData.contractNumber)) {
-      newErrors.contractNumber = 'Nieprawidłowy format numeru kontraktu (RXXXXXXX_Y)';
+    if (formData.contractNumber && !/^R\d{7}_[A-Z]$/.test(formData.contractNumber)) {
+      newErrors.contractNumber = 'Nieprawidłowy format numeru kontraktu (RXXXXXXX_Y, gdzie Y to litera A-Z)';
     }
     
     setErrors(newErrors);
@@ -113,9 +113,9 @@ export const ContractCreateModal: React.FC<Props> = ({ managers, onClose, onSucc
               id="contractNumber"
               type="text"
               className={errors.contractNumber ? 'error' : ''}
-              placeholder="R0000001_1"
+              placeholder="R0000001_A"
               value={formData.contractNumber}
-              onChange={(e) => setFormData({ ...formData, contractNumber: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, contractNumber: e.target.value.toUpperCase() })}
             />
             {errors.contractNumber && <span className="error-text">{errors.contractNumber}</span>}
           </div>

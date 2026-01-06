@@ -20,7 +20,7 @@ export class Contract {
   id: number;
 
   @Column({ name: 'contract_number', type: 'varchar', length: 20, unique: true })
-  contractNumber: string; // Format: RXXXXXXX_Y
+  contractNumber: string; // Format: RXXXXXXX_Y (Y = litera A-Z)
 
   @Column({ name: 'custom_name', type: 'varchar', length: 200 })
   customName: string;

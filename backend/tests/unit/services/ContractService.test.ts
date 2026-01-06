@@ -33,13 +33,13 @@ describe('ContractService', () => {
       const mockContracts = [
         {
           id: 1,
-          contractNumber: 'R0000001_1',
+          contractNumber: 'R0000001_A',
           customName: 'Test Contract 1',
           status: ContractStatus.CREATED,
         },
         {
           id: 2,
-          contractNumber: 'R0000002_1',
+          contractNumber: 'R0000002_A',
           customName: 'Test Contract 2',
           status: ContractStatus.APPROVED,
         },
@@ -112,7 +112,7 @@ describe('ContractService', () => {
     it('should handle pagination correctly for page 2', async () => {
       const mockContracts = Array(50).fill(null).map((_, i) => ({
         id: i + 51,
-        contractNumber: `R${String(i + 51).padStart(7, '0')}_1`,
+        contractNumber: `R${String(i + 51).padStart(7, '0')}_A`,
         customName: `Contract ${i + 51}`,
       }));
 
@@ -213,7 +213,7 @@ describe('ContractService', () => {
       const mockContracts = [
         {
           id: 10,
-          contractNumber: 'R0000010_1',
+          contractNumber: 'R0000010_A',
           customName: 'Filtered Contract',
           status: ContractStatus.COMPLETED,
         },
