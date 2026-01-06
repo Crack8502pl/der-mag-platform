@@ -84,6 +84,19 @@ class ContractService {
     });
     return response.data;
   }
+
+  async createContractWithWizard(data: {
+    customName: string;
+    orderDate: string;
+    projectManagerId: number;
+    managerCode: string;
+    subsystemType: string | null;
+    subsystemParams: Record<string, any>;
+    tasks: Array<{ number: string; name: string; type: string }>;
+  }): Promise<Contract> {
+    const response = await api.post('/contracts/wizard', data);
+    return response.data.data;
+  }
 }
 
 export default new ContractService();
