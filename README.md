@@ -19,7 +19,7 @@ Grover Platform to kompleksowy system do zarządzania zadaniami infrastrukturaln
 - 👤 **Zarządzanie użytkownikami** (moduł administratora)
   - Lista użytkowników z paginacją i filtrowaniem
   - Tworzenie i edycja profili użytkowników
-  - Zarządzanie rolami (admin, manager, bom_editor, coordinator, prefabricator, worker)
+  - Zarządzanie rolami (admin, management_board, manager, coordinator, bom_editor, prefabricator, worker, order_picking, integrator, viewer)
   - Historia aktywności użytkowników
   - Resetowanie i odzyskiwanie haseł
   - Dezaktywacja kont użytkowników
@@ -31,7 +31,7 @@ Grover Platform to kompleksowy system do zarządzania zadaniami infrastrukturaln
   - Import BOM z CSV (format: L.P.;Nazwa;Suma ilości)
 - 📄 **Document Management** - zarządzanie dokumentami kontraktów (PDF, DOCX, XLSX)
 - 📋 **Workflow Kontraktowy** (Fazy 1-3)
-  - System kontraktowy z 12 podsystemami
+  - System kontraktowy z 13 podsystemami
   - Generowanie BOM dla podsystemów
   - Kompletacja materiałów (skanowanie, palety, braki)
   - Prefabrykacja urządzeń (konfiguracja, weryfikacja, numery seryjne)
@@ -164,6 +164,18 @@ Frontend dostępny pod: `http://localhost:5173`
 
 Szczegółowa dokumentacja: [frontend/README.md](frontend/README.md)
 
+### 🔐 Domyślne dane logowania
+
+Po uruchomieniu bazy danych i załadowaniu danych seed, dostępne są domyślne konto administratora:
+
+```
+Username: admin
+Password: Admin123!
+Email: r.krakowski@der-mag.pl
+```
+
+**Uwaga:** Zmień hasło po pierwszym logowaniu w środowisku produkcyjnym!
+
 ## 📚 API Endpoints
 
 ### Uwierzytelnianie
@@ -197,7 +209,7 @@ Szczegółowa dokumentacja: [frontend/README.md](frontend/README.md)
 
 ### Workflow kontraktowy
 - **Contracts**: `/api/contracts/*` - Zarządzanie kontraktami
-- **Subsystems**: `/api/subsystems/*` - Podsystemy kontraktów (12 typów)
+- **Subsystems**: `/api/subsystems/*` - Podsystemy kontraktów (13 typów)
 - **Network**: `/api/network/*` - Zarządzanie pulami IP i alokacja
 - **Completion**: `/api/completion/*` - Kompletacja materiałów
   - `/api/completion/orders` (GET) - Lista zleceń kompletacji
@@ -233,11 +245,15 @@ System wykorzystuje **granularne uprawnienia** na poziomie modułów i akcji. Ka
 
 ### Role systemowe
 - **admin** - Pełne uprawnienia (`all: true`)
-- **manager** - Zarządzanie kontraktami, materiałami, użytkownikami
-- **contract_supervisor** - Zatwierdzanie kontraktów, zarządzanie podsystemami
-- **warehouse_manager** - Zarządzanie materiałami, kompletacja, prefabrykacja
-- **technician** - Odczyt, konfiguracja urządzeń, kompletacja
-- **viewer** - Tylko odczyt
+- **management_board** - Zarządzanie menadżerami, przydzielanie projektów, raporty dobowe
+- **manager** - Zarządzanie projektami, użytkownikami i raportami
+- **coordinator** - Koordynacja zadań serwisowych, przypisywanie pracowników
+- **bom_editor** - Zarządzanie materiałami i szablonami BOM
+- **prefabricator** - Prefabrykacja urządzeń, weryfikacja numerów seryjnych
+- **worker** - Realizacja zadań, kompletacja, upload zdjęć
+- **order_picking** - Kompletacja podzespołów, dodawanie numerów seryjnych
+- **integrator** - System do integracji z platformami zewnętrznymi
+- **viewer** - Tylko odczyt wszystkich modułów
 
 ### Moduły uprawnień
 
