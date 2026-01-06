@@ -344,6 +344,39 @@ export class NotificationService {
       // Don't throw - email failure shouldn't prevent user creation
     }
   }
+
+  /**
+   * Password reset/recovery email
+   * Recipients: user who requested password reset
+   */
+  static async sendPasswordResetEmail(user: User, newPassword: string): Promise<void> {
+    try {
+      await EmailService.initialize();
+      
+      const subject = 'Resetowanie hasła - Grover Platform';
+      const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
+      
+      await EmailService.sendEmail({
+        to: user.email,
+        subject: subject,
+        template: 'password-reset-with-password',
+        context: {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          username: user.username,
+          password: newPassword,
+          systemUrl: appUrl,
+          loginUrl: `${appUrl}/login`,
+          supportEmail: process.env.SUPPORT_EMAIL || 'smokip@der-mag.pl'
+        }
+      });
+
+      console.log(`✅ Password reset email sent successfully (User ID: ${user.id})`);
+    } catch (error) {
+      console.error('Error sending password reset email:', error);
+      // Don't throw - email failure shouldn't prevent password reset
+    }
+  }
 }
 
 export default new NotificationService();
