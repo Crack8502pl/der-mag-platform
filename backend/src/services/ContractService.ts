@@ -125,10 +125,36 @@ export class ContractService {
   /**
    * Lista wszystkich kontraktów
    */
-  async getAllContracts(filters?: {
-    status?: ContractStatus;
-    projectManagerId?: number;
-  }): Promise<Contract[]> {
+  async getAllContracts(
+    filters?: {
+      status?: ContractStatus;
+      projectManagerId?: number;
+    },
+    options?: {
+      sortBy?: string;
+      sortOrder?: 'ASC' | 'DESC';
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<{
+    contracts: Contract[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    // Column mapping for sorting
+    const columnMap: Record<string, string> = {
+      id: 'contract.id',
+      contractNumber: 'contract.contractNumber',
+      customName: 'contract.customName',
+      orderDate: 'contract.orderDate',
+      managerCode: 'contract.managerCode',
+      status: 'contract.status',
+      createdAt: 'contract.createdAt',
+      updatedAt: 'contract.updatedAt'
+    };
+
     const query = this.contractRepository
       .createQueryBuilder('contract')
       .leftJoinAndSelect('contract.projectManager', 'projectManager')
@@ -144,7 +170,29 @@ export class ContractService {
       });
     }
 
-    return await query.orderBy('contract.createdAt', 'DESC').getMany();
+    // Sorting with validation
+    const sortBy = options?.sortBy || 'createdAt';
+    const sortOrder = options?.sortOrder || 'DESC';
+    const sortColumn = columnMap[sortBy] || 'contract.createdAt';
+    query.orderBy(sortColumn, sortOrder);
+
+    // Pagination
+    const page = Math.max(1, options?.page || 1);
+    const limit = Math.min(100, Math.max(1, options?.limit || 20));
+    const skip = (page - 1) * limit;
+
+    const [contracts, total] = await query
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      contracts,
+      total,
+      page,
+      limit,
+      totalPages: limit > 0 ? Math.ceil(total / limit) : 0
+    };
   }
 
   /**
