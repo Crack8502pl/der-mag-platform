@@ -620,7 +620,7 @@ export class AuthController {
         .where('user.username = :username', { username: identifier })
         .orWhere('user.email = :email', { email: identifier })
         .andWhere('user.active = :active', { active: true })
-        .andWhere('user.deleted_at IS NULL')
+        .andWhere('user.deletedAt IS NULL')
         .getOne();
 
       // Zawsze zwracaj ten sam komunikat (bezpieczeństwo - nie ujawniaj czy konto istnieje)
