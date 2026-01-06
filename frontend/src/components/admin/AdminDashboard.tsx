@@ -11,13 +11,6 @@ export const AdminDashboard: React.FC = () => {
 
   const adminCards = [
     {
-      title: 'Zarządzanie użytkownikami',
-      description: 'Twórz, edytuj i zarządzaj użytkownikami systemu',
-      icon: '👥',
-      path: '/admin/users',
-      roles: ['admin'],
-    },
-    {
       title: 'Konfiguracja SMTP',
       description: 'Skonfiguruj serwer pocztowy do wysyłki emaili',
       icon: '📧',

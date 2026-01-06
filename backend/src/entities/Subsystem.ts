@@ -17,7 +17,8 @@ export enum SystemType {
   SSP = 'SSP',                 // 9. SSP-System Stwierdzenia Pożaru
   LAN = 'LAN',                 // 10. Okablowanie LAN
   OTK = 'OTK',                 // 11. Okablowanie OTK
-  ZASILANIE = 'ZASILANIE'      // 12. Zasilanie
+  ZASILANIE = 'ZASILANIE',     // 12. Zasilanie
+  SERWIS = 'SERWIS'            // 13. Zadanie serwisowe (naprawa, konserwacja, interwencje)
 }
 
 export enum SubsystemStatus {

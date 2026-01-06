@@ -2,13 +2,13 @@
 
 ## Przegląd implementacji
 
-Został zaimplementowany pełny system workflow kontraktowego dla platformy Grover (Fazy 1-3), obejmujący 12 podsystemów i kompletny proces od generowania BOM do prefabrykacji urządzeń.
+Został zaimplementowany pełny system workflow kontraktowego dla platformy Grover (Fazy 1-3), obejmujący 13 podsystemów i kompletny proces od generowania BOM do prefabrykacji urządzeń.
 
 ## Przepływ Pracy (Workflow)
 
 ### Faza 1: Kreator Kontraktowy
 1. **Utworzenie Kontraktu** - Manager tworzy kontrakt z datą zamówienia i kodem managera
-2. **Wybór Podsystemów** - Wybór z 12 dostępnych typów podsystemów
+2. **Wybór Podsystemów** - Wybór z 13 dostępnych typów podsystemów
 3. **Generowanie BOM** - Automatyczne generowanie zestawienia materiałów dla każdego podsystemu
 4. **Alokacja Sieci** - Automatyczne przydzielanie adresów IP z pul (priorytety: Default > WAN > Mgmt)
 
@@ -35,7 +35,7 @@ Został zaimplementowany pełny system workflow kontraktowego dla platformy Grov
 │                                                                   │
 │  Manager tworzy kontrakt                                        │
 │         │                                                         │
-│         ├─► Wybór podsystemów (1 lub więcej z 12 typów)        │
+│         ├─► Wybór podsystemów (1 lub więcej z 13 typów)        │
 │         │                                                         │
 │         ├─► Generowanie BOM (automatyczne)                      │
 │         │                                                         │
@@ -83,21 +83,59 @@ Został zaimplementowany pełny system workflow kontraktowego dla platformy Grov
                     Gotowe do instalacji
 ```
 
-## 12 Podsystemów Kontraktowych
+## 13 Podsystemów Kontraktowych
 
-### 1. SMW - System Monitoringu Wizyjnego
+### 1. SMOKIP_A - System monitorowania obiektów kolejowych - Wariant A/SKP
+Konfiguracja systemów monitorowania obiektów kolejowych, wariant A z integracją SKP.
+**Kod:** SMOKIP_A
+
+### 2. SMOKIP_B - System monitorowania obiektów kolejowych - Wariant B
+Konfiguracja systemów monitorowania obiektów kolejowych, wariant B.
+**Kod:** SMOKIP_B
+
+### 3. SKD - System Kontroli Dostępu
+Systemy kontroli dostępu do obiektów i pomieszczeń.
+**Kod:** SKD
+
+### 4. SSWiN - System Sygnalizacji Włamania i Napadu
+Systemy alarmowe zabezpieczające przed włamaniem i napadem.
+**Kod:** SSWIN
+
+### 5. CCTV - System Telewizji Przemysłowej
+Systemy kamer przemysłowych do monitoringu.
+**Kod:** CCTV
+
+### 6. SMW - System Monitoringu Wizyjnego
 Konfiguracja kamer IP, rejestratorów i serwerów monitoringu wizyjnego.
-**Parametry kreatora:** 1.1-1.9
+**Kod:** SMW
 
-### 2. CSDIP - Cyfrowe Systemy Dźwiękowego Informowania Pasażerów
-Systemy nagłośnienia i informacji pasażerskiej na stacjach.
-**Parametry kreatora:** 2.1-2.9
+### 7. SDIP - System Dynamicznej Informacji Pasażerskiej
+Systemy informacji pasażerskiej na stacjach (dawniej CSDIP).
+**Kod:** SDIP
 
-### 3. LAN PKP PLK
-Sieci LAN dla infrastruktury kolejowej.
-**Parametry kreatora:** 3.1-3.9
+### 8. SUG - Stałe Urządzenia Gaśnicze
+Systemy gaśnicze instalacji stałych.
+**Kod:** SUG
 
-### 4. SMOK-IP/CMOK-IP (Wariant A/SKP)
+### 9. SSP - System Stwierdzenia Pożaru
+Systemy wykrywania i sygnalizacji pożaru.
+**Kod:** SSP
+
+### 10. LAN - Okablowanie LAN
+Sieci LAN dla infrastruktury (dawniej LAN PKP PLK, LAN Strukturalny).
+**Kod:** LAN
+
+### 11. OTK - Okablowanie OTK
+Okablowanie telekomunikacyjne (dawniej Struktury Światłowodowe).
+**Kod:** OTK
+
+### 12. ZASILANIE - Systemy zasilania
+Systemy zasilania i UPS.
+**Kod:** ZASILANIE
+
+### 13. SERWIS - Zadanie Serwisowe
+Naprawa, konserwacja i interwencje serwisowe dla wszystkich systemów.
+**Kod:** SERWIS
 System Monitoringu i Ostrzegania Kolejowego - wariant A.
 **Parametry kreatora:** 1.x → SMOKIP
 **Konfiguracja:** NTP = Gateway

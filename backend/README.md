@@ -100,6 +100,21 @@ psql -U dermag_user -d dermag_platform -f scripts/init-db.sql
 psql -U dermag_user -d dermag_platform -f scripts/seed-data.sql
 ```
 
+**Dane seed zawierają:**
+- 10 ról z granularnymi uprawnieniami
+- 13 typów zadań (task_types) zgodnych z SystemType enum
+- Użytkownika admin (username: `admin`, password: `Admin123!`)
+- Przykładowe pule IP dla SMW i SDIP
+- Szablony BOM i aktywności dla SMW
+
+**Migracja istniejącej bazy:**
+
+Jeśli aktualizujesz istniejący system, uruchom migrację:
+
+```bash
+psql -U dermag_user -d dermag_platform -f scripts/migrations/20260106_update_task_types.sql
+```
+
 ## ⚙️ Konfiguracja
 
 ### 🔒 Encrypted Secrets Management
@@ -169,6 +184,9 @@ REDIS_PORT=6379
 APP_URL=http://localhost:3001
 FRONTEND_URL=http://localhost:3001
 SUPPORT_EMAIL=smokip@der-mag.pl
+
+# Admin User (optional - for seeding)
+ADMIN_EMAIL=r.krakowski@der-mag.pl
 
 # Upload
 UPLOAD_DIR=./uploads
