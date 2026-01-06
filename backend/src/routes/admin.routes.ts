@@ -5,6 +5,7 @@ import { Router } from 'express';
 import { authenticate, authorize } from '../middleware/auth';
 import { SystemConfigController } from '../controllers/SystemConfigController';
 import { UserController } from '../controllers/UserController';
+import { RoleController } from '../controllers/RoleController';
 
 const router = Router();
 
@@ -44,5 +45,15 @@ router.post('/users/:id/deactivate', UserController.deactivate);
 
 // Reset user password (generates new OTP)
 router.post('/users/:id/reset-password', UserController.resetPassword);
+
+// ============================================
+// Role Management Routes
+// ============================================
+
+// Get all roles
+router.get('/roles', RoleController.getAll);
+
+// Get role by id
+router.get('/roles/:id', RoleController.getById);
 
 export default router;

@@ -9,6 +9,7 @@ import { ResetPasswordModal } from './ResetPasswordModal';
 import { DeactivateUserModal } from './DeactivateUserModal';
 import { UserStatusBadge } from './UserStatusBadge';
 import axios from 'axios';
+import { FALLBACK_ROLES } from '../../constants/roles';
 import './UserListPage.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -130,9 +131,22 @@ export const UserListPage: React.FC = () => {
       const response = await axios.get(`${API_BASE_URL}/admin/roles`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setRoles(response.data.data);
+      
+      // Bezpieczne pobieranie ról z różnych formatów odpowiedzi
+      // Handle different response formats for backward compatibility
+      const rolesData = response.data?.data || response.data || [];
+      
+      if (!Array.isArray(rolesData)) {
+        console.warn('Nieprawidłowy format ról, używam fallback');
+        throw new Error('Invalid roles format');
+      }
+      
+      setRoles(rolesData);
     } catch (err) {
       console.error('Błąd pobierania ról:', err);
+      
+      // Fallback - podstawowe role gdy endpoint nie działa
+      setRoles(FALLBACK_ROLES);
     }
   };
 
@@ -265,7 +279,7 @@ export const UserListPage: React.FC = () => {
             }}
           >
             <option value="">Wszystkie role</option>
-            {roles.map((role) => (
+            {Array.isArray(roles) && roles.map((role) => (
               <option key={role.id} value={role.name}>
                 {role.name}
               </option>

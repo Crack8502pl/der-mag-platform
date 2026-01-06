@@ -11,6 +11,7 @@ import type {
   ChangePasswordDto,
   Role,
 } from '../types/admin.types';
+import { FALLBACK_ROLES } from '../constants/roles';
 
 export class AdminService {
   // ============================================
@@ -67,13 +68,17 @@ export class AdminService {
    * Get all roles
    */
   async getRoles(): Promise<Role[]> {
-    // For now, return hardcoded roles that match backend
-    return [
-      { id: 1, name: 'admin', description: 'Administrator', permissions: {} },
-      { id: 2, name: 'manager', description: 'Manager', permissions: {} },
-      { id: 3, name: 'technician', description: 'Technician', permissions: {} },
-      { id: 4, name: 'bom_editor', description: 'BOM Editor', permissions: {} },
-    ];
+    try {
+      const response = await api.get('/admin/roles');
+      // Handle different response formats for backward compatibility:
+      // - Standard format: { success: true, data: [...] }
+      // - Direct array: [...]
+      return response.data.data || response.data || [];
+    } catch (error) {
+      console.error('Błąd pobierania ról z API:', error);
+      // Fallback - podstawowe role
+      return FALLBACK_ROLES.map(role => ({ ...role, permissions: role.name === 'admin' ? { all: true } : {} }));
+    }
   }
 
   // ============================================
