@@ -242,4 +242,127 @@ describe('ContractController', () => {
       });
     });
   });
+
+  describe('createContractWithWizard', () => {
+    it('should create contract with wizard successfully without subsystem', async () => {
+      const mockContract = {
+        id: 1,
+        contractNumber: 'R0000001_1',
+        customName: 'Modernizacja SMOK-A Warszawa',
+        status: ContractStatus.CREATED,
+        orderDate: new Date('2026-01-06'),
+        managerCode: 'ABC',
+        projectManagerId: 1,
+      };
+
+      mockContractService.createContract = jest.fn().mockResolvedValue(mockContract);
+
+      req.body = {
+        customName: 'Modernizacja SMOK-A Warszawa',
+        orderDate: '2026-01-06',
+        projectManagerId: 1,
+        managerCode: 'ABC',
+        tasks: [
+          { number: 'P000010126', name: 'Przejazd Kat A #1', type: 'PRZEJAZD_KAT_A' },
+          { number: 'P000020126', name: 'SKP #1', type: 'SKP' },
+        ],
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      expect(mockContractService.createContract).toHaveBeenCalledWith({
+        customName: 'Modernizacja SMOK-A Warszawa',
+        orderDate: new Date('2026-01-06'),
+        managerCode: 'ABC',
+        projectManagerId: 1,
+      });
+
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Kontrakt utworzony pomyślnie z 2 zadaniami',
+        data: expect.objectContaining({
+          id: 1,
+          contractNumber: 'R0000001_1',
+          tasks: expect.arrayContaining([
+            expect.objectContaining({ number: 'P000010126' }),
+            expect.objectContaining({ number: 'P000020126' }),
+          ]),
+        }),
+      });
+    });
+
+    it('should return 400 when required fields are missing', async () => {
+      req.body = {
+        customName: 'Test Contract',
+        // Missing orderDate, managerCode, projectManagerId
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Brakuje wymaganych pól: customName, orderDate, managerCode, projectManagerId',
+      });
+    });
+
+    it('should return 400 when tasks array is empty', async () => {
+      req.body = {
+        customName: 'Test Contract',
+        orderDate: '2026-01-06',
+        managerCode: 'ABC',
+        projectManagerId: 1,
+        tasks: [],
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Kreator wymaga co najmniej jednego zadania',
+      });
+    });
+
+    it('should return 400 when tasks is not an array', async () => {
+      req.body = {
+        customName: 'Test Contract',
+        orderDate: '2026-01-06',
+        managerCode: 'ABC',
+        projectManagerId: 1,
+        tasks: 'not-an-array',
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Kreator wymaga co najmniej jednego zadania',
+      });
+    });
+
+    it('should handle errors during contract creation', async () => {
+      const error = new Error('Database error');
+      mockContractService.createContract = jest.fn().mockRejectedValue(error);
+
+      req.body = {
+        customName: 'Test Contract',
+        orderDate: '2026-01-06',
+        managerCode: 'ABC',
+        projectManagerId: 1,
+        tasks: [{ number: 'P000010126', name: 'Task 1', type: 'TYPE_A' }],
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Błąd podczas tworzenia kontraktu',
+        error: 'Database error',
+      });
+    });
+  });
 });
