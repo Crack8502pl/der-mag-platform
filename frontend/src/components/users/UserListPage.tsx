@@ -369,44 +369,45 @@ export const UserListPage: React.FC = () => {
                       : 'Nigdy'}
                   </td>
                   <td>
-                    <div className="actions-dropdown">
-                      <button className="btn-icon" title="Akcje">⋮</button>
-                      <div className="dropdown-menu">
-                        <button
-                          onClick={() => setEditingUser(user)}
-                          className="dropdown-item"
+                    <div className="action-buttons">
+                      <button 
+                        className="btn-action" 
+                        title="Edytuj"
+                        onClick={() => setEditingUser(user)}
+                      >
+                        ✏️
+                      </button>
+                      <button 
+                        className="btn-action" 
+                        title="Resetuj hasło"
+                        onClick={() => setResetPasswordUser(user)}
+                      >
+                        🔑
+                      </button>
+                      {user.active ? (
+                        <button 
+                          className="btn-action" 
+                          title="Dezaktywuj"
+                          onClick={() => setDeactivateUser(user)}
                         >
-                          ✏️ Edytuj
+                          🚫
                         </button>
-                        <button
-                          onClick={() => setResetPasswordUser(user)}
-                          className="dropdown-item"
+                      ) : (
+                        <button 
+                          className="btn-action" 
+                          title="Aktywuj"
+                          onClick={() => handleActivateUser(user.id)}
                         >
-                          🔑 Resetuj hasło
+                          ✅
                         </button>
-                        {user.active ? (
-                          <button
-                            onClick={() => setDeactivateUser(user)}
-                            className="dropdown-item danger"
-                          >
-                            🚫 Dezaktywuj
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleActivateUser(user.id)}
-                            className="dropdown-item success"
-                          >
-                            ✅ Aktywuj
-                          </button>
-                        )}
-                        <hr className="dropdown-divider" />
-                        <button
-                          onClick={() => handleDeleteUser(user.id, user.username)}
-                          className="dropdown-item danger"
-                        >
-                          🗑️ Usuń
-                        </button>
-                      </div>
+                      )}
+                      <button 
+                        className="btn-action" 
+                        title="Usuń"
+                        onClick={() => handleDeleteUser(user.id, user.username)}
+                      >
+                        🗑️
+                      </button>
                     </div>
                   </td>
                 </tr>

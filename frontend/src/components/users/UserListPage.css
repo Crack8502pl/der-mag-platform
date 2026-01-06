@@ -14,7 +14,6 @@
 .search-input {
   flex: 1;
   padding: 12px 16px;
-  border: 2px solid #e0e0e0;
   border-radius: 8px;
   font-size: 15px;
   transition: all 0.3s ease;
@@ -22,8 +21,6 @@
 
 .search-input:focus {
   outline: none;
-  border-color: #1976d2;
-  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
 }
 
 .toolbar-filters {
@@ -35,25 +32,17 @@
 
 .filter-select {
   padding: 10px 14px;
-  border: 2px solid #e0e0e0;
   border-radius: 8px;
   font-size: 14px;
-  background-color: white;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.filter-select:hover {
-  border-color: #bbb;
-}
-
 .filter-select:focus {
   outline: none;
-  border-color: #1976d2;
 }
 
 .user-count {
-  color: #666;
   font-size: 14px;
   margin-left: auto;
 }
@@ -70,15 +59,12 @@
 }
 
 .users-table thead {
-  background-color: #f5f5f5;
 }
 
 .users-table th {
   padding: 15px 12px;
   text-align: left;
   font-weight: 600;
-  color: #333;
-  border-bottom: 2px solid #e0e0e0;
   white-space: nowrap;
 }
 
@@ -88,18 +74,9 @@
   transition: background-color 0.2s ease;
 }
 
-.users-table th.sortable:hover {
-  background-color: #ebebeb;
-}
-
 .users-table td {
   padding: 15px 12px;
-  border-bottom: 1px solid #f0f0f0;
   vertical-align: middle;
-}
-
-.users-table tbody tr:hover {
-  background-color: #f9f9f9;
 }
 
 .user-name {
@@ -109,22 +86,18 @@
 }
 
 .user-name strong {
-  color: #333;
   font-size: 14px;
 }
 
 .user-name small {
-  color: #999;
   font-size: 12px;
 }
 
 .users-table code {
-  background-color: #f5f5f5;
   padding: 4px 8px;
   border-radius: 4px;
   font-family: 'Courier New', monospace;
   font-size: 13px;
-  color: #d32f2f;
 }
 
 /* Status badges */
@@ -143,32 +116,15 @@
   white-space: nowrap;
 }
 
-.status-active {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.status-inactive {
-  background-color: #f8d7da;
-  color: #721c24;
-}
-
-.status-warning {
-  background-color: #fff3cd;
-  color: #856404;
-}
-
 .role-badge {
   display: inline-block;
   padding: 5px 12px;
-  background-color: #e3f2fd;
-  color: #1565c0;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
 }
 
-/* Actions dropdown */
+/* Actions dropdown - fallback for old styles */
 .actions-dropdown {
   position: relative;
 }
@@ -180,13 +136,7 @@
   cursor: pointer;
   padding: 5px 10px;
   border-radius: 4px;
-  color: #666;
   transition: all 0.2s ease;
-}
-
-.btn-icon:hover {
-  background-color: #f0f0f0;
-  color: #333;
 }
 
 .dropdown-menu {
@@ -194,10 +144,7 @@
   position: absolute;
   right: 0;
   top: 100%;
-  background: white;
-  border: 1px solid #e0e0e0;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 200px;
   z-index: 1000;
   margin-top: 5px;
@@ -217,34 +164,7 @@
   background: none;
   cursor: pointer;
   font-size: 14px;
-  color: #333;
   transition: background-color 0.2s ease;
-}
-
-.dropdown-item:hover {
-  background-color: #f5f5f5;
-}
-
-.dropdown-item.danger {
-  color: #d32f2f;
-}
-
-.dropdown-item.danger:hover {
-  background-color: #ffebee;
-}
-
-.dropdown-item.success {
-  color: #388e3c;
-}
-
-.dropdown-item.success:hover {
-  background-color: #e8f5e9;
-}
-
-.dropdown-divider {
-  margin: 5px 0;
-  border: none;
-  border-top: 1px solid #e0e0e0;
 }
 
 /* Pagination */
@@ -258,7 +178,6 @@
 }
 
 .page-info {
-  color: #666;
   font-size: 14px;
 }
 
@@ -287,7 +206,6 @@
 }
 
 .modal {
-  background: white;
   border-radius: 12px;
   max-width: 600px;
   width: 90%;
@@ -313,13 +231,11 @@
   justify-content: space-between;
   align-items: center;
   padding: 25px 30px;
-  border-bottom: 1px solid #e0e0e0;
 }
 
 .modal-header h2 {
   margin: 0;
   font-size: 24px;
-  color: #333;
 }
 
 .modal-close {
@@ -327,7 +243,6 @@
   border: none;
   font-size: 28px;
   cursor: pointer;
-  color: #999;
   transition: color 0.2s ease;
   padding: 0;
   width: 32px;
@@ -336,11 +251,6 @@
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-}
-
-.modal-close:hover {
-  color: #666;
-  background-color: #f0f0f0;
 }
 
 .modal-body {
@@ -359,19 +269,13 @@
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
-  color: #333;
   font-size: 14px;
-}
-
-.form-group .required {
-  color: #d32f2f;
 }
 
 .form-group .input,
 .form-group textarea {
   width: 100%;
   padding: 12px 14px;
-  border: 2px solid #e0e0e0;
   border-radius: 8px;
   font-size: 15px;
   transition: all 0.3s ease;
@@ -381,13 +285,9 @@
 .form-group .input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #1976d2;
-  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
 }
 
 .form-group .input:disabled {
-  background-color: #f5f5f5;
-  color: #999;
   cursor: not-allowed;
 }
 
@@ -395,7 +295,6 @@
   display: block;
   margin-top: 6px;
   font-size: 12px;
-  color: #999;
 }
 
 .form-row {
@@ -410,7 +309,6 @@
   gap: 12px;
   margin-top: 30px;
   padding-top: 20px;
-  border-top: 1px solid #e0e0e0;
 }
 
 /* Alerts */
@@ -420,30 +318,6 @@
   margin-bottom: 20px;
   font-size: 14px;
   line-height: 1.5;
-}
-
-.alert-error {
-  background-color: #ffebee;
-  color: #c62828;
-  border: 1px solid #ef9a9a;
-}
-
-.alert-success {
-  background-color: #e8f5e9;
-  color: #2e7d32;
-  border: 1px solid #a5d6a7;
-}
-
-.alert-info {
-  background-color: #e3f2fd;
-  color: #1565c0;
-  border: 1px solid #90caf9;
-}
-
-.alert-warning {
-  background-color: #fff3e0;
-  color: #e65100;
-  border: 1px solid #ffcc80;
 }
 
 .alert ul {
@@ -470,33 +344,453 @@
   cursor: not-allowed;
 }
 
+/* ============================================
+   DARK MODE STYLES
+   ============================================ */
+
+/* Modal Dark Mode */
+.modal {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  border: 1px solid #333;
+}
+
+.modal-header {
+  border-bottom: 1px solid #333;
+  background: #252525;
+}
+
+.modal-header h2 {
+  color: #ffffff;
+}
+
+.modal-close {
+  color: #aaa;
+}
+
+.modal-close:hover {
+  color: #fff;
+  background-color: #333;
+}
+
+/* Form Dark Mode */
+.form-group label {
+  color: #e0e0e0;
+}
+
+.form-group .input,
+.form-group select,
+.form-group textarea {
+  background: #2d2d2d;
+  border: 2px solid #444;
+  color: #e0e0e0;
+}
+
+.form-group .input::placeholder {
+  color: #888;
+}
+
+.form-group .input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: #1976d2;
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.3);
+  background: #333;
+}
+
+.form-group .input:disabled {
+  background-color: #1a1a1a;
+  color: #666;
+}
+
+.form-help {
+  color: #aaa;
+}
+
+.required {
+  color: #ff6b6b;
+}
+
+/* Select dropdown Dark Mode */
+.form-group select option {
+  background: #2d2d2d;
+  color: #e0e0e0;
+}
+
+/* Modal actions Dark Mode */
+.modal-actions {
+  border-top: 1px solid #333;
+}
+
+/* ============================================
+   TABLE DARK MODE
+   ============================================ */
+
+.users-table-container {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 12px;
+}
+
+.users-table {
+  background: #1e1e1e;
+}
+
+.users-table thead {
+  background: #252525;
+}
+
+.users-table th {
+  color: #e0e0e0;
+  border-bottom: 2px solid #444;
+}
+
+.users-table th.sortable:hover {
+  background-color: #333;
+}
+
+.users-table td {
+  color: #e0e0e0;
+  border-bottom: 1px solid #333;
+}
+
+.users-table tbody tr:hover {
+  background: #2a2a2a;
+}
+
+.user-name strong {
+  color: #ffffff;
+}
+
+.user-name small {
+  color: #888;
+}
+
+.users-table code {
+  background-color: #2d2d2d;
+  color: #ff7b72;
+  border: 1px solid #444;
+}
+
+/* ============================================
+   TOOLBAR DARK MODE
+   ============================================ */
+
+.user-list-toolbar {
+  background: #1e1e1e;
+  border: 1px solid #333;
+}
+
+.search-input {
+  background: #2d2d2d;
+  border: 2px solid #444;
+  color: #e0e0e0;
+}
+
+.search-input::placeholder {
+  color: #888;
+}
+
+.search-input:focus {
+  border-color: #1976d2;
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.2);
+  background: #333;
+}
+
+.filter-select {
+  background: #2d2d2d;
+  border: 2px solid #444;
+  color: #e0e0e0;
+}
+
+.filter-select:hover {
+  border-color: #555;
+}
+
+.filter-select:focus {
+  border-color: #1976d2;
+}
+
+.filter-select option {
+  background: #2d2d2d;
+  color: #e0e0e0;
+}
+
+.user-count {
+  color: #aaa;
+}
+
+.user-count strong {
+  color: #fff;
+}
+
+/* ============================================
+   STATUS BADGES DARK MODE
+   ============================================ */
+
+.status-badge {
+  font-weight: 600;
+}
+
+.status-active {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #81c784;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.status-inactive {
+  background-color: rgba(244, 67, 54, 0.2);
+  color: #e57373;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.status-warning {
+  background-color: rgba(255, 193, 7, 0.2);
+  color: #ffd54f;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.role-badge {
+  background-color: rgba(33, 150, 243, 0.2);
+  color: #64b5f6;
+  border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+/* ============================================
+   WIDOCZNE PRZYCISKI AKCJI (zamiast dropdown)
+   ============================================ */
+
+.action-buttons {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+
+.btn-action {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2d2d2d;
+  border: 1px solid #444;
+}
+
+.btn-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.btn-action[title="Edytuj"] {
+  background: rgba(33, 150, 243, 0.15);
+  border-color: rgba(33, 150, 243, 0.3);
+}
+.btn-action[title="Edytuj"]:hover {
+  background: rgba(33, 150, 243, 0.3);
+}
+
+.btn-action[title="Resetuj hasło"] {
+  background: rgba(255, 152, 0, 0.15);
+  border-color: rgba(255, 152, 0, 0.3);
+}
+.btn-action[title="Resetuj hasło"]:hover {
+  background: rgba(255, 152, 0, 0.3);
+}
+
+.btn-action[title="Aktywuj"] {
+  background: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.3);
+}
+.btn-action[title="Aktywuj"]:hover {
+  background: rgba(76, 175, 80, 0.3);
+}
+
+.btn-action[title="Dezaktywuj"] {
+  background: rgba(255, 152, 0, 0.15);
+  border-color: rgba(255, 152, 0, 0.3);
+}
+.btn-action[title="Dezaktywuj"]:hover {
+  background: rgba(255, 152, 0, 0.3);
+}
+
+.btn-action[title="Usuń"] {
+  background: rgba(244, 67, 54, 0.15);
+  border-color: rgba(244, 67, 54, 0.3);
+}
+.btn-action[title="Usuń"]:hover {
+  background: rgba(244, 67, 54, 0.3);
+}
+
+/* Tooltip dla przycisków akcji */
+.btn-action {
+  position: relative;
+}
+
+.btn-action::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background: #333;
+  color: #fff;
+  font-size: 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  pointer-events: none;
+  margin-bottom: 5px;
+  z-index: 1000;
+}
+
+.btn-action:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ============================================
+   ALERTS DARK MODE
+   ============================================ */
+
+.alert-error {
+  background-color: rgba(244, 67, 54, 0.15);
+  color: #ef5350;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.alert-success {
+  background-color: rgba(76, 175, 80, 0.15);
+  color: #81c784;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.alert-info {
+  background-color: rgba(33, 150, 243, 0.15);
+  color: #64b5f6;
+  border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+.alert-warning {
+  background-color: rgba(255, 152, 0, 0.15);
+  color: #ffb74d;
+  border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+/* ============================================
+   BUTTONS DARK MODE
+   ============================================ */
+
 .btn-primary {
-  background-color: #1976d2;
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
   color: white;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #1565c0;
-  box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3);
+  background: linear-gradient(135deg, #1e88e5 0%, #1976d2 100%);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4);
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
-  background-color: #e0e0e0;
-  color: #333;
+  background: #2d2d2d;
+  color: #e0e0e0;
+  border: 1px solid #444;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: #d5d5d5;
+  background: #3a3a3a;
+  border-color: #555;
 }
 
 .btn-danger {
-  background-color: #d32f2f;
+  background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
   color: white;
+  box-shadow: 0 2px 8px rgba(211, 47, 47, 0.3);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background-color: #c62828;
-  box-shadow: 0 4px 8px rgba(211, 47, 47, 0.3);
+  background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.4);
+}
+
+/* ============================================
+   PAGINATION DARK MODE
+   ============================================ */
+
+.pagination {
+  background: #1e1e1e;
+  border-radius: 12px;
+  border: 1px solid #333;
+}
+
+.page-info {
+  color: #aaa;
+}
+
+/* ============================================
+   DROPDOWN DARK MODE (fallback)
+   ============================================ */
+
+.dropdown-menu {
+  background: #2d2d2d;
+  border: 1px solid #444;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.dropdown-item {
+  color: #e0e0e0;
+}
+
+.dropdown-item:hover {
+  background: #3a3a3a;
+}
+
+.dropdown-item.danger {
+  color: #ef5350;
+}
+
+.dropdown-item.danger:hover {
+  background: rgba(244, 67, 54, 0.15);
+}
+
+.dropdown-item.success {
+  color: #81c784;
+}
+
+.dropdown-item.success:hover {
+  background: rgba(76, 175, 80, 0.15);
+}
+
+.dropdown-divider {
+  border-top: 1px solid #444;
+}
+
+/* ============================================
+   CARD DARK MODE
+   ============================================ */
+
+.card {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 12px;
+}
+
+/* ============================================
+   LOADING DARK MODE
+   ============================================ */
+
+.loading {
+  color: #aaa;
 }
 
 /* Responsive */
