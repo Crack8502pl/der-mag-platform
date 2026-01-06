@@ -568,6 +568,7 @@
 }
 
 .btn-action {
+  position: relative;
   width: 34px;
   height: 34px;
   border: none;
@@ -628,10 +629,6 @@
 }
 
 /* Tooltip dla przycisków akcji */
-.btn-action {
-  position: relative;
-}
-
 .btn-action::after {
   content: attr(title);
   position: absolute;
