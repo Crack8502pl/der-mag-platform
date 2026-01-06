@@ -9,6 +9,8 @@ import { generateAccessToken, generateRefreshToken, verifyRefreshToken, decodeTo
 import { v4 as uuidv4 } from 'uuid';
 import EmailService from '../services/EmailService';
 import { PasswordChangedEmailContext } from '../types/EmailTypes';
+import { generateRandomPassword } from '../utils/password';
+import { NotificationService } from '../services/NotificationService';
 
 // Helper function to log security events
 const logSecurityEvent = async (
@@ -598,100 +600,58 @@ export class AuthController {
    */
   static async forgotPassword(req: Request, res: Response): Promise<void> {
     try {
-      const { emailOrUsername } = req.body;
+      const { emailOrUsername, usernameOrEmail } = req.body;
+      const identifier = emailOrUsername || usernameOrEmail;
 
-      if (!emailOrUsername) {
+      if (!identifier) {
         res.status(400).json({
           success: false,
-          message: 'Email lub login jest wymagany'
+          error: 'MISSING_FIELD',
+          message: 'Podaj nazwę użytkownika lub email'
         });
         return;
       }
 
       const userRepository = AppDataSource.getRepository(User);
       
-      // Szukaj użytkownika po email lub username
+      // Znajdź użytkownika po username lub email
       const user = await userRepository
         .createQueryBuilder('user')
-        .where('user.email = :email', { email: emailOrUsername })
-        .orWhere('user.username = :username', { username: emailOrUsername })
+        .where('user.username = :value OR user.email = :value', { value: identifier })
+        .andWhere('user.active = :active', { active: true })
+        .andWhere('user.deleted_at IS NULL')
         .getOne();
 
-      // Zawsze zwracaj ten sam komunikat (security best practice)
-      const genericMessage = 'Jeśli konto istnieje, wysłaliśmy instrukcje na podany adres email';
+      // Zawsze zwracaj ten sam komunikat (bezpieczeństwo - nie ujawniaj czy konto istnieje)
+      const response = {
+        success: true,
+        message: 'Jeśli konto istnieje, wysłaliśmy instrukcje na podany adres email'
+      };
 
       if (!user) {
-        // Nie ujawniaj że konto nie istnieje
-        res.json({
-          success: true,
-          message: genericMessage
-        });
+        res.status(200).json(response);
         return;
       }
 
-      // Generuj nowe hasło (8 znaków: wielkie, małe, cyfry, znaki specjalne)
-      const generatePassword = (): string => {
-        const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        const lower = 'abcdefghijklmnopqrstuvwxyz';
-        const digits = '0123456789';
-        const special = '!@#$%^&*';
-        
-        let password = '';
-        password += upper[Math.floor(Math.random() * upper.length)];
-        password += lower[Math.floor(Math.random() * lower.length)];
-        password += digits[Math.floor(Math.random() * digits.length)];
-        password += special[Math.floor(Math.random() * special.length)];
-        
-        const all = upper + lower + digits + special;
-        for (let i = 4; i < 12; i++) {
-          password += all[Math.floor(Math.random() * all.length)];
-        }
-        
-        // Shuffle password
-        return password.split('').sort(() => Math.random() - 0.5).join('');
-      };
+      // Generuj nowe hasło OTP (One-Time Password)
+      const otpPassword = generateRandomPassword(12);
 
-      const newPassword = generatePassword();
-
-      // Aktualizuj użytkownika
-      user.password = newPassword; // Will be hashed by @BeforeUpdate hook
+      // Zaktualizuj użytkownika
+      user.password = otpPassword; // Zostanie zahashowane przez @BeforeUpdate hook
       user.forcePasswordChange = true;
       user.passwordChangedAt = new Date();
-
       await userRepository.save(user);
 
       // Wyślij email z nowym hasłem
-      try {
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-        
-        await EmailService.sendEmail({
-          to: user.email,
-          subject: 'Resetowanie hasła - Grover Platform',
-          template: 'password-reset-with-password',
-          context: {
-            firstName: user.firstName,
-            lastName: user.lastName,
-            username: user.username,
-            password: newPassword,
-            loginUrl: `${frontendUrl}/login`,
-            systemUrl: frontendUrl,
-            supportEmail: process.env.SUPPORT_EMAIL || 'smokip@der-mag.pl'
-          }
-        });
-      } catch (emailError) {
-        console.error('Błąd wysyłania emaila resetowania hasła:', emailError);
-        // Nie przerywamy procesu - hasło zostało zmienione
-      }
+      await NotificationService.sendPasswordResetEmail(user, otpPassword);
 
-      res.json({
-        success: true,
-        message: genericMessage
-      });
+      res.status(200).json(response);
     } catch (error) {
-      console.error('Błąd resetowania hasła:', error);
+      console.error('Error in forgotPassword:', error);
       res.status(500).json({
         success: false,
-        message: 'Błąd serwera podczas resetowania hasła'
+        error: 'SERVER_ERROR',
+        message: 'Wystąpił błąd serwera'
       });
     }
   }
