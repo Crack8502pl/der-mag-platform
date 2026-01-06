@@ -749,7 +749,7 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
 
   const renderStep3 = () => (
     <div className="wizard-step-content">
-      <h3>Krok 3: Podgląd zadań</h3>
+      <h3>Krok {getTotalSteps() === 5 ? '4' : '3'}: Podgląd zadań</h3>
       
       <div className="tasks-preview">
         {generatedTasks.length === 0 ? (
