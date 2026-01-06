@@ -87,7 +87,7 @@ export class PrefabricationService {
         ip: ipAssignment.ipAddress,
         maska: allocation.subnetMask,
         brama: allocation.gateway,
-        ntp: allocation.gateway, // NTP = zawsze adres bramy
+        ntp: allocation.gateway, // NTP = always gateway address
         opisProjektowy: ipAssignment.description || ipAssignment.hostname,
         deviceId: prefabDevice?.id,
         ipAssignmentId: ipAssignment.id,
@@ -292,7 +292,7 @@ export class PrefabricationService {
       deviceType: device.ipAssignment.deviceType,
       subnetMask: allocation.subnetMask,
       gateway: allocation.gateway,
-      ntp: allocation.gateway, // NTP = gateway
+      ntp: allocation.gateway, // NTP = gateway address
       subsystemNumber: device.prefabTask.subsystem.subsystemNumber
     };
   }

@@ -7,7 +7,7 @@ import { CompletionItem, CompletionItemStatus } from '../entities/CompletionItem
 import { WorkflowGeneratedBom } from '../entities/WorkflowGeneratedBom';
 import { Pallet, PalletStatus } from '../entities/Pallet';
 import { Subsystem, SubsystemStatus } from '../entities/Subsystem';
-import { PrefabricationTask } from '../entities/PrefabricationTask';
+import { PrefabricationTask, PrefabricationTaskStatus } from '../entities/PrefabricationTask';
 import { User } from '../entities/User';
 
 export interface CreateCompletionOrderParams {
@@ -370,7 +370,7 @@ export class CompletionService {
       completionOrderId,
       subsystemId: order.subsystemId,
       assignedToId,
-      status: 'CREATED' as any,
+      status: PrefabricationTaskStatus.CREATED,
       ipMatrixReceived: false,
       materialsReceived: true
     });
