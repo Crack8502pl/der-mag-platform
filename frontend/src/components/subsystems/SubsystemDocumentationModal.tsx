@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { subsystemService, Subsystem, SubsystemDocument } from '../../services/subsystem.service';
+import { ConfirmDialog } from '../common/ConfirmDialog';
 import './SubsystemDocumentationModal.css';
 
 interface Props {
@@ -16,6 +17,7 @@ export const SubsystemDocumentationModal: React.FC<Props> = ({ subsystem, onClos
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<SubsystemDocument | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -98,17 +100,21 @@ export const SubsystemDocumentationModal: React.FC<Props> = ({ subsystem, onClos
   };
 
   const handleDelete = async (doc: SubsystemDocument) => {
-    if (!confirm(`Czy na pewno chcesz usunąć dokument "${doc.originalName}"?`)) {
-      return;
-    }
+    setDeleteConfirm(doc);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
 
     try {
       setError(null);
-      await subsystemService.deleteDocument(subsystem.id, doc.id);
+      await subsystemService.deleteDocument(subsystem.id, deleteConfirm.id);
+      setDeleteConfirm(null);
       await loadDocuments();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd podczas usuwania pliku');
       console.error('Error deleting document:', err);
+      setDeleteConfirm(null);
     }
   };
 
@@ -270,6 +276,19 @@ export const SubsystemDocumentationModal: React.FC<Props> = ({ subsystem, onClos
             Zamknij
           </button>
         </div>
+
+        {/* Confirm Delete Dialog */}
+        {deleteConfirm && (
+          <ConfirmDialog
+            title="Usuwanie dokumentu"
+            message={`Czy na pewno chcesz usunąć dokument "${deleteConfirm.originalName}"?`}
+            onConfirm={confirmDelete}
+            onCancel={() => setDeleteConfirm(null)}
+            confirmText="Usuń"
+            cancelText="Anuluj"
+            type="danger"
+          />
+        )}
       </div>
     </div>
   );

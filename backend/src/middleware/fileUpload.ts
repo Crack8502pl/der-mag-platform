@@ -14,8 +14,9 @@ if (!fs.existsSync(UPLOAD_DIR)) {
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const subsystemNumber = req.params.id || 'TEMP';
-    const subsystemDir = path.join(UPLOAD_DIR, subsystemNumber);
+    // Use the subsystem ID temporarily; service will rename the directory
+    const subsystemId = req.params.id || 'TEMP';
+    const subsystemDir = path.join(UPLOAD_DIR, subsystemId);
     
     if (!fs.existsSync(subsystemDir)) {
       fs.mkdirSync(subsystemDir, { recursive: true });

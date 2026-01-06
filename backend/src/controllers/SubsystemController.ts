@@ -56,16 +56,15 @@ export class SubsystemController {
         );
       }
 
-      // Count documents for each subsystem
-      const subsystemsWithDocCount = await Promise.all(
-        filtered.map(async (subsystem) => {
-          const documents = await this.documentService.getDocuments(subsystem.id);
-          return {
-            ...subsystem,
-            documentCount: documents.length
-          };
-        })
-      );
+      // Get document counts for all subsystems in one query
+      const subsystemIds = filtered.map(s => s.id);
+      const documentCounts = await this.documentService.getDocumentCounts(subsystemIds);
+
+      // Attach document counts to subsystems
+      const subsystemsWithDocCount = filtered.map((subsystem) => ({
+        ...subsystem,
+        documentCount: documentCounts[subsystem.id] || 0
+      }));
 
       // Apply sorting
       const sorted = subsystemsWithDocCount.sort((a, b) => {
