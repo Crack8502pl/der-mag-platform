@@ -311,6 +311,39 @@ export class NotificationService {
       console.error('Błąd wysyłania powiadomienia o zadaniu instalacji:', error);
     }
   }
+
+  /**
+   * Wysyłanie emaila z danymi dostępowymi nowo utworzonego użytkownika
+   * Odbiorcy: nowy użytkownik
+   */
+  static async sendUserCreatedEmail(user: User, password: string): Promise<void> {
+    try {
+      await EmailService.initialize();
+      
+      const subject = 'Twoje konto w systemie Grover Platform zostało utworzone';
+      
+      // Use the same template as in UserController.create method
+      await EmailService.sendEmail({
+        to: user.email,
+        subject: subject,
+        template: 'user-created-with-password',
+        context: {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          username: user.username,
+          password: password,
+          systemUrl: process.env.APP_URL || 'http://localhost:3000',
+          loginUrl: `${process.env.APP_URL || 'http://localhost:3000'}/login`,
+          supportEmail: process.env.SUPPORT_EMAIL || 'smokip@der-mag.pl'
+        }
+      });
+
+      console.log(`✅ Wysłano email z danymi dostępowymi do użytkownika ${user.email}`);
+    } catch (error) {
+      console.error('Błąd wysyłania emaila z danymi dostępowymi:', error);
+      // Don't throw - email failure shouldn't prevent user creation
+    }
+  }
 }
 
 export default new NotificationService();

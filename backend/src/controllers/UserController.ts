@@ -4,8 +4,10 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
 import { User } from '../entities/User';
+import { Role } from '../entities/Role';
 import { IsNull } from 'typeorm';
 import EmailService from '../services/EmailService';
+import { NotificationService } from '../services/NotificationService';
 import bcrypt from 'bcrypt';
 
 export class UserController {
@@ -92,6 +94,85 @@ export class UserController {
     } catch (error) {
       console.error('Błąd pobierania listy użytkowników:', error);
       res.status(500).json({ success: false, message: 'Błąd serwera' });
+    }
+  }
+
+  /**
+   * GET /api/admin/users
+   * Lista wszystkich użytkowników (including inactive) for admin panel
+   */
+  static async listAll(req: Request, res: Response): Promise<void> {
+    try {
+      const { 
+        page = 1, 
+        limit = 20, 
+        search, 
+        role, 
+        status,
+        sortBy = 'created_at',
+        sortOrder = 'DESC'
+      } = req.query;
+
+      const userRepo = AppDataSource.getRepository(User);
+      
+      // Build query
+      const qb = userRepo.createQueryBuilder('user')
+        .leftJoinAndSelect('user.role', 'role')
+        .where('user.deletedAt IS NULL');
+
+      // Search filter
+      if (search) {
+        qb.andWhere(
+          '(user.firstName ILIKE :search OR user.lastName ILIKE :search OR user.email ILIKE :search OR user.username ILIKE :search)',
+          { search: `%${search}%` }
+        );
+      }
+
+      // Role filter
+      if (role) {
+        qb.andWhere('role.name = :role', { role });
+      }
+
+      // Status filter (active/inactive)
+      if (status !== undefined) {
+        qb.andWhere('user.active = :active', { active: status === 'active' });
+      }
+
+      // Sorting - validate sortBy to prevent SQL injection
+      const allowedSortFields = ['id', 'firstName', 'lastName', 'email', 'username', 'createdAt', 'lastLogin', 'created_at', 'last_login'];
+      const sortField = allowedSortFields.includes(sortBy as string) ? sortBy as string : 'created_at';
+      const order = sortOrder === 'ASC' ? 'ASC' : 'DESC';
+      qb.orderBy(`user.${sortField}`, order);
+
+      // Pagination
+      const pageNum = parseInt(page as string);
+      const limitNum = parseInt(limit as string);
+      qb.skip((pageNum - 1) * limitNum).take(limitNum);
+
+      const [users, total] = await qb.getManyAndCount();
+
+      res.json({
+        users: users.map(u => ({
+          id: u.id,
+          username: u.username,
+          email: u.email,
+          first_name: u.firstName,
+          last_name: u.lastName,
+          role: u.role?.name,
+          active: u.active,
+          created_at: u.createdAt,
+          last_login: u.lastLogin
+        })),
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          totalPages: Math.ceil(total / limitNum)
+        }
+      });
+    } catch (error) {
+      console.error('Error listing users:', error);
+      res.status(500).json({ error: 'Failed to list users' });
     }
   }
 
@@ -237,6 +318,77 @@ export class UserController {
     } catch (error) {
       console.error('Błąd tworzenia użytkownika:', error);
       res.status(500).json({ success: false, message: 'Błąd serwera' });
+    }
+  }
+
+  /**
+   * POST /api/admin/users
+   * Tworzenie użytkownika z hasłem OTP (for admin panel)
+   */
+  static async createWithOTP(req: Request, res: Response): Promise<void> {
+    try {
+      const { username, email, first_name, last_name, role_id, otp_password } = req.body;
+
+      // Validation
+      if (!username || !email || !first_name || !last_name || !role_id || !otp_password) {
+        res.status(400).json({ error: 'Missing required fields' });
+        return;
+      }
+
+      const userRepo = AppDataSource.getRepository(User);
+      const roleRepo = AppDataSource.getRepository(Role);
+
+      // Check if user exists
+      const existingUser = await userRepo.findOne({
+        where: [
+          { username, deletedAt: IsNull(), active: true },
+          { email, deletedAt: IsNull(), active: true }
+        ]
+      });
+
+      if (existingUser) {
+        res.status(409).json({ error: 'User with this username or email already exists' });
+        return;
+      }
+
+      // Check if role exists
+      const role = await roleRepo.findOne({ where: { id: role_id } });
+      if (!role) {
+        res.status(404).json({ error: 'Role not found' });
+        return;
+      }
+
+      // Create user (password will be hashed by @BeforeInsert hook)
+      const user = userRepo.create({
+        username,
+        email,
+        firstName: first_name,
+        lastName: last_name,
+        password: otp_password,
+        roleId: role_id,
+        forcePasswordChange: true, // Force password change on first login
+        active: true
+      });
+
+      await userRepo.save(user);
+
+      // Send email with credentials
+      await NotificationService.sendUserCreatedEmail(user, otp_password);
+
+      res.status(201).json({
+        message: 'User created successfully',
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          first_name: user.firstName,
+          last_name: user.lastName,
+          role_id: user.roleId
+        }
+      });
+    } catch (error) {
+      console.error('Error creating user:', error);
+      res.status(500).json({ error: 'Failed to create user' });
     }
   }
 
