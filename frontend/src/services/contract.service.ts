@@ -91,7 +91,9 @@ class ContractService {
     projectManagerId: number;
     managerCode: string;
     subsystemType: string | null;
-    subsystemParams: Record<string, any>;
+    subsystemParams: {
+      [key: string]: number | boolean;
+    };
     tasks: Array<{ number: string; name: string; type: string }>;
   }): Promise<Contract> {
     const response = await api.post('/contracts/wizard', data);

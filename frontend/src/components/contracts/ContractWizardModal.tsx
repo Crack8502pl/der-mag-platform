@@ -2,7 +2,8 @@
 // Multi-step wizard for creating contracts with subsystems
 
 import React, { useState } from 'react';
-import { SUBSYSTEM_WIZARD_CONFIG, SubsystemType, detectSubsystemType } from '../../config/subsystemWizardConfig';
+import { SUBSYSTEM_WIZARD_CONFIG, detectSubsystemType } from '../../config/subsystemWizardConfig';
+import type { SubsystemType } from '../../config/subsystemWizardConfig';
 import contractService from '../../services/contract.service';
 
 interface Props {
@@ -26,7 +27,9 @@ interface WizardData {
   detectedSubsystem: SubsystemType | null;
   
   // Step 2 - dynamic fields
-  subsystemParams: Record<string, any>;
+  subsystemParams: {
+    [key: string]: number | boolean;
+  };
 }
 
 interface GeneratedTask {
@@ -50,7 +53,6 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
   });
   
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
-  const [createdContractId, setCreatedContractId] = useState<number | null>(null);
 
   // Step 1: Detect subsystem from name
   const handleNameChange = (name: string) => {
@@ -82,10 +84,22 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
     
     const params = wizardData.subsystemParams;
     
+    // Helper to get numeric value
+    const getNumericValue = (key: string): number => {
+      const value = params[key];
+      return typeof value === 'number' ? value : 0;
+    };
+    
+    // Helper to get boolean value
+    const getBooleanValue = (key: string): boolean => {
+      const value = params[key];
+      return typeof value === 'boolean' ? value : false;
+    };
+    
     // SMOK-A specific
     if (wizardData.detectedSubsystem === 'SMOKIP_A') {
       // Przejazdy Kat A
-      for (let i = 0; i < (params.przejazdyKatA || 0); i++) {
+      for (let i = 0; i < getNumericValue('przejazdyKatA'); i++) {
         tasks.push({
           number: generateTaskNumber(taskIndex++),
           name: `Przejazd Kat A #${i + 1}`,
@@ -93,7 +107,7 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
         });
       }
       // SKP
-      for (let i = 0; i < (params.iloscSKP || 0); i++) {
+      for (let i = 0; i < getNumericValue('iloscSKP'); i++) {
         tasks.push({
           number: generateTaskNumber(taskIndex++),
           name: `SKP #${i + 1}`,
@@ -101,7 +115,7 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
         });
       }
       // Nastawnie
-      for (let i = 0; i < (params.iloscNastawni || 0); i++) {
+      for (let i = 0; i < getNumericValue('iloscNastawni'); i++) {
         tasks.push({
           number: generateTaskNumber(taskIndex++),
           name: `Nastawnia #${i + 1}`,
@@ -109,15 +123,15 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
         });
       }
       // LCS
-      if (params.hasLCS) {
+      if (getBooleanValue('hasLCS')) {
         tasks.push({
           number: generateTaskNumber(taskIndex++),
-          name: `LCS (${params.lcsMonitory || 0} monitorów, ${params.lcsStanowiska || 0} stanowisk)`,
+          name: `LCS (${getNumericValue('lcsMonitory')} monitorów, ${getNumericValue('lcsStanowiska')} stanowisk)`,
           type: 'LCS'
         });
       }
       // CUID
-      if (params.hasCUID) {
+      if (getBooleanValue('hasCUID')) {
         tasks.push({
           number: generateTaskNumber(taskIndex++),
           name: 'CUID',
@@ -128,7 +142,7 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
     // SMOK-B specific
     else if (wizardData.detectedSubsystem === 'SMOKIP_B') {
       // Przejazdy Kat B
-      for (let i = 0; i < (params.przejazdyKatB || 0); i++) {
+      for (let i = 0; i < getNumericValue('przejazdyKatB'); i++) {
         tasks.push({
           number: generateTaskNumber(taskIndex++),
           name: `Przejazd Kat B #${i + 1}`,
@@ -136,7 +150,7 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
         });
       }
       // Nastawnie
-      for (let i = 0; i < (params.iloscNastawni || 0); i++) {
+      for (let i = 0; i < getNumericValue('iloscNastawni'); i++) {
         tasks.push({
           number: generateTaskNumber(taskIndex++),
           name: `Nastawnia #${i + 1}`,
@@ -144,15 +158,15 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
         });
       }
       // LCS
-      if (params.hasLCS) {
+      if (getBooleanValue('hasLCS')) {
         tasks.push({
           number: generateTaskNumber(taskIndex++),
-          name: `LCS (${params.lcsMonitory || 0} monitorów, ${params.lcsStanowiska || 0} stanowisk)`,
+          name: `LCS (${getNumericValue('lcsMonitory')} monitorów, ${getNumericValue('lcsStanowiska')} stanowisk)`,
           type: 'LCS'
         });
       }
       // CUID
-      if (params.hasCUID) {
+      if (getBooleanValue('hasCUID')) {
         tasks.push({
           number: generateTaskNumber(taskIndex++),
           name: 'CUID',
@@ -162,21 +176,21 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
     }
     // SKD specific
     else if (wizardData.detectedSubsystem === 'SKD') {
-      for (let i = 0; i < (params.iloscBudynkow || 0); i++) {
+      for (let i = 0; i < getNumericValue('iloscBudynkow'); i++) {
         tasks.push({
           number: generateTaskNumber(taskIndex++),
           name: `Budynek SKD #${i + 1}`,
           type: 'BUDYNEK'
         });
       }
-      for (let i = 0; i < (params.iloscKontenerow || 0); i++) {
+      for (let i = 0; i < getNumericValue('iloscKontenerow'); i++) {
         tasks.push({
           number: generateTaskNumber(taskIndex++),
           name: `Kontener SKD #${i + 1}`,
           type: 'KONTENER'
         });
       }
-      for (let i = 0; i < (params.iloscPrzejsc || 0); i++) {
+      for (let i = 0; i < getNumericValue('iloscPrzejsc'); i++) {
         tasks.push({
           number: generateTaskNumber(taskIndex++),
           name: `Przejście #${i + 1}`,
@@ -187,21 +201,21 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
     // Default (SSWiN, CCTV, SMW, SDIP, SUG, SSP, LAN, OTK, ZASILANIE)
     else {
       const subsystemLabel = config?.label || 'Zadanie';
-      for (let i = 0; i < (params.iloscBudynkow || 0); i++) {
+      for (let i = 0; i < getNumericValue('iloscBudynkow'); i++) {
         tasks.push({
           number: generateTaskNumber(taskIndex++),
           name: `${subsystemLabel} - Budynek #${i + 1}`,
           type: 'BUDYNEK'
         });
       }
-      for (let i = 0; i < (params.iloscPomieszczen || 0); i++) {
+      for (let i = 0; i < getNumericValue('iloscPomieszczen'); i++) {
         tasks.push({
           number: generateTaskNumber(taskIndex++),
           name: `${subsystemLabel} - Pomieszczenie #${i + 1}`,
           type: 'POMIESZCZENIE'
         });
       }
-      for (let i = 0; i < (params.iloscKontenerow || 0); i++) {
+      for (let i = 0; i < getNumericValue('iloscKontenerow'); i++) {
         tasks.push({
           number: generateTaskNumber(taskIndex++),
           name: `${subsystemLabel} - Kontener #${i + 1}`,
@@ -232,7 +246,7 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
     
     try {
       // Create contract via wizard endpoint
-      const response = await contractService.createContractWithWizard({
+      await contractService.createContractWithWizard({
         customName: wizardData.customName,
         orderDate: wizardData.orderDate,
         projectManagerId: parseInt(wizardData.projectManagerId),
@@ -242,10 +256,11 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
         tasks: generatedTasks
       });
       
-      setCreatedContractId(response.id);
-      setCurrentStep(4); // Success step
-    } catch (err: any) {
-      setError(err.message || 'Błąd tworzenia kontraktu');
+      // Success, move to step 4
+      setCurrentStep(4);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || 'Błąd tworzenia kontraktu');
     } finally {
       setLoading(false);
     }
@@ -342,6 +357,8 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
         <h3>Krok 2: Konfiguracja {config.label}</h3>
         
         {config.fields.map((field) => {
+          const paramValue = wizardData.subsystemParams[field.name];
+          
           // Check dependency
           if (field.dependsOn && !wizardData.subsystemParams[field.dependsOn]) {
             return null;
@@ -354,7 +371,9 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
                 <input
                   type="number"
                   min={0}
-                  value={wizardData.subsystemParams[field.name] || 0}
+                  value={
+                    typeof paramValue === 'number' ? paramValue : 0
+                  }
                   onChange={(e) => setWizardData({
                     ...wizardData,
                     subsystemParams: {
@@ -367,7 +386,9 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
               {field.type === 'checkbox' && (
                 <input
                   type="checkbox"
-                  checked={wizardData.subsystemParams[field.name] || false}
+                  checked={
+                    typeof paramValue === 'boolean' ? paramValue : false
+                  }
                   onChange={(e) => setWizardData({
                     ...wizardData,
                     subsystemParams: {
