@@ -64,19 +64,30 @@ export class AuthController {
 
       const userRepository = AppDataSource.getRepository(User);
       
-      // Pobierz użytkownika z hasłem
+      // Pobierz użytkownika z hasłem (bez sprawdzania active)
       const user = await userRepository
         .createQueryBuilder('user')
         .addSelect('user.password')
         .leftJoinAndSelect('user.role', 'role')
         .where('user.username = :username', { username })
-        .andWhere('user.active = :active', { active: true })
         .getOne();
 
+      // Sprawdź czy użytkownik istnieje
       if (!user) {
-        res.status(401).json({
+        res.status(404).json({
           success: false,
-          message: 'Nieprawidłowa nazwa użytkownika lub hasło'
+          error: 'USER_NOT_FOUND',
+          message: 'Konto nie istnieje'
+        });
+        return;
+      }
+
+      // Sprawdź czy użytkownik jest aktywny
+      if (!user.active) {
+        res.status(403).json({
+          success: false,
+          error: 'ACCOUNT_BLOCKED',
+          message: 'Twoje konto zostało zablokowane'
         });
         return;
       }
@@ -87,7 +98,8 @@ export class AuthController {
       if (!isPasswordValid) {
         res.status(401).json({
           success: false,
-          message: 'Nieprawidłowa nazwa użytkownika lub hasło'
+          error: 'INVALID_PASSWORD',
+          message: 'Błędne hasło'
         });
         return;
       }
@@ -576,6 +588,110 @@ export class AuthController {
       res.status(500).json({
         success: false,
         message: 'Błąd serwera podczas zmiany hasła'
+      });
+    }
+  }
+
+  /**
+   * POST /api/auth/forgot-password
+   * Odzyskiwanie hasła - generuje nowe hasło i wysyła email
+   */
+  static async forgotPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const { emailOrUsername } = req.body;
+
+      if (!emailOrUsername) {
+        res.status(400).json({
+          success: false,
+          message: 'Email lub login jest wymagany'
+        });
+        return;
+      }
+
+      const userRepository = AppDataSource.getRepository(User);
+      
+      // Szukaj użytkownika po email lub username
+      const user = await userRepository
+        .createQueryBuilder('user')
+        .where('user.email = :email', { email: emailOrUsername })
+        .orWhere('user.username = :username', { username: emailOrUsername })
+        .getOne();
+
+      // Zawsze zwracaj ten sam komunikat (security best practice)
+      const genericMessage = 'Jeśli konto istnieje, wysłaliśmy instrukcje na podany adres email';
+
+      if (!user) {
+        // Nie ujawniaj że konto nie istnieje
+        res.json({
+          success: true,
+          message: genericMessage
+        });
+        return;
+      }
+
+      // Generuj nowe hasło (8 znaków: wielkie, małe, cyfry, znaki specjalne)
+      const generatePassword = (): string => {
+        const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const lower = 'abcdefghijklmnopqrstuvwxyz';
+        const digits = '0123456789';
+        const special = '!@#$%^&*';
+        
+        let password = '';
+        password += upper[Math.floor(Math.random() * upper.length)];
+        password += lower[Math.floor(Math.random() * lower.length)];
+        password += digits[Math.floor(Math.random() * digits.length)];
+        password += special[Math.floor(Math.random() * special.length)];
+        
+        const all = upper + lower + digits + special;
+        for (let i = 4; i < 12; i++) {
+          password += all[Math.floor(Math.random() * all.length)];
+        }
+        
+        // Shuffle password
+        return password.split('').sort(() => Math.random() - 0.5).join('');
+      };
+
+      const newPassword = generatePassword();
+
+      // Aktualizuj użytkownika
+      user.password = newPassword; // Will be hashed by @BeforeUpdate hook
+      user.forcePasswordChange = true;
+      user.passwordChangedAt = new Date();
+
+      await userRepository.save(user);
+
+      // Wyślij email z nowym hasłem
+      try {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        
+        await EmailService.sendEmail({
+          to: user.email,
+          subject: 'Resetowanie hasła - Grover Platform',
+          template: 'password-reset-with-password',
+          context: {
+            firstName: user.firstName,
+            lastName: user.lastName,
+            username: user.username,
+            password: newPassword,
+            loginUrl: `${frontendUrl}/login`,
+            systemUrl: frontendUrl,
+            supportEmail: process.env.SUPPORT_EMAIL || 'smokip@der-mag.pl'
+          }
+        });
+      } catch (emailError) {
+        console.error('Błąd wysyłania emaila resetowania hasła:', emailError);
+        // Nie przerywamy procesu - hasło zostało zmienione
+      }
+
+      res.json({
+        success: true,
+        message: genericMessage
+      });
+    } catch (error) {
+      console.error('Błąd resetowania hasła:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Błąd serwera podczas resetowania hasła'
       });
     }
   }

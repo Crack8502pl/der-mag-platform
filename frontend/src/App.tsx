@@ -4,6 +4,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from './components/auth/LoginPage';
+import { ForgotPasswordPage } from './components/auth/ForgotPasswordPage';
 import { PasswordChangeForm } from './components/auth/PasswordChangeForm';
 import { Dashboard } from './components/layout/Dashboard';
 import { ForbiddenPage } from './components/layout/ForbiddenPage';
@@ -72,6 +73,8 @@ function App() {
             </AuthRoute>
           }
         />
+        
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
         {/* Force Password Change Route */}
         <Route path="/change-password" element={<PasswordChangeForm />} />
