@@ -38,9 +38,22 @@ export const LoginPage: React.FC = () => {
       } else {
         navigate('/dashboard');
       }
-    } catch (err) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || 'Błąd logowania. Sprawdź swoje dane.');
+    } catch (err: any) {
+      // Wyświetl konkretne komunikaty błędów
+      const errorData = err.response?.data;
+      let errorMessage = 'Błąd logowania. Sprawdź swoje dane.';
+      
+      if (errorData?.error === 'USER_NOT_FOUND') {
+        errorMessage = 'Konto nie istnieje';
+      } else if (errorData?.error === 'ACCOUNT_BLOCKED') {
+        errorMessage = 'Twoje konto zostało zablokowane';
+      } else if (errorData?.error === 'INVALID_PASSWORD') {
+        errorMessage = 'Błędne hasło';
+      } else if (errorData?.message) {
+        errorMessage = errorData.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -101,7 +114,7 @@ export const LoginPage: React.FC = () => {
           </button>
 
           <div className="login-footer">
-            <a href="#" className="reset-password-link">
+            <a href="/forgot-password" className="reset-password-link">
               Zapomniałeś hasła?
             </a>
           </div>
