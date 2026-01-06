@@ -18,7 +18,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 export const ContractListPage: React.FC = () => {
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermission, user } = useAuth();
   
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
@@ -243,9 +243,11 @@ export const ContractListPage: React.FC = () => {
             <option value="CANCELLED">Anulowany</option>
           </select>
           
-          <div className="filter-info">
-            📋 Wyświetlam tylko moje kontrakty
-          </div>
+          {user && user.role !== 'admin' && (
+            <div className="filter-info">
+              📋 Wyświetlam tylko moje kontrakty
+            </div>
+          )}
           
           <div className="contracts-count">
             Znaleziono: <strong>{totalContracts}</strong> kontraktów
