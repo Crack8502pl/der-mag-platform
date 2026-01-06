@@ -349,7 +349,7 @@ export class ContractController {
           createdSubsystems.push({
             ...subsystem,
             params,
-            tasks: subsystemTasks
+            tasks: subsystemTasks || []
           });
         }
         

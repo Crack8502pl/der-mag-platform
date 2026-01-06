@@ -475,7 +475,11 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
     const totalSteps = getTotalSteps();
     const steps = [];
     
-    for (let i = 1; i <= Math.min(totalSteps, 6); i++) {
+    // Show up to 6 steps in the indicator to avoid UI overflow
+    // For contracts with many subsystems, this provides a simplified view
+    const maxStepsToShow = 6;
+    
+    for (let i = 1; i <= Math.min(totalSteps, maxStepsToShow); i++) {
       let label = '';
       if (i === 1) label = 'Dane';
       else if (i === 2) label = 'Podsystemy';
@@ -513,8 +517,8 @@ export const ContractWizardModal: React.FC<Props> = ({ managers, onClose, onSucc
           <div className="detected-subsystem">
             ✅ Wykryto podsystemy: {detectedSubsystems.map(type => {
               const config = SUBSYSTEM_WIZARD_CONFIG[type];
-              return <strong key={type}>{config.label}</strong>;
-            }).reduce((prev, curr) => [prev, ', ', curr] as any)}
+              return config.label;
+            }).join(', ')}
           </div>
         )}
       </div>
