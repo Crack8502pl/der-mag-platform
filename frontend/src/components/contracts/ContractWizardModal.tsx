@@ -68,6 +68,16 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
   // Check if current user can select managers (Admin or Board)
   const canSelectManager = user?.role === 'admin' || user?.role === 'board';
 
+  // Set initial projectManagerId when user is available
+  useEffect(() => {
+    if (user && !wizardData.projectManagerId) {
+      setWizardData(prev => ({
+        ...prev,
+        projectManagerId: user.id.toString()
+      }));
+    }
+  }, [user]);
+
   // Load managers on mount if user can select
   useEffect(() => {
     if (canSelectManager) {

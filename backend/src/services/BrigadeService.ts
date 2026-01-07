@@ -145,17 +145,31 @@ export class BrigadeService {
       throw new Error('Użytkownik nie znaleziony');
     }
 
-    // Check if member already exists for this brigade and user in this time period
-    const existing = await this.memberRepository.findOne({
-      where: {
-        brigadeId: data.brigadeId,
-        userId: data.userId,
-        validFrom: data.validFrom,
-      },
-    });
+    // Check for overlapping time periods
+    const queryBuilder = this.memberRepository
+      .createQueryBuilder('member')
+      .where('member.brigadeId = :brigadeId', { brigadeId: data.brigadeId })
+      .andWhere('member.userId = :userId', { userId: data.userId })
+      .andWhere('member.active = :active', { active: true });
 
-    if (existing) {
-      throw new Error('Użytkownik jest już przypisany do tej brygady w tym okresie');
+    // Check for overlaps: new period overlaps if:
+    // 1. New start is before existing end (or existing has no end)
+    // 2. New end (or no end) is after existing start
+    queryBuilder.andWhere(
+      '(member.validFrom <= :validTo OR :validTo IS NULL)',
+      { validTo: data.validTo }
+    );
+    queryBuilder.andWhere(
+      '(member.validTo IS NULL OR member.validTo >= :validFrom)',
+      { validFrom: data.validFrom }
+    );
+
+    const overlapping = await queryBuilder.getOne();
+
+    if (overlapping) {
+      throw new Error(
+        'Użytkownik jest już przypisany do tej brygady w nakładającym się okresie czasu'
+      );
     }
 
     const member = this.memberRepository.create({

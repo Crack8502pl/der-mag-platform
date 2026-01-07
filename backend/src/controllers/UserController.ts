@@ -319,9 +319,9 @@ export class UserController {
         });
         
         let counter = 1;
-        while (codeExists && counter < 10) {
-          // Try with numeric suffix
-          const altCode = finalEmployeeCode.substring(0, 2) + counter;
+        while (codeExists && counter <= 99) {
+          // Try with numeric suffix, ensuring 3-character length
+          const altCode = finalEmployeeCode.substring(0, Math.min(2, finalEmployeeCode.length)) + counter;
           codeExists = await userRepository.findOne({
             where: { employeeCode: altCode, deletedAt: IsNull() }
           });
@@ -331,10 +331,18 @@ export class UserController {
           }
           counter++;
         }
-      }
-
-      // Validate employee code uniqueness if provided
-      if (finalEmployeeCode) {
+        
+        // If still exists after 99 attempts, throw error
+        if (codeExists) {
+          res.status(400).json({
+            success: false,
+            error: 'EMPLOYEE_CODE_GENERATION_FAILED',
+            message: 'Nie udało się wygenerować unikalnego kodu pracownika. Proszę podać kod ręcznie.'
+          });
+          return;
+        }
+      } else {
+        // Validate employee code uniqueness if provided manually
         const codeExists = await userRepository.findOne({
           where: { employeeCode: finalEmployeeCode, deletedAt: IsNull() }
         });
