@@ -8,6 +8,7 @@ import type {
   ChangePasswordRequest,
   ChangePasswordResponse,
   MeResponse,
+  RefreshResponse,
 } from '../types/auth.types';
 
 class AuthService {
@@ -70,6 +71,21 @@ class AuthService {
    */
   getAccessToken(): string | null {
     return localStorage.getItem('accessToken');
+  }
+
+  /**
+   * Get refresh token from localStorage
+   */
+  getRefreshToken(): string | null {
+    return localStorage.getItem('refreshToken');
+  }
+
+  /**
+   * Refresh access token using refresh token
+   */
+  async refresh(refreshToken: string): Promise<RefreshResponse> {
+    const response = await api.post('/auth/refresh', { refreshToken });
+    return response.data;
   }
 }
 
