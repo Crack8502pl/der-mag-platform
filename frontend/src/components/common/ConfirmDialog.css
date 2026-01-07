@@ -1,0 +1,120 @@
+/* ConfirmDialog.css */
+
+.confirm-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.confirm-dialog {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  overflow: hidden;
+}
+
+.confirm-dialog-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.confirm-dialog-header.danger {
+  background-color: #ffebee;
+  border-bottom-color: #ffcdd2;
+}
+
+.confirm-dialog-header.warning {
+  background-color: #fff3e0;
+  border-bottom-color: #ffe0b2;
+}
+
+.confirm-dialog-header.info {
+  background-color: #e3f2fd;
+  border-bottom-color: #bbdefb;
+}
+
+.confirm-dialog-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #333;
+}
+
+.confirm-dialog-body {
+  padding: 1.5rem;
+}
+
+.confirm-dialog-body p {
+  margin: 0;
+  color: #555;
+  line-height: 1.6;
+}
+
+.confirm-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #eee;
+  background-color: #f9f9f9;
+}
+
+.btn-confirm {
+  padding: 0.6rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-confirm.btn-danger {
+  background-color: #d32f2f;
+  color: white;
+}
+
+.btn-confirm.btn-danger:hover {
+  background-color: #c62828;
+}
+
+.btn-confirm.btn-warning {
+  background-color: #f57c00;
+  color: white;
+}
+
+.btn-confirm.btn-warning:hover {
+  background-color: #ef6c00;
+}
+
+.btn-confirm.btn-info {
+  background-color: #1976d2;
+  color: white;
+}
+
+.btn-confirm.btn-info:hover {
+  background-color: #1565c0;
+}
+
+.btn-secondary {
+  padding: 0.6rem 1.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  color: #333;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background-color: #f5f5f5;
+}

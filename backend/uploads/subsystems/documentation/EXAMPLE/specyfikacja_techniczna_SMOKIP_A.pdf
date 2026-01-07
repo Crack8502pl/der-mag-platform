@@ -1,0 +1,32 @@
+SPECYFIKACJA TECHNICZNA SMOKIP_A
+================================
+
+System: SMOK/CMOKIP Wariant A
+Numer podsystemu: EXAMPLE
+Data utworzenia: 2026-01-06
+
+OPIS SYSTEMU
+-----------
+System SMOK/CMOKIP-A to zintegrowany system monitoringu i kontroli instalacji pożarowych.
+Zapewnia ciągły nadzór nad stanem technicznym urządzeń przeciwpożarowych oraz automatyczne
+powiadamianie o zdarzeniach alarmowych.
+
+KOMPONENTY GŁÓWNE:
+1. Centrala sterująca SMOK-A v3.5
+2. Panel operatorski z interfejsem dotykowym 15"
+3. Moduły wejść/wyjść cyfrowych (16x DI/DO)
+4. Interfejs komunikacyjny Ethernet + RS485
+5. Zasilacz buforowany 24V/5A z akumulatorami
+
+PARAMETRY TECHNICZNE:
+- Napięcie zasilania: 230V AC +/- 10%
+- Temperatura pracy: -10°C do +50°C
+- Stopień ochrony: IP54
+- Normy: PN-EN 54-2, PN-EN 54-4
+
+INSTALACJA:
+Urządzenie montować w szafie rack 19" na wysokości min. 30cm od poziomu podłogi.
+Wymagana wentylacja wymuszona przy temperaturze powyżej 35°C.
+
+KONSERWACJA:
+Przegląd techniczny co 6 miesięcy, wymiana akumulatorów co 3-4 lata.

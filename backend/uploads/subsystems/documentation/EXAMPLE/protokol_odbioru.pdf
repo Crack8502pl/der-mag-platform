@@ -1,0 +1,90 @@
+PROTOKÓŁ ODBIORU TECHNICZNEGO
+==============================
+
+Podsystem: EXAMPLE
+System: SMOKIP_A
+Lokalizacja: Budynek A, Pomieszczenie techniczne 102
+Data odbioru: 2026-01-06
+
+DANE ODBIORU:
+-------------
+Wykonawca: Firma Instalacyjna ABC Sp. z o.o.
+Przedstawiciel wykonawcy: Jan Kowalski (Kierownik Projektu)
+Inwestor: Koleje Miejskie XYZ
+Przedstawiciel inwestora: Anna Nowak (Inspektor Nadzoru)
+Numer umowy: 2025/INF/123
+
+ZAKRES ODBIORU:
+---------------
+1. Montaż szafy rack z wyposażeniem
+2. Instalacja centrali SMOK-A
+3. Montaż modułów rozszerzających
+4. Wykonanie okablowania RS485 i Ethernet
+5. Konfiguracja systemu
+6. Testy funkcjonalne
+
+SPRAWDZENIA DOKUMENTACYJNE:
+---------------------------
+☑ Dokumentacja techniczna kompletna
+☑ Atesty materiałów i urządzeń dostarczone
+☑ Świadectwa ukończenia szkoleń instalatorów
+☑ Deklaracje zgodności CE
+☑ Instrukcje obsługi w języku polskim
+
+SPRAWDZENIA WIZUALNE:
+---------------------
+☑ Szafa rack zamontowana zgodnie z projektem
+☑ Okablowanie wykonane estetycznie
+☑ Oznaczenia przewodów czytelne i trwałe
+☑ Zabezpieczenia mechaniczne prawidłowe
+☑ Brak uszkodzeń mechanicznych urządzeń
+☑ Oznakowania bezpieczeństwa obecne
+
+POMIARY ELEKTRYCZNE:
+--------------------
+Napięcie zasilania: 230V AC (zmierzone: 232V)
+Napięcie wyjściowe zasilacza: 24V DC (zmierzone: 27.2V)
+Rezystancja uziemienia: < 10Ω (zmierzone: 3.8Ω)
+Rezystancja izolacji: > 1MΩ (zmierzone: 15MΩ)
+Wynik: ☑ POZYTYWNY
+
+TESTY FUNKCJONALNE:
+-------------------
+Test 1: Uruchomienie systemu - POZYTYWNY
+Test 2: Komunikacja RS485 z modułami - POZYTYWNY
+Test 3: Komunikacja Ethernet - POZYTYWNY
+Test 4: Panel operatorski - POZYTYWNY
+Test 5: Zasilanie awaryjne (test baterii) - POZYTYWNY
+Test 6: Sygnalizacja alarmów - POZYTYWNY
+Test 7: Rejestracja zdarzeń - POZYTYWNY
+Test 8: Backup konfiguracji - POZYTYWNY
+
+STWIERDZONE WADY:
+-----------------
+Wady krytyczne: BRAK
+Wady istotne: BRAK
+Wady nieistotne:
+1. Brak jednej opaski kablowej w dolnej części szafy - usunięto na miejscu
+
+UWAGI I ZALECENIA:
+------------------
+System działa prawidłowo zgodnie z wymaganiami projektu i specyfikacją techniczną.
+Zaleca się przeprowadzenie przeglądu konserwacyjnego po 6 miesiącach eksploatacji.
+
+PODSUMOWANIE:
+-------------
+System SMOKIP_A podsystem EXAMPLE został wykonany prawidłowo i może zostać 
+dopuszczony do eksploatacji.
+
+DECYZJA: SYSTEM PRZYJĘTY BEZ ZASTRZEŻEŃ
+
+Podpisy:
+--------
+Wykonawca: ___________________    Data: 2026-01-06
+           Jan Kowalski
+
+Inwestor:  ___________________    Data: 2026-01-06
+           Anna Nowak
+
+Miejsce na pieczątki:
+[                    ]    [                    ]
