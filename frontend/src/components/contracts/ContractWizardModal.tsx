@@ -236,10 +236,9 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
   // Generate tasks for a single subsystem
   const generateTasksForSubsystem = (
     subsystem: SubsystemWizardData, 
-    startIndex: number
+    _startIndex: number
   ): GeneratedTask[] => {
     const tasks: GeneratedTask[] = [];
-    let taskIndex = startIndex;
     const params = subsystem.params;
 
     // SMOK-A specific
