@@ -3,6 +3,34 @@
 
 import api from './api';
 
+export interface SubsystemTask {
+  id: number;
+  taskNumber: string;
+  taskName: string;
+  taskType: string;
+  subsystemId: number;
+  status: string;
+  metadata: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Subsystem {
+  id: number;
+  subsystemNumber: string;
+  systemType: string;
+  contractId: number;
+  quantity: number;
+  status: string;
+  params?: Record<string, any>;
+  tasks?: SubsystemTask[];
+  createdAt: string;
+  updatedAt: string;
+  // Optional fields for compatibility
+  name?: string;
+  type?: string;
+}
+
 export interface Contract {
   id: number;
   contractNumber: string;
@@ -19,7 +47,7 @@ export interface Contract {
     email: string;
   };
   jowiszRef?: string;
-  subsystems?: any[];
+  subsystems?: Subsystem[];
   createdAt: string;
   updatedAt: string;
 }

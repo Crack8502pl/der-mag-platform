@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { SUBSYSTEM_WIZARD_CONFIG, detectSubsystemTypes } from '../../config/subsystemWizardConfig';
 import type { SubsystemType } from '../../config/subsystemWizardConfig';
-import contractService from '../../services/contract.service';
+import contractService, { type Subsystem } from '../../services/contract.service';
 
 interface Props {
   onClose: () => void;
@@ -560,17 +560,17 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       });
       
       // Map returned tasks to generatedTasks format
-      const createdSubsystems = response.subsystems || [];
+      const createdSubsystems: Subsystem[] = response.subsystems || [];
       const fetchedTasks: GeneratedTask[] = [];
       
-      createdSubsystems.forEach((subsystem: any) => {
+      createdSubsystems.forEach((subsystem) => {
         const tasks = subsystem.tasks || [];
-        tasks.forEach((task: any) => {
+        tasks.forEach((task) => {
           fetchedTasks.push({
             number: task.taskNumber,
             name: task.taskName,
             type: task.taskType,
-            subsystemType: subsystem.systemType
+            subsystemType: subsystem.systemType as SubsystemType
           });
         });
       });
