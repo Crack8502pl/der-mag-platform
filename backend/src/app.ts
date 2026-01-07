@@ -53,6 +53,13 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// Rate limiting for debug endpoints (more permissive than API)
+const debugLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // 30 requests per minute
+  message: 'Zbyt wiele żądań do endpointów diagnostycznych'
+});
+
 // Body parsers
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -75,8 +82,8 @@ app.get('/health', (req, res) => {
 });
 
 // 🆕 Debug endpoint - zwraca info o konfiguracji
-// Note: Nie jest rate-limited celowo, podobnie jak /health
-app.get('/debug/config', (req, res) => {
+// Note: Rate limited z debugLimiter
+app.get('/debug/config', debugLimiter, (req, res) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
@@ -92,7 +99,8 @@ app.get('/debug/config', (req, res) => {
 });
 
 // 🆕 Mobile debug endpoint - check if assets are served correctly
-app.get('/debug/assets', (req, res) => {
+// Note: Rate limited z debugLimiter
+app.get('/debug/assets', debugLimiter, (req, res) => {
   const frontendPath = path.join(__dirname, '../../frontend/dist');
   const assetsPath = path.join(frontendPath, 'assets');
   
