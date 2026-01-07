@@ -114,6 +114,13 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// Rate limiting for debug endpoints (more permissive than API)
+const debugLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // 30 requests per minute
+  message: 'Zbyt wiele żądań do endpointów diagnostycznych'
+});
+
 // Body parsers
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -135,6 +142,19 @@ app.get('/health', (req, res) => {
   });
 });
 
+// 🆕 Debug endpoint - zwraca info o konfiguracji
+// Note: Rate limited z debugLimiter
+app.get('/debug/config', debugLimiter, (req, res) => {
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    frontendServed: fs.existsSync(path.join(__dirname, '../../frontend/dist')),
+    apiUrl: `${req.protocol}://${req.get('host')}/api`,
+    requestHeaders: {
+      host: req.get('host'),
+      userAgent: req.get('user-agent'),
+      referer: req.get('referer')
 // 🆕 Debug endpoints - only in development or when explicitly enabled
 if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEBUG_ENDPOINTS === 'true') {
   // Debug endpoint - zwraca info o konfiguracji
@@ -185,6 +205,38 @@ if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEBUG_ENDPOINTS 
   });
 }
 
+// 🆕 Mobile debug endpoint - check if assets are served correctly
+// Note: Rate limited with debugLimiter, only available in development
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/debug/assets', debugLimiter, (req, res) => {
+    const frontendPath = path.join(__dirname, '../../frontend/dist');
+    const assetsPath = path.join(frontendPath, 'assets');
+    
+    let assetFiles: string[] = [];
+    try {
+      if (fs.existsSync(assetsPath)) {
+        assetFiles = fs.readdirSync(assetsPath);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      assetFiles = ['Error reading assets: ' + errorMessage];
+    }
+    
+    res.json({
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      frontendPath,
+      frontendExists: fs.existsSync(frontendPath),
+      assetsPath,
+      assetsExists: fs.existsSync(assetsPath),
+      assetFiles,
+      indexHtmlExists: fs.existsSync(path.join(frontendPath, 'index.html')),
+      requestUrl: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
+      assetsUrl: `${req.protocol}://${req.get('host')}/assets/`
+    });
+  });
+}
+
 // Serwowanie interfejsu testowego
 const enableApiTester = process.env.ENABLE_API_TESTER === 'true' || process.env.NODE_ENV !== 'production';
 if (enableApiTester) {
@@ -200,11 +252,20 @@ const frontendPath = path.join(__dirname, '../../frontend/dist');
 if (fs.existsSync(frontendPath)) {
   console.log('🌐 Frontend będzie serwowany z: ' + frontendPath);
   
+  // 🆕 CRITICAL - Explicit route for assets directory
   // 🆕 CRITICAL - Explicit route for assets directory with CORS
   app.use('/assets', express.static(path.join(frontendPath, 'assets'), {
     maxAge: '1d',
     etag: true,
     setHeaders: (res, filePath) => {
+      // Enable CORS for assets in development (needed for mobile browsers accessing via local IP)
+      // In production, assets are served from same origin so CORS is not needed
+      if (process.env.NODE_ENV !== 'production') {
+        const origin = res.req.get('origin');
+        // Allow localhost and private network IPs (RFC 1918: 10.x.x.x, 172.16-31.x.x, 192.168.x.x) in development
+        if (origin && (origin.includes('localhost') || origin.match(/https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.)/))) {
+          res.setHeader('Access-Control-Allow-Origin', origin);
+        }
       // 🆕 Enable CORS for assets (critical for local network)
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -224,6 +285,7 @@ if (fs.existsSync(frontendPath)) {
     maxAge: '1d',
     etag: true,
     setHeaders: (res, filePath) => {
+      // 🆕 Force reload for HTML files (prevent 304 cache issues on mobile)
       // 🆕 CORS for all static files
       res.setHeader('Access-Control-Allow-Origin', '*');
       
@@ -239,6 +301,10 @@ if (fs.existsSync(frontendPath)) {
   // Obsługa React Router - wszystkie pozostałe ścieżki zwracają index.html
   // MUSI być PRZED error handlers
   app.get('*', (req, res) => {
+    // 🆕 Force no-cache for SPA routing
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile(path.join(frontendPath, 'index.html'));
   });
 } else {

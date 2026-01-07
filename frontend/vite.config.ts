@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  base: '/', // 🆕 CRITICAL - ensure relative paths work on any domain
   base: '/',
   server: {
     host: '0.0.0.0', // Pozwól na dostęp z sieci lokalnej
@@ -16,6 +17,11 @@ export default defineConfig({
     }
   },
   build: {
+    sourcemap: true, // 🆕 Sourcemaps dla debugowania
+    assetsDir: 'assets', // 🆕 Ensure assets are in /assets/
+    rollupOptions: {
+      output: {
+        manualChunks: undefined // 🆕 Single bundle for better mobile performance
     sourcemap: true, // 🆕 Sourcemapy dla debugowania
     assetsDir: 'assets',
     rollupOptions: {
