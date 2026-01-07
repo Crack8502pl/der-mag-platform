@@ -58,9 +58,9 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
   // Odtwarzaj tik co sekundę gdy pokazane ostrzeżenie
   useEffect(() => {
     if (showWarning) {
-      playTick(); // Pierwszy tik natychmiast
+      void playTick(); // Pierwszy tik natychmiast (fire-and-forget)
       tickIntervalRef.current = setInterval(() => {
-        playTick();
+        void playTick();
       }, 1000);
     } else {
       if (tickIntervalRef.current) {
