@@ -2,7 +2,8 @@
 // Modal for managing subsystem documentation
 
 import React, { useState, useEffect, useRef } from 'react';
-import { subsystemService, Subsystem, SubsystemDocument } from '../../services/subsystem.service';
+import { subsystemService } from '../../services/subsystem.service';
+import type { Subsystem, SubsystemDocument } from '../../services/subsystem.service';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import './SubsystemDocumentationModal.css';
 

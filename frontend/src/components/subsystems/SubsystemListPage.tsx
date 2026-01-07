@@ -3,7 +3,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { BackButton } from '../common/BackButton';
-import { subsystemService, Subsystem } from '../../services/subsystem.service';
+import { subsystemService } from '../../services/subsystem.service';
+import type { Subsystem } from '../../services/subsystem.service';
 import { SubsystemDocumentationModal } from './SubsystemDocumentationModal';
 import './SubsystemListPage.css';
 
