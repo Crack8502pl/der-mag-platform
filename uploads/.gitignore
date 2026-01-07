@@ -1,0 +1,9 @@
+# Ignore all files in uploads except example files
+*
+!.gitignore
+!subsystems/
+subsystems/*
+!subsystems/documentation/
+subsystems/documentation/*
+!subsystems/documentation/EXAMPLE/
+!subsystems/documentation/EXAMPLE/*
