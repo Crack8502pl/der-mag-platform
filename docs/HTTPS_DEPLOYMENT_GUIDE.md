@@ -5,7 +5,7 @@ Ten dokument opisuje krok po kroku proces wdrożenia HTTPS w środowisku dewelop
 ## 📋 Spis treści
 
 - [Przygotowanie](#-przygotowanie)
-- [Środowisko deweloperskie](#️-środowisko-deweloperskie-dev)
+- [Środowisko deweloperskie](#-środowisko-deweloperskie-dev)
 - [Środowisko produkcyjne](#-środowisko-produkcyjne-prod)
 - [Przenoszenie między maszynami](#-przenoszenie-między-maszynami)
 - [Rozwiązywanie problemów](#-rozwiązywanie-problemów)
