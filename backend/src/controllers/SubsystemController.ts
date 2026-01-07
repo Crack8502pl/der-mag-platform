@@ -60,7 +60,7 @@ export class SubsystemController {
             pm.firstName?.toLowerCase().includes(pmSearch) ||
             pm.lastName?.toLowerCase().includes(pmSearch) ||
             pm.username?.toLowerCase().includes(pmSearch) ||
-            `${pm.firstName} ${pm.lastName}`.toLowerCase().includes(pmSearch)
+            `${pm.firstName || ''} ${pm.lastName || ''}`.toLowerCase().includes(pmSearch)
           );
         });
       }
