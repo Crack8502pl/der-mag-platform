@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { SUBSYSTEM_WIZARD_CONFIG, detectSubsystemTypes } from '../../config/subsystemWizardConfig';
 import type { SubsystemType } from '../../config/subsystemWizardConfig';
-import contractService from '../../services/contract.service';
+import contractService, { type Subsystem } from '../../services/contract.service';
 
 interface Props {
   onClose: () => void;
@@ -551,7 +551,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
         };
       });
 
-      await contractService.createContractWithWizard({
+      const response = await contractService.createContractWithWizard({
         customName: wizardData.customName,
         orderDate: wizardData.orderDate,
         projectManagerId: user.id,
@@ -559,6 +559,19 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
         subsystems: subsystemsData
       });
       
+      // Map returned tasks to generatedTasks format
+      const createdSubsystems: Subsystem[] = response.subsystems || [];
+      const fetchedTasks: GeneratedTask[] = createdSubsystems.flatMap((subsystem) => 
+        (subsystem.tasks || []).map((task) => ({
+          number: task.taskNumber,
+          name: task.taskName,
+          type: task.taskType,
+          subsystemType: subsystem.systemType as SubsystemType
+        }))
+      );
+      
+      // Update state with real tasks from database
+      setGeneratedTasks(fetchedTasks);
       setCurrentStep(getTotalSteps()); // Move to success step
     } catch (err) {
       const error = err as Error;
