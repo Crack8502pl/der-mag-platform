@@ -15,17 +15,67 @@ import { RATE_LIMIT } from './config/constants';
 
 const app: Application = express();
 
-// Security middleware
-app.use(helmet());
+// 🆕 Prevent HTTPS upgrade in local network (before helmet)
+app.use((req, res, next) => {
+  // Remove HSTS and upgrade-insecure-requests for local network
+  const isLocalNetwork = /^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(req.hostname);
+  if (isLocalNetwork) {
+    res.removeHeader('Strict-Transport-Security');
+  }
+  next();
+});
 
-// CORS configuration - bardziej permisywna dla development
+// Security middleware - conditional based on environment
+const isProduction = process.env.NODE_ENV === 'production';
+const disableCSP = process.env.DISABLE_CSP === 'true';
+
+if (isProduction && !disableCSP) {
+  // Strict security for production
+  app.use(helmet());
+} else {
+  // Relaxed security for development/local network
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'", 
+          "'unsafe-inline'", // 🆕 Allow Vite inline scripts in dev
+          "'unsafe-eval'"    // 🆕 Allow eval for dev tools
+        ],
+        scriptSrcElem: [
+          "'self'",
+          "'unsafe-inline'" // 🆕 Critical for Vite HMR and inline scripts
+        ],
+        styleSrc: [
+          "'self'", 
+          "'unsafe-inline'" // 🆕 Allow inline styles
+        ],
+        imgSrc: ["'self'", "data:", "blob:"],
+        connectSrc: [
+          "'self'",
+          "ws:", // 🆕 Allow WebSocket for Vite HMR
+          "wss:" // 🆕 Allow secure WebSocket
+        ],
+        fontSrc: ["'self'", "data:"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'self'"]
+      }
+    },
+    crossOriginEmbedderPolicy: false, // 🆕 Disable for local network
+    crossOriginResourcePolicy: { policy: "cross-origin" } // 🆕 Allow cross-origin in LAN
+  }));
+}
+
+// CORS configuration - permissive for development and local network
 const corsOrigins = process.env.CORS_ORIGIN 
   ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
   : ['http://localhost:5173', 'http://localhost:3001', 'http://localhost:3000'];
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Pozwól na requesty bez origin (curl, Postman, same-origin)
+    // Pozwół na requesty bez origin (curl, Postman, same-origin)
     if (!origin) {
       return callback(null, true);
     }
@@ -35,15 +85,26 @@ app.use(cors({
       return callback(null, true);
     }
     
-    // W development pozwól na wszystkie origins z localhost
-    if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+    // 🆕 W development pozwól na localhost URLs (more specific pattern)
+    if (process.env.NODE_ENV !== 'production' && /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+      return callback(null, true);
+    }
+    
+    // 🆕 Pozwól na local network (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+    const isLocalNetwork = /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(origin);
+    if (isLocalNetwork) {
       return callback(null, true);
     }
     
     callback(new Error('Not allowed by CORS'));
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // 🆕 Explicit methods
+  allowedHeaders: ['Content-Type', 'Authorization'] // 🆕 Explicit headers
 }));
+
+// 🆕 Handle preflight requests
+app.options('*', cors());
 
 // Rate limiting
 const limiter = rateLimit({
@@ -74,22 +135,55 @@ app.get('/health', (req, res) => {
   });
 });
 
-// 🆕 Debug endpoint - zwraca info o konfiguracji
-// Note: Nie jest rate-limited celowo, podobnie jak /health
-app.get('/debug/config', (req, res) => {
-  res.json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    frontendServed: fs.existsSync(path.join(__dirname, '../../frontend/dist')),
-    apiUrl: `${req.protocol}://${req.get('host')}/api`,
-    requestHeaders: {
-      host: req.get('host'),
-      userAgent: req.get('user-agent'),
-      referer: req.get('referer')
+// 🆕 Debug endpoints - only in development or when explicitly enabled
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEBUG_ENDPOINTS === 'true') {
+  // Debug endpoint - zwraca info o konfiguracji
+  app.get('/debug/config', (req, res) => {
+    res.json({
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      frontendServed: fs.existsSync(path.join(__dirname, '../../frontend/dist')),
+      apiUrl: `${req.protocol}://${req.get('host')}/api`,
+      requestHeaders: {
+        host: req.get('host'),
+        userAgent: req.get('user-agent'),
+        referer: req.get('referer')
+      }
+    });
+  });
+
+  // Debug endpoint - lista assets
+  app.get('/debug/assets', async (req, res) => {
+    const frontendPath = path.join(__dirname, '../../frontend/dist');
+    const assetsPath = path.join(frontendPath, 'assets');
+    
+    try {
+      if (!fs.existsSync(assetsPath)) {
+        return res.json({
+          status: 'ERROR',
+          message: 'Assets directory not found',
+          path: assetsPath,
+          frontendBuilt: fs.existsSync(frontendPath)
+        });
+      }
+      
+      const assets = await fs.promises.readdir(assetsPath);
+      res.json({
+        status: 'OK',
+        assetsPath,
+        assets,
+        count: assets.length
+      });
+    } catch (error) {
+      res.status(500).json({
+        status: 'ERROR',
+        message: 'Failed to read assets directory',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
-});
+}
 
 // Serwowanie interfejsu testowego
 const enableApiTester = process.env.ENABLE_API_TESTER === 'true' || process.env.NODE_ENV !== 'production';
@@ -106,10 +200,40 @@ const frontendPath = path.join(__dirname, '../../frontend/dist');
 if (fs.existsSync(frontendPath)) {
   console.log('🌐 Frontend będzie serwowany z: ' + frontendPath);
   
+  // 🆕 CRITICAL - Explicit route for assets directory with CORS
+  app.use('/assets', express.static(path.join(frontendPath, 'assets'), {
+    maxAge: '1d',
+    etag: true,
+    setHeaders: (res, filePath) => {
+      // 🆕 Enable CORS for assets (critical for local network)
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      
+      // 🆕 Set correct MIME types
+      if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      } else if (filePath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css; charset=utf-8');
+      }
+    }
+  }));
+  
   // Serwuj statyczne pliki frontendu
   app.use(express.static(frontendPath, {
     maxAge: '1d',
-    etag: true
+    etag: true,
+    setHeaders: (res, filePath) => {
+      // 🆕 CORS for all static files
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      
+      // Force reload for HTML files
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
+    }
   }));
   
   // Obsługa React Router - wszystkie pozostałe ścieżki zwracają index.html
