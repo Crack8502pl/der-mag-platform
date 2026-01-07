@@ -101,8 +101,9 @@ app.get('/debug/assets', (req, res) => {
     if (fs.existsSync(assetsPath)) {
       assetFiles = fs.readdirSync(assetsPath);
     }
-  } catch (e) {
-    assetFiles = ['Error reading assets: ' + (e as Error).message];
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    assetFiles = ['Error reading assets: ' + errorMessage];
   }
   
   res.json({
@@ -139,8 +140,11 @@ if (fs.existsSync(frontendPath)) {
     maxAge: '1d',
     etag: true,
     setHeaders: (res, filePath) => {
-      // Enable CORS for assets (needed for some mobile browsers)
-      res.setHeader('Access-Control-Allow-Origin', '*');
+      // Enable CORS for assets in development (needed for mobile browsers accessing via local IP)
+      // In production, assets are served from same origin so CORS is not needed
+      if (process.env.NODE_ENV !== 'production') {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      }
     }
   }));
   

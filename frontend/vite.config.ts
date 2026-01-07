@@ -11,7 +11,7 @@ export default defineConfig({
     strictPort: true
   },
   build: {
-    sourcemap: true, // 🆕 Sourcemapy dla debugowania
+    sourcemap: true, // 🆕 Sourcemaps dla debugowania
     assetsDir: 'assets', // 🆕 Ensure assets are in /assets/
     rollupOptions: {
       output: {
