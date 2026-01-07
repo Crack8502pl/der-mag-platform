@@ -1,5 +1,17 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import fs from 'fs'
+import path from 'path'
+
+// Sprawdź czy certyfikaty istnieją
+const certPath = path.resolve(__dirname, '../backend/certs/cert.pem')
+const keyPath = path.resolve(__dirname, '../backend/certs/key.pem')
+const certsExist = fs.existsSync(certPath) && fs.existsSync(keyPath)
+
+if (!certsExist) {
+  console.warn('⚠️  SSL certificates not found!')
+  console.warn('   Run: cd backend && ./scripts/generate-certs.sh 192.168.2.38')
+}
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -9,9 +21,13 @@ export default defineConfig({
     host: '0.0.0.0', // Pozwól na dostęp z sieci lokalnej
     port: 5173,
     strictPort: true,
+    https: certsExist ? {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certPath)
+    } : undefined,
     cors:  true, // 🆕 Enable CORS in Vite dev server
     hmr: {
-      protocol: 'ws', // 🆕 Use WebSocket (not wss)
+      protocol: certsExist ? 'wss' : 'ws', // 🆕 Use WebSocket Secure when HTTPS enabled
       host: 'localhost'
     }
   },

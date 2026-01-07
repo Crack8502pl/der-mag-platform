@@ -11,19 +11,19 @@ const getApiBaseURL = (): string => {
     return import.meta.env.VITE_API_BASE_URL;
   }
   
-  // 2. Wykryj sieć lokalną (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+  // 2. Wykryj protokół (HTTPS lub HTTP)
+  const protocol = window.location.protocol; // 'https:' lub 'http:'
   const hostname = window.location.hostname;
   const isLocalNetwork = /^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(hostname);
   
-  // 3. Dla sieci lokalnej - zawsze dodaj port 3000
+  // 3. Dla sieci lokalnej - użyj tego samego protokołu co frontend
   if (isLocalNetwork) {
-    return `http://${hostname}:3000/api`;
+    return `${protocol}//${hostname}:3000/api`;
   }
   
   // 4. Dla localhost
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    const port = window.location.port || '3000';
-    return `http://localhost:${port}/api`;
+    return `${protocol}//localhost:3000/api`;
   }
   
   // 5. Fallback: użyj origin (dla production)
@@ -34,6 +34,7 @@ const API_BASE_URL = getApiBaseURL();
 
 // 🆕 Debug info w konsoli
 console.log('🌐 API Configuration:', {
+  protocol: window.location.protocol,
   hostname: window.location.hostname,
   origin: window.location.origin,
   calculatedApiUrl: API_BASE_URL,

@@ -138,6 +138,50 @@ grover-platform/
 
 ## 🔧 Instalacja i uruchomienie
 
+## 🔐 HTTPS Setup
+
+### Generowanie certyfikatów SSL
+
+Przed pierwszym uruchomieniem wygeneruj certyfikaty SSL:
+
+**Linux/Mac:**
+```bash
+cd backend
+./scripts/generate-certs.sh 192.168.2.38
+```
+
+**Windows:**
+```powershell
+cd backend
+.\scripts\generate-certs.ps1 -IpAddress 192.168.2.38
+```
+
+### Zmiana adresu IP
+
+Gdy przenosisz aplikację na inną maszynę:
+
+1. Wygeneruj nowe certyfikaty:
+   ```bash
+   cd backend
+   ./scripts/generate-certs.sh <NOWY_IP>
+   ```
+
+2. Zaktualizuj `.env`:
+   ```env
+   SERVER_HOST=<NOWY_IP>
+   CORS_ORIGIN=https://<NOWY_IP>:5173
+   ```
+
+3. Zrestartuj aplikację
+
+### Akceptacja certyfikatu
+
+Po pierwszym uruchomieniu odwiedź:
+- Backend: `https://192.168.2.38:3000/health`
+- Frontend: `https://192.168.2.38:5173`
+
+Zaakceptuj ostrzeżenie o certyfikacie w przeglądarce.
+
 ### Backend
 
 ```bash

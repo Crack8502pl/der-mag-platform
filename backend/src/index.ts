@@ -1,7 +1,11 @@
 // src/index.ts
-// Punkt wejścia aplikacji
+// Punkt wejścia aplikacji z obsługą HTTPS
 import 'dotenv/config';
 import 'reflect-metadata';
+import https from 'https';
+import http from 'http';
+import fs from 'fs';
+import path from 'path';
 import app from './app';
 import { initializeDatabase } from './config/database';
 import { DatabaseSeeder } from './services/DatabaseSeeder';
@@ -9,6 +13,8 @@ import EmailService from './services/EmailService';
 import EmailQueueService from './services/EmailQueueService';
 
 const PORT = process.env.PORT || 3000;
+const USE_HTTPS = process.env.USE_HTTPS === 'true';
+const SERVER_HOST = process.env.SERVER_HOST || '192.168.2.38';
 
 // Funkcja startowa
 const startServer = async () => {
@@ -24,17 +30,52 @@ const startServer = async () => {
     await EmailService.initialize();
     await EmailQueueService.initialize();
 
-    // Start serwera
-    app.listen(PORT, () => {
-      console.log('╔════════════════════════════════════════╗');
-      console.log('║   Grover Platform Backend API         ║');
-      console.log('╠════════════════════════════════════════╣');
-      console.log(`║   🚀 Serwer działa na porcie: ${PORT}    ║`);
-      console.log(`║   🌍 Environment: ${process.env.NODE_ENV || 'development'}           ║`);
-      console.log(`║   📡 API URL: http://localhost:${PORT}     ║`);
-      console.log(`║   💚 Health: http://localhost:${PORT}/health ║`);
-      console.log('╚════════════════════════════════════════╝');
-    });
+    // Start serwera z HTTPS lub HTTP
+    if (USE_HTTPS) {
+      const certPath = path.join(__dirname, '../certs/cert.pem');
+      const keyPath = path.join(__dirname, '../certs/key.pem');
+
+      if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
+        console.error('❌ Certyfikaty SSL nie znalezione!');
+        console.error(`   Sprawdź: ${certPath} i ${keyPath}`);
+        console.error('');
+        console.error('   Wygeneruj certyfikaty za pomocą:');
+        console.error('   Linux/Mac: ./scripts/generate-certs.sh ' + SERVER_HOST);
+        console.error('   Windows:   .\\scripts\\generate-certs.ps1 -IpAddress ' + SERVER_HOST);
+        process.exit(1);
+      }
+
+      const httpsOptions = {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath)
+      };
+
+      https.createServer(httpsOptions, app).listen(PORT, () => {
+        console.log('╔════════════════════════════════════════╗');
+        console.log('║   Grover Platform Backend API         ║');
+        console.log('║   🔐 HTTPS Mode                        ║');
+        console.log('╠════════════════════════════════════════╣');
+        console.log(`║   🚀 Serwer działa na porcie: ${PORT}    ║`);
+        console.log(`║   🌍 Environment: ${(process.env.NODE_ENV || 'development').padEnd(19)} ║`);
+        console.log(`║   🖥️  Host: ${SERVER_HOST.padEnd(27)} ║`);
+        console.log(`║   📡 API: https://${SERVER_HOST}:${PORT}/api`);
+        console.log(`║   💚 Health: https://${SERVER_HOST}:${PORT}/health`);
+        console.log('╚════════════════════════════════════════╝');
+      });
+    } else {
+      http.createServer(app).listen(PORT, () => {
+        console.log('╔════════════════════════════════════════╗');
+        console.log('║   Grover Platform Backend API         ║');
+        console.log('║   🔓 HTTP Mode (Not Secure)            ║');
+        console.log('╠════════════════════════════════════════╣');
+        console.log(`║   🚀 Serwer działa na porcie: ${PORT}    ║`);
+        console.log(`║   🌍 Environment: ${(process.env.NODE_ENV || 'development').padEnd(19)} ║`);
+        console.log(`║   🖥️  Host: ${SERVER_HOST.padEnd(27)} ║`);
+        console.log(`║   📡 API: http://${SERVER_HOST}:${PORT}/api`);
+        console.log(`║   💚 Health: http://${SERVER_HOST}:${PORT}/health`);
+        console.log('╚════════════════════════════════════════╝');
+      });
+    }
   } catch (error) {
     console.error('❌ Błąd uruchomienia serwera:', error);
     process.exit(1);
