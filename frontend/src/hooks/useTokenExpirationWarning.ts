@@ -23,10 +23,24 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
   const { logout } = useAuthStore();
 
   // Funkcja generująca dźwięk "tik" zegara
-  const playTick = () => {
-    if (!audioContextRef.current) return;
+  const playTick = async () => {
+    // Lazy initialization - utwórz AudioContext przy pierwszym użyciu
+    if (!audioContextRef.current) {
+      try {
+        audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      } catch (error) {
+        console.warn('AudioContext nie jest dostępny:', error);
+        return;
+      }
+    }
 
     const audioContext = audioContextRef.current;
+    
+    // Resume jeśli zawieszony (Safari wymaga)
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
+
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
     
@@ -41,23 +55,12 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
     oscillator.stop(audioContext.currentTime + 0.1);
   };
 
-  // Inicjalizacja AudioContext
-  useEffect(() => {
-    audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-
-    return () => {
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
-    };
-  }, []);
-
   // Odtwarzaj tik co sekundę gdy pokazane ostrzeżenie
   useEffect(() => {
     if (showWarning) {
-      playTick(); // Pierwszy tik natychmiast
+      void playTick(); // Pierwszy tik natychmiast (fire-and-forget)
       tickIntervalRef.current = setInterval(() => {
-        playTick();
+        void playTick();
       }, 1000);
     } else {
       if (tickIntervalRef.current) {
@@ -144,6 +147,15 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
   const dismissWarning = () => {
     setShowWarning(false);
   };
+
+  // Cleanup AudioContext przy unmount
+  useEffect(() => {
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, []);
 
   return {
     showWarning,
