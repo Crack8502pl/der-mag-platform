@@ -99,34 +99,36 @@ app.get('/debug/config', debugLimiter, (req, res) => {
 });
 
 // 🆕 Mobile debug endpoint - check if assets are served correctly
-// Note: Rate limited z debugLimiter
-app.get('/debug/assets', debugLimiter, (req, res) => {
-  const frontendPath = path.join(__dirname, '../../frontend/dist');
-  const assetsPath = path.join(frontendPath, 'assets');
-  
-  let assetFiles: string[] = [];
-  try {
-    if (fs.existsSync(assetsPath)) {
-      assetFiles = fs.readdirSync(assetsPath);
+// Note: Rate limited with debugLimiter, only available in development
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/debug/assets', debugLimiter, (req, res) => {
+    const frontendPath = path.join(__dirname, '../../frontend/dist');
+    const assetsPath = path.join(frontendPath, 'assets');
+    
+    let assetFiles: string[] = [];
+    try {
+      if (fs.existsSync(assetsPath)) {
+        assetFiles = fs.readdirSync(assetsPath);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      assetFiles = ['Error reading assets: ' + errorMessage];
     }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    assetFiles = ['Error reading assets: ' + errorMessage];
-  }
-  
-  res.json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    frontendPath,
-    frontendExists: fs.existsSync(frontendPath),
-    assetsPath,
-    assetsExists: fs.existsSync(assetsPath),
-    assetFiles,
-    indexHtmlExists: fs.existsSync(path.join(frontendPath, 'index.html')),
-    requestUrl: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
-    assetsUrl: `${req.protocol}://${req.get('host')}/assets/`
+    
+    res.json({
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      frontendPath,
+      frontendExists: fs.existsSync(frontendPath),
+      assetsPath,
+      assetsExists: fs.existsSync(assetsPath),
+      assetFiles,
+      indexHtmlExists: fs.existsSync(path.join(frontendPath, 'index.html')),
+      requestUrl: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
+      assetsUrl: `${req.protocol}://${req.get('host')}/assets/`
+    });
   });
-});
+}
 
 // Serwowanie interfejsu testowego
 const enableApiTester = process.env.ENABLE_API_TESTER === 'true' || process.env.NODE_ENV !== 'production';
@@ -151,7 +153,11 @@ if (fs.existsSync(frontendPath)) {
       // Enable CORS for assets in development (needed for mobile browsers accessing via local IP)
       // In production, assets are served from same origin so CORS is not needed
       if (process.env.NODE_ENV !== 'production') {
-        res.setHeader('Access-Control-Allow-Origin', '*');
+        const origin = res.req.get('origin');
+        // Allow localhost and local network IPs (192.168.x.x, 10.x.x.x) in development
+        if (origin && (origin.includes('localhost') || origin.match(/https?:\/\/(192\.168\.|10\.)/))) {
+          res.setHeader('Access-Control-Allow-Origin', origin);
+        }
       }
     }
   }));
