@@ -1,24 +1,32 @@
 // src/components/contracts/ContractEditModal.tsx
 // Modal for editing contracts
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../hooks/useAuth';
 import type { Contract } from '../../services/contract.service';
 import contractService from '../../services/contract.service';
+import axios from 'axios';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 interface Props {
   contract: Contract;
-  managers: Array<{
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+export const ContractEditModal: React.FC<Props> = ({ contract, onClose, onSuccess }) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  
+  const [managers, setManagers] = useState<Array<{
     id: number;
     firstName: string;
     lastName: string;
     username: string;
     email: string;
-  }>;
-  onClose: () => void;
-  onSuccess: () => void;
-}
-
-export const ContractEditModal: React.FC<Props> = ({ contract, managers, onClose, onSuccess }) => {
+  }>>([]);
+  
   const [formData, setFormData] = useState({
     customName: contract.customName || '',
     orderDate: contract.orderDate?.split('T')[0] || '',
@@ -29,6 +37,27 @@ export const ContractEditModal: React.FC<Props> = ({ contract, managers, onClose
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Load managers only for admin users
+  useEffect(() => {
+    const loadManagers = async () => {
+      if (!isAdmin) return;
+      
+      try {
+        const token = localStorage.getItem('accessToken');
+        const response = await axios.get(`${API_BASE_URL}/users`, {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { role: 'manager' }
+        });
+        const data = response.data.data || response.data;
+        setManagers(data.users || data || []);
+      } catch (err) {
+        console.error('Błąd pobierania kierowników:', err);
+      }
+    };
+    
+    loadManagers();
+  }, [isAdmin]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -157,19 +186,36 @@ export const ContractEditModal: React.FC<Props> = ({ contract, managers, onClose
             <label htmlFor="projectManagerId">
               Kierownik projektu <span className="required">*</span>
             </label>
-            <select
-              id="projectManagerId"
-              className={errors.projectManagerId ? 'error' : ''}
-              value={formData.projectManagerId}
-              onChange={(e) => setFormData({ ...formData, projectManagerId: e.target.value })}
-            >
-              <option value="">Wybierz kierownika...</option>
-              {Array.isArray(managers) && managers.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.firstName} {m.lastName} ({m.username})
-                </option>
-              ))}
-            </select>
+            {isAdmin ? (
+              <select
+                id="projectManagerId"
+                className={errors.projectManagerId ? 'error' : ''}
+                value={formData.projectManagerId}
+                onChange={(e) => setFormData({ ...formData, projectManagerId: e.target.value })}
+              >
+                <option value="">Wybierz kierownika...</option>
+                {Array.isArray(managers) && managers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.firstName} {m.lastName} ({m.username})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <>
+                <input
+                  id="projectManagerId"
+                  type="text"
+                  className="form-control-readonly"
+                  value={contract.projectManager 
+                    ? `${contract.projectManager.firstName} ${contract.projectManager.lastName} (${contract.projectManager.username})`
+                    : 'N/A'
+                  }
+                  disabled
+                  readOnly
+                />
+                <span className="text-muted">Kierownik nie może być zmieniony przez użytkownika</span>
+              </>
+            )}
             {errors.projectManagerId && <span className="error-text">{errors.projectManagerId}</span>}
           </div>
           
