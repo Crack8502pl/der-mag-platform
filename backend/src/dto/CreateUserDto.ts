@@ -35,6 +35,12 @@ export class CreateUserDto {
   @MaxLength(20, { message: 'Telefon może mieć maksymalnie 20 znaków' })
   phone?: string;
 
+  @IsString({ message: 'Kod pracownika musi być ciągiem znaków' })
+  @IsOptional()
+  @MaxLength(3, { message: 'Kod pracownika musi mieć dokładnie 3 znaki' })
+  @MinLength(3, { message: 'Kod pracownika musi mieć dokładnie 3 znaki' })
+  employeeCode?: string;
+
   @IsNumber({}, { message: 'ID roli musi być liczbą' })
   @IsNotEmpty({ message: 'ID roli jest wymagane' })
   roleId: number;
