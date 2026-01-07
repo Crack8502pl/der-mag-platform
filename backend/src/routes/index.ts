@@ -25,6 +25,9 @@ import bomTriggerRoutes from './bom-trigger.routes';
 import adminRoutes from './admin.routes';
 import workflowBomRoutes from './workflow-bom.routes';
 import prefabricationRoutes from './prefabrication.routes';
+// Service tasks routes
+import serviceTaskRoutes from './serviceTask.routes';
+import brigadeRoutes from './brigade.routes';
 
 const router = Router();
 
@@ -52,6 +55,10 @@ router.use('/completion', completionRoutes);
 router.use('/bom-triggers', bomTriggerRoutes);
 router.use('/workflow-bom', workflowBomRoutes);
 router.use('/prefabrication', prefabricationRoutes);
+
+// Service tasks routes
+router.use('/service-tasks', serviceTaskRoutes);
+router.use('/brigades', brigadeRoutes);
 
 // Admin routes
 router.use('/admin', adminRoutes);

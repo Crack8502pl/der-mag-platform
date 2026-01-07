@@ -12,6 +12,23 @@ import bcrypt from 'bcrypt';
 
 export class UserController {
   /**
+   * Generate employee code from first name and last name
+   * Format: First 2 letters of first name + first letter of last name (uppercase)
+   * Example: Remigiusz Krakowski -> RKR
+   */
+  static generateEmployeeCode(firstName: string, lastName: string): string {
+    const cleanFirstName = firstName.trim().toUpperCase();
+    const cleanLastName = lastName.trim().toUpperCase();
+    
+    // Take first 2 letters from first name (or less if name is shorter)
+    const firstPart = cleanFirstName.substring(0, 2);
+    // Take first letter from last name
+    const lastPart = cleanLastName.substring(0, 1);
+    
+    return (firstPart + lastPart).padEnd(3, 'X'); // Pad with X if too short
+  }
+
+  /**
    * GET /api/users
    * Lista użytkowników z paginacją, filtrowaniem i sortowaniem
    */
@@ -160,6 +177,7 @@ export class UserController {
             email: u.email,
             firstName: u.firstName,
             lastName: u.lastName,
+            employeeCode: u.employeeCode,
             role: u.role?.name,
             active: u.active,
             createdAt: u.createdAt,
@@ -223,7 +241,7 @@ export class UserController {
    */
   static async create(req: Request, res: Response): Promise<void> {
     try {
-      const { username, email, firstName, lastName, roleId, phone, password } = req.body;
+      const { username, email, firstName, lastName, roleId, phone, password, employeeCode } = req.body;
 
       // Walidacja wymaganych pól
       if (!username || !email || !firstName || !lastName || !roleId || !password) {
@@ -290,6 +308,55 @@ export class UserController {
         return;
       }
 
+      // Generate employee code if not provided
+      let finalEmployeeCode = employeeCode;
+      if (!finalEmployeeCode) {
+        finalEmployeeCode = UserController.generateEmployeeCode(firstName, lastName);
+        
+        // Check if generated code is unique, if not, add number suffix
+        let codeExists = await userRepository.findOne({
+          where: { employeeCode: finalEmployeeCode, deletedAt: IsNull() }
+        });
+        
+        let counter = 1;
+        while (codeExists && counter <= 99) {
+          // Try with numeric suffix, ensuring 3-character length
+          const altCode = finalEmployeeCode.substring(0, Math.min(2, finalEmployeeCode.length)) + counter;
+          codeExists = await userRepository.findOne({
+            where: { employeeCode: altCode, deletedAt: IsNull() }
+          });
+          if (!codeExists) {
+            finalEmployeeCode = altCode;
+            break;
+          }
+          counter++;
+        }
+        
+        // If still exists after 99 attempts, throw error
+        if (codeExists) {
+          res.status(400).json({
+            success: false,
+            error: 'EMPLOYEE_CODE_GENERATION_FAILED',
+            message: 'Nie udało się wygenerować unikalnego kodu pracownika. Proszę podać kod ręcznie.'
+          });
+          return;
+        }
+      } else {
+        // Validate employee code uniqueness if provided manually
+        const codeExists = await userRepository.findOne({
+          where: { employeeCode: finalEmployeeCode, deletedAt: IsNull() }
+        });
+        
+        if (codeExists) {
+          res.status(400).json({
+            success: false,
+            error: 'EMPLOYEE_CODE_EXISTS',
+            message: 'Kod pracownika już istnieje'
+          });
+          return;
+        }
+      }
+
       // Utwórz użytkownika
       const newUser = userRepository.create({
         username,
@@ -298,6 +365,7 @@ export class UserController {
         lastName,
         roleId: Number(roleId),
         phone,
+        employeeCode: finalEmployeeCode,
         password, // Will be hashed by @BeforeInsert hook
         forcePasswordChange: true,
         active: true
