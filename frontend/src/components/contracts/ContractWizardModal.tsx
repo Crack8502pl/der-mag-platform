@@ -92,7 +92,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       const users = await adminService.getAllUsers();
       // Filter for active users with manager, admin, or board roles
       const managers = users.filter(u => 
-        u.active && (u.role === 'manager' || u.role === 'admin' || u.role === 'board')
+        u.active && (u.role?.name === 'manager' || u.role?.name === 'admin' || u.role?.name === 'board')
       );
       setAvailableManagers(managers);
     } catch (err) {
@@ -105,10 +105,14 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          role: user.role,
+          phone: undefined,
+          roleId: 0,  // We don't have this from auth user
+          role: { id: 0, name: user.role || '', permissions: user.permissions || {} },
           active: true,
-          permissions: user.permissions
-        } as AdminUser]);
+          forcePasswordChange: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }]);
       }
     } finally {
       setLoadingManagers(false);
@@ -727,7 +731,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
               <option value="">Wybierz kierownika projektu</option>
               {availableManagers.map(manager => (
                 <option key={manager.id} value={manager.id}>
-                  {manager.firstName} {manager.lastName} ({manager.username}) - {manager.role}
+                  {manager.firstName} {manager.lastName} ({manager.username}) - {manager.role?.name || 'Brak roli'}
                 </option>
               ))}
             </select>

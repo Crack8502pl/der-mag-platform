@@ -7,6 +7,7 @@ import { ServiceTaskActivity } from '../entities/ServiceTaskActivity';
 import { Brigade } from '../entities/Brigade';
 import { Contract } from '../entities/Contract';
 import { Subsystem } from '../entities/Subsystem';
+import { IsNull } from 'typeorm';
 
 export class ServiceTaskService {
   private taskRepository = AppDataSource.getRepository(ServiceTask);
@@ -77,7 +78,7 @@ export class ServiceTaskService {
    */
   async getTaskById(id: number): Promise<ServiceTask | null> {
     return await this.taskRepository.findOne({
-      where: { id, deletedAt: null },
+      where: { id, deletedAt: IsNull() },
       relations: ['contract', 'subsystem', 'brigade', 'createdBy'],
     });
   }
@@ -87,7 +88,7 @@ export class ServiceTaskService {
    */
   async getTaskByNumber(taskNumber: string): Promise<ServiceTask | null> {
     return await this.taskRepository.findOne({
-      where: { taskNumber, deletedAt: null },
+      where: { taskNumber, deletedAt: IsNull() },
       relations: ['contract', 'subsystem', 'brigade', 'createdBy'],
     });
   }
@@ -292,7 +293,7 @@ export class ServiceTaskService {
     byVariant: Record<string, number>;
   }> {
     const tasks = await this.taskRepository.find({
-      where: { deletedAt: null },
+      where: { deletedAt: IsNull() },
     });
 
     const byStatus: Record<string, number> = {};
