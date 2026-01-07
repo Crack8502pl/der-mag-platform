@@ -154,6 +154,7 @@ export class SubsystemService {
     const query = this.subsystemRepository
       .createQueryBuilder('subsystem')
       .leftJoinAndSelect('subsystem.contract', 'contract')
+      .leftJoinAndSelect('contract.projectManager', 'projectManager')
       .leftJoinAndSelect('subsystem.networkAllocation', 'networkAllocation');
 
     if (filters?.status) {
