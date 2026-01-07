@@ -274,4 +274,29 @@ export class DatabaseSeeder {
     
     console.log('   ✅ Użytkownik admin utworzony');
   }
+
+  /**
+   * Wymuszone seedowanie - UWAGA: usuwa istniejące dane!
+   */
+  static async forceSeed(): Promise<void> {
+    console.log('⚠️  WYMUSZONE SEEDOWANIE - Usuwanie istniejących danych...');
+    
+    // Usuń istniejące dane (w odpowiedniej kolejności)
+    const userRepo = AppDataSource.getRepository(User);
+    const roleRepo = AppDataSource.getRepository(Role);
+    const taskTypeRepo = AppDataSource.getRepository(TaskType);
+    
+    await userRepo.delete({});
+    await roleRepo.delete({});
+    await taskTypeRepo.delete({});
+    
+    console.log('🗑️  Dane usunięte');
+    console.log('📦 Rozpoczynam seedowanie...');
+    
+    await this.seedRoles();
+    await this.seedTaskTypes();
+    await this.seedAdmin();
+    
+    console.log('✅ Wymuszone seedowanie zakończone pomyślnie!');
+  }
 }

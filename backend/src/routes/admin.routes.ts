@@ -6,6 +6,7 @@ import { authenticate, authorize } from '../middleware/auth';
 import { SystemConfigController } from '../controllers/SystemConfigController';
 import { UserController } from '../controllers/UserController';
 import { RoleController } from '../controllers/RoleController';
+import { AdminController } from '../controllers/AdminController';
 
 const router = Router();
 
@@ -55,5 +56,12 @@ router.get('/roles', RoleController.getAll);
 
 // Get role by id
 router.get('/roles/:id', RoleController.getById);
+
+// ============================================
+// Database Management Routes
+// ============================================
+
+// Seed database (force reseed)
+router.post('/seed-database', AdminController.seedDatabase);
 
 export default router;
