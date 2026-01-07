@@ -6,14 +6,17 @@ import { ContractService } from '../services/ContractService';
 import { ContractStatus } from '../entities/Contract';
 import { SubsystemService } from '../services/SubsystemService';
 import { SystemType } from '../entities/Subsystem';
+import { SubsystemTaskService } from '../services/SubsystemTaskService';
 
 export class ContractController {
   private contractService: ContractService;
   private subsystemService: SubsystemService;
+  private taskService: SubsystemTaskService;
 
   constructor() {
     this.contractService = new ContractService();
     this.subsystemService = new SubsystemService();
+    this.taskService = new SubsystemTaskService();
   }
 
   /**
@@ -346,10 +349,24 @@ export class ContractController {
             quantity: subsystemTasks?.length || 0
           });
           
+          // Zapisz zadania do bazy
+          const createdTasks = [];
+          if (subsystemTasks && Array.isArray(subsystemTasks)) {
+            for (const taskData of subsystemTasks) {
+              const task = await this.taskService.createTask({
+                subsystemId: subsystem.id,
+                taskName: taskData.name || 'Zadanie',
+                taskType: taskData.type || 'GENERIC',
+                metadata: params || {}
+              });
+              createdTasks.push(task);
+            }
+          }
+          
           createdSubsystems.push({
             ...subsystem,
             params,
-            tasks: subsystemTasks || []
+            tasks: createdTasks
           });
         }
         

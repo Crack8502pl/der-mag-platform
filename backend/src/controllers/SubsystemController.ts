@@ -5,15 +5,26 @@ import { Request, Response } from 'express';
 import { SubsystemService } from '../services/SubsystemService';
 import { SubsystemDocumentService } from '../services/SubsystemDocumentService';
 import { SystemType, SubsystemStatus } from '../entities/Subsystem';
+import { SubsystemTaskService } from '../services/SubsystemTaskService';
 import * as fs from 'fs';
+
+// Interfejs dla żądań uwierzytelnionych
+interface AuthenticatedRequest extends Request {
+  userId?: number;
+  userRole?: string;
+  params: any;
+  file?: any;
+}
 
 export class SubsystemController {
   private subsystemService: SubsystemService;
   private documentService: SubsystemDocumentService;
+  private taskService: SubsystemTaskService;
 
   constructor() {
     this.subsystemService = new SubsystemService();
     this.documentService = new SubsystemDocumentService();
+    this.taskService = new SubsystemTaskService();
   }
 
   /**
@@ -292,11 +303,11 @@ export class SubsystemController {
    * POST /api/subsystems/:id/documentation
    * Upload dokumentu dla podsystemu
    */
-  uploadDocument = async (req: Request, res: Response): Promise<void> => {
+  uploadDocument = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
       const file = req.file;
-      const userId = (req as any).user?.id;
+      const userId = req.userId;
 
       if (!file) {
         res.status(400).json({
@@ -373,10 +384,10 @@ export class SubsystemController {
    * DELETE /api/subsystems/:id/documentation/:docId
    * Usunięcie dokumentu
    */
-  deleteDocument = async (req: Request, res: Response): Promise<void> => {
+  deleteDocument = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { docId } = req.params;
-      const userId = (req as any).user?.id;
+      const userId = req.userId;
 
       if (!userId) {
         res.status(401).json({
@@ -396,6 +407,29 @@ export class SubsystemController {
       res.status(400).json({
         success: false,
         message: 'Błąd podczas usuwania dokumentu',
+        error: error.message
+      });
+    }
+  };
+
+  /**
+   * GET /api/subsystems/:id/tasks
+   * Lista zadań dla podsystemu
+   */
+  getTasks = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const tasks = await this.taskService.getTasksBySubsystem(parseInt(id));
+
+      res.json({
+        success: true,
+        data: tasks,
+        count: tasks.length
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: 'Błąd podczas pobierania zadań',
         error: error.message
       });
     }

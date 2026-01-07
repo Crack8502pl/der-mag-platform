@@ -28,6 +28,14 @@ router.get(
   subsystemController.getSubsystem
 );
 
+// Lista zadań dla podsystemu
+router.get(
+  '/:id/tasks',
+  authenticate,
+  requirePermission('subsystems', 'read'),
+  subsystemController.getTasks
+);
+
 // Aktualizacja podsystemu
 router.put(
   '/:id',
