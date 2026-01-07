@@ -91,6 +91,34 @@ app.get('/debug/config', (req, res) => {
   });
 });
 
+// 🆕 Mobile debug endpoint - check if assets are served correctly
+app.get('/debug/assets', (req, res) => {
+  const frontendPath = path.join(__dirname, '../../frontend/dist');
+  const assetsPath = path.join(frontendPath, 'assets');
+  
+  let assetFiles: string[] = [];
+  try {
+    if (fs.existsSync(assetsPath)) {
+      assetFiles = fs.readdirSync(assetsPath);
+    }
+  } catch (e) {
+    assetFiles = ['Error reading assets: ' + (e as Error).message];
+  }
+  
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    frontendPath,
+    frontendExists: fs.existsSync(frontendPath),
+    assetsPath,
+    assetsExists: fs.existsSync(assetsPath),
+    assetFiles,
+    indexHtmlExists: fs.existsSync(path.join(frontendPath, 'index.html')),
+    requestUrl: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
+    assetsUrl: `${req.protocol}://${req.get('host')}/assets/`
+  });
+});
+
 // Serwowanie interfejsu testowego
 const enableApiTester = process.env.ENABLE_API_TESTER === 'true' || process.env.NODE_ENV !== 'production';
 if (enableApiTester) {
@@ -106,15 +134,37 @@ const frontendPath = path.join(__dirname, '../../frontend/dist');
 if (fs.existsSync(frontendPath)) {
   console.log('🌐 Frontend będzie serwowany z: ' + frontendPath);
   
+  // 🆕 CRITICAL - Explicit route for assets directory
+  app.use('/assets', express.static(path.join(frontendPath, 'assets'), {
+    maxAge: '1d',
+    etag: true,
+    setHeaders: (res, filePath) => {
+      // Enable CORS for assets (needed for some mobile browsers)
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+  }));
+  
   // Serwuj statyczne pliki frontendu
   app.use(express.static(frontendPath, {
     maxAge: '1d',
-    etag: true
+    etag: true,
+    setHeaders: (res, filePath) => {
+      // 🆕 Force reload for HTML files (prevent 304 cache issues on mobile)
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
+    }
   }));
   
   // Obsługa React Router - wszystkie pozostałe ścieżki zwracają index.html
   // MUSI być PRZED error handlers
   app.get('*', (req, res) => {
+    // 🆕 Force no-cache for SPA routing
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile(path.join(frontendPath, 'index.html'));
   });
 } else {
