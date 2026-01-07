@@ -35,6 +35,7 @@ import { ContractDetailPage } from './components/contracts/ContractDetailPage';
 import { useAuth } from './hooks/useAuth';
 import { useTokenExpirationWarning } from './hooks/useTokenExpirationWarning';
 import { TokenExpirationModal } from './components/common/TokenExpirationModal';
+import { TokenTimerWidget } from './components/common/TokenTimerWidget';
 import './styles/grover-theme.css';
 
 // Protected Route Component
@@ -64,7 +65,7 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 function App() {
-  const { logout } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const { 
     showWarning, 
     secondsRemaining, 
@@ -73,6 +74,9 @@ function App() {
 
   return (
     <BrowserRouter>
+      {/* ✅ DODAJ: Zegarek widoczny tylko dla zalogowanych użytkowników */}
+      {isAuthenticated && <TokenTimerWidget />}
+      
       {/* Modal ostrzeżenia o wygaśnięciu tokenu */}
       {showWarning && (
         <TokenExpirationModal
