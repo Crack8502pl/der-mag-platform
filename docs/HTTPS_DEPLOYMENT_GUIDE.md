@@ -412,7 +412,6 @@ server {
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
 
     # Frontend (static files)
     location / {
@@ -469,7 +468,7 @@ server {
 #### **4. Aktywuj konfigurację:**
 
 ```bash
-# Dowiązanie symboliczne do sites-enabled:
+# Utwórz dowiązanie symboliczne do sites-enabled:
 sudo ln -s /etc/nginx/sites-available/der-mag-platform /etc/nginx/sites-enabled/
 
 # Usuń domyślną konfigurację:
@@ -509,7 +508,7 @@ npm start
 
 #### **6. Skonfiguruj jako systemd service:**
 
-Stwórz `/etc/systemd/system/der-mag-platform.service`:
+Stwórz `/etc/systemd/system/der-mag-platform.service` (zastąp `your-user` swoją nazwą użytkownika):
 
 ```ini
 [Unit]
@@ -815,8 +814,8 @@ USE_HTTPS=false npm start
 □ Zaktualizuj backend/.env: USE_HTTPS=false, NODE_ENV=production
 □ Zbuduj backend: npm run build
 □ Zbuduj frontend: npm run build
-□ Skopiuj frontend/dist do /var/www/der-mag-platform (lub skonfiguruj ścieżkę w Nginx)
-□ Utwórz systemd service dla backendu
+□ Skonfiguruj ścieżkę do frontend/dist w Nginx (domyślnie: /home/user/der-mag-platform/frontend/dist)
+□ Utwórz systemd service dla backendu (zastąp your-user w pliku)
 □ Start: sudo systemctl start der-mag-platform nginx
 □ Enable autostart: sudo systemctl enable der-mag-platform nginx
 □ Skonfiguruj auto-renewal Certbot (cron)
