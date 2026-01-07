@@ -23,7 +23,7 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
   const { logout } = useAuthStore();
 
   // Funkcja generująca dźwięk "tik" zegara
-  const playTick = () => {
+  const playTick = async () => {
     // Lazy initialization - utwórz AudioContext przy pierwszym użyciu
     if (!audioContextRef.current) {
       try {
@@ -38,7 +38,7 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
     
     // Resume jeśli zawieszony (Safari wymaga)
     if (audioContext.state === 'suspended') {
-      audioContext.resume();
+      await audioContext.resume();
     }
 
     const oscillator = audioContext.createOscillator();
