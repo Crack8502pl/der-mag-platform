@@ -74,8 +74,8 @@ describe('DatabaseSeeder', () => {
 
       await DatabaseSeeder.seed();
 
-      // Verify roles were seeded
-      expect(mockRoleRepository.save).toHaveBeenCalledTimes(5);
+      // Verify roles were seeded (10 roles)
+      expect(mockRoleRepository.save).toHaveBeenCalledTimes(10);
       expect(mockRoleRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'admin' })
       );
@@ -126,7 +126,18 @@ describe('DatabaseSeeder', () => {
 
       await DatabaseSeeder.seed();
 
-      const roleNames = ['admin', 'manager', 'coordinator', 'technician', 'viewer'];
+      const roleNames = [
+        'admin',
+        'management_board',
+        'manager',
+        'coordinator',
+        'bom_editor',
+        'prefabricator',
+        'worker',
+        'order_picking',
+        'integrator',
+        'viewer'
+      ];
       roleNames.forEach((roleName) => {
         expect(mockRoleRepository.save).toHaveBeenCalledWith(
           expect.objectContaining({ name: roleName })
@@ -171,6 +182,97 @@ describe('DatabaseSeeder', () => {
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword123');
 
       await expect(DatabaseSeeder.seed()).rejects.toThrow('Rola admin nie została utworzona');
+    });
+  });
+
+  describe('forceSeed', () => {
+    beforeEach(() => {
+      mockRoleRepository.delete = jest.fn().mockResolvedValue({});
+      mockUserRepository.delete = jest.fn().mockResolvedValue({});
+      mockTaskTypeRepository.delete = jest.fn().mockResolvedValue({});
+      mockRoleRepository.findOne.mockResolvedValue({ id: 1, name: 'admin' });
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword123');
+    });
+
+    it('should delete existing data and reseed', async () => {
+      await DatabaseSeeder.forceSeed();
+
+      // Verify deletions
+      expect(mockUserRepository.delete).toHaveBeenCalledWith({});
+      expect(mockRoleRepository.delete).toHaveBeenCalledWith({});
+      expect(mockTaskTypeRepository.delete).toHaveBeenCalledWith({});
+
+      // Verify seeding
+      expect(mockRoleRepository.save).toHaveBeenCalledTimes(10);
+      expect(mockTaskTypeRepository.save).toHaveBeenCalledTimes(14);
+      expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('WYMUSZONE SEEDOWANIE'));
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Dane usunięte'));
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Wymuszone seedowanie zakończone'));
+    });
+
+    it('should seed all 10 roles', async () => {
+      await DatabaseSeeder.forceSeed();
+
+      const expectedRoles = [
+        'admin',
+        'management_board',
+        'manager',
+        'coordinator',
+        'bom_editor',
+        'prefabricator',
+        'worker',
+        'order_picking',
+        'integrator',
+        'viewer'
+      ];
+
+      expectedRoles.forEach((roleName) => {
+        expect(mockRoleRepository.save).toHaveBeenCalledWith(
+          expect.objectContaining({ name: roleName })
+        );
+      });
+    });
+
+    it('should seed all 14 task types', async () => {
+      await DatabaseSeeder.forceSeed();
+
+      const taskTypeCodes = [
+        'SMW',
+        'CSDIP',
+        'LAN_PKP_PLK',
+        'SMOK_IP_A',
+        'SMOK_IP_B',
+        'SSWIN',
+        'SSP',
+        'SUG',
+        'OBIEKTY_KUBATUROWE',
+        'KONTRAKTY_LINIOWE',
+        'LAN_STRUKTURALNY',
+        'ZASILANIA',
+        'STRUKTURY_SWIATLO',
+        'SERWIS',
+      ];
+
+      taskTypeCodes.forEach((code) => {
+        expect(mockTaskTypeRepository.save).toHaveBeenCalledWith(
+          expect.objectContaining({ code })
+        );
+      });
+    });
+
+    it('should create admin user with correct credentials', async () => {
+      await DatabaseSeeder.forceSeed();
+
+      expect(mockUserRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          username: 'admin',
+          firstName: 'Administrator',
+          lastName: 'Systemu',
+          active: true
+        })
+      );
     });
   });
 });
