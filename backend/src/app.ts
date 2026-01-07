@@ -75,6 +75,7 @@ app.get('/health', (req, res) => {
 });
 
 // 🆕 Debug endpoint - zwraca info o konfiguracji
+// Note: Nie jest rate-limited celowo, podobnie jak /health
 app.get('/debug/config', (req, res) => {
   res.json({
     status: 'OK',
