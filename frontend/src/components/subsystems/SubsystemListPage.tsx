@@ -247,7 +247,12 @@ export const SubsystemListPage: React.FC = () => {
                         {subsystem.contract?.contractNumber || 'N/A'}
                       </td>
                       <td className="project-manager">
-                        {subsystem.contract?.projectManager || 'N/A'}
+                        {subsystem.contract?.projectManager 
+                          ? (typeof subsystem.contract.projectManager === 'string'
+                              ? subsystem.contract.projectManager
+                              : `${subsystem.contract.projectManager.firstName} ${subsystem.contract.projectManager.lastName}`)
+                          : 'N/A'
+                        }
                       </td>
                       <td className="documents">
                         <button

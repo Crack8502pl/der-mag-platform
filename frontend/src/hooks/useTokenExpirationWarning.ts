@@ -24,9 +24,23 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
 
   // Funkcja generująca dźwięk "tik" zegara
   const playTick = () => {
-    if (!audioContextRef.current) return;
+    // Lazy initialization - utwórz AudioContext przy pierwszym użyciu
+    if (!audioContextRef.current) {
+      try {
+        audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      } catch (error) {
+        console.warn('AudioContext nie jest dostępny:', error);
+        return;
+      }
+    }
 
     const audioContext = audioContextRef.current;
+    
+    // Resume jeśli zawieszony (Safari wymaga)
+    if (audioContext.state === 'suspended') {
+      audioContext.resume();
+    }
+
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
     
@@ -40,17 +54,6 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.1);
   };
-
-  // Inicjalizacja AudioContext
-  useEffect(() => {
-    audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-
-    return () => {
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
-    };
-  }, []);
 
   // Odtwarzaj tik co sekundę gdy pokazane ostrzeżenie
   useEffect(() => {
@@ -144,6 +147,15 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
   const dismissWarning = () => {
     setShowWarning(false);
   };
+
+  // Cleanup AudioContext przy unmount
+  useEffect(() => {
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, []);
 
   return {
     showWarning,

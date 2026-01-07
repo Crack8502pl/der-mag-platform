@@ -3,6 +3,14 @@
 
 import api from './api';
 
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
 export interface Subsystem {
   id: number;
   subsystemNumber: string;
@@ -12,7 +20,7 @@ export interface Subsystem {
   contract: {
     id: number;
     contractNumber: string;
-    projectManager: string;
+    projectManager: string | User;
   };
   documentCount?: number;
   createdAt: string;
