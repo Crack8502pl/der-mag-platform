@@ -135,53 +135,55 @@ app.get('/health', (req, res) => {
   });
 });
 
-// 🆕 Debug endpoint - zwraca info o konfiguracji
-// Note: Nie jest rate-limited celowo, podobnie jak /health
-app.get('/debug/config', (req, res) => {
-  res.json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    frontendServed: fs.existsSync(path.join(__dirname, '../../frontend/dist')),
-    apiUrl: `${req.protocol}://${req.get('host')}/api`,
-    requestHeaders: {
-      host: req.get('host'),
-      userAgent: req.get('user-agent'),
-      referer: req.get('referer')
-    }
-  });
-});
-
-// 🆕 Debug endpoint - lista assets
-app.get('/debug/assets', async (req, res) => {
-  const frontendPath = path.join(__dirname, '../../frontend/dist');
-  const assetsPath = path.join(frontendPath, 'assets');
-  
-  try {
-    if (!fs.existsSync(assetsPath)) {
-      return res.json({
-        status: 'ERROR',
-        message: 'Assets directory not found',
-        path: assetsPath,
-        frontendBuilt: fs.existsSync(frontendPath)
-      });
-    }
-    
-    const assets = await fs.promises.readdir(assetsPath);
+// 🆕 Debug endpoints - only in development or when explicitly enabled
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEBUG_ENDPOINTS === 'true') {
+  // Debug endpoint - zwraca info o konfiguracji
+  app.get('/debug/config', (req, res) => {
     res.json({
       status: 'OK',
-      assetsPath,
-      assets,
-      count: assets.length
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      frontendServed: fs.existsSync(path.join(__dirname, '../../frontend/dist')),
+      apiUrl: `${req.protocol}://${req.get('host')}/api`,
+      requestHeaders: {
+        host: req.get('host'),
+        userAgent: req.get('user-agent'),
+        referer: req.get('referer')
+      }
     });
-  } catch (error) {
-    res.status(500).json({
-      status: 'ERROR',
-      message: 'Failed to read assets directory',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
+  });
+
+  // Debug endpoint - lista assets
+  app.get('/debug/assets', async (req, res) => {
+    const frontendPath = path.join(__dirname, '../../frontend/dist');
+    const assetsPath = path.join(frontendPath, 'assets');
+    
+    try {
+      if (!fs.existsSync(assetsPath)) {
+        return res.json({
+          status: 'ERROR',
+          message: 'Assets directory not found',
+          path: assetsPath,
+          frontendBuilt: fs.existsSync(frontendPath)
+        });
+      }
+      
+      const assets = await fs.promises.readdir(assetsPath);
+      res.json({
+        status: 'OK',
+        assetsPath,
+        assets,
+        count: assets.length
+      });
+    } catch (error) {
+      res.status(500).json({
+        status: 'ERROR',
+        message: 'Failed to read assets directory',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+}
 
 // Serwowanie interfejsu testowego
 const enableApiTester = process.env.ENABLE_API_TESTER === 'true' || process.env.NODE_ENV !== 'production';
