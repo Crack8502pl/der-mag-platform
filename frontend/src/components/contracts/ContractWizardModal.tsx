@@ -561,19 +561,14 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       
       // Map returned tasks to generatedTasks format
       const createdSubsystems: Subsystem[] = response.subsystems || [];
-      const fetchedTasks: GeneratedTask[] = [];
-      
-      createdSubsystems.forEach((subsystem) => {
-        const tasks = subsystem.tasks || [];
-        tasks.forEach((task) => {
-          fetchedTasks.push({
-            number: task.taskNumber,
-            name: task.taskName,
-            type: task.taskType,
-            subsystemType: subsystem.systemType as SubsystemType
-          });
-        });
-      });
+      const fetchedTasks: GeneratedTask[] = createdSubsystems.flatMap((subsystem) => 
+        (subsystem.tasks || []).map((task) => ({
+          number: task.taskNumber,
+          name: task.taskName,
+          type: task.taskType,
+          subsystemType: subsystem.systemType as SubsystemType
+        }))
+      );
       
       // Update state with real tasks from database
       setGeneratedTasks(fetchedTasks);
