@@ -153,7 +153,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     } else if (subsystem.type === 'SMOKIP_B') {
       // PRZEJAZD_KAT_B
       for (let i = 0; i < getNumericValue(params, 'przejazdyKatB'); i++) {
-        taskDetails.push({ taskType: 'PRZEJAZD_KAT_B', kilometraz: '', kategoria: 'KAT A' });
+        taskDetails.push({ taskType: 'PRZEJAZD_KAT_B', kilometraz: '', kategoria: 'KAT B' });
       }
       // NASTAWNIA
       for (let i = 0; i < getNumericValue(params, 'iloscNastawni'); i++) {
@@ -197,9 +197,12 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     
     // Create new task detail with appropriate defaults
     const newDetail: TaskDetail = { taskType };
-    if (taskType === 'PRZEJAZD_KAT_A' || taskType === 'PRZEJAZD_KAT_B') {
+    if (taskType === 'PRZEJAZD_KAT_A') {
       newDetail.kilometraz = '';
       newDetail.kategoria = 'KAT A';
+    } else if (taskType === 'PRZEJAZD_KAT_B') {
+      newDetail.kilometraz = '';
+      newDetail.kategoria = 'KAT B';
     } else if (taskType === 'SKP') {
       newDetail.kilometraz = '';
     } else if (taskType === 'NASTAWNIA' || taskType === 'LCS' || taskType === 'CUID') {
@@ -514,7 +517,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       setGeneratedTasks(tasks);
     }
     
-    // Initialize taskDetails when entering details step
+    // Initialize taskDetails when leaving config step if next step is details step (for SMOK-A/B)
     if (stepInfo.type === 'config' && stepInfo.subsystemIndex !== undefined) {
       const subsystem = wizardData.subsystems[stepInfo.subsystemIndex];
       // Check if next step is details step
