@@ -123,6 +123,121 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     return typeof value === 'boolean' ? value : false;
   };
 
+  // Initialize taskDetails array from config params
+  const initializeTaskDetails = (subsystemIndex: number) => {
+    const subsystem = wizardData.subsystems[subsystemIndex];
+    const taskDetails: TaskDetail[] = [];
+    const params = subsystem.params;
+    
+    if (subsystem.type === 'SMOKIP_A') {
+      // PRZEJAZD_KAT_A
+      for (let i = 0; i < getNumericValue(params, 'przejazdyKatA'); i++) {
+        taskDetails.push({ taskType: 'PRZEJAZD_KAT_A', kilometraz: '', kategoria: 'KAT A' });
+      }
+      // SKP
+      for (let i = 0; i < getNumericValue(params, 'iloscSKP'); i++) {
+        taskDetails.push({ taskType: 'SKP', kilometraz: '' });
+      }
+      // NASTAWNIA
+      for (let i = 0; i < getNumericValue(params, 'iloscNastawni'); i++) {
+        taskDetails.push({ taskType: 'NASTAWNIA', nazwa: '', miejscowosc: '' });
+      }
+      // LCS
+      if (getBooleanValue(params, 'hasLCS')) {
+        taskDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '' });
+      }
+      // CUID
+      if (getBooleanValue(params, 'hasCUID')) {
+        taskDetails.push({ taskType: 'CUID', nazwa: '', miejscowosc: '' });
+      }
+    } else if (subsystem.type === 'SMOKIP_B') {
+      // PRZEJAZD_KAT_B
+      for (let i = 0; i < getNumericValue(params, 'przejazdyKatB'); i++) {
+        taskDetails.push({ taskType: 'PRZEJAZD_KAT_B', kilometraz: '', kategoria: 'KAT A' });
+      }
+      // NASTAWNIA
+      for (let i = 0; i < getNumericValue(params, 'iloscNastawni'); i++) {
+        taskDetails.push({ taskType: 'NASTAWNIA', nazwa: '', miejscowosc: '' });
+      }
+      // LCS
+      if (getBooleanValue(params, 'hasLCS')) {
+        taskDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '' });
+      }
+      // CUID
+      if (getBooleanValue(params, 'hasCUID')) {
+        taskDetails.push({ taskType: 'CUID', nazwa: '', miejscowosc: '' });
+      }
+    }
+    
+    // Update subsystem with initialized taskDetails
+    const newSubsystems = [...wizardData.subsystems];
+    newSubsystems[subsystemIndex].taskDetails = taskDetails;
+    setWizardData({ ...wizardData, subsystems: newSubsystems });
+  };
+
+  // Update a specific task detail
+  const updateTaskDetail = (subsystemIndex: number, taskIndex: number, updates: Partial<TaskDetail>) => {
+    const newSubsystems = [...wizardData.subsystems];
+    if (!newSubsystems[subsystemIndex].taskDetails) {
+      newSubsystems[subsystemIndex].taskDetails = [];
+    }
+    newSubsystems[subsystemIndex].taskDetails![taskIndex] = {
+      ...newSubsystems[subsystemIndex].taskDetails![taskIndex],
+      ...updates
+    };
+    setWizardData({ ...wizardData, subsystems: newSubsystems });
+  };
+
+  // Add a new task detail
+  const addTaskDetail = (subsystemIndex: number, taskType: TaskDetail['taskType']) => {
+    const newSubsystems = [...wizardData.subsystems];
+    if (!newSubsystems[subsystemIndex].taskDetails) {
+      newSubsystems[subsystemIndex].taskDetails = [];
+    }
+    
+    // Create new task detail with appropriate defaults
+    const newDetail: TaskDetail = { taskType };
+    if (taskType === 'PRZEJAZD_KAT_A' || taskType === 'PRZEJAZD_KAT_B') {
+      newDetail.kilometraz = '';
+      newDetail.kategoria = 'KAT A';
+    } else if (taskType === 'SKP') {
+      newDetail.kilometraz = '';
+    } else if (taskType === 'NASTAWNIA' || taskType === 'LCS' || taskType === 'CUID') {
+      newDetail.nazwa = '';
+      newDetail.miejscowosc = '';
+    }
+    
+    newSubsystems[subsystemIndex].taskDetails!.push(newDetail);
+    setWizardData({ ...wizardData, subsystems: newSubsystems });
+  };
+
+  // Remove a task detail
+  const removeTaskDetail = (subsystemIndex: number, taskIndex: number) => {
+    const newSubsystems = [...wizardData.subsystems];
+    if (newSubsystems[subsystemIndex].taskDetails) {
+      newSubsystems[subsystemIndex].taskDetails!.splice(taskIndex, 1);
+      setWizardData({ ...wizardData, subsystems: newSubsystems });
+    }
+  };
+
+  // Check if can proceed from details step
+  const canProceedFromDetails = (subsystemIndex: number): boolean => {
+    const subsystem = wizardData.subsystems[subsystemIndex];
+    if (!subsystem.taskDetails || subsystem.taskDetails.length === 0) return false;
+    
+    // Validate required fields for each task type
+    for (const detail of subsystem.taskDetails) {
+      if (detail.taskType === 'PRZEJAZD_KAT_A' || detail.taskType === 'PRZEJAZD_KAT_B') {
+        if (!detail.kilometraz || !detail.kategoria) return false;
+      } else if (detail.taskType === 'SKP') {
+        if (!detail.kilometraz) return false;
+      }
+      // For NASTAWNIA, LCS, CUID - allow empty fields (optional)
+    }
+    
+    return true;
+  };
+
   // Generate tasks for a single subsystem
   const generateTasksForSubsystem = (
     subsystem: SubsystemWizardData, 
@@ -399,6 +514,18 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       setGeneratedTasks(tasks);
     }
     
+    // Initialize taskDetails when entering details step
+    if (stepInfo.type === 'config' && stepInfo.subsystemIndex !== undefined) {
+      const subsystem = wizardData.subsystems[stepInfo.subsystemIndex];
+      // Check if next step is details step
+      if (subsystem.type === 'SMOKIP_A' || subsystem.type === 'SMOKIP_B') {
+        // Initialize taskDetails if not already initialized
+        if (!subsystem.taskDetails || subsystem.taskDetails.length === 0) {
+          initializeTaskDetails(stepInfo.subsystemIndex);
+        }
+      }
+    }
+    
     setCurrentStep(currentStep + 1);
   };
 
@@ -456,6 +583,9 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     }
     if (stepInfo.type === 'selection') {
       return wizardData.subsystems.length > 0;
+    }
+    if (stepInfo.type === 'details' && stepInfo.subsystemIndex !== undefined) {
+      return canProceedFromDetails(stepInfo.subsystemIndex);
     }
     if (stepInfo.type === 'preview') {
       return generatedTasks.length > 0;
@@ -662,18 +792,254 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
   const renderDetailsStep = (subsystemIndex: number) => {
     const subsystem = wizardData.subsystems[subsystemIndex];
     const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
+    const taskDetails = subsystem.taskDetails || [];
     
-    // For now, show a placeholder for details step
-    // In a full implementation, this would have detailed forms for each task
+    // Calculate progress
+    const totalTasks = taskDetails.length;
+    const describedTasks = taskDetails.filter(detail => {
+      if (detail.taskType === 'PRZEJAZD_KAT_A' || detail.taskType === 'PRZEJAZD_KAT_B') {
+        return detail.kilometraz && detail.kategoria;
+      } else if (detail.taskType === 'SKP') {
+        return detail.kilometraz;
+      }
+      // For NASTAWNIA, LCS, CUID - count as described if any field is filled
+      return detail.nazwa || detail.miejscowosc || detail.kilometraz;
+    }).length;
+    
     return (
       <div className="wizard-step-content">
         <h3>Szczegóły zadań: {config.icon} {config.label}</h3>
         <p className="info-text">
-          Szczegółowe informacje o zadaniach (kilometraż, kategorie) można edytować po utworzeniu kontraktu.
+          Opisane: {describedTasks}/{totalTasks} zadań
         </p>
-        <p className="info-text">
-          Zadania zostaną utworzone na podstawie konfiguracji z poprzedniego kroku.
-        </p>
+        
+        <div className="task-details-form">
+          {taskDetails.map((detail, idx) => (
+            <div key={idx} className="task-detail-item">
+              <div className="task-header">
+                <strong>Zadanie {idx + 1}: {detail.taskType}</strong>
+                <button 
+                  type="button"
+                  className="btn-icon btn-danger"
+                  onClick={() => removeTaskDetail(subsystemIndex, idx)}
+                  title="Usuń zadanie"
+                >
+                  🗑️
+                </button>
+              </div>
+              
+              {(detail.taskType === 'PRZEJAZD_KAT_A' || detail.taskType === 'PRZEJAZD_KAT_B') && (
+                <div className="task-fields">
+                  <div className="form-group">
+                    <label>Kilometraż *</label>
+                    <input
+                      type="text"
+                      placeholder="np. 123.456"
+                      value={detail.kilometraz || ''}
+                      onChange={(e) => updateTaskDetail(subsystemIndex, idx, { kilometraz: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Kategoria *</label>
+                    <select
+                      value={detail.kategoria || 'KAT A'}
+                      onChange={(e) => updateTaskDetail(subsystemIndex, idx, { 
+                        kategoria: e.target.value as TaskDetail['kategoria']
+                      })}
+                      required
+                    >
+                      <option value="KAT A">KAT A</option>
+                      <option value="KAT B">KAT B</option>
+                      <option value="KAT C">KAT C</option>
+                      <option value="KAT E">KAT E</option>
+                      <option value="KAT F">KAT F</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+              
+              {detail.taskType === 'SKP' && (
+                <div className="task-fields">
+                  <div className="form-group">
+                    <label>Kilometraż *</label>
+                    <input
+                      type="text"
+                      placeholder="np. 123.456"
+                      value={detail.kilometraz || ''}
+                      onChange={(e) => updateTaskDetail(subsystemIndex, idx, { kilometraz: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {detail.taskType === 'NASTAWNIA' && (
+                <div className="task-fields">
+                  <div className="form-group">
+                    <label>Nazwa</label>
+                    <input
+                      type="text"
+                      placeholder="Nazwa nastawni"
+                      value={detail.nazwa || ''}
+                      onChange={(e) => updateTaskDetail(subsystemIndex, idx, { nazwa: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Miejscowość</label>
+                    <input
+                      type="text"
+                      placeholder="Miejscowość"
+                      value={detail.miejscowosc || ''}
+                      onChange={(e) => updateTaskDetail(subsystemIndex, idx, { miejscowosc: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Kilometraż (opcjonalnie)</label>
+                    <input
+                      type="text"
+                      placeholder="np. 123.456"
+                      value={detail.kilometraz || ''}
+                      onChange={(e) => updateTaskDetail(subsystemIndex, idx, { kilometraz: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {detail.taskType === 'LCS' && (
+                <div className="task-fields">
+                  <div className="form-group">
+                    <label>Nazwa</label>
+                    <input
+                      type="text"
+                      placeholder="Nazwa LCS"
+                      value={detail.nazwa || ''}
+                      onChange={(e) => updateTaskDetail(subsystemIndex, idx, { nazwa: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Miejscowość</label>
+                    <input
+                      type="text"
+                      placeholder="Miejscowość"
+                      value={detail.miejscowosc || ''}
+                      onChange={(e) => updateTaskDetail(subsystemIndex, idx, { miejscowosc: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Kilometraż (opcjonalnie)</label>
+                    <input
+                      type="text"
+                      placeholder="np. 123.456"
+                      value={detail.kilometraz || ''}
+                      onChange={(e) => updateTaskDetail(subsystemIndex, idx, { kilometraz: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {detail.taskType === 'CUID' && (
+                <div className="task-fields">
+                  <div className="form-group">
+                    <label>Nazwa</label>
+                    <input
+                      type="text"
+                      placeholder="Nazwa CUID"
+                      value={detail.nazwa || ''}
+                      onChange={(e) => updateTaskDetail(subsystemIndex, idx, { nazwa: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Miejscowość</label>
+                    <input
+                      type="text"
+                      placeholder="Miejscowość"
+                      value={detail.miejscowosc || ''}
+                      onChange={(e) => updateTaskDetail(subsystemIndex, idx, { miejscowosc: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+          
+          <div className="add-task-section">
+            <p><strong>Dodaj nowe zadanie:</strong></p>
+            <div className="add-task-buttons">
+              {subsystem.type === 'SMOKIP_A' && (
+                <>
+                  <button 
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => addTaskDetail(subsystemIndex, 'PRZEJAZD_KAT_A')}
+                  >
+                    ➕ Przejazd Kat A
+                  </button>
+                  <button 
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => addTaskDetail(subsystemIndex, 'SKP')}
+                  >
+                    ➕ SKP
+                  </button>
+                  <button 
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => addTaskDetail(subsystemIndex, 'NASTAWNIA')}
+                  >
+                    ➕ Nastawnia
+                  </button>
+                  <button 
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => addTaskDetail(subsystemIndex, 'LCS')}
+                  >
+                    ➕ LCS
+                  </button>
+                  <button 
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => addTaskDetail(subsystemIndex, 'CUID')}
+                  >
+                    ➕ CUID
+                  </button>
+                </>
+              )}
+              {subsystem.type === 'SMOKIP_B' && (
+                <>
+                  <button 
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => addTaskDetail(subsystemIndex, 'PRZEJAZD_KAT_B')}
+                  >
+                    ➕ Przejazd Kat B
+                  </button>
+                  <button 
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => addTaskDetail(subsystemIndex, 'NASTAWNIA')}
+                  >
+                    ➕ Nastawnia
+                  </button>
+                  <button 
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => addTaskDetail(subsystemIndex, 'LCS')}
+                  >
+                    ➕ LCS
+                  </button>
+                  <button 
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => addTaskDetail(subsystemIndex, 'CUID')}
+                  >
+                    ➕ CUID
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
