@@ -21,8 +21,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: undefined,
-        // 🆕 Ensure proper module format
-        format: 'es',
+        // 🆕 Proper asset naming for consistent structure
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]'

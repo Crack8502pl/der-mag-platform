@@ -85,19 +85,14 @@ app.use(cors({
       return callback(null, true);
     }
     
-    // 🆕 W development pozwól na wszystkie origins z localhost
-    if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+    // 🆕 W development pozwól na localhost URLs (more specific pattern)
+    if (process.env.NODE_ENV !== 'production' && /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
       return callback(null, true);
     }
     
     // 🆕 Pozwól na local network (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
     const isLocalNetwork = /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(origin);
     if (isLocalNetwork) {
-      return callback(null, true);
-    }
-    
-    // 🆕 W development pozwól na wszystko
-    if (process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     }
     
@@ -155,6 +150,37 @@ app.get('/debug/config', (req, res) => {
       referer: req.get('referer')
     }
   });
+});
+
+// 🆕 Debug endpoint - lista assets
+app.get('/debug/assets', async (req, res) => {
+  const frontendPath = path.join(__dirname, '../../frontend/dist');
+  const assetsPath = path.join(frontendPath, 'assets');
+  
+  try {
+    if (!fs.existsSync(assetsPath)) {
+      return res.json({
+        status: 'ERROR',
+        message: 'Assets directory not found',
+        path: assetsPath,
+        frontendBuilt: fs.existsSync(frontendPath)
+      });
+    }
+    
+    const assets = await fs.promises.readdir(assetsPath);
+    res.json({
+      status: 'OK',
+      assetsPath,
+      assets,
+      count: assets.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'ERROR',
+      message: 'Failed to read assets directory',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 });
 
 // Serwowanie interfejsu testowego
