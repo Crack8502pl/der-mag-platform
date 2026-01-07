@@ -49,11 +49,20 @@ export class SubsystemController {
         );
       }
 
-      // Apply projectManager filter
+      // Apply projectManager filter (search by firstName, lastName, or username)
       if (projectManager) {
-        filtered = filtered.filter(s => 
-          s.contract?.projectManager?.toLowerCase().includes(projectManager as string)
-        );
+        const pmSearch = (projectManager as string).toLowerCase();
+        filtered = filtered.filter(s => {
+          const pm = s.contract?.projectManager;
+          if (!pm) return false;
+          
+          return (
+            pm.firstName?.toLowerCase().includes(pmSearch) ||
+            pm.lastName?.toLowerCase().includes(pmSearch) ||
+            pm.username?.toLowerCase().includes(pmSearch) ||
+            `${pm.firstName || ''} ${pm.lastName || ''}`.toLowerCase().includes(pmSearch)
+          );
+        });
       }
 
       // Get document counts for all subsystems in one query
@@ -76,8 +85,10 @@ export class SubsystemController {
           aVal = a.contract?.contractNumber || '';
           bVal = b.contract?.contractNumber || '';
         } else if (sortBy === 'projectManager') {
-          aVal = a.contract?.projectManager || '';
-          bVal = b.contract?.projectManager || '';
+          const pmA = a.contract?.projectManager;
+          const pmB = b.contract?.projectManager;
+          aVal = pmA ? `${pmA.lastName ?? ''} ${pmA.firstName ?? ''}` : '';
+          bVal = pmB ? `${pmB.lastName ?? ''} ${pmB.firstName ?? ''}` : '';
         }
 
         if (sortOrder === 'ASC') {
