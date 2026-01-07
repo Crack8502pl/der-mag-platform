@@ -154,8 +154,8 @@ if (fs.existsSync(frontendPath)) {
       // In production, assets are served from same origin so CORS is not needed
       if (process.env.NODE_ENV !== 'production') {
         const origin = res.req.get('origin');
-        // Allow localhost and local network IPs (192.168.x.x, 10.x.x.x) in development
-        if (origin && (origin.includes('localhost') || origin.match(/https?:\/\/(192\.168\.|10\.)/))) {
+        // Allow localhost and private network IPs (RFC 1918: 10.x.x.x, 172.16-31.x.x, 192.168.x.x) in development
+        if (origin && (origin.includes('localhost') || origin.match(/https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.)/))) {
           res.setHeader('Access-Control-Allow-Origin', origin);
         }
       }
