@@ -551,7 +551,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
         };
       });
 
-      await contractService.createContractWithWizard({
+      const response = await contractService.createContractWithWizard({
         customName: wizardData.customName,
         orderDate: wizardData.orderDate,
         projectManagerId: user.id,
@@ -559,6 +559,24 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
         subsystems: subsystemsData
       });
       
+      // Map returned tasks to generatedTasks format
+      const createdSubsystems = response.subsystems || [];
+      const fetchedTasks: GeneratedTask[] = [];
+      
+      createdSubsystems.forEach((subsystem: any) => {
+        const tasks = subsystem.tasks || [];
+        tasks.forEach((task: any) => {
+          fetchedTasks.push({
+            number: task.taskNumber,
+            name: task.taskName,
+            type: task.taskType,
+            subsystemType: subsystem.systemType
+          });
+        });
+      });
+      
+      // Update state with real tasks from database
+      setGeneratedTasks(fetchedTasks);
       setCurrentStep(getTotalSteps()); // Move to success step
     } catch (err) {
       const error = err as Error;
