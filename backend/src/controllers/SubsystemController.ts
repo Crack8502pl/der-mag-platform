@@ -87,8 +87,8 @@ export class SubsystemController {
         } else if (sortBy === 'projectManager') {
           const pmA = a.contract?.projectManager;
           const pmB = b.contract?.projectManager;
-          aVal = pmA ? `${pmA.lastName} ${pmA.firstName}` : '';
-          bVal = pmB ? `${pmB.lastName} ${pmB.firstName}` : '';
+          aVal = pmA ? `${pmA.lastName ?? ''} ${pmA.firstName ?? ''}` : '';
+          bVal = pmB ? `${pmB.lastName ?? ''} ${pmB.firstName ?? ''}` : '';
         }
 
         if (sortOrder === 'ASC') {
