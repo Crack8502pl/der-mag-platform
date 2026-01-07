@@ -18,7 +18,7 @@ Ten dokument opisuje krok po kroku proces wdrożenia HTTPS w środowisku dewelop
 ### Wymagania wstępne
 
 - Node.js 18+ i npm
-- OpenSSL zainstalowany (Linux/Mac: wbudowany, Windows: <a href="https://slproweb.com/products/Win32OpenSSL.html">Win32OpenSSL</a>)
+- OpenSSL zainstalowany (Linux/Mac: wbudowany, Windows: [Win32OpenSSL](https://slproweb.com/products/Win32OpenSSL.html))
 - PostgreSQL 14+
 - Git
 
@@ -469,7 +469,7 @@ server {
 #### **4. Aktywuj konfigurację:**
 
 ```bash
-# Symlink do sites-enabled:
+# Dowiązanie symboliczne do sites-enabled:
 sudo ln -s /etc/nginx/sites-available/der-mag-platform /etc/nginx/sites-enabled/
 
 # Usuń domyślną konfigurację:
