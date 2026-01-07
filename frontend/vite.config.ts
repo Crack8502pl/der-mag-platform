@@ -5,31 +5,25 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: '/', // 🆕 CRITICAL - ensure relative paths work on any domain
-  base: '/',
   server: {
     host: '0.0.0.0', // Pozwól na dostęp z sieci lokalnej
     port: 5173,
     strictPort: true,
-    cors: true, // 🆕 Enable CORS in Vite dev server
+    cors:  true, // 🆕 Enable CORS in Vite dev server
     hmr: {
       protocol: 'ws', // 🆕 Use WebSocket (not wss)
       host: 'localhost'
     }
   },
   build: {
-    sourcemap: true, // 🆕 Sourcemaps dla debugowania
+    sourcemap: true, // 🆕 Sourcemapy dla debugowania
     assetsDir: 'assets', // 🆕 Ensure assets are in /assets/
     rollupOptions: {
       output: {
-        manualChunks: undefined // 🆕 Single bundle for better mobile performance
-    sourcemap: true, // 🆕 Sourcemapy dla debugowania
-    assetsDir: 'assets',
-    rollupOptions: {
-      output: {
-        manualChunks: undefined,
+        manualChunks:  undefined, // 🆕 Single bundle for better mobile performance
         // 🆕 Proper asset naming for consistent structure
         entryFileNames: 'assets/[name]-[hash].js',
-        chunkFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash]. js',
         assetFileNames: 'assets/[name]-[hash].[ext]'
       }
     }
