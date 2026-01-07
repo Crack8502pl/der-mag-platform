@@ -58,8 +58,8 @@ const startServer = async () => {
         console.log(`║   🚀 Serwer działa na porcie: ${PORT}    ║`);
         console.log(`║   🌍 Environment: ${(process.env.NODE_ENV || 'development').padEnd(19)} ║`);
         console.log(`║   🖥️  Host: ${SERVER_HOST.padEnd(27)} ║`);
-        console.log(`║   📡 API: https://${SERVER_HOST}:${PORT}/api`);
-        console.log(`║   💚 Health: https://${SERVER_HOST}:${PORT}/health`);
+        console.log(`║   📡 API: https://${SERVER_HOST}:${PORT}/api         ║`);
+        console.log(`║   💚 Health: https://${SERVER_HOST}:${PORT}/health  ║`);
         console.log('╚════════════════════════════════════════╝');
       });
     } else {
@@ -71,8 +71,8 @@ const startServer = async () => {
         console.log(`║   🚀 Serwer działa na porcie: ${PORT}    ║`);
         console.log(`║   🌍 Environment: ${(process.env.NODE_ENV || 'development').padEnd(19)} ║`);
         console.log(`║   🖥️  Host: ${SERVER_HOST.padEnd(27)} ║`);
-        console.log(`║   📡 API: http://${SERVER_HOST}:${PORT}/api`);
-        console.log(`║   💚 Health: http://${SERVER_HOST}:${PORT}/health`);
+        console.log(`║   📡 API: http://${SERVER_HOST}:${PORT}/api          ║`);
+        console.log(`║   💚 Health: http://${SERVER_HOST}:${PORT}/health   ║`);
         console.log('╚════════════════════════════════════════╝');
       });
     }
