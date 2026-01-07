@@ -20,7 +20,7 @@ INSERT INTO roles (name, description, permissions, created_at, updated_at) VALUE
   '{
     "dashboard": {"read": true},
     "contracts": {"read": true, "create": true, "update": true, "approve": true, "import": true},
-    "subsystems": {"read": true, "create": true, "update": true, "generateBom": true, "allocateNetwork": true},
+    "subsystems": {"read": true, "create": true, "update": true, "delete": true, "generateBom": true, "allocateNetwork": true, "uploadDocs": true, "deleteDocs": true},
     "tasks": {"read": true, "create": true, "update": true, "assign": true},
     "completion": {"read": true, "decideContinue": true},
     "prefabrication": {"read": true},
@@ -43,7 +43,7 @@ INSERT INTO roles (name, description, permissions, created_at, updated_at) VALUE
   '{
     "dashboard": {"read": true},
     "contracts": {"read": true, "create": true, "update": true, "approve": true, "import": true},
-    "subsystems": {"read": true, "create": true, "update": true, "generateBom": true, "allocateNetwork": true},
+    "subsystems": {"read": true, "create": true, "update": true, "delete": true, "generateBom": true, "allocateNetwork": true, "uploadDocs": true, "deleteDocs": true},
     "tasks": {"read": true, "create": true, "update": true, "assign": true},
     "completion": {"read": true, "decideContinue": true},
     "prefabrication": {"read": true},
