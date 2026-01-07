@@ -100,16 +100,8 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     });
   };
 
-
-
   // Generate task number in format P{XXXXX}{MM}{RR}
-  const generateTaskNumber = (index: number): string => {
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = String(now.getFullYear()).slice(-2);
-    const number = String(index).padStart(5, '0');
-    return `P${number}${month}${year}`;
-  };
+  // REMOVED: Backend now generates task numbers in format {SubsystemNumber}-{Seq}
 
   // Helper to get numeric value
   const getNumericValue = (params: Record<string, number | boolean>, key: string): number => {
@@ -276,7 +268,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
           }
           
           tasks.push({
-            number: generateTaskNumber(taskIndex++),
+            number: '',
             name,
             type: detail.taskType,
             subsystemType: subsystem.type
@@ -286,7 +278,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
         // Generic task generation
         for (let i = 0; i < getNumericValue(params, 'przejazdyKatA'); i++) {
           tasks.push({
-            number: generateTaskNumber(taskIndex++),
+            number: '',
             name: `Przejazd Kat A #${i + 1}`,
             type: 'PRZEJAZD_KAT_A',
             subsystemType: subsystem.type
@@ -294,7 +286,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
         }
         for (let i = 0; i < getNumericValue(params, 'iloscSKP'); i++) {
           tasks.push({
-            number: generateTaskNumber(taskIndex++),
+            number: '',
             name: `SKP #${i + 1}`,
             type: 'SKP',
             subsystemType: subsystem.type
@@ -302,7 +294,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
         }
         for (let i = 0; i < getNumericValue(params, 'iloscNastawni'); i++) {
           tasks.push({
-            number: generateTaskNumber(taskIndex++),
+            number: '',
             name: `Nastawnia #${i + 1}`,
             type: 'NASTAWNIA',
             subsystemType: subsystem.type
@@ -310,7 +302,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
         }
         if (getBooleanValue(params, 'hasLCS')) {
           tasks.push({
-            number: generateTaskNumber(taskIndex++),
+            number: '',
             name: `LCS (${getNumericValue(params, 'lcsMonitory')} monitorów, ${getNumericValue(params, 'lcsStanowiska')} stanowisk)`,
             type: 'LCS',
             subsystemType: subsystem.type
@@ -318,7 +310,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
         }
         if (getBooleanValue(params, 'hasCUID')) {
           tasks.push({
-            number: generateTaskNumber(taskIndex++),
+            number: '',
             name: 'CUID',
             type: 'CUID',
             subsystemType: subsystem.type
@@ -349,7 +341,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
           }
           
           tasks.push({
-            number: generateTaskNumber(taskIndex++),
+            number: '',
             name,
             type: detail.taskType,
             subsystemType: subsystem.type
@@ -358,7 +350,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       } else {
         for (let i = 0; i < getNumericValue(params, 'przejazdyKatB'); i++) {
           tasks.push({
-            number: generateTaskNumber(taskIndex++),
+            number: '',
             name: `Przejazd Kat B #${i + 1}`,
             type: 'PRZEJAZD_KAT_B',
             subsystemType: subsystem.type
@@ -366,7 +358,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
         }
         for (let i = 0; i < getNumericValue(params, 'iloscNastawni'); i++) {
           tasks.push({
-            number: generateTaskNumber(taskIndex++),
+            number: '',
             name: `Nastawnia #${i + 1}`,
             type: 'NASTAWNIA',
             subsystemType: subsystem.type
@@ -374,7 +366,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
         }
         if (getBooleanValue(params, 'hasLCS')) {
           tasks.push({
-            number: generateTaskNumber(taskIndex++),
+            number: '',
             name: `LCS (${getNumericValue(params, 'lcsMonitory')} monitorów, ${getNumericValue(params, 'lcsStanowiska')} stanowisk)`,
             type: 'LCS',
             subsystemType: subsystem.type
@@ -382,7 +374,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
         }
         if (getBooleanValue(params, 'hasCUID')) {
           tasks.push({
-            number: generateTaskNumber(taskIndex++),
+            number: '',
             name: 'CUID',
             type: 'CUID',
             subsystemType: subsystem.type
@@ -394,7 +386,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     else if (subsystem.type === 'SKD') {
       for (let i = 0; i < getNumericValue(params, 'iloscBudynkow'); i++) {
         tasks.push({
-          number: generateTaskNumber(taskIndex++),
+          number: '',
           name: `Budynek SKD #${i + 1}`,
           type: 'BUDYNEK',
           subsystemType: subsystem.type
@@ -402,7 +394,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       }
       for (let i = 0; i < getNumericValue(params, 'iloscKontenerow'); i++) {
         tasks.push({
-          number: generateTaskNumber(taskIndex++),
+          number: '',
           name: `Kontener SKD #${i + 1}`,
           type: 'KONTENER',
           subsystemType: subsystem.type
@@ -410,7 +402,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       }
       for (let i = 0; i < getNumericValue(params, 'iloscPrzejsc'); i++) {
         tasks.push({
-          number: generateTaskNumber(taskIndex++),
+          number: '',
           name: `Przejście #${i + 1}`,
           type: 'PRZEJSCIE',
           subsystemType: subsystem.type
@@ -423,7 +415,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       const subsystemLabel = config?.label || 'Zadanie';
       for (let i = 0; i < getNumericValue(params, 'iloscBudynkow'); i++) {
         tasks.push({
-          number: generateTaskNumber(taskIndex++),
+          number: '',
           name: `${subsystemLabel} - Budynek #${i + 1}`,
           type: 'BUDYNEK',
           subsystemType: subsystem.type
@@ -431,7 +423,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       }
       for (let i = 0; i < getNumericValue(params, 'iloscPomieszczen'); i++) {
         tasks.push({
-          number: generateTaskNumber(taskIndex++),
+          number: '',
           name: `${subsystemLabel} - Pomieszczenie #${i + 1}`,
           type: 'POMIESZCZENIE',
           subsystemType: subsystem.type
@@ -439,7 +431,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       }
       for (let i = 0; i < getNumericValue(params, 'iloscKontenerow'); i++) {
         tasks.push({
-          number: generateTaskNumber(taskIndex++),
+          number: '',
           name: `${subsystemLabel} - Kontener #${i + 1}`,
           type: 'KONTENER',
           subsystemType: subsystem.type
@@ -1074,7 +1066,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                   <tbody>
                     {tasks.map((task, idx) => (
                       <tr key={idx}>
-                        <td><code>{task.number}</code></td>
+                        <td><code>{task.number || '(automatyczny)'}</code></td>
                         <td>{task.name}</td>
                       </tr>
                     ))}

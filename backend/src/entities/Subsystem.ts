@@ -1,9 +1,10 @@
 // src/entities/Subsystem.ts
 // Encja podsystemu
 
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, OneToOne, Index } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, OneToOne, OneToMany, Index } from 'typeorm';
 import { Contract } from './Contract';
 import { NetworkAllocation } from './NetworkAllocation';
+import { SubsystemTask } from './SubsystemTask';
 
 export enum SystemType {
   SMOKIP_A = 'SMOKIP_A',       // 1. SMOK/CMOKIP-A
@@ -59,6 +60,9 @@ export class Subsystem {
 
   @OneToOne(() => NetworkAllocation, allocation => allocation.subsystem, { nullable: true })
   networkAllocation: NetworkAllocation;
+
+  @OneToMany(() => SubsystemTask, task => task.subsystem)
+  tasks: SubsystemTask[];
 
   @Column({
     type: 'varchar',

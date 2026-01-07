@@ -9,6 +9,8 @@ import { Pallet, PalletStatus } from '../entities/Pallet';
 import { Subsystem, SubsystemStatus } from '../entities/Subsystem';
 import { PrefabricationTask, PrefabricationTaskStatus } from '../entities/PrefabricationTask';
 import { User } from '../entities/User';
+import { SubsystemTaskService } from './SubsystemTaskService';
+import { TaskWorkflowStatus } from '../entities/SubsystemTask';
 
 export interface CreateCompletionOrderParams {
   subsystemId: number;
@@ -118,6 +120,17 @@ export class CompletionService {
     // Aktualizuj status podsystemu
     subsystem.status = SubsystemStatus.IN_COMPLETION;
     await subsystemRepo.save(subsystem);
+
+    // Aktualizuj statusy zadań
+    const taskService = new SubsystemTaskService();
+    await taskService.updateStatusForSubsystem(
+      subsystem.id,
+      TaskWorkflowStatus.COMPLETION_ASSIGNED,
+      { 
+        completionOrderId: order.id,
+        completionStartedAt: new Date()
+      }
+    );
 
     console.log(`✅ Utworzono zlecenie kompletacji #${order.id} dla podsystemu ${subsystem.subsystemNumber}`);
 
@@ -234,6 +247,18 @@ export class CompletionService {
     if (order.status === CompletionOrderStatus.CREATED) {
       order.status = CompletionOrderStatus.IN_PROGRESS;
       await orderRepo.save(order);
+
+      // Aktualizuj statusy zadań
+      const taskService = new SubsystemTaskService();
+      const tasks = await taskService.getTasksBySubsystem(order.subsystemId);
+      for (const task of tasks) {
+        if (task.status === TaskWorkflowStatus.COMPLETION_ASSIGNED) {
+          await taskService.updateStatus(
+            task.id,
+            TaskWorkflowStatus.COMPLETION_IN_PROGRESS
+          );
+        }
+      }
     }
 
     console.log(`✅ Zeskanowano materiał: ${params.barcode} (${quantity} szt)`);
@@ -327,6 +352,16 @@ export class CompletionService {
         order.subsystem.status = SubsystemStatus.IN_PREFABRICATION;
         await subsystemRepo.save(order.subsystem);
       }
+
+      // Aktualizuj statusy zadań
+      const taskService = new SubsystemTaskService();
+      await taskService.updateStatusForSubsystem(
+        order.subsystemId,
+        TaskWorkflowStatus.COMPLETION_COMPLETED,
+        { 
+          completionCompletedAt: new Date()
+        }
+      );
     }
 
     await orderRepo.save(order);
@@ -376,6 +411,17 @@ export class CompletionService {
     });
 
     await prefabTaskRepo.save(prefabTask);
+
+    // Aktualizuj statusy zadań
+    const taskService = new SubsystemTaskService();
+    await taskService.updateStatusForSubsystem(
+      order.subsystemId,
+      TaskWorkflowStatus.PREFABRICATION_ASSIGNED,
+      { 
+        prefabricationTaskId: prefabTask.id,
+        prefabricationStartedAt: new Date()
+      }
+    );
 
     console.log(`✅ Utworzono zadanie prefabrykacji #${prefabTask.id} dla zlecenia #${completionOrderId}`);
 

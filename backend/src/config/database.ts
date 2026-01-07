@@ -36,6 +36,7 @@ import { PrefabricationDevice } from '../entities/PrefabricationDevice';
 import { BomTrigger } from '../entities/BomTrigger';
 import { BomTriggerLog } from '../entities/BomTriggerLog';
 import { SubsystemDocument } from '../entities/SubsystemDocument';
+import { SubsystemTask } from '../entities/SubsystemTask';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -80,7 +81,8 @@ export const AppDataSource = new DataSource({
     PrefabricationDevice,
     BomTrigger,
     BomTriggerLog,
-    SubsystemDocument
+    SubsystemDocument,
+    SubsystemTask
   ],
   subscribers: [],
   migrations: [],

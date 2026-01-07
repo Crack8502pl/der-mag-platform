@@ -7,6 +7,8 @@ import { PrefabricationDevice, PrefabricationDeviceStatus } from '../entities/Pr
 import { DeviceIPAssignment, DeviceIPStatus } from '../entities/DeviceIPAssignment';
 import { NetworkAllocation } from '../entities/NetworkAllocation';
 import { Subsystem, SubsystemStatus } from '../entities/Subsystem';
+import { SubsystemTaskService } from './SubsystemTaskService';
+import { TaskWorkflowStatus } from '../entities/SubsystemTask';
 
 export interface DeviceConfigurationParams {
   prefabTaskId: number;
@@ -163,6 +165,13 @@ export class PrefabricationService {
     if (task.status === PrefabricationTaskStatus.CREATED) {
       task.status = PrefabricationTaskStatus.IN_PROGRESS;
       await prefabTaskRepo.save(task);
+
+      // Aktualizuj statusy zadań podsystemu
+      const taskService = new SubsystemTaskService();
+      await taskService.updateStatusForSubsystem(
+        task.subsystemId,
+        TaskWorkflowStatus.PREFABRICATION_IN_PROGRESS
+      );
     }
 
     console.log(`✅ Skonfigurowano urządzenie: ${ipAssignment.hostname} (SN: ${params.serialNumber})`);
@@ -251,6 +260,16 @@ export class PrefabricationService {
       task.subsystem.status = SubsystemStatus.READY_FOR_DEPLOYMENT;
       await subsystemRepo.save(task.subsystem);
     }
+
+    // Aktualizuj statusy zadań podsystemu
+    const taskService = new SubsystemTaskService();
+    await taskService.updateStatusForSubsystem(
+      task.subsystemId,
+      TaskWorkflowStatus.PREFABRICATION_COMPLETED,
+      { 
+        prefabricationCompletedAt: new Date()
+      }
+    );
 
     console.log(`✅ Zakończono prefabrykację zadania #${prefabTaskId}`);
 

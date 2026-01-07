@@ -39,6 +39,20 @@ export interface SubsystemDocument {
   uploadedAt: string;
 }
 
+export interface SubsystemTask {
+  id: number;
+  taskNumber: string;
+  taskName: string;
+  taskType: string;
+  status: string;
+  bomGenerated: boolean;
+  completionStartedAt?: string;
+  completionCompletedAt?: string;
+  prefabricationStartedAt?: string;
+  prefabricationCompletedAt?: string;
+  createdAt: string;
+}
+
 export const subsystemService = {
   /**
    * Get list of subsystems with filters
@@ -98,6 +112,14 @@ export const subsystemService = {
     const response = await api.delete(
       `/subsystems/${subsystemId}/documentation/${docId}`
     );
+    return response.data;
+  },
+
+  /**
+   * Get tasks for a subsystem
+   */
+  async getTasks(subsystemId: number) {
+    const response = await api.get(`/subsystems/${subsystemId}/tasks`);
     return response.data;
   }
 };
