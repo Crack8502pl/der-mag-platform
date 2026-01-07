@@ -4,12 +4,12 @@ Ten dokument opisuje krok po kroku proces wdrożenia HTTPS w środowisku dewelop
 
 ## 📋 Spis treści
 
-- <a>Przygotowanie</a>
-- <a>Środowisko deweloperskie</a>
-- <a>Środowisko produkcyjne</a>
-- <a>Przenoszenie między maszynami</a>
-- <a>Rozwiązywanie problemów</a>
-- <a>FAQ</a>
+- [Przygotowanie](#-przygotowanie)
+- [Środowisko deweloperskie](#️-środowisko-deweloperskie-dev)
+- [Środowisko produkcyjne](#-środowisko-produkcyjne-prod)
+- [Przenoszenie między maszynami](#-przenoszenie-między-maszynami)
+- [Rozwiązywanie problemów](#-rozwiązywanie-problemów)
+- [FAQ](#-faq)
 
 ---
 
@@ -830,17 +830,17 @@ USE_HTTPS=false npm start
 
 ## 📚 Dodatkowe zasoby
 
-- <a>Certyfikaty SSL - README</a>
-- <a href="https://www.nginx.com/blog/nginx-ssl-performance/">Nginx Best Practices</a>
-- <a href="https://letsencrypt.org/docs/">Let's Encrypt Documentation</a>
-- <a href="https://vitejs.dev/config/server-options.html#server-https">Vite HTTPS Guide</a>
+- [Certyfikaty SSL - README](../backend/certs/README.md)
+- [Nginx Best Practices](https://www.nginx.com/blog/nginx-ssl-performance/)
+- [Let's Encrypt Documentation](https://letsencrypt.org/docs/)
+- [Vite HTTPS Guide](https://vitejs.dev/config/server-options.html#server-https)
 
 ---
 
 ## 📧 Wsparcie
 
 W razie problemów:
-1. Sprawdź <a>Rozwiązywanie problemów</a>
+1. Sprawdź [Rozwiązywanie problemów](#-rozwiązywanie-problemów)
 2. Sprawdź logi: `sudo journalctl -u der-mag-platform -f`
 3. Otwórz issue na GitHub
 4. Kontakt: r.krakowski@der-mag.pl
