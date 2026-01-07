@@ -21,6 +21,7 @@ export const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const adminCards: AdminCard[] = [
     {
@@ -83,11 +84,21 @@ export const AdminDashboard: React.FC = () => {
       const response = await api.post('/admin/seed-database');
       
       if (response.data.success) {
-        alert(`✅ ${response.data.message}\n\nRole: ${response.data.data.roles}\nTypy zadań: ${response.data.data.taskTypes}\nAdmin: ${response.data.data.adminUser}`);
+        setNotification({
+          type: 'success',
+          message: `✅ ${response.data.message}\n\nRole: ${response.data.data.roles}\nTypy zadań: ${response.data.data.taskTypes}\nAdmin: ${response.data.data.adminUser}`
+        });
         setIsModalOpen(false);
+        // Auto-hide notification after 5 seconds
+        setTimeout(() => setNotification(null), 5000);
       }
     } catch (error: any) {
-      alert(`❌ Błąd: ${error.response?.data?.message || error.message}`);
+      setNotification({
+        type: 'error',
+        message: `❌ Błąd: ${error.response?.data?.message || error.message}`
+      });
+      // Auto-hide notification after 5 seconds
+      setTimeout(() => setNotification(null), 5000);
     } finally {
       setIsLoading(false);
     }
@@ -104,6 +115,17 @@ export const AdminDashboard: React.FC = () => {
         <h1>Panel Administratora</h1>
         <p className="subtitle">Zarządzaj systemem i konfiguracją</p>
       </div>
+
+      {notification && (
+        <div className={`notification ${notification.type}`} onClick={() => setNotification(null)}>
+          <div className="notification-content">
+            {notification.message.split('\n').map((line, i) => (
+              <div key={i}>{line}</div>
+            ))}
+          </div>
+          <button className="notification-close" onClick={() => setNotification(null)}>×</button>
+        </div>
+      )}
 
       <div className="dashboard-grid">
         {filteredCards.map((card, index) => (
@@ -173,6 +195,71 @@ export const AdminDashboard: React.FC = () => {
         .subtitle {
           color: #7f8c8d;
           font-size: 16px;
+        }
+
+        .notification {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          max-width: 500px;
+          padding: 20px;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          z-index: 2000;
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 15px;
+          animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
+        .notification.success {
+          background: #d4edda;
+          border: 1px solid #c3e6cb;
+          color: #155724;
+        }
+
+        .notification.error {
+          background: #f8d7da;
+          border: 1px solid #f5c6cb;
+          color: #721c24;
+        }
+
+        .notification-content {
+          flex: 1;
+          white-space: pre-line;
+          font-size: 14px;
+          line-height: 1.5;
+        }
+
+        .notification-close {
+          background: none;
+          border: none;
+          font-size: 24px;
+          cursor: pointer;
+          color: inherit;
+          padding: 0;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0.7;
+        }
+
+        .notification-close:hover {
+          opacity: 1;
         }
 
         .dashboard-grid {
