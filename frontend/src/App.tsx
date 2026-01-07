@@ -33,6 +33,8 @@ import { SettingsPage } from './components/modules/SettingsPage';
 import { ContractListPage } from './components/contracts/ContractListPage';
 import { ContractDetailPage } from './components/contracts/ContractDetailPage';
 import { useAuth } from './hooks/useAuth';
+import { useTokenExpirationWarning } from './hooks/useTokenExpirationWarning';
+import { TokenExpirationModal } from './components/common/TokenExpirationModal';
 import './styles/grover-theme.css';
 
 // Protected Route Component
@@ -62,8 +64,24 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 function App() {
+  const { logout } = useAuth();
+  const { 
+    showWarning, 
+    secondsRemaining, 
+    refreshToken, 
+  } = useTokenExpirationWarning();
+
   return (
     <BrowserRouter>
+      {/* Modal ostrzeżenia o wygaśnięciu tokenu */}
+      {showWarning && (
+        <TokenExpirationModal
+          secondsRemaining={secondsRemaining}
+          onRefresh={refreshToken}
+          onLogout={logout}
+        />
+      )}
+      
       <Routes>
         {/* Public Routes */}
         <Route
