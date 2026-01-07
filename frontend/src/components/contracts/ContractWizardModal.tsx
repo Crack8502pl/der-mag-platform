@@ -1,11 +1,13 @@
 // src/components/contracts/ContractWizardModal.tsx
 // Multi-step wizard for creating contracts with multiple subsystems
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { SUBSYSTEM_WIZARD_CONFIG, detectSubsystemTypes } from '../../config/subsystemWizardConfig';
 import type { SubsystemType } from '../../config/subsystemWizardConfig';
 import contractService, { type Subsystem } from '../../services/contract.service';
+import { AdminService } from '../../services/admin.service';
+import type { User as AdminUser } from '../../types/admin.types';
 
 interface Props {
   onClose: () => void;
@@ -50,6 +52,8 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [detectedSubsystems, setDetectedSubsystems] = useState<SubsystemType[]>([]);
+  const [availableManagers, setAvailableManagers] = useState<AdminUser[]>([]);
+  const [loadingManagers, setLoadingManagers] = useState(false);
   
   const [wizardData, setWizardData] = useState<WizardData>({
     customName: '',
@@ -60,6 +64,46 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
   });
   
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
+
+  // Check if current user can select managers (Admin or Board)
+  const canSelectManager = user?.role === 'admin' || user?.role === 'board';
+
+  // Load managers on mount if user can select
+  useEffect(() => {
+    if (canSelectManager) {
+      loadManagers();
+    }
+  }, [canSelectManager]);
+
+  const loadManagers = async () => {
+    setLoadingManagers(true);
+    try {
+      const adminService = new AdminService();
+      const users = await adminService.getAllUsers();
+      // Filter for active users with manager, admin, or board roles
+      const managers = users.filter(u => 
+        u.active && (u.role === 'manager' || u.role === 'admin' || u.role === 'board')
+      );
+      setAvailableManagers(managers);
+    } catch (err) {
+      console.error('Failed to load managers:', err);
+      // If loading fails, at least include current user
+      if (user) {
+        setAvailableManagers([{
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          active: true,
+          permissions: user.permissions
+        } as AdminUser]);
+      }
+    } finally {
+      setLoadingManagers(false);
+    }
+  };
 
   // Step 1: Detect subsystems from name
   const handleNameChange = (name: string) => {
@@ -528,8 +572,8 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
   };
 
   const handleSubmit = async () => {
-    if (!user || !user.id) {
-      setError('Nie znaleziono aktualnego użytkownika');
+    if (!wizardData.projectManagerId) {
+      setError('Nie wybrano kierownika projektu');
       return;
     }
     
@@ -554,7 +598,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       const response = await contractService.createContractWithWizard({
         customName: wizardData.customName,
         orderDate: wizardData.orderDate,
-        projectManagerId: user.id,
+        projectManagerId: parseInt(wizardData.projectManagerId),
         managerCode: wizardData.managerCode,
         subsystems: subsystemsData
       });
@@ -586,7 +630,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     
     if (stepInfo.type === 'basic') {
       return wizardData.customName && wizardData.orderDate && 
-             user && user.id && wizardData.managerCode.length === 3;
+             wizardData.projectManagerId && wizardData.managerCode.length === 3;
     }
     if (stepInfo.type === 'selection') {
       return wizardData.subsystems.length > 0;
@@ -663,14 +707,35 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       
       <div className="form-group">
         <label>Kierownik projektu *</label>
-        <input
-          type="text"
-          className="form-control-readonly"
-          value={user ? `${user.firstName} ${user.lastName} (${user.username})` : ''}
-          disabled
-          readOnly
-        />
-        <span className="text-muted">Automatycznie ustawiony na aktualnego użytkownika</span>
+        {canSelectManager ? (
+          <>
+            <select
+              value={wizardData.projectManagerId}
+              onChange={(e) => setWizardData({...wizardData, projectManagerId: e.target.value})}
+              disabled={loadingManagers}
+            >
+              <option value="">Wybierz kierownika projektu</option>
+              {availableManagers.map(manager => (
+                <option key={manager.id} value={manager.id}>
+                  {manager.firstName} {manager.lastName} ({manager.username}) - {manager.role}
+                </option>
+              ))}
+            </select>
+            {loadingManagers && <span className="text-muted">Ładowanie listy kierowników...</span>}
+            {!loadingManagers && <span className="text-muted">Admin i Zarząd mogą wybrać dowolnego kierownika</span>}
+          </>
+        ) : (
+          <>
+            <input
+              type="text"
+              className="form-control-readonly"
+              value={user ? `${user.firstName} ${user.lastName} (${user.username})` : ''}
+              disabled
+              readOnly
+            />
+            <span className="text-muted">Automatycznie ustawiony na aktualnego użytkownika</span>
+          </>
+        )}
       </div>
       
       <div className="form-group">
