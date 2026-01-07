@@ -57,3 +57,6 @@ temp/
 backups/*.sql
 backups/*.sql.gz
 !backups/.gitkeep
+
+# SSL Certificates (generated locally)
+certs/*.pem

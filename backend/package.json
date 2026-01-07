@@ -24,7 +24,9 @@
     "env:pull": "dotenv-vault pull",
     "env:build": "dotenv-vault build",
     "env:keys": "dotenv-vault keys",
-    "audit:production": "npm audit --production"
+    "audit:production": "npm audit --production",
+    "generate-certs": "./scripts/generate-certs.sh",
+    "generate-certs:win": "powershell -ExecutionPolicy Bypass -File ./scripts/generate-certs.ps1"
   },
   "overrides": {
     "lodash": "^4.17.21",
