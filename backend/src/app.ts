@@ -74,6 +74,23 @@ app.get('/health', (req, res) => {
   });
 });
 
+// 🆕 Debug endpoint - zwraca info o konfiguracji
+// Note: Nie jest rate-limited celowo, podobnie jak /health
+app.get('/debug/config', (req, res) => {
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    frontendServed: fs.existsSync(path.join(__dirname, '../../frontend/dist')),
+    apiUrl: `${req.protocol}://${req.get('host')}/api`,
+    requestHeaders: {
+      host: req.get('host'),
+      userAgent: req.get('user-agent'),
+      referer: req.get('referer')
+    }
+  });
+});
+
 // Serwowanie interfejsu testowego
 const enableApiTester = process.env.ENABLE_API_TESTER === 'true' || process.env.NODE_ENV !== 'production';
 if (enableApiTester) {

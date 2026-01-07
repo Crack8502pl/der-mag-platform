@@ -4,16 +4,48 @@
 import axios, { AxiosError } from 'axios';
 import type { AxiosInstance } from 'axios';
 
-// Dynamiczne wykrywanie API URL:
-// 1. Jeśli ustawione VITE_API_BASE_URL - użyj tego
-// 2. W przeciwnym razie użyj tego samego origin co frontend + /api
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `${window.location.origin}/api`;
+// Inteligentne wykrywanie API URL dla różnych środowisk
+const getApiBaseURL = (): string => {
+  // 1. Priorytet: zmienna środowiskowa (build time)
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  
+  // 2. Wykryj sieć lokalną (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+  const hostname = window.location.hostname;
+  const isLocalNetwork = /^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(hostname);
+  
+  // 3. Dla sieci lokalnej - zawsze dodaj port 3000
+  if (isLocalNetwork) {
+    return `http://${hostname}:3000/api`;
+  }
+  
+  // 4. Dla localhost
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    const port = window.location.port || '3000';
+    return `http://localhost:${port}/api`;
+  }
+  
+  // 5. Fallback: użyj origin (dla production)
+  return `${window.location.origin}/api`;
+};
+
+const API_BASE_URL = getApiBaseURL();
+
+// 🆕 Debug info w konsoli
+console.log('🌐 API Configuration:', {
+  hostname: window.location.hostname,
+  origin: window.location.origin,
+  calculatedApiUrl: API_BASE_URL,
+  env: import.meta.env.VITE_API_BASE_URL || 'not set'
+});
 
 export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 15000, // 🆕 15s timeout dla slow mobile networks
 });
 
 // Request interceptor - add access token
@@ -26,6 +58,7 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    console.error('❌ Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -34,6 +67,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
+    console.error('❌ API Error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      message: error.message
+    });
+    
     const originalRequest = error.config as any;
 
     // If 401 and not already retried
@@ -61,6 +101,7 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
+        console.error('❌ Token refresh failed:', refreshError);
         // Refresh failed - clear tokens and redirect to login
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
