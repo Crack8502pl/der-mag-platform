@@ -49,6 +49,10 @@ router.use('/import', importRoutes);
 router.use('/bom-builder', bomBuilderRoutes);
 router.use('/materials', materialRoutes);
 
+// Task types route
+import { TaskController } from '../controllers/TaskController';
+router.get('/task-types', authenticate, TaskController.getTaskTypes);
+
 // New workflow routes
 router.use('/contracts', contractRoutes);
 router.use('/subsystems', subsystemRoutes);

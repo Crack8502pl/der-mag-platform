@@ -541,4 +541,29 @@ export class TaskController {
       });
     }
   }
+
+  /**
+   * GET /api/task-types
+   * Pobierz wszystkie typy zadań
+   */
+  static async getTaskTypes(req: Request, res: Response): Promise<void> {
+    try {
+      const taskTypeRepository = AppDataSource.getRepository(TaskType);
+      const taskTypes = await taskTypeRepository.find({
+        where: { active: true },
+        order: { name: 'ASC' }
+      });
+
+      res.json({
+        success: true,
+        data: taskTypes
+      });
+    } catch (error) {
+      console.error('Błąd pobierania typów zadań:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Błąd serwera'
+      });
+    }
+  }
 }
