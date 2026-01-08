@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { SUBSYSTEM_WIZARD_CONFIG, detectSubsystemTypes } from '../../config/subsystemWizardConfig';
 import type { SubsystemType } from '../../config/subsystemWizardConfig';
-import contractService, { type Subsystem } from '../../services/contract.service';
+import contractService, { type Subsystem, type Contract } from '../../services/contract.service';
 import { AdminService } from '../../services/admin.service';
 import type { User as AdminUser } from '../../types/admin.types';
 
@@ -1384,7 +1384,7 @@ export const ContractWizardModal: React.FC<Props> = ({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content modal-wizard" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>🧙‍♂️ Kreator Kontraktu</h2>
+          <h2>🧙‍♂️ {editMode ? 'Edycja Kontraktu' : 'Kreator Kontraktu'}</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         
