@@ -1,10 +1,32 @@
 # 🚀 Automatyzacja migracji bazy danych
 
 ## 📋 Spis treści
+- [Konfiguracja sudo](#konfiguracja-sudo)
 - [Wprowadzenie](#wprowadzenie)
 - [Dostępne komendy](#dostępne-komendy)
 - [Scenariusze użycia](#scenariusze-użycia)
 - [Rozwiązywanie problemów](#rozwiązywanie-problemów)
+
+## ⚙️ Konfiguracja sudo (wymagane przed pierwszym użyciem)
+
+Skrypty używają `sudo -u postgres` aby nie wymagać hasła PostgreSQL. 
+
+**Jednorazowa konfiguracja:**
+```bash
+sudo visudo
+
+# Dodaj linię (zamień 'crack' na swoją nazwę użytkownika Linux):
+crack ALL=(postgres) NOPASSWD: /usr/bin/psql
+```
+
+**Sprawdź czy działa:**
+```bash
+sudo -u postgres psql -c "SELECT version();"
+```
+
+Jeśli wyświetla wersję PostgreSQL bez pytania o hasło - gotowe! ✅
+
+📖 **Szczegóły:** Zobacz [DB_RESET_SUDO_SETUP.md](DB_RESET_SUDO_SETUP.md)
 
 ## Wprowadzenie
 

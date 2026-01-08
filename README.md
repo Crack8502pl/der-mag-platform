@@ -138,6 +138,64 @@ grover-platform/
 
 ## 🔧 Instalacja i uruchomienie
 
+## 🗄️ Database Setup
+
+### Prerequisites
+- PostgreSQL 14+ zainstalowany
+- Użytkownik Linux z dostępem sudo do postgres
+
+### First-time setup
+
+1. **Configure sudo access (one-time):**
+   ```bash
+   sudo visudo
+   
+   # Add this line (replace 'crack' with your Linux username):
+   crack ALL=(postgres) NOPASSWD: /usr/bin/psql
+   ```
+
+2. **Verify sudo access:**
+   ```bash
+   sudo -u postgres psql -c "SELECT version();"
+   ```
+   
+   If it shows PostgreSQL version without asking for password - it works! ✅
+
+3. **Create database and run migrations:**
+   ```bash
+   cd backend
+   npm run db:create
+   npm run db:setup
+   ```
+
+4. **Start development server:**
+   ```bash
+   npm run dev
+   ```
+
+### Database commands
+
+```bash
+# Full reset (drop + create + migrations + seed)
+npm run db:reset
+
+# Only drop database
+npm run db:drop
+
+# Only create database
+npm run db:create
+
+# Only migrations (keeps existing data)
+npm run migrate:all
+
+# Only seed data
+curl -X POST http://localhost:3000/api/admin/seed-database
+```
+
+**⚠️ Warning:** `npm run db:reset` deletes ALL data! Use only in development.
+
+📖 **Detailed documentation:** See [backend/docs/DB_RESET_SUDO_SETUP.md](backend/docs/DB_RESET_SUDO_SETUP.md)
+
 ## 🔐 HTTPS Setup
 
 ### Generowanie certyfikatów SSL
