@@ -34,6 +34,12 @@ export enum EmailTemplate {
   USER_WELCOME = 'user-welcome',
   PASSWORD_RESET = 'password-reset',
   PASSWORD_CHANGED = 'password-changed',
+  BRIGADE_TASK_ASSIGNED = 'brigade-task-assigned',
+  BRIGADE_TASK_REMOVED = 'brigade-task-removed',
+  BRIGADE_TASK_CHANGED = 'brigade-task-changed',
+  BRIGADE_TASK_PRIORITY_CHANGED = 'brigade-task-priority-changed',
+  BRIGADE_MEMBER_ADDED_WITH_TASKS = 'brigade-member-added',
+  BRIGADE_MEMBER_REMOVED_WITH_TASKS = 'brigade-member-removed',
 }
 
 /**

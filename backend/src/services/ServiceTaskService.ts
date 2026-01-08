@@ -165,8 +165,19 @@ export class ServiceTaskService {
       throw new Error('Zadanie nie znalezione');
     }
 
+    const oldPriority = task.priority;
+
     Object.assign(task, data);
-    return await this.taskRepository.save(task);
+    const updatedTask = await this.taskRepository.save(task);
+
+    // NOWE: Jeśli zmienił się priorytet - powiadom brygadę
+    if (data.priority !== undefined && data.priority !== oldPriority && task.brigadeId) {
+      const BrigadeNotificationService = (await import('./BrigadeNotificationService')).default;
+      // Use a dummy performedById - ideally this should be passed as parameter
+      await BrigadeNotificationService.notifyPriorityChanged(id, oldPriority, data.priority, task.createdById);
+    }
+
+    return updatedTask;
   }
 
   /**
@@ -223,6 +234,17 @@ export class ServiceTaskService {
     task.status = ServiceTaskStatus.ASSIGNED;
 
     await this.taskRepository.save(task);
+
+    // NOWE: Wysyłka powiadomień
+    const BrigadeNotificationService = (await import('./BrigadeNotificationService')).default;
+    
+    if (oldBrigadeId && oldBrigadeId !== brigadeId) {
+      // Zmiana brygady
+      await BrigadeNotificationService.notifyBrigadeChanged(taskId, oldBrigadeId, brigadeId, performedById);
+    } else if (!oldBrigadeId) {
+      // Pierwsze przypisanie
+      await BrigadeNotificationService.notifyTaskAssigned(brigadeId, taskId, performedById);
+    }
 
     // Log brigade assignment
     await this.addActivity(taskId, {

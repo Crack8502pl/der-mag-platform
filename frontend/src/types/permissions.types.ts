@@ -126,6 +126,15 @@ export interface WarehouseStockPermissions {
   scan_material?: boolean;
 }
 
+export interface BrigadePermissions {
+  read?: boolean;
+  create?: boolean;
+  update?: boolean;
+  delete?: boolean;
+  assignMembers?: boolean;
+  viewMembers?: boolean;
+}
+
 export interface RolePermissions {
   all?: boolean; // Admin - pełny dostęp
   dashboard?: DashboardPermissions;
@@ -144,6 +153,7 @@ export interface RolePermissions {
   documents?: DocumentPermissions;
   notifications?: NotificationPermissions;
   warehouse_stock?: WarehouseStockPermissions;
+  brigades?: BrigadePermissions;
   [key: string]: any;
 }
 
@@ -164,7 +174,8 @@ export type PermissionModule =
   | 'photos'
   | 'documents'
   | 'notifications'
-  | 'warehouse_stock';
+  | 'warehouse_stock'
+  | 'brigades';
 
 export type PermissionAction = 
   | 'read'
