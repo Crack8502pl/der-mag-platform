@@ -296,7 +296,16 @@ export class UserController {
       let finalEmployeeCode = employeeCode;
       if (!finalEmployeeCode) {
         // Use new generator
-        finalEmployeeCode = await EmployeeCodeGenerator.generate(firstName, lastName);
+        try {
+          finalEmployeeCode = await EmployeeCodeGenerator.generate(firstName, lastName);
+        } catch (genError: any) {
+          res.status(400).json({
+            success: false,
+            error: 'EMPLOYEE_CODE_GENERATION_FAILED',
+            message: genError.message || 'Nie udało się wygenerować unikalnego kodu pracownika. Proszę podać kod ręcznie.'
+          });
+          return;
+        }
       } else {
         // Validate and check uniqueness if provided manually
         const validation = EmployeeCodeGenerator.validateCode(finalEmployeeCode);

@@ -5,6 +5,10 @@ import { AppDataSource } from '../config/database';
 import { User } from '../entities/User';
 import { IsNull } from 'typeorm';
 
+// Regular expression pattern for valid characters (Polish letters included)
+const VALID_CHARS_PATTERN = /^[A-ZĄĆĘŁŃÓŚŹŻ0-9]+$/;
+const LETTER_CHARS_PATTERN = /[^A-ZĄĆĘŁŃÓŚŹŻ]/g;
+
 export class EmployeeCodeGenerator {
   /**
    * Generuje unikalny kod pracownika na podstawie imienia i nazwiska
@@ -19,8 +23,8 @@ export class EmployeeCodeGenerator {
     
     // Clean and uppercase input, remove non-letter characters
     // Support Polish characters: ĄĆĘŁŃÓŚŹŻ
-    const cleanFirst = firstName.trim().toUpperCase().replace(/[^A-ZĄĆĘŁŃÓŚŹŻ]/g, '');
-    const cleanLast = lastName.trim().toUpperCase().replace(/[^A-ZĄĆĘŁŃÓŚŹŻ]/g, '');
+    const cleanFirst = firstName.trim().toUpperCase().replace(LETTER_CHARS_PATTERN, '');
+    const cleanLast = lastName.trim().toUpperCase().replace(LETTER_CHARS_PATTERN, '');
     
     // Validate minimum length
     if (cleanFirst.length < 1 || cleanLast.length < 2) {
@@ -93,7 +97,7 @@ export class EmployeeCodeGenerator {
     }
     
     // Only uppercase letters and digits allowed
-    if (!/^[A-ZĄĆĘŁŃÓŚŹŻ0-9]+$/.test(code)) {
+    if (!VALID_CHARS_PATTERN.test(code)) {
       return { valid: false, error: 'Kod może zawierać tylko wielkie litery i cyfry' };
     }
     
