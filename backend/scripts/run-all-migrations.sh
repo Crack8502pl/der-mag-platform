@@ -23,7 +23,7 @@ SUCCESS=0
 FAILED=0
 
 # Get all .sql files in migrations directory and sort them
-MIGRATION_DIR="backend/scripts/migrations"
+MIGRATION_DIR="scripts/migrations"
 MIGRATIONS=$(ls -1 ${MIGRATION_DIR}/*.sql 2>/dev/null | sort)
 
 if [ -z "$MIGRATIONS" ]; then
