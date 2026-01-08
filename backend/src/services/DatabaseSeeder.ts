@@ -221,20 +221,20 @@ export class DatabaseSeeder {
   private static async seedTaskTypes(): Promise<void> {
     const taskTypeRepo = AppDataSource.getRepository(TaskType);
     
+    // ZAKTUALIZOWANE KODY - zgodne z migracją 20260106_update_task_types.sql
     const taskTypes = [
       { name: 'System Monitoringu Wizyjnego', code: 'SMW', description: 'System Monitoringu Wizyjnego', active: true, configuration: { has_bom: true, has_ip_config: true } },
-      { name: 'CSDIP', code: 'CSDIP', description: 'Cyfrowe Systemy Dźwiękowego Informowania Pasażerów', active: true, configuration: { has_bom: true, has_ip_config: true } },
-      { name: 'LAN PKP PLK', code: 'LAN_PKP_PLK', description: 'Sieci LAN PKP PLK', active: true, configuration: { has_bom: true, has_ip_config: true } },
-      { name: 'SMOK-IP/CMOK-IP (Wariant A/SKP)', code: 'SMOK_IP_A', description: 'Wariant A', active: true, configuration: { has_bom: true, has_ip_config: true } },
-      { name: 'SMOK-IP/CMOK-IP (Wariant B)', code: 'SMOK_IP_B', description: 'Wariant B', active: true, configuration: { has_bom: true, has_ip_config: true } },
+      { name: 'SDIP', code: 'SDIP', description: 'Cyfrowe Systemy Dźwiękowego Informowania Pasażerów', active: true, configuration: { has_bom: true, has_ip_config: true } },
+      { name: 'LAN', code: 'LAN', description: 'Sieci LAN', active: true, configuration: { has_bom: true, has_ip_config: true } },
+      { name: 'SMOK-IP/CMOK-IP (Wariant A/SKP)', code: 'SMOKIP_A', description: 'Wariant A', active: true, configuration: { has_bom: true, has_ip_config: true } },
+      { name: 'SMOK-IP/CMOK-IP (Wariant B)', code: 'SMOKIP_B', description: 'Wariant B', active: true, configuration: { has_bom: true, has_ip_config: true } },
       { name: 'SSWiN', code: 'SSWIN', description: 'System Sygnalizacji Włamania i Napadu', active: true, configuration: { has_bom: true, has_ip_config: false } },
       { name: 'SSP', code: 'SSP', description: 'System Sygnalizacji Pożaru', active: true, configuration: { has_bom: true, has_ip_config: false } },
       { name: 'SUG', code: 'SUG', description: 'Stałe Urządzenie Gaśnicze', active: true, configuration: { has_bom: true, has_ip_config: false } },
-      { name: 'Obiekty Kubaturowe', code: 'OBIEKTY_KUBATUROWE', description: 'Obiekty budowlane', active: true, configuration: { has_bom: true, has_ip_config: false } },
-      { name: 'Kontrakty Liniowe', code: 'KONTRAKTY_LINIOWE', description: 'Kontrakty liniowe kolejowe', active: true, configuration: { has_bom: true, has_ip_config: false } },
-      { name: 'LAN Strukturalny Miedziana', code: 'LAN_STRUKTURALNY', description: 'Okablowanie miedziane', active: true, configuration: { has_bom: true, has_ip_config: true } },
-      { name: 'Zasilania', code: 'ZASILANIA', description: 'Systemy zasilania', active: true, configuration: { has_bom: true, has_ip_config: false } },
-      { name: 'Struktury Światłowodowe', code: 'STRUKTURY_SWIATLO', description: 'Infrastruktura światłowodowa', active: true, configuration: { has_bom: true, has_ip_config: false } },
+      { name: 'Zasilanie', code: 'ZASILANIE', description: 'Systemy zasilania', active: true, configuration: { has_bom: true, has_ip_config: false } },
+      { name: 'Struktury Światłowodowe', code: 'OTK', description: 'Infrastruktura światłowodowa', active: true, configuration: { has_bom: true, has_ip_config: false } },
+      { name: 'SKD', code: 'SKD', description: 'System Kontroli Dostępu', active: true, configuration: { has_bom: true, has_ip_config: true } },
+      { name: 'CCTV', code: 'CCTV', description: 'System Telewizji Przemysłowej', active: true, configuration: { has_bom: true, has_ip_config: true } },
       { name: 'Zadanie Serwisowe', code: 'SERWIS', description: 'Naprawa, konserwacja i interwencje serwisowe', active: true, configuration: { has_bom: true, has_ip_config: false } }
     ];
     
@@ -243,7 +243,7 @@ export class DatabaseSeeder {
       await taskTypeRepo.save(newTaskType);
     }
     
-    console.log('   ✅ Typy zadań utworzone (14)');
+    console.log('   ✅ Typy zadań utworzone (13)');
   }
   
   private static async seedAdmin(): Promise<void> {
@@ -281,22 +281,41 @@ export class DatabaseSeeder {
   static async forceSeed(): Promise<void> {
     console.log('⚠️  WYMUSZONE SEEDOWANIE - Usuwanie istniejących danych...');
     
-    // Usuń istniejące dane (w odpowiedniej kolejności)
-    const userRepo = AppDataSource.getRepository(User);
-    const roleRepo = AppDataSource.getRepository(Role);
-    const taskTypeRepo = AppDataSource.getRepository(TaskType);
+    // Wyłącz foreign key checks tymczasowo
+    await AppDataSource.query('SET session_replication_role = replica;');
     
-    await userRepo.delete({});
-    await roleRepo.delete({});
-    await taskTypeRepo.delete({});
-    
-    console.log('🗑️  Dane usunięte');
-    console.log('📦 Rozpoczynam seedowanie...');
-    
-    await this.seedRoles();
-    await this.seedTaskTypes();
-    await this.seedAdmin();
-    
-    console.log('✅ Wymuszone seedowanie zakończone pomyślnie!');
+    try {
+      // Usuń dane z tabel zależnych (od najniższego poziomu)
+      await AppDataSource.query('TRUNCATE TABLE service_task_activities CASCADE');
+      await AppDataSource.query('TRUNCATE TABLE service_tasks CASCADE');
+      await AppDataSource.query('TRUNCATE TABLE brigade_members CASCADE');
+      await AppDataSource.query('TRUNCATE TABLE brigades CASCADE');
+      await AppDataSource.query('TRUNCATE TABLE subsystem_tasks CASCADE');
+      await AppDataSource.query('TRUNCATE TABLE bom_trigger_logs CASCADE');
+      await AppDataSource.query('TRUNCATE TABLE bom_triggers CASCADE');
+      await AppDataSource.query('TRUNCATE TABLE refresh_tokens CASCADE');
+      await AppDataSource.query('TRUNCATE TABLE audit_logs CASCADE');
+      
+      // Usuń główne dane seedowe - UŻYJ clear() zamiast delete({})
+      const userRepo = AppDataSource.getRepository(User);
+      const roleRepo = AppDataSource.getRepository(Role);
+      const taskTypeRepo = AppDataSource.getRepository(TaskType);
+      
+      await userRepo.clear();
+      await roleRepo.clear();
+      await taskTypeRepo.clear();
+      
+      console.log('🗑️  Dane usunięte');
+      console.log('📦 Rozpoczynam seedowanie...');
+      
+      await this.seedRoles();
+      await this.seedTaskTypes();
+      await this.seedAdmin();
+      
+      console.log('✅ Wymuszone seedowanie zakończone pomyślnie!');
+    } finally {
+      // Włącz z powrotem foreign key checks
+      await AppDataSource.query('SET session_replication_role = DEFAULT;');
+    }
   }
 }
