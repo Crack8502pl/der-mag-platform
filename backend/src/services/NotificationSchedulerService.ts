@@ -1,7 +1,7 @@
 // src/services/NotificationSchedulerService.ts
 // Service for scheduling and managing email notifications
 
-import cron from 'node-cron';
+import cron, { ScheduledTask } from 'node-cron';
 import { AppDataSource } from '../config/database';
 import { NotificationSchedule } from '../entities/NotificationSchedule';
 import { User } from '../entities/User';
@@ -24,7 +24,7 @@ export class NotificationSchedulerService {
   private contractRepository = AppDataSource.getRepository(Contract);
   private stockRepository = AppDataSource.getRepository(WarehouseStock);
   private taskRepository = AppDataSource.getRepository(Task);
-  private jobs: Map<string, cron.ScheduledTask> = new Map();
+  private jobs: Map<string, ScheduledTask> = new Map();
   private initialized = false;
 
   /**
