@@ -5,22 +5,28 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { SUBSYSTEM_WIZARD_CONFIG, detectSubsystemTypes } from '../../config/subsystemWizardConfig';
 import type { SubsystemType } from '../../config/subsystemWizardConfig';
-import contractService, { type Subsystem } from '../../services/contract.service';
+import contractService, { type Subsystem, type Contract } from '../../services/contract.service';
 import { AdminService } from '../../services/admin.service';
 import type { User as AdminUser } from '../../types/admin.types';
 
 interface Props {
   onClose: () => void;
   onSuccess: () => void;
+  editMode?: boolean;           // NOWE - tryb edycji
+  contractToEdit?: Contract;    // NOWE - dane kontraktu do edycji
 }
 
 interface SubsystemWizardData {
+  id?: number;              // NOWE - ID podsystemu (dla edycji)
   type: SubsystemType;
   params: Record<string, number | boolean>;
   taskDetails?: TaskDetail[];
+  isExisting?: boolean;     // NOWE - czy podsystem już istnieje w bazie
+  taskCount?: number;       // NOWE - liczba zadań (dla blokady usuwania)
 }
 
 interface TaskDetail {
+  id?: number;              // NOWE - ID zadania (dla edycji)
   taskType: 'PRZEJAZD_KAT_A' | 'PRZEJAZD_KAT_B' | 'SKP' | 'NASTAWNIA' | 'LCS' | 'CUID';
   kilometraz?: string;
   kategoria?: 'KAT A' | 'KAT B' | 'KAT C' | 'KAT E' | 'KAT F';
@@ -46,7 +52,12 @@ interface GeneratedTask {
   subsystemType: SubsystemType;
 }
 
-export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => {
+export const ContractWizardModal: React.FC<Props> = ({ 
+  onClose, 
+  onSuccess, 
+  editMode = false,      // NOWE
+  contractToEdit         // NOWE
+}) => {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -84,6 +95,63 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       loadManagers();
     }
   }, [canSelectManager]);
+
+  // Wczytaj dane kontraktu przy edycji
+  useEffect(() => {
+    if (editMode && contractToEdit) {
+      loadContractDataForEdit(contractToEdit);
+    }
+  }, [editMode, contractToEdit]);
+
+  const loadContractDataForEdit = async (contract: Contract) => {
+    try {
+      setLoading(true);
+      
+      // 1. Ustaw dane podstawowe
+      setWizardData(prev => ({
+        ...prev,
+        customName: contract.customName || '',
+        orderDate: contract.orderDate?.split('T')[0] || '',
+        projectManagerId: contract.projectManagerId?.toString() || '',
+        managerCode: contract.managerCode || ''
+      }));
+      
+      // 2. Pobierz podsystemy z backendu
+      const subsystemsResponse = await contractService.getContractSubsystems(contract.id);
+      const existingSubsystems = subsystemsResponse.data || [];
+      
+      // 3. Mapuj podsystemy na format kreatora
+      const wizardSubsystems: SubsystemWizardData[] = existingSubsystems.map(sub => ({
+        id: sub.id, // WAŻNE - zachowaj ID dla aktualizacji
+        type: sub.systemType as SubsystemType,
+        params: sub.params || {},
+        taskDetails: (sub.tasks || []).map(task => ({
+          id: task.id, // WAŻNE - zachowaj ID zadania
+          taskType: task.taskType,
+          kilometraz: task.metadata?.kilometraz || '',
+          kategoria: task.metadata?.kategoria || '',
+          nazwa: task.taskName || task.metadata?.nazwa || '',
+          miejscowosc: task.metadata?.miejscowosc || ''
+        })),
+        isExisting: true, // FLAGA - podsystem już istnieje w bazie
+        taskCount: sub.tasks?.length || 0
+      }));
+      
+      setWizardData(prev => ({
+        ...prev,
+        subsystems: wizardSubsystems
+      }));
+      
+      // 4. Ustaw wykryte podsystemy
+      setDetectedSubsystems(wizardSubsystems.map(s => s.type));
+      
+    } catch (err) {
+      console.error('Błąd wczytywania danych kontraktu:', err);
+      setError('Nie udało się wczytać danych kontraktu');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadManagers = async () => {
     setLoadingManagers(true);
@@ -140,6 +208,16 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
 
   // Remove a subsystem
   const removeSubsystem = (index: number) => {
+    const subsystem = wizardData.subsystems[index];
+    
+    // Blokada usuwania istniejącego podsystemu z zadaniami
+    if (subsystem.isExisting && subsystem.taskCount && subsystem.taskCount > 0) {
+      const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
+      setError(`Nie można usunąć podsystemu "${config.label}" - ma ${subsystem.taskCount} powiązanych zadań. Najpierw usuń zadania.`);
+      return;
+    }
+    
+    // Można usunąć nowy podsystem (nie zapisany jeszcze) lub pusty istniejący
     const newSubsystems = [...wizardData.subsystems];
     newSubsystems.splice(index, 1);
     setWizardData({
@@ -595,42 +673,98 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     setError('');
     
     try {
-      // Format data for backend
-      const subsystemsData = wizardData.subsystems.map((subsystem) => {
-        const subsystemTasks = generatedTasks.filter(t => t.subsystemType === subsystem.type);
-        return {
-          type: subsystem.type,
-          params: subsystem.params,
-          tasks: subsystemTasks.map(t => ({
-            number: t.number,
-            name: t.name,
-            type: t.type
-          }))
-        };
-      });
+      if (editMode && contractToEdit) {
+        // TRYB EDYCJI - aktualizuj kontrakt
+        
+        // 1. Aktualizuj dane podstawowe kontraktu
+        await contractService.updateContract(contractToEdit.id, {
+          customName: wizardData.customName,
+          orderDate: wizardData.orderDate,
+          projectManagerId: parseInt(wizardData.projectManagerId),
+          managerCode: wizardData.managerCode
+        });
+        
+        // 2. Dodaj tylko NOWE podsystemy (te bez flagi isExisting)
+        const newSubsystems = wizardData.subsystems.filter(s => !s.isExisting);
+        
+        if (newSubsystems.length > 0) {
+          const subsystemsData = newSubsystems.map((subsystem) => {
+            const subsystemTasks = generatedTasks.filter(t => t.subsystemType === subsystem.type);
+            return {
+              type: subsystem.type,
+              params: subsystem.params,
+              tasks: subsystemTasks.map(t => ({
+                number: t.number,
+                name: t.name,
+                type: t.type
+              }))
+            };
+          });
+          
+          await contractService.addSubsystemsToContract(contractToEdit.id, {
+            subsystems: subsystemsData
+          });
+        }
+        
+        // 3. Dla istniejących podsystemów - dodaj tylko NOWE zadania
+        for (const subsystem of wizardData.subsystems.filter(s => s.isExisting)) {
+          const newTasks = (subsystem.taskDetails || []).filter(t => !t.id);
+          
+          if (newTasks.length > 0 && subsystem.id) {
+            await contractService.addTasksToSubsystem(subsystem.id, {
+              tasks: newTasks.map(t => ({
+                name: t.nazwa || t.taskType,
+                type: t.taskType,
+                metadata: {
+                  kilometraz: t.kilometraz,
+                  kategoria: t.kategoria,
+                  miejscowosc: t.miejscowosc
+                }
+              }))
+            });
+          }
+        }
+        
+        setCurrentStep(getTotalSteps()); // Success step
+      } else {
+        // TRYB TWORZENIA - istniejący kod
+        // Format data for backend
+        const subsystemsData = wizardData.subsystems.map((subsystem) => {
+          const subsystemTasks = generatedTasks.filter(t => t.subsystemType === subsystem.type);
+          return {
+            type: subsystem.type,
+            params: subsystem.params,
+            tasks: subsystemTasks.map(t => ({
+              number: t.number,
+              name: t.name,
+              type: t.type
+            }))
+          };
+        });
 
-      const response = await contractService.createContractWithWizard({
-        customName: wizardData.customName,
-        orderDate: wizardData.orderDate,
-        projectManagerId: parseInt(wizardData.projectManagerId),
-        managerCode: wizardData.managerCode,
-        subsystems: subsystemsData
-      });
-      
-      // Map returned tasks to generatedTasks format
-      const createdSubsystems: Subsystem[] = response.subsystems || [];
-      const fetchedTasks: GeneratedTask[] = createdSubsystems.flatMap((subsystem) => 
-        (subsystem.tasks || []).map((task) => ({
-          number: task.taskNumber,
-          name: task.taskName,
-          type: task.taskType,
-          subsystemType: subsystem.systemType as SubsystemType
-        }))
-      );
-      
-      // Update state with real tasks from database
-      setGeneratedTasks(fetchedTasks);
-      setCurrentStep(getTotalSteps()); // Move to success step
+        const response = await contractService.createContractWithWizard({
+          customName: wizardData.customName,
+          orderDate: wizardData.orderDate,
+          projectManagerId: parseInt(wizardData.projectManagerId),
+          managerCode: wizardData.managerCode,
+          subsystems: subsystemsData
+        });
+        
+        // Map returned tasks to generatedTasks format
+        const createdSubsystems: Subsystem[] = response.subsystems || [];
+        const fetchedTasks: GeneratedTask[] = createdSubsystems.flatMap((subsystem) => 
+          (subsystem.tasks || []).map((task) => ({
+            number: task.taskNumber,
+            name: task.taskName,
+            type: task.taskType,
+            subsystemType: subsystem.systemType as SubsystemType
+          }))
+        );
+        
+        // Update state with real tasks from database
+        setGeneratedTasks(fetchedTasks);
+        setCurrentStep(getTotalSteps()); // Move to success step
+      }
     } catch (err) {
       const error = err as Error;
       setError(error.message || 'Błąd tworzenia kontraktu');
@@ -832,7 +966,18 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     
     return (
       <div className="wizard-step-content">
-        <h3>Konfiguracja: {config.icon} {config.label}</h3>
+        <h3>
+          Konfiguracja: {config.icon} {config.label}
+          {subsystem.isExisting && (
+            <span className="badge badge-info" style={{ marginLeft: '10px', fontSize: '0.85em' }}>Istniejący podsystem</span>
+          )}
+        </h3>
+        
+        {subsystem.isExisting && (
+          <div className="alert alert-warning">
+            ⚠️ Typ podsystemu nie może być zmieniony. Możesz tylko edytować parametry i dodawać nowe zadania.
+          </div>
+        )}
         
         {config.fields.map((field) => {
           const paramValue = subsystem.params[field.name];
@@ -1239,7 +1384,7 @@ export const ContractWizardModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content modal-wizard" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>🧙‍♂️ Kreator Kontraktu</h2>
+          <h2>🧙‍♂️ {editMode ? 'Edycja Kontraktu' : 'Kreator Kontraktu'}</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         

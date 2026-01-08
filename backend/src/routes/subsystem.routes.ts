@@ -36,6 +36,14 @@ router.get(
   subsystemController.getTasks
 );
 
+// Dodanie zadań do podsystemu
+router.post(
+  '/:id/tasks',
+  authenticate,
+  requirePermission('subsystems', 'create'),
+  subsystemController.createTasks
+);
+
 // Aktualizacja podsystemu
 router.put(
   '/:id',

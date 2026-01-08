@@ -133,6 +133,21 @@ class ContractService {
     const response = await api.post('/contracts/wizard', data);
     return response.data.data;
   }
+
+  async getContractSubsystems(contractId: number): Promise<{ success: boolean; data: Subsystem[]; count: number }> {
+    const response = await api.get(`/contracts/${contractId}/subsystems`);
+    return response.data;
+  }
+
+  async addSubsystemsToContract(contractId: number, data: any): Promise<any> {
+    const response = await api.post(`/contracts/${contractId}/subsystems`, data);
+    return response.data;
+  }
+
+  async addTasksToSubsystem(subsystemId: number, data: any): Promise<any> {
+    const response = await api.post(`/subsystems/${subsystemId}/tasks`, data);
+    return response.data;
+  }
 }
 
 export default new ContractService();

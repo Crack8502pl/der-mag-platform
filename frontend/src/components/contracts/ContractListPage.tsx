@@ -399,8 +399,9 @@ export const ContractListPage: React.FC = () => {
       )}
 
       {editingContract && (
-        <ContractEditModal
-          contract={editingContract}
+        <ContractWizardModal
+          editMode={true}
+          contractToEdit={editingContract}
           onClose={() => setEditingContract(null)}
           onSuccess={handleContractUpdated}
         />
