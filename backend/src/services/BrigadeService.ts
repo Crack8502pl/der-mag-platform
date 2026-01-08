@@ -181,7 +181,13 @@ export class BrigadeService {
       active: data.active !== undefined ? data.active : true,
     });
 
-    return await this.memberRepository.save(member);
+    const savedMember = await this.memberRepository.save(member);
+
+    // NOWE: Powiadom nowego członka jeśli brygada ma zadania
+    const BrigadeNotificationService = (await import('./BrigadeNotificationService')).default;
+    await BrigadeNotificationService.notifyMemberAdded(data.brigadeId, data.userId);
+
+    return savedMember;
   }
 
   /**
@@ -208,12 +214,25 @@ export class BrigadeService {
    * Remove member from brigade
    */
   async removeMember(id: number): Promise<void> {
-    const member = await this.memberRepository.findOne({ where: { id } });
+    const member = await this.memberRepository.findOne({ 
+      where: { id },
+      relations: ['brigade', 'brigade.serviceTasks']
+    });
     if (!member) {
       throw new Error('Członek brygady nie znaleziony');
     }
 
+    const tasksCount = member.brigade?.serviceTasks?.length || 0;
+    const userId = member.userId;
+    const brigadeId = member.brigadeId;
+
     await this.memberRepository.remove(member);
+
+    // NOWE: Powiadom usuniętego członka
+    if (userId && tasksCount > 0) {
+      const BrigadeNotificationService = (await import('./BrigadeNotificationService')).default;
+      await BrigadeNotificationService.notifyMemberRemoved(brigadeId, userId, tasksCount);
+    }
   }
 
   /**
