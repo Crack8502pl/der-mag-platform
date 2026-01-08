@@ -37,6 +37,14 @@ import { BomTrigger } from '../entities/BomTrigger';
 import { BomTriggerLog } from '../entities/BomTriggerLog';
 import { SubsystemDocument } from '../entities/SubsystemDocument';
 import { SubsystemTask } from '../entities/SubsystemTask';
+// Warehouse Stock entities
+import { WarehouseStock } from '../entities/WarehouseStock';
+import { WarehouseStockHistory } from '../entities/WarehouseStockHistory';
+import { WarehouseStockBomMapping } from '../entities/WarehouseStockBomMapping';
+import { WarehouseStockWorkflowBomMapping } from '../entities/WarehouseStockWorkflowBomMapping';
+import { SubsystemWarehouseStock } from '../entities/SubsystemWarehouseStock';
+import { TaskWarehouseStock } from '../entities/TaskWarehouseStock';
+import { WarehouseLocation } from '../entities/WarehouseLocation';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -82,7 +90,15 @@ export const AppDataSource = new DataSource({
     BomTrigger,
     BomTriggerLog,
     SubsystemDocument,
-    SubsystemTask
+    SubsystemTask,
+    // Warehouse Stock entities
+    WarehouseStock,
+    WarehouseStockHistory,
+    WarehouseStockBomMapping,
+    WarehouseStockWorkflowBomMapping,
+    SubsystemWarehouseStock,
+    TaskWarehouseStock,
+    WarehouseLocation
   ],
   subscribers: [],
   migrations: [],
