@@ -22,6 +22,7 @@ interface User {
   firstName: string;
   lastName: string;
   phone?: string;
+  employeeCode?: string;
   active: boolean;
   roleId: number;
   role: {
@@ -323,6 +324,7 @@ export const UserListPage: React.FC = () => {
               <th onClick={() => handleSort('username')} className="sortable">
                 Login {getSortIcon('username')}
               </th>
+              <th>Kod</th>
               <th>Rola</th>
               <th>Status</th>
               <th onClick={() => handleSort('createdAt')} className="sortable">
@@ -337,7 +339,7 @@ export const UserListPage: React.FC = () => {
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan={9} style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
+                <td colSpan={10} style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
                   Brak użytkowników do wyświetlenia
                 </td>
               </tr>
@@ -354,6 +356,9 @@ export const UserListPage: React.FC = () => {
                   <td>{user.email}</td>
                   <td>
                     <code>{user.username}</code>
+                  </td>
+                  <td>
+                    <code>{user.employeeCode || '-'}</code>
                   </td>
                   <td>
                     <span className="role-badge">{user.role?.name || 'N/A'}</span>

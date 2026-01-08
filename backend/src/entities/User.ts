@@ -29,7 +29,7 @@ export class User {
   @Column({ type: 'varchar', length: 20, nullable: true })
   phone: string;
 
-  @Column({ name: 'employee_code', type: 'varchar', length: 3, unique: true, nullable: true })
+  @Column({ name: 'employee_code', type: 'varchar', length: 5, unique: true, nullable: true })
   employeeCode: string;
 
   @ManyToOne(() => Role, role => role.users)

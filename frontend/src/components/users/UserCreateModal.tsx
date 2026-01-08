@@ -32,14 +32,20 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({
     phone: '',
     roleId: roles.length > 0 ? roles[0].id : 0,
     password: '',
+    employeeCode: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    
+    // Convert employeeCode to uppercase
+    const finalValue = name === 'employeeCode' ? value.toUpperCase() : value;
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: finalValue,
     });
   };
 
@@ -69,9 +75,25 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({
 
     try {
       const token = localStorage.getItem('accessToken');
+      
+      // Prepare data - only include employeeCode if it's not empty
+      const submitData: any = {
+        username: formData.username,
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        roleId: formData.roleId,
+        phone: formData.phone,
+        password: formData.password,
+      };
+      
+      if (formData.employeeCode) {
+        submitData.employeeCode = formData.employeeCode;
+      }
+      
       await axios.post(
         `${API_BASE_URL}/users`,
-        formData,
+        submitData,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -173,6 +195,23 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({
               onChange={handleChange}
               className="input"
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="employeeCode">Kod pracownika (opcjonalnie)</label>
+            <input
+              type="text"
+              id="employeeCode"
+              name="employeeCode"
+              value={formData.employeeCode}
+              onChange={handleChange}
+              className="input"
+              maxLength={5}
+              placeholder="Auto-generowany"
+            />
+            <small className="form-help">
+              3-5 znaków (wielkie litery). Pozostaw puste dla automatycznego generowania.
+            </small>
           </div>
 
           <div className="form-group">
