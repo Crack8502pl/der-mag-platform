@@ -134,7 +134,7 @@ export class ContractController {
         managerCode,
         projectManagerId,
         jowiszRef
-      });
+      }, (req as any).userId);
 
       res.status(201).json({
         success: true,
@@ -204,7 +204,7 @@ export class ContractController {
   approveContract = async (req: Request, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
-      const contract = await this.contractService.approveContract(parseInt(id));
+      const contract = await this.contractService.approveContract(parseInt(id), (req as any).userId);
 
       res.json({
         success: true,

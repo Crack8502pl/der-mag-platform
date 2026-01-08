@@ -245,6 +245,23 @@ export class WarehouseStockService {
       }
     );
 
+    // Sprawdź czy stan spadł poniżej minimum i wyślij powiadomienie
+    if (newQuantity !== undefined) {
+      try {
+        const StockNotificationService = (await import('./StockNotificationService')).default;
+        if (newQuantity <= updated.minStockLevel) {
+          if (newQuantity === 0) {
+            await StockNotificationService.notifyCriticalStock(updated.id);
+          } else {
+            await StockNotificationService.notifyLowStock(updated.id);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Błąd wysyłania powiadomienia o stanie magazynowym:', error);
+        // Nie przerywamy procesu, jeśli powiadomienie się nie uda
+      }
+    }
+
     return updated;
   }
 
