@@ -160,11 +160,70 @@ export class SubsystemController {
 
   /**
    * POST /api/contracts/:contractId/subsystems
-   * Utworzenie nowego podsystemu
+   * Utworzenie nowego podsystemu lub wielu podsystemów
+   * Body może być pojedynczy obiekt lub tablica subsystems
    */
   createSubsystem = async (req: Request, res: Response): Promise<void> => {
     try {
       const { contractId } = req.params;
+      const { subsystems } = req.body;
+      
+      // Check if bulk creation (array of subsystems)
+      if (Array.isArray(subsystems) && subsystems.length > 0) {
+        const createdSubsystems = [];
+        
+        for (const subsystemData of subsystems) {
+          const { type, params, tasks: subsystemTasks } = subsystemData;
+          
+          if (!type) {
+            res.status(400).json({
+              success: false,
+              message: 'Brakuje wymaganego pola: type dla jednego z podsystemów'
+            });
+            return;
+          }
+          
+          // Create subsystem
+          const subsystem = await this.subsystemService.createSubsystem({
+            contractId: parseInt(contractId),
+            systemType: type as SystemType,
+            quantity: subsystemTasks?.length || 0
+          });
+          
+          // Create tasks if provided
+          const createdTasks = [];
+          if (subsystemTasks && Array.isArray(subsystemTasks)) {
+            for (const taskData of subsystemTasks) {
+              try {
+                const subsystemTask = await this.taskService.createTask({
+                  subsystemId: subsystem.id,
+                  taskName: taskData.name || 'Zadanie',
+                  taskType: taskData.type || 'GENERIC',
+                  metadata: taskData.metadata || params || {}
+                });
+                createdTasks.push(subsystemTask);
+              } catch (error) {
+                console.error(`Failed to create task for subsystem ${subsystem.subsystemNumber}:`, error);
+              }
+            }
+          }
+          
+          createdSubsystems.push({
+            ...subsystem,
+            params,
+            tasks: createdTasks
+          });
+        }
+        
+        res.status(201).json({
+          success: true,
+          message: `Utworzono ${createdSubsystems.length} podsystemów pomyślnie`,
+          data: createdSubsystems
+        });
+        return;
+      }
+      
+      // Single subsystem creation (legacy support)
       const { systemType, quantity, subsystemNumber } = req.body;
 
       if (!systemType) {
@@ -430,6 +489,53 @@ export class SubsystemController {
       res.status(500).json({
         success: false,
         message: 'Błąd podczas pobierania zadań',
+        error: error.message
+      });
+    }
+  };
+
+  /**
+   * POST /api/subsystems/:id/tasks
+   * Dodanie zadań do istniejącego podsystemu
+   */
+  createTasks = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { tasks } = req.body;
+
+      if (!Array.isArray(tasks) || tasks.length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Brakuje wymaganego pola: tasks (tablica zadań)'
+        });
+        return;
+      }
+
+      const createdTasks = [];
+      for (const taskData of tasks) {
+        try {
+          const subsystemTask = await this.taskService.createTask({
+            subsystemId: parseInt(id),
+            taskName: taskData.name || 'Zadanie',
+            taskType: taskData.type || 'GENERIC',
+            metadata: taskData.metadata || {}
+          });
+          createdTasks.push(subsystemTask);
+        } catch (error) {
+          console.error(`Failed to create task for subsystem ${id}:`, error);
+        }
+      }
+
+      res.status(201).json({
+        success: true,
+        message: `Utworzono ${createdTasks.length} zadań pomyślnie`,
+        data: createdTasks,
+        count: createdTasks.length
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message: 'Błąd podczas tworzenia zadań',
         error: error.message
       });
     }
