@@ -5,7 +5,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BackButton } from '../common/BackButton';
 import { ContractCreateModal } from './ContractCreateModal';
-import { ContractEditModal } from './ContractEditModal';
 import { ContractImportModal } from './ContractImportModal';
 import { ContractWizardModal } from './ContractWizardModal';
 import { ContractStatusBadge } from './ContractStatusBadge';
