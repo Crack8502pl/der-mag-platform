@@ -38,12 +38,13 @@ for MIGRATION_FILE in $MIGRATIONS; do
   
   echo "[$TOTAL] 📦 Running: $FILENAME"
   
-  if psql "$DB_CONNECTION_STRING" -f "$MIGRATION_FILE" > /dev/null 2>&1; then
-    echo "    ✅ Success"
-    SUCCESS=$((SUCCESS + 1))
-  else
+  # Run migration and capture output
+  if psql "$DB_CONNECTION_STRING" -f "$MIGRATION_FILE" 2>&1 | grep -q "ERROR"; then
     echo "    ⚠️  Already applied or error (continuing...)"
     FAILED=$((FAILED + 1))
+  else
+    echo "    ✅ Success"
+    SUCCESS=$((SUCCESS + 1))
   fi
   
   echo ""

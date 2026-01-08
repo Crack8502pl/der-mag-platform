@@ -5,6 +5,7 @@ import { AppDataSource } from '../src/config/database';
 import { DatabaseSeeder } from '../src/services/DatabaseSeeder';
 import { execSync } from 'child_process';
 import * as dotenv from 'dotenv';
+import * as path from 'path';
 
 dotenv.config();
 
@@ -15,7 +16,8 @@ async function setupDatabase() {
     // Step 1: Run SQL migrations
     console.log('📦 Step 1: Running SQL migrations...');
     try {
-      execSync('bash backend/scripts/run-all-migrations.sh', { 
+      const scriptPath = path.join(__dirname, 'run-all-migrations.sh');
+      execSync(`bash ${scriptPath}`, { 
         stdio: 'inherit',
         cwd: process.cwd()
       });
