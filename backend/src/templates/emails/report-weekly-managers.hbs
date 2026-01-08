@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raport tygodniowy - Grover Platform</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table role="presentation" style="width: 700px; border-collapse: collapse; background-color: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #00897b 0%, #00695c 100%); padding: 40px 30px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">📅 Raport Tygodniowy</h1>
+                            <p style="margin: 10px 0 0 0; color: #b2dfdb; font-size: 14px;">{{weekStart}} - {{weekEnd}}</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <h2 style="margin: 0 0 20px 0; color: #333333; font-size: 20px; font-weight: 600;">Postęp tygodniowy</h2>
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #e0f2f1; border-radius: 8px; margin-bottom: 30px;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                            <tr>
+                                                <td style="width: 50%; padding: 10px; text-align: center;">
+                                                    <div style="font-size: 36px; font-weight: 700; color: #4caf50;">{{weeklyProgress.tasksCompleted}}</div>
+                                                    <div style="font-size: 13px; color: #666666;">Zadań zakończonych</div>
+                                                </td>
+                                                <td style="width: 50%; padding: 10px; text-align: center;">
+                                                    <div style="font-size: 36px; font-weight: 700; color: #2196f3;">{{weeklyProgress.tasksCreated}}</div>
+                                                    <div style="font-size: 13px; color: #666666;">Zadań utworzonych</div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <h2 style="margin: 30px 0 20px 0; color: #333333; font-size: 20px; font-weight: 600;">Status kontraktów</h2>
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f8f9fa; border-radius: 8px; margin-bottom: 30px;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                            <tr>
+                                                <td style="width: 33%; padding: 10px; text-align: center;">
+                                                    <div style="font-size: 32px; font-weight: 700; color: #333333;">{{contracts.total}}</div>
+                                                    <div style="font-size: 13px; color: #666666;">Razem</div>
+                                                </td>
+                                                <td style="width: 33%; padding: 10px; text-align: center;">
+                                                    <div style="font-size: 32px; font-weight: 700; color: #4caf50;">{{contracts.active}}</div>
+                                                    <div style="font-size: 13px; color: #666666;">Aktywne</div>
+                                                </td>
+                                                <td style="width: 33%; padding: 10px; text-align: center;">
+                                                    <div style="font-size: 32px; font-weight: 700; color: #9e9e9e;">{{contracts.completed}}</div>
+                                                    <div style="font-size: 13px; color: #666666;">Zakończone</div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <h2 style="margin: 30px 0 20px 0; color: #333333; font-size: 20px; font-weight: 600;">Status zadań</h2>
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f8f9fa; border-radius: 8px; margin-bottom: 30px;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                            <tr>
+                                                <td style="width: 25%; padding: 10px; text-align: center;">
+                                                    <div style="font-size: 28px; font-weight: 700; color: #333333;">{{tasks.total}}</div>
+                                                    <div style="font-size: 12px; color: #666666;">Razem</div>
+                                                </td>
+                                                <td style="width: 25%; padding: 10px; text-align: center;">
+                                                    <div style="font-size: 28px; font-weight: 700; color: #2196f3;">{{tasks.active}}</div>
+                                                    <div style="font-size: 12px; color: #666666;">W toku</div>
+                                                </td>
+                                                <td style="width: 25%; padding: 10px; text-align: center;">
+                                                    <div style="font-size: 28px; font-weight: 700; color: #4caf50;">{{tasks.completed}}</div>
+                                                    <div style="font-size: 12px; color: #666666;">Zakończone</div>
+                                                </td>
+                                                <td style="width: 25%; padding: 10px; text-align: center;">
+                                                    <div style="font-size: 28px; font-weight: 700; color: #f44336;">{{tasks.overdue}}</div>
+                                                    <div style="font-size: 12px; color: #666666;">Opóźnione</div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin-top: 30px;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{{dashboardUrl}}" style="display: inline-block; padding: 14px 40px; background-color: #00897b; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">
+                                            Przejdź do panelu
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e0e0e0;">
+                            <p style="margin: 0; color: #999999; font-size: 12px;">© {{currentYear}} Grover. Wszelkie prawa zastrzeżone.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
