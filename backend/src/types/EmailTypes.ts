@@ -40,6 +40,33 @@ export enum EmailTemplate {
   BRIGADE_TASK_PRIORITY_CHANGED = 'brigade-task-priority-changed',
   BRIGADE_MEMBER_ADDED_WITH_TASKS = 'brigade-member-added',
   BRIGADE_MEMBER_REMOVED_WITH_TASKS = 'brigade-member-removed',
+  
+  // Contract notifications
+  CONTRACT_CREATED = 'contract-created',
+  CONTRACT_APPROVED = 'contract-approved',
+  CONTRACT_CANCELLED = 'contract-cancelled',
+  CONTRACT_DEADLINE_REMINDER = 'contract-deadline-reminder',
+  
+  // Subsystem notifications
+  SUBSYSTEM_CREATED = 'subsystem-created',
+  SUBSYSTEM_STATUS_CHANGED = 'subsystem-status-changed',
+  SUBSYSTEM_NETWORK_ALLOCATED = 'subsystem-network-allocated',
+  
+  // Stock notifications
+  STOCK_LOW_ALERT = 'stock-low-alert',
+  STOCK_CRITICAL_ALERT = 'stock-critical-alert',
+  STOCK_IMPORT_COMPLETED = 'stock-import-completed',
+  
+  // User notifications
+  USER_ROLE_CHANGED = 'user-role-changed',
+  USER_ACCOUNT_BLOCKED = 'user-account-blocked',
+  USER_ACCOUNT_UNBLOCKED = 'user-account-unblocked',
+  
+  // Reports
+  REPORT_DAILY_BRIGADES = 'report-daily-brigades',
+  REPORT_DAILY_MANAGEMENT = 'report-daily-management',
+  REPORT_WEEKLY_MANAGERS = 'report-weekly-managers',
+  REPORT_MONTHLY_KPI = 'report-monthly-kpi',
 }
 
 /**
