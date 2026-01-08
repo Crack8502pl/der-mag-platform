@@ -1076,7 +1076,7 @@ export const ContractWizardModal: React.FC<Props> = ({
             value={subsystem.ipPool || ''}
             onChange={(e) => {
               const newSubsystems = [...wizardData.subsystems];
-              newSubsystems[subsystemIndex].ipPool = e.target.value;
+              newSubsystems[subsystemIndex].ipPool = e.target.value.trim();
               setWizardData({...wizardData, subsystems: newSubsystems});
             }}
             placeholder="np. 192.168.1.0/24"
@@ -1440,7 +1440,7 @@ export const ContractWizardModal: React.FC<Props> = ({
     const tasksBySubsystem = wizardData.subsystems.map((subsystem) => {
       const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
       const tasks = generatedTasks.filter(t => t.subsystemType === subsystem.type);
-      return { config, tasks };
+      return { config, subsystem, tasks };
     });
 
     return (
