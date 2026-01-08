@@ -29,6 +29,7 @@ export const Dashboard: React.FC = () => {
     { title: 'Kompletacja', path: '/completion', icon: '📦', module: 'completion', action: 'read', description: 'Skanowanie i kompletacja' },
     { title: 'Prefabrykacja', path: '/prefabrication', icon: '🏭', module: 'prefabrication', action: 'read', description: 'Prefabrykacja urządzeń' },
     { title: 'Sieć/IP', path: '/network', icon: '🌐', module: 'network', action: 'read', description: 'Zarządzanie adresacją IP' },
+    { title: 'Magazyn', path: '/warehouse-stock', icon: '🏭📦', module: 'warehouse_stock', action: 'read', description: 'Stany magazynowe' },
     { title: 'Materiały BOM', path: '/bom', icon: '🔩', module: 'bom', action: 'read', description: 'Szablony i materiały' },
     { title: 'Urządzenia', path: '/devices', icon: '📱', module: 'devices', action: 'read', description: 'Rejestracja urządzeń' },
     { title: 'Użytkownicy', path: '/users', icon: '👥', module: 'users', action: 'read', description: 'Zarządzanie użytkownikami' },

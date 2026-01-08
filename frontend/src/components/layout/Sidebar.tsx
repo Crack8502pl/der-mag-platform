@@ -28,6 +28,7 @@ export const Sidebar: React.FC = () => {
     { label: 'Kompletacja', path: '/completion', icon: '📦', module: 'completion', action: 'read' },
     { label: 'Prefabrykacja', path: '/prefabrication', icon: '🏭', module: 'prefabrication', action: 'read' },
     { label: 'Sieć/IP', path: '/network', icon: '🌐', module: 'network', action: 'read' },
+    { label: 'Magazyn', path: '/warehouse-stock', icon: '🏭📦', module: 'warehouse_stock', action: 'read' },
     { label: 'Materiały BOM', path: '/bom', icon: '🔩', module: 'bom', action: 'read' },
     { label: 'Urządzenia', path: '/devices', icon: '📱', module: 'devices', action: 'read' },
     { label: 'Użytkownicy', path: '/admin/users', icon: '👥', module: 'users', action: 'read' },
