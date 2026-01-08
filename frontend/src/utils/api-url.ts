@@ -1,15 +1,15 @@
 // src/utils/api-url.ts
-// Shared utility for dynamic API URL detection across components
+// Wspólna funkcja pomocnicza dla dynamicznego wykrywania URL API
 
 /**
- * Intelligently determines the API base URL based on environment and current location.
+ * Inteligentnie określa bazowy URL API na podstawie środowiska i bieżącej lokalizacji.
  * 
- * Priority:
- * 1. VITE_API_URL environment variable (build time)
- * 2. Dynamic protocol detection from window.location
- * 3. Fallback to origin/api for production
+ * Priorytet:
+ * 1. Zmienna środowiskowa VITE_API_URL (build time)
+ * 2. Dynamiczne wykrywanie protokołu z window.location
+ * 3. Fallback do origin/api dla środowiska produkcyjnego
  * 
- * @returns {string} The complete API base URL (e.g., "https://localhost:3000/api")
+ * @returns {string} Pełny bazowy URL API (np. "https://localhost:3000/api")
  */
 export const getApiBaseURL = (): string => {
   // 1. Priorytet: zmienna środowiskowa (build time)
