@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raport dzienny brygad - Grover Platform</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table role="presentation" style="width: 700px; border-collapse: collapse; background-color: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #607d8b 0%, #455a64 100%); padding: 40px 30px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">📊 Raport Dzienny Brygad</h1>
+                            <p style="margin: 10px 0 0 0; color: #cfd8dc; font-size: 14px;">{{date}}</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <h2 style="margin: 0 0 20px 0; color: #333333; font-size: 20px; font-weight: 600;">Podsumowanie</h2>
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #eceff1; border-radius: 8px; margin-bottom: 30px;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                            <tr>
+                                                <td style="width: 50%; padding: 10px; text-align: center;">
+                                                    <div style="font-size: 36px; font-weight: 700; color: #607d8b;">{{totalBrigades}}</div>
+                                                    <div style="font-size: 14px; color: #666666;">Aktywnych brygad</div>
+                                                </td>
+                                                <td style="width: 50%; padding: 10px; text-align: center;">
+                                                    <div style="font-size: 36px; font-weight: 700; color: #ff9800;">{{totalTasks}}</div>
+                                                    <div style="font-size: 14px; color: #666666;">Aktywnych zadań</div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <h2 style="margin: 30px 0 20px 0; color: #333333; font-size: 20px; font-weight: 600;">Szczegóły brygad</h2>
+                            {{#each brigades}}
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f8f9fa; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #607d8b;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <div>
+                                                <div style="font-size: 16px; font-weight: 700; color: #333333; margin-bottom: 5px;">
+                                                    {{brigadeName}} ({{brigadeCode}})
+                                                </div>
+                                                <div style="font-size: 13px; color: #666666;">
+                                                    Członków: <strong>{{activeMembers}}</strong> | Zadań: <strong>{{activeTasks}}</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                            {{/each}}
+
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin-top: 30px;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{{dashboardUrl}}" style="display: inline-block; padding: 14px 40px; background-color: #607d8b; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">
+                                            Zobacz szczegóły
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e0e0e0;">
+                            <p style="margin: 0; color: #999999; font-size: 12px;">© {{currentYear}} Grover. Wszelkie prawa zastrzeżone.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

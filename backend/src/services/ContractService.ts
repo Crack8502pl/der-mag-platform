@@ -55,14 +55,17 @@ export class ContractService {
   /**
    * Utworzenie nowego kontraktu
    */
-  async createContract(data: {
-    contractNumber?: string;
-    customName: string;
-    orderDate: Date;
-    managerCode: string;
-    projectManagerId: number;
-    jowiszRef?: string;
-  }): Promise<Contract> {
+  async createContract(
+    data: {
+      contractNumber?: string;
+      customName: string;
+      orderDate: Date;
+      managerCode: string;
+      projectManagerId: number;
+      jowiszRef?: string;
+    },
+    createdById?: number
+  ): Promise<Contract> {
     // Jeśli nie podano numeru, wygeneruj automatycznie
     const contractNumber = data.contractNumber || await this.generateContractNumber();
 
@@ -101,7 +104,20 @@ export class ContractService {
       status: ContractStatus.CREATED
     });
 
-    return await this.contractRepository.save(contract);
+    const savedContract = await this.contractRepository.save(contract);
+
+    // Wyślij powiadomienie o utworzeniu kontraktu
+    if (createdById) {
+      try {
+        const ContractNotificationService = (await import('./ContractNotificationService')).default;
+        await ContractNotificationService.notifyContractCreated(savedContract.id, createdById);
+      } catch (error) {
+        console.error('❌ Błąd wysyłania powiadomienia o utworzeniu kontraktu:', error);
+        // Nie przerywamy procesu, jeśli powiadomienie się nie uda
+      }
+    }
+
+    return savedContract;
   }
 
   /**
@@ -218,7 +234,7 @@ export class ContractService {
   /**
    * Zatwierdzenie kontraktu
    */
-  async approveContract(id: number): Promise<Contract> {
+  async approveContract(id: number, approvedById?: number): Promise<Contract> {
     const contract = await this.getContractById(id);
     if (!contract) {
       throw new Error('Kontrakt nie znaleziony');
@@ -229,7 +245,20 @@ export class ContractService {
     }
 
     contract.status = ContractStatus.APPROVED;
-    return await this.contractRepository.save(contract);
+    const savedContract = await this.contractRepository.save(contract);
+
+    // Wyślij powiadomienie o zatwierdzeniu kontraktu
+    if (approvedById) {
+      try {
+        const ContractNotificationService = (await import('./ContractNotificationService')).default;
+        await ContractNotificationService.notifyContractApproved(savedContract.id, approvedById);
+      } catch (error) {
+        console.error('❌ Błąd wysyłania powiadomienia o zatwierdzeniu kontraktu:', error);
+        // Nie przerywamy procesu, jeśli powiadomienie się nie uda
+      }
+    }
+
+    return savedContract;
   }
 
   /**

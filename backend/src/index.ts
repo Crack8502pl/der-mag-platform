@@ -11,6 +11,7 @@ import { initializeDatabase } from './config/database';
 import { DatabaseSeeder } from './services/DatabaseSeeder';
 import EmailService from './services/EmailService';
 import EmailQueueService from './services/EmailQueueService';
+import NotificationSchedulerService from './services/NotificationSchedulerService';
 
 const PORT = process.env.PORT || 3000;
 const USE_HTTPS = process.env.USE_HTTPS === 'true';
@@ -29,6 +30,10 @@ const startServer = async () => {
     console.log('📧 Inicjalizacja systemu emaili...');
     await EmailService.initialize();
     await EmailQueueService.initialize();
+
+    // Inicjalizacja schedulera powiadomień
+    console.log('⏰ Inicjalizacja schedulera powiadomień...');
+    NotificationSchedulerService.initialize();
 
     // Start serwera z HTTPS lub HTTP
     if (USE_HTTPS) {
@@ -95,6 +100,7 @@ process.on('uncaughtException', (error) => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('👋 SIGTERM received, shutting down gracefully');
+  NotificationSchedulerService.stopAll();
   await EmailQueueService.close();
   process.exit(0);
 });
