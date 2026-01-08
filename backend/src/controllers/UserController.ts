@@ -140,8 +140,8 @@ export class UserController {
       }
 
       // Sorting - validate sortBy to prevent SQL injection
-      const allowedSortFields = ['id', 'firstName', 'lastName', 'email', 'username', 'createdAt', 'lastLogin', 'created_at', 'last_login'];
-      const sortField = allowedSortFields.includes(sortBy as string) ? sortBy as string : 'created_at';
+      const allowedSortFields = ['id', 'firstName', 'lastName', 'email', 'username', 'createdAt', 'lastLogin'];
+      const sortField = allowedSortFields.includes(sortBy as string) ? sortBy as string : 'createdAt';
       const order = sortOrder === 'ASC' ? 'ASC' : 'DESC';
       qb.orderBy(`user.${sortField}`, order);
 
