@@ -335,12 +335,33 @@ export class ContractController {
       
       // New format: multiple subsystems
       if (Array.isArray(subsystems) && subsystems.length > 0) {
+        // Walidacja unikalności pul IP
+        const ipPools = subsystems
+          .map((s: any) => s.ipPool?.trim())
+          .filter((ip: string) => ip); // Tylko niepuste
+        
+        const uniquePools = new Set(ipPools);
+        
+        if (ipPools.length > 0 && ipPools.length !== uniquePools.size) {
+          // Znajdź duplikaty dla lepszego komunikatu
+          const duplicates = ipPools.filter((ip: string, index: number) => 
+            ipPools.indexOf(ip) !== index
+          );
+          
+          res.status(400).json({
+            success: false,
+            message: `Podsystemy muszą mieć różne pule adresowe IP. Zduplikowane pule: ${[...new Set(duplicates)].join(', ')}`,
+            code: 'DUPLICATE_IP_POOLS'
+          });
+          return;
+        }
+        
         // Get repositories needed for Task creation
         const taskRepository = AppDataSource.getRepository(Task);
         const taskTypeRepository = AppDataSource.getRepository(TaskType);
         
         for (const subsystemData of subsystems) {
-          const { type, params, tasks: subsystemTasks } = subsystemData;
+          const { type, params, tasks: subsystemTasks, ipPool } = subsystemData;
           
           // Validate subsystem type
           if (!Object.values(SystemType).includes(type as SystemType)) {
@@ -354,7 +375,8 @@ export class ContractController {
           const subsystem = await this.subsystemService.createSubsystem({
             contractId: contract.id,
             systemType: type as SystemType,
-            quantity: subsystemTasks?.length || 0
+            quantity: subsystemTasks?.length || 0,
+            ipPool: ipPool?.trim() || undefined
           });
           
           // Zapisz zadania do bazy (SubsystemTask i Task)

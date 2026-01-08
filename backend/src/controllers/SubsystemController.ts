@@ -170,10 +170,46 @@ export class SubsystemController {
       
       // Check if bulk creation (array of subsystems)
       if (Array.isArray(subsystems) && subsystems.length > 0) {
+        // Get existing subsystems for this contract to check IP pool conflicts
+        const existingSubsystems = await this.subsystemService.getSubsystemsByContract(
+          parseInt(contractId)
+        );
+        
+        const existingPools = existingSubsystems
+          .map(s => s.ipPool?.trim())
+          .filter(ip => ip);
+
+        const newPools = subsystems
+          .map((s: any) => s.ipPool?.trim())
+          .filter((ip: string) => ip);
+
+        // Sprawdź konflikt z istniejącymi
+        for (const newPool of newPools) {
+          if (existingPools.includes(newPool)) {
+            res.status(400).json({
+              success: false,
+              message: `Pula IP ${newPool} jest już używana przez inny podsystem w tym kontrakcie`,
+              code: 'IP_POOL_ALREADY_USED'
+            });
+            return;
+          }
+        }
+
+        // Sprawdź duplikaty w nowych
+        const uniqueNewPools = new Set(newPools);
+        if (newPools.length > 0 && newPools.length !== uniqueNewPools.size) {
+          res.status(400).json({
+            success: false,
+            message: 'Nowe podsystemy mają zduplikowane pule IP',
+            code: 'DUPLICATE_IP_POOLS_IN_NEW'
+          });
+          return;
+        }
+        
         const createdSubsystems = [];
         
         for (const subsystemData of subsystems) {
-          const { type, params, tasks: subsystemTasks } = subsystemData;
+          const { type, params, tasks: subsystemTasks, ipPool } = subsystemData;
           
           if (!type) {
             res.status(400).json({
@@ -187,7 +223,8 @@ export class SubsystemController {
           const subsystem = await this.subsystemService.createSubsystem({
             contractId: parseInt(contractId),
             systemType: type as SystemType,
-            quantity: subsystemTasks?.length || 0
+            quantity: subsystemTasks?.length || 0,
+            ipPool: ipPool?.trim() || undefined
           });
           
           // Create tasks if provided
