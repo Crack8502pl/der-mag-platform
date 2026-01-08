@@ -8,6 +8,7 @@ export interface User {
   firstName: string;
   lastName: string;
   phone?: string;
+  employeeCode?: string;
   roleId: number;
   role?: Role;
   active: boolean;
@@ -32,6 +33,7 @@ export interface CreateUserDto {
   lastName: string;
   roleId: number;
   phone?: string;
+  employeeCode?: string;
 }
 
 export interface CreateUserResponse {

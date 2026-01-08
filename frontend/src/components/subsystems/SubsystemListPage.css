@@ -107,6 +107,7 @@
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
+  vertical-align: middle;
 }
 
 .subsystems-table th:hover {
@@ -116,7 +117,7 @@
 .subsystems-table td {
   padding: 0.75rem;
   border-bottom: 1px solid #eee;
-  vertical-align: middle;
+  vertical-align: top;
 }
 
 .subsystems-table tbody tr:hover {

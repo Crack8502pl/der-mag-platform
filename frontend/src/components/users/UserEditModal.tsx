@@ -14,6 +14,7 @@ interface User {
   firstName: string;
   lastName: string;
   phone?: string;
+  employeeCode?: string;
   roleId: number;
 }
 
@@ -41,15 +42,21 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
     lastName: user.lastName,
     email: user.email,
     phone: user.phone || '',
+    employeeCode: user.employeeCode || '',
     roleId: user.roleId,
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    
+    // Convert employeeCode to uppercase
+    const finalValue = name === 'employeeCode' ? value.toUpperCase() : value;
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: finalValue,
     });
   };
 
@@ -69,6 +76,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
           lastName: formData.lastName,
           email: formData.email,
           phone: formData.phone,
+          employeeCode: formData.employeeCode || null,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -177,6 +185,23 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
               onChange={handleChange}
               className="input"
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="employeeCode">Kod pracownika</label>
+            <input
+              type="text"
+              id="employeeCode"
+              name="employeeCode"
+              value={formData.employeeCode}
+              onChange={handleChange}
+              className="input"
+              maxLength={5}
+              placeholder="Brak kodu"
+            />
+            <small className="form-help">
+              3-5 znaków (wielkie litery)
+            </small>
           </div>
 
           <div className="form-group">
