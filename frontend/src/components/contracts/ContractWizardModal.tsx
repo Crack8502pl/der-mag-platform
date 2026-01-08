@@ -159,12 +159,39 @@ export const ContractWizardModal: React.FC<Props> = ({
     setLoadingManagers(true);
     try {
       const adminService = new AdminService();
-      const users = await adminService.getAllUsers();
+      const usersResponse = await adminService.getAllUsers();
+      
+      // DODAJ: Zabezpieczenie przed nieprawidłowym typem danych
+      const users = Array.isArray(usersResponse) ? usersResponse : [];
+      
+      if (users.length === 0) {
+        console.warn('getAllUsers() returned empty array or invalid data');
+      }
+      
       // Filter for active users with manager, admin, or board roles
       const managers = users.filter(u => 
         u.active && (u.role?.name === 'manager' || u.role?.name === 'admin' || u.role?.name === 'board')
       );
-      setAvailableManagers(managers);
+      
+      // Jeśli nie znaleziono żadnych managerów, dodaj aktualnego użytkownika jako fallback
+      if (managers.length === 0 && user) {
+        setAvailableManagers([{
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          phone: undefined,
+          roleId: 0,
+          role: { id: 0, name: user.role || '', permissions: user.permissions || {} },
+          active: true,
+          forcePasswordChange: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }]);
+      } else {
+        setAvailableManagers(managers);
+      }
     } catch (err) {
       console.error('Failed to load managers:', err);
       // If loading fails, at least include current user
@@ -183,6 +210,9 @@ export const ContractWizardModal: React.FC<Props> = ({
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }]);
+      } else {
+        // Jeśli nawet user jest niedostępny, ustaw pustą tablicę
+        setAvailableManagers([]);
       }
     } finally {
       setLoadingManagers(false);
