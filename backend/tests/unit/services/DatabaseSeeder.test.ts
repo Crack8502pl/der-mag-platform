@@ -81,7 +81,7 @@ describe('DatabaseSeeder', () => {
       );
 
       // Verify task types were seeded
-      expect(mockTaskTypeRepository.save).toHaveBeenCalledTimes(14);
+      expect(mockTaskTypeRepository.save).toHaveBeenCalledTimes(13);
       expect(mockTaskTypeRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ code: 'SERWIS' })
       );
@@ -145,7 +145,7 @@ describe('DatabaseSeeder', () => {
       });
     });
 
-    it('should create all 14 task types including SERWIS', async () => {
+    it('should create all 13 task types including SERWIS, SKD, CCTV', async () => {
       mockRoleRepository.count.mockResolvedValue(0);
       mockRoleRepository.findOne.mockResolvedValue({ id: 1, name: 'admin' });
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword123');
@@ -154,18 +154,17 @@ describe('DatabaseSeeder', () => {
 
       const taskTypeCodes = [
         'SMW',
-        'CSDIP',
-        'LAN_PKP_PLK',
-        'SMOK_IP_A',
-        'SMOK_IP_B',
+        'SDIP',
+        'LAN',
+        'SMOKIP_A',
+        'SMOKIP_B',
         'SSWIN',
         'SSP',
         'SUG',
-        'OBIEKTY_KUBATUROWE',
-        'KONTRAKTY_LINIOWE',
-        'LAN_STRUKTURALNY',
-        'ZASILANIA',
-        'STRUKTURY_SWIATLO',
+        'ZASILANIE',
+        'OTK',
+        'SKD',
+        'CCTV',
         'SERWIS',
       ];
 
@@ -187,24 +186,40 @@ describe('DatabaseSeeder', () => {
 
   describe('forceSeed', () => {
     beforeEach(() => {
-      mockRoleRepository.delete = jest.fn().mockResolvedValue({});
-      mockUserRepository.delete = jest.fn().mockResolvedValue({});
-      mockTaskTypeRepository.delete = jest.fn().mockResolvedValue({});
+      mockRoleRepository.clear = jest.fn().mockResolvedValue({});
+      mockUserRepository.clear = jest.fn().mockResolvedValue({});
+      mockTaskTypeRepository.clear = jest.fn().mockResolvedValue({});
       mockRoleRepository.findOne.mockResolvedValue({ id: 1, name: 'admin' });
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword123');
+      
+      // Mock AppDataSource.query for TRUNCATE operations
+      (AppDataSource as any).query = jest.fn().mockResolvedValue({});
     });
 
-    it('should delete existing data and reseed', async () => {
+    it('should clear existing data and reseed', async () => {
       await DatabaseSeeder.forceSeed();
 
-      // Verify deletions
-      expect(mockUserRepository.delete).toHaveBeenCalledWith({});
-      expect(mockRoleRepository.delete).toHaveBeenCalledWith({});
-      expect(mockTaskTypeRepository.delete).toHaveBeenCalledWith({});
+      // Verify TRUNCATE operations
+      expect((AppDataSource as any).query).toHaveBeenCalledWith('SET session_replication_role = replica;');
+      expect((AppDataSource as any).query).toHaveBeenCalledWith('TRUNCATE TABLE service_task_activities CASCADE');
+      expect((AppDataSource as any).query).toHaveBeenCalledWith('TRUNCATE TABLE service_tasks CASCADE');
+      expect((AppDataSource as any).query).toHaveBeenCalledWith('TRUNCATE TABLE brigade_members CASCADE');
+      expect((AppDataSource as any).query).toHaveBeenCalledWith('TRUNCATE TABLE brigades CASCADE');
+      expect((AppDataSource as any).query).toHaveBeenCalledWith('TRUNCATE TABLE subsystem_tasks CASCADE');
+      expect((AppDataSource as any).query).toHaveBeenCalledWith('TRUNCATE TABLE bom_trigger_logs CASCADE');
+      expect((AppDataSource as any).query).toHaveBeenCalledWith('TRUNCATE TABLE bom_triggers CASCADE');
+      expect((AppDataSource as any).query).toHaveBeenCalledWith('TRUNCATE TABLE refresh_tokens CASCADE');
+      expect((AppDataSource as any).query).toHaveBeenCalledWith('TRUNCATE TABLE audit_logs CASCADE');
+      expect((AppDataSource as any).query).toHaveBeenCalledWith('SET session_replication_role = DEFAULT;');
+      
+      // Verify clear operations (not delete)
+      expect(mockUserRepository.clear).toHaveBeenCalled();
+      expect(mockRoleRepository.clear).toHaveBeenCalled();
+      expect(mockTaskTypeRepository.clear).toHaveBeenCalled();
 
       // Verify seeding
       expect(mockRoleRepository.save).toHaveBeenCalledTimes(10);
-      expect(mockTaskTypeRepository.save).toHaveBeenCalledTimes(14);
+      expect(mockTaskTypeRepository.save).toHaveBeenCalledTimes(13);
       expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('WYMUSZONE SEEDOWANIE'));
@@ -235,23 +250,22 @@ describe('DatabaseSeeder', () => {
       });
     });
 
-    it('should seed all 14 task types', async () => {
+    it('should seed all 13 task types', async () => {
       await DatabaseSeeder.forceSeed();
 
       const taskTypeCodes = [
         'SMW',
-        'CSDIP',
-        'LAN_PKP_PLK',
-        'SMOK_IP_A',
-        'SMOK_IP_B',
+        'SDIP',
+        'LAN',
+        'SMOKIP_A',
+        'SMOKIP_B',
         'SSWIN',
         'SSP',
         'SUG',
-        'OBIEKTY_KUBATUROWE',
-        'KONTRAKTY_LINIOWE',
-        'LAN_STRUKTURALNY',
-        'ZASILANIA',
-        'STRUKTURY_SWIATLO',
+        'ZASILANIE',
+        'OTK',
+        'SKD',
+        'CCTV',
         'SERWIS',
       ];
 
