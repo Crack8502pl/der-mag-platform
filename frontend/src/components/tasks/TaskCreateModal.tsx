@@ -118,16 +118,6 @@ export const TaskCreateModal: React.FC<Props> = ({ onClose, onSuccess }) => {
                 onChange={(e) => handleChange('description', e.target.value)}
                 placeholder="Szczegółowy opis zadania..."
                 rows={4}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '14px',
-                  background: 'var(--bg-input)',
-                  color: 'var(--text-primary)',
-                  resize: 'vertical'
-                }}
               />
             </div>
 

@@ -345,6 +345,51 @@
   color: var(--primary-color);
 }
 
+.detail-value code {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  background: var(--bg-secondary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: var(--primary-color);
+}
+
+/* Textarea */
+.form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  resize: vertical;
+  font-family: var(--font-sans);
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+/* Detail description box */
+.detail-description {
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  white-space: pre-wrap;
+}
+
+/* User assignment badges */
+.user-badge {
+  padding: 6px 12px;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
 /* Alerts */
 .alert {
   padding: 12px 16px;

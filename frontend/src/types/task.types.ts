@@ -40,10 +40,10 @@ export interface Task {
   parentTaskId: number;
   contractId: number;
   subsystemId: number;
-  plannedStartDate: Date;
-  plannedEndDate: Date;
-  actualStartDate: Date;
-  actualEndDate: Date;
+  plannedStartDate?: Date | null;
+  plannedEndDate?: Date | null;
+  actualStartDate?: Date | null;
+  actualEndDate?: Date | null;
   priority: number;
   metadata: Record<string, any>;
   assignments?: TaskAssignment[];

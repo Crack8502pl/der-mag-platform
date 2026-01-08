@@ -146,15 +146,7 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
             {task.description && (
               <div className="form-group" style={{ marginTop: '20px' }}>
                 <label>Opis</label>
-                <div 
-                  className="detail-value" 
-                  style={{ 
-                    padding: '12px', 
-                    background: 'var(--bg-secondary)', 
-                    borderRadius: 'var(--radius-md)',
-                    whiteSpace: 'pre-wrap'
-                  }}
-                >
+                <div className="detail-value detail-description">
                   {task.description}
                 </div>
               </div>
@@ -165,17 +157,7 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
                 <label>Przypisani użytkownicy</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
                   {task.assignments.map((assignment) => (
-                    <span 
-                      key={assignment.id}
-                      style={{
-                        padding: '6px 12px',
-                        background: 'var(--primary-color)',
-                        color: 'white',
-                        borderRadius: '16px',
-                        fontSize: '13px',
-                        fontWeight: 500
-                      }}
-                    >
+                    <span key={assignment.id} className="user-badge">
                       👤 {assignment.user?.firstName} {assignment.user?.lastName}
                     </span>
                   ))}
