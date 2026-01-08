@@ -52,7 +52,7 @@ export class TaskController {
       const skip = (Number(page) - 1) * take;
 
       queryBuilder.take(take).skip(skip);
-      queryBuilder.orderBy('task.created_at', 'DESC');
+      queryBuilder.orderBy('task.createdAt', 'DESC');
 
       const [tasks, total] = await queryBuilder.getManyAndCount();
 
