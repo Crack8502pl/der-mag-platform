@@ -30,7 +30,7 @@ export class User {
   phone: string;
 
   @Column({ name: 'employee_code', type: 'varchar', length: 5, unique: true, nullable: true })
-  employeeCode: string;
+  employeeCode: string | null;
 
   @ManyToOne(() => Role, role => role.users)
   @JoinColumn({ name: 'role_id' })

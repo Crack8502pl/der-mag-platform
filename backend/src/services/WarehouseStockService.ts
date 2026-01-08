@@ -679,9 +679,11 @@ export class WarehouseStockService {
             
             // Log to history
             await this.logHistory(existing.id, StockOperationType.IMPORT, null, userId, {
-              action: 'update',
-              updatedFields: Object.keys(updateData),
-              source: 'csv_import'
+              details: {
+                action: 'update',
+                updatedFields: Object.keys(updateData),
+                source: 'csv_import'
+              }
             });
             
             updated++;
