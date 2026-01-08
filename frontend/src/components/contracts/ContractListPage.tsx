@@ -12,9 +12,10 @@ import { ContractStatusBadge } from './ContractStatusBadge';
 import { useAuth } from '../../hooks/useAuth';
 import type { Contract } from '../../services/contract.service';
 import axios from 'axios';
+import { getApiBaseURL } from '../../utils/api-url';
 import './ContractListPage.css';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = getApiBaseURL();
 
 export const ContractListPage: React.FC = () => {
   const navigate = useNavigate();

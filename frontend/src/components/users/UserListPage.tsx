@@ -10,9 +10,10 @@ import { DeactivateUserModal } from './DeactivateUserModal';
 import { UserStatusBadge } from './UserStatusBadge';
 import axios from 'axios';
 import { FALLBACK_ROLES } from '../../constants/roles';
+import { getApiBaseURL } from '../../utils/api-url';
 import './UserListPage.css';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = getApiBaseURL();
 
 interface User {
   id: number;

@@ -2,6 +2,7 @@
 // API client for warehouse stock operations
 
 import axios from 'axios';
+import { getApiBaseURL } from '../utils/api-url';
 import type {
   WarehouseStock,
   StockFilters,
@@ -14,7 +15,7 @@ import type {
   MapToWorkflowBomRequest
 } from '../types/warehouseStock.types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = getApiBaseURL();
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('accessToken');

@@ -4,9 +4,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { getApiBaseURL } from '../../utils/api-url';
 import './LoginPage.css';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = getApiBaseURL();
 
 export const ForgotPasswordPage: React.FC = () => {
   const [emailOrUsername, setEmailOrUsername] = useState('');
