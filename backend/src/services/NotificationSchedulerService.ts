@@ -309,7 +309,7 @@ export class NotificationSchedulerService {
       
       // Pobierz kontrakty, które mają orderDate (używamy jako przykładowego deadline)
       const contracts = await this.contractRepository.find({
-        where: { status: ContractStatus.ACTIVE },
+        where: { status: ContractStatus.IN_PROGRESS },
         relations: ['projectManager']
       });
 
@@ -367,7 +367,7 @@ export class NotificationSchedulerService {
   private async getContractStats() {
     const total = await this.contractRepository.count();
     const active = await this.contractRepository.count({ 
-      where: { status: ContractStatus.ACTIVE } 
+      where: { status: ContractStatus.IN_PROGRESS } 
     });
     const completed = await this.contractRepository.count({ 
       where: { status: ContractStatus.COMPLETED } 
