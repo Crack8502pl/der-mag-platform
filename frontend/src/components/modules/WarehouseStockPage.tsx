@@ -157,16 +157,6 @@ export const WarehouseStockPage: React.FC = () => {
     }
   };
 
-  const getMaterialTypeLabel = (type: MaterialType): string => {
-    switch (type) {
-      case 'consumable': return 'Materiał zużywalny';
-      case 'device': return 'Urządzenie';
-      case 'tool': return 'Narzędzie';
-      case 'component': return 'Komponent';
-      default: return type;
-    }
-  };
-
   const isLowStock = (item: WarehouseStock): boolean => {
     return item.minStockLevel !== undefined && 
            item.minStockLevel !== null && 

@@ -400,9 +400,9 @@ export class WarehouseStockService {
           materialType: row.material_type || row.materialType || MaterialType.CONSUMABLE,
           unit: row.unit || 'szt',
           quantityInStock: parseFloat(row.quantity_in_stock || row.quantityInStock || '0'),
-          minStockLevel: row.min_stock_level ? parseFloat(row.min_stock_level) : null,
+          minStockLevel: row.min_stock_level ? parseFloat(row.min_stock_level) : undefined,
           supplier: row.supplier,
-          unitPrice: row.unit_price ? parseFloat(row.unit_price) : null,
+          unitPrice: row.unit_price ? parseFloat(row.unit_price) : undefined,
           warehouseLocation: row.warehouse_location || row.warehouseLocation
         }, userId);
 
@@ -481,9 +481,9 @@ export class WarehouseStockService {
     const history = this.historyRepository.create({
       warehouseStockId: stockId,
       operationType,
-      quantityChange,
-      quantityBefore: options.quantityBefore,
-      quantityAfter: options.quantityAfter,
+      quantityChange: quantityChange ?? undefined,
+      quantityBefore: options.quantityBefore ?? undefined,
+      quantityAfter: options.quantityAfter ?? undefined,
       referenceType: options.referenceType,
       referenceId: options.referenceId,
       details: options.details || {},

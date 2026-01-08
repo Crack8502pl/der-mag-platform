@@ -1,38 +1,60 @@
 // src/types/warehouseStock.types.ts
 // Types for Warehouse Stock module
 
-export enum MaterialType {
-  CONSUMABLE = 'consumable',
-  DEVICE = 'device',
-  TOOL = 'tool',
-  COMPONENT = 'component'
-}
+export type MaterialType = 'consumable' | 'device' | 'tool' | 'component';
 
-export enum StockStatus {
-  ACTIVE = 'ACTIVE',
-  OUT_OF_STOCK = 'OUT_OF_STOCK',
-  DISCONTINUED = 'DISCONTINUED',
-  ORDERED = 'ORDERED'
-}
+export const MaterialType = {
+  CONSUMABLE: 'consumable' as MaterialType,
+  DEVICE: 'device' as MaterialType,
+  TOOL: 'tool' as MaterialType,
+  COMPONENT: 'component' as MaterialType
+};
 
-export enum StockOperationType {
-  CREATED = 'CREATED',
-  UPDATED = 'UPDATED',
-  DELETED = 'DELETED',
-  STOCK_IN = 'STOCK_IN',
-  STOCK_OUT = 'STOCK_OUT',
-  STOCK_ADJUSTMENT = 'STOCK_ADJUSTMENT',
-  RESERVED = 'RESERVED',
-  RESERVATION_RELEASED = 'RESERVATION_RELEASED',
-  ASSIGNED_TO_SUBSYSTEM = 'ASSIGNED_TO_SUBSYSTEM',
-  ASSIGNED_TO_TASK = 'ASSIGNED_TO_TASK',
-  MAPPED_TO_BOM = 'MAPPED_TO_BOM',
-  MAPPED_TO_WORKFLOW = 'MAPPED_TO_WORKFLOW',
-  PRICE_UPDATE = 'PRICE_UPDATE',
-  LOCATION_CHANGE = 'LOCATION_CHANGE',
-  STATUS_CHANGE = 'STATUS_CHANGE',
-  IMPORT = 'IMPORT'
-}
+export type StockStatus = 'ACTIVE' | 'OUT_OF_STOCK' | 'DISCONTINUED' | 'ORDERED';
+
+export const StockStatus = {
+  ACTIVE: 'ACTIVE' as StockStatus,
+  OUT_OF_STOCK: 'OUT_OF_STOCK' as StockStatus,
+  DISCONTINUED: 'DISCONTINUED' as StockStatus,
+  ORDERED: 'ORDERED' as StockStatus
+};
+
+export type StockOperationType = 
+  | 'CREATED'
+  | 'UPDATED'
+  | 'DELETED'
+  | 'STOCK_IN'
+  | 'STOCK_OUT'
+  | 'STOCK_ADJUSTMENT'
+  | 'RESERVED'
+  | 'RESERVATION_RELEASED'
+  | 'ASSIGNED_TO_SUBSYSTEM'
+  | 'ASSIGNED_TO_TASK'
+  | 'MAPPED_TO_BOM'
+  | 'MAPPED_TO_WORKFLOW'
+  | 'PRICE_UPDATE'
+  | 'LOCATION_CHANGE'
+  | 'STATUS_CHANGE'
+  | 'IMPORT';
+
+export const StockOperationType = {
+  CREATED: 'CREATED' as StockOperationType,
+  UPDATED: 'UPDATED' as StockOperationType,
+  DELETED: 'DELETED' as StockOperationType,
+  STOCK_IN: 'STOCK_IN' as StockOperationType,
+  STOCK_OUT: 'STOCK_OUT' as StockOperationType,
+  STOCK_ADJUSTMENT: 'STOCK_ADJUSTMENT' as StockOperationType,
+  RESERVED: 'RESERVED' as StockOperationType,
+  RESERVATION_RELEASED: 'RESERVATION_RELEASED' as StockOperationType,
+  ASSIGNED_TO_SUBSYSTEM: 'ASSIGNED_TO_SUBSYSTEM' as StockOperationType,
+  ASSIGNED_TO_TASK: 'ASSIGNED_TO_TASK' as StockOperationType,
+  MAPPED_TO_BOM: 'MAPPED_TO_BOM' as StockOperationType,
+  MAPPED_TO_WORKFLOW: 'MAPPED_TO_WORKFLOW' as StockOperationType,
+  PRICE_UPDATE: 'PRICE_UPDATE' as StockOperationType,
+  LOCATION_CHANGE: 'LOCATION_CHANGE' as StockOperationType,
+  STATUS_CHANGE: 'STATUS_CHANGE' as StockOperationType,
+  IMPORT: 'IMPORT' as StockOperationType
+};
 
 export interface WarehouseStock {
   id: number;
