@@ -4,6 +4,7 @@
 -- 
 -- UPRAWNIENIA:
 -- - Admin: pełny dostęp (wszystko)
+-- - Management Board: pełny dostęp (wszystko jak admin)
 -- - Coordinator: pełny dostęp (wszystko jak admin)
 -- - Manager: TYLKO odczyt (read + viewMembers)
 -- - Pozostałe role: tylko odczyt
@@ -17,6 +18,15 @@ SET permissions = jsonb_set(
   '{"read": true, "create": true, "update": true, "delete": true, "assignMembers": true, "viewMembers": true}'::jsonb
 )
 WHERE name = 'admin';
+
+-- Management Board - pełny dostęp (JAK ADMIN)
+UPDATE roles 
+SET permissions = jsonb_set(
+  COALESCE(permissions, '{}'::jsonb),
+  '{brigades}',
+  '{"read": true, "create": true, "update": true, "delete": true, "assignMembers": true, "viewMembers": true}'::jsonb
+)
+WHERE name = 'management_board';
 
 -- Coordinator - pełny dostęp (JAK ADMIN)
 UPDATE roles 
@@ -112,9 +122,10 @@ FROM roles
 ORDER BY 
   CASE name
     WHEN 'admin' THEN 1
-    WHEN 'coordinator' THEN 2
-    WHEN 'manager' THEN 3
-    ELSE 4
+    WHEN 'management_board' THEN 2
+    WHEN 'coordinator' THEN 3
+    WHEN 'manager' THEN 4
+    ELSE 5
   END,
   name;
 
