@@ -1,0 +1,379 @@
+/* WarehouseStockPage.css - Styles for warehouse stock module */
+
+.warehouse-stock-page {
+  /* Inherits from module-page */
+}
+
+/* Toolbar */
+.warehouse-toolbar {
+  margin-bottom: 20px;
+  padding: 20px;
+}
+
+.toolbar-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.toolbar-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.toolbar-filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  min-width: 180px;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+  cursor: pointer;
+  user-select: none;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.checkbox-label input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.checkbox-label:hover {
+  background: var(--bg-hover);
+}
+
+.items-count {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.items-count strong {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* Table */
+.warehouse-table-container {
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+.warehouse-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.warehouse-table th {
+  background: var(--bg-secondary);
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.warehouse-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.warehouse-table th.sortable:hover {
+  background: var(--bg-hover);
+}
+
+.warehouse-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.warehouse-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+/* Low stock indicator */
+.warehouse-table tbody tr.low-stock-row {
+  background: rgba(255, 193, 7, 0.1);
+  border-left: 3px solid #ff9800;
+}
+
+.warehouse-table tbody tr.low-stock-row:hover {
+  background: rgba(255, 193, 7, 0.15);
+}
+
+.low-stock-qty {
+  color: #f44336;
+  font-weight: 600;
+}
+
+.min-level {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: normal;
+}
+
+/* Catalog number */
+.catalog-number {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  background: var(--bg-secondary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: var(--primary-color);
+}
+
+/* Material name */
+.material-name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.material-name.clickable {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
+
+.material-name.clickable:hover {
+  color: var(--primary-color);
+}
+
+/* Status badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-success {
+  background: rgba(40, 167, 69, 0.2);
+  color: #28a745;
+  border: 1px solid #28a745;
+}
+
+.badge-danger {
+  background: rgba(220, 53, 69, 0.2);
+  color: #dc3545;
+  border: 1px solid #dc3545;
+}
+
+.badge-warning {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ff9800;
+  border: 1px solid #ff9800;
+}
+
+.badge-secondary {
+  background: rgba(108, 117, 125, 0.2);
+  color: #6c757d;
+  border: 1px solid #6c757d;
+}
+
+/* Action buttons */
+.action-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.action-buttons .btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 16px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-buttons .btn-icon:hover {
+  background: #f5f5f5;
+}
+
+.action-buttons .btn-icon.btn-danger {
+  color: #f44336;
+  border-color: #f44336;
+}
+
+.action-buttons .btn-icon.btn-danger:hover {
+  background: #ffebee;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+.page-info {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* Modal placeholder (temporary) */
+.modal-placeholder {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-card);
+  padding: 40px;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 2000;
+  text-align: center;
+}
+
+.modal-placeholder p {
+  margin-bottom: 20px;
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+.modal-placeholder button {
+  padding: 10px 20px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.modal-placeholder button:hover {
+  opacity: 0.9;
+}
+
+/* Alerts */
+.alert {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.alert-error {
+  background: rgba(220, 53, 69, 0.2);
+  color: #dc3545;
+  border: 1px solid #dc3545;
+}
+
+.alert-success {
+  background: rgba(40, 167, 69, 0.2);
+  color: #28a745;
+  border: 1px solid #28a745;
+}
+
+/* Loading state */
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+  .toolbar-filters {
+    gap: 8px;
+  }
+  
+  .filter-select {
+    min-width: 140px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 768px) {
+  .toolbar-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .toolbar-buttons {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  
+  .toolbar-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filter-select,
+  .checkbox-label {
+    width: 100%;
+  }
+  
+  .items-count {
+    margin-left: 0;
+    text-align: center;
+  }
+  
+  .warehouse-table {
+    font-size: 12px;
+  }
+  
+  .warehouse-table th,
+  .warehouse-table td {
+    padding: 8px;
+  }
+  
+  .action-buttons .btn-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+}

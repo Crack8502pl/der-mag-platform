@@ -109,6 +109,23 @@ export interface NotificationPermissions {
   configureTriggers?: boolean;
 }
 
+export interface WarehouseStockPermissions {
+  read?: boolean;
+  create?: boolean;
+  update?: boolean;
+  delete?: boolean;
+  manage_locations?: boolean;
+  adjust_stock?: boolean;
+  view_history?: boolean;
+  view_prices?: boolean;
+  export?: boolean;
+  import?: boolean;
+  reserve_stock?: boolean;
+  release_stock?: boolean;
+  auto_assign?: boolean;
+  scan_material?: boolean;
+}
+
 export interface RolePermissions {
   all?: boolean; // Admin - pełny dostęp
   dashboard?: DashboardPermissions;
@@ -126,6 +143,7 @@ export interface RolePermissions {
   photos?: PhotoPermissions;
   documents?: DocumentPermissions;
   notifications?: NotificationPermissions;
+  warehouse_stock?: WarehouseStockPermissions;
   [key: string]: any;
 }
 
@@ -145,7 +163,8 @@ export type PermissionModule =
   | 'settings'
   | 'photos'
   | 'documents'
-  | 'notifications';
+  | 'notifications'
+  | 'warehouse_stock';
 
 export type PermissionAction = 
   | 'read'

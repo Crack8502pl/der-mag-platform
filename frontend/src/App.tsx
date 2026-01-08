@@ -32,6 +32,7 @@ import { NotificationsPage } from './components/modules/NotificationsPage';
 import { SettingsPage } from './components/modules/SettingsPage';
 import { ContractListPage } from './components/contracts/ContractListPage';
 import { ContractDetailPage } from './components/contracts/ContractDetailPage';
+import { WarehouseStockPage } from './components/modules/WarehouseStockPage';
 import { useAuth } from './hooks/useAuth';
 import { useTokenExpirationWarning } from './hooks/useTokenExpirationWarning';
 import { TokenExpirationModal } from './components/common/TokenExpirationModal';
@@ -249,6 +250,18 @@ function App() {
             <ProtectedRoute>
               <RoleBasedRoute requiredPermission={{ module: 'settings', action: 'read' }}>
                 <SettingsPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Warehouse Stock Routes */}
+        <Route
+          path="/warehouse-stock"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'warehouse_stock', action: 'read' }}>
+                <WarehouseStockPage />
               </RoleBasedRoute>
             </ProtectedRoute>
           }

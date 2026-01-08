@@ -28,6 +28,8 @@ import prefabricationRoutes from './prefabrication.routes';
 // Service tasks routes
 import serviceTaskRoutes from './serviceTask.routes';
 import brigadeRoutes from './brigade.routes';
+// Warehouse stock routes
+import warehouseStockRoutes from './warehouseStock.routes';
 
 const router = Router();
 
@@ -59,6 +61,9 @@ router.use('/prefabrication', prefabricationRoutes);
 // Service tasks routes
 router.use('/service-tasks', serviceTaskRoutes);
 router.use('/brigades', brigadeRoutes);
+
+// Warehouse stock routes
+router.use('/warehouse-stock', warehouseStockRoutes);
 
 // Admin routes
 router.use('/admin', adminRoutes);
