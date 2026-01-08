@@ -364,7 +364,7 @@ export class ContractController {
           if (subsystemTasks && Array.isArray(subsystemTasks)) {
             for (const taskData of subsystemTasks) {
               try {
-                // 1. Utwórz SubsystemTask (istniejące zachowanie)
+                // 1. Create SubsystemTask (existing behavior)
                 const subsystemTask = await this.taskService.createTask({
                   subsystemId: subsystem.id,
                   taskName: taskData.name || 'Zadanie',
@@ -373,13 +373,14 @@ export class ContractController {
                 });
                 createdTasks.push(subsystemTask);
                 
-                // 2. Utwórz główne zadanie Task
+                // 2. Create main Task entity
                 try {
-                  // Generuj unikalny numer zadania
+                  // Generate unique task number
                   const taskNumber = await TaskNumberGenerator.generate();
                   
-                  // Znajdź typ zadania - próbuj dopasować po kodzie lub użyj domyślnego
-                  let taskTypeId = 1; // Domyślny typ zadania
+                  // Find task type - match by code or use default
+                  const DEFAULT_TASK_TYPE_ID = 1;
+                  let taskTypeId = DEFAULT_TASK_TYPE_ID;
                   if (taskData.type) {
                     const taskType = await taskTypeRepository.findOne({
                       where: { code: taskData.type }
@@ -389,7 +390,7 @@ export class ContractController {
                     }
                   }
                   
-                  // Utwórz puste zadanie do późniejszej edycji
+                  // Create empty task for later editing
                   const mainTask = taskRepository.create({
                     taskNumber,
                     title: taskData.name || `Zadanie ${taskData.type || 'nowe'}`,
@@ -410,14 +411,13 @@ export class ContractController {
                   const savedMainTask = await taskRepository.save(mainTask);
                   createdMainTasks.push(savedMainTask);
                   
-                  console.log(`✅ Utworzono zadanie ${taskNumber} dla podsystemu ${subsystem.subsystemNumber}`);
                 } catch (taskError) {
-                  console.error(`❌ Błąd tworzenia głównego zadania dla ${taskData.name}:`, taskError);
-                  // Kontynuuj z następnym zadaniem - nie przerywaj całego procesu
+                  console.error(`Failed to create main task for ${taskData.name}:`, taskError);
+                  // Continue with next task - don't break entire process
                 }
               } catch (error) {
-                console.error(`❌ Błąd tworzenia zadania dla podsystemu ${subsystem.subsystemNumber}:`, error);
-                // Kontynuuj z następnym zadaniem
+                console.error(`Failed to create task for subsystem ${subsystem.subsystemNumber}:`, error);
+                // Continue with next task
               }
             }
           }

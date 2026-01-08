@@ -26,9 +26,3 @@ ON DELETE SET NULL;
 -- Add indexes for performance
 CREATE INDEX IF NOT EXISTS idx_tasks_contract ON tasks(contract_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_subsystem ON tasks(subsystem_id);
-
--- Log migration completion
-DO $$
-BEGIN
-    RAISE NOTICE 'Migration 20260108_add_task_contract_subsystem completed successfully';
-END $$;
