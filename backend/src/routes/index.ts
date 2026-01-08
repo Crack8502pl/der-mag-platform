@@ -2,6 +2,7 @@
 // Główny router aplikacji
 
 import { Router } from 'express';
+import { authenticate, authorize } from '../middleware/auth';
 import authRoutes from './auth.routes';
 import taskRoutes from './task.routes';
 import bomRoutes from './bom.routes';
@@ -75,7 +76,6 @@ router.use('/admin', adminRoutes);
 // Importy dla aliasów szablonów dokumentów
 import { BOMBuilderController } from '../controllers/BOMBuilderController';
 import { uploadTemplate } from '../middleware/upload';
-import { authenticate, authorize } from '../middleware/auth';
 
 // Alias dla szablonów dokumentów (tylko endpointy związane z szablonami)
 router.get('/document-templates', authenticate, BOMBuilderController.getTemplates);
