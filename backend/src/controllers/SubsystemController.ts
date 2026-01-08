@@ -224,7 +224,7 @@ export class SubsystemController {
             contractId: parseInt(contractId),
             systemType: type as SystemType,
             quantity: subsystemTasks?.length || 0,
-            ipPool: ipPool?.trim() || undefined
+            ipPool: ipPool?.trim() || null
           });
           
           // Create tasks if provided

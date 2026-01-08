@@ -72,7 +72,7 @@ export class Subsystem {
   status: SubsystemStatus;
 
   @Column({ name: 'ip_pool', type: 'varchar', length: 50, nullable: true })
-  ipPool: string;
+  ipPool: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

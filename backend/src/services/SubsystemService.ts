@@ -73,7 +73,7 @@ export class SubsystemService {
     systemType: SystemType;
     quantity?: number;
     subsystemNumber?: string;
-    ipPool?: string;
+    ipPool?: string | null;
   }): Promise<Subsystem> {
     // Sprawdź czy kontrakt istnieje
     const contract = await this.contractRepository.findOne({
