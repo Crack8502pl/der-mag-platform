@@ -144,6 +144,53 @@ export interface ImportResult {
   errors: Array<{ row: number; error: string }>;
 }
 
+export interface ImportRow {
+  rowNumber: number;
+  catalog_number: string;
+  material_name: string;
+  description?: string;
+  category?: string;
+  subcategory?: string;
+  material_type?: string;
+  unit?: string;
+  quantity_in_stock?: string;
+  min_stock_level?: string;
+  supplier?: string;
+  unit_price?: string;
+  warehouse_location?: string;
+}
+
+export interface AnalyzedRow extends ImportRow {
+  status: 'new' | 'duplicate_catalog' | 'duplicate_name' | 'conflict';
+  existingRecord?: WarehouseStock;
+  changedFields?: string[];
+  validationErrors?: string[];
+}
+
+export interface UpdateOptions {
+  updateQuantity: boolean;
+  updatePrice: boolean;
+  updateDescription: boolean;
+  updateLocation: boolean;
+  updateSupplier: boolean;
+  skipDuplicates: boolean;
+}
+
+export interface ImportResultDetailed {
+  imported: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  errors: Array<{ row: number; field?: string; error: string }>;
+}
+
+export interface AnalyzeResult {
+  totalRows: number;
+  newRecords: AnalyzedRow[];
+  duplicates: AnalyzedRow[];
+  errors: AnalyzedRow[];
+}
+
 export interface ReserveStockRequest {
   quantity: number;
   referenceType: string;

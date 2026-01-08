@@ -58,6 +58,9 @@ router.get('/template', authenticate, authorize('read'), controller.getTemplate)
 // GET /api/warehouse-stock/export - export do Excel
 router.get('/export', authenticate, authorize('export'), controller.export);
 
+// POST /api/warehouse-stock/import/analyze - analiza CSV przed importem
+router.post('/import/analyze', authenticate, authorize('import'), controller.analyzeImport);
+
 // POST /api/warehouse-stock/import - import z CSV
 router.post('/import', authenticate, authorize('import'), upload.single('file'), controller.import);
 

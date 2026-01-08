@@ -136,6 +136,33 @@ export const warehouseStockService = {
   },
 
   /**
+   * Analyze CSV before import
+   */
+  async analyzeImport(csvContent: string): Promise<{ success: boolean; data: any }> {
+    const response = await axios.post(
+      `${API_BASE_URL}/warehouse-stock/import/analyze`,
+      { csvContent },
+      { headers: getAuthHeaders() }
+    );
+    return response.data;
+  },
+
+  /**
+   * Import with options
+   */
+  async importWithOptions(
+    csvContent: string,
+    updateOptions: any
+  ): Promise<{ success: boolean; data: any; message: string }> {
+    const response = await axios.post(
+      `${API_BASE_URL}/warehouse-stock/import`,
+      { csvContent, updateOptions },
+      { headers: getAuthHeaders() }
+    );
+    return response.data;
+  },
+
+  /**
    * Import z CSV
    */
   async importFromCSV(file: File): Promise<{ success: boolean; data: ImportResult; message: string }> {

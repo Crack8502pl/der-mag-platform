@@ -314,6 +314,44 @@ export class WarehouseStockController {
   };
 
   /**
+   * POST /api/warehouse-stock/import/analyze
+   * Analyze CSV before import
+   */
+  analyzeImport = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Brak autoryzacji'
+        });
+        return;
+      }
+
+      const { csvContent } = req.body;
+      if (!csvContent) {
+        res.status(400).json({
+          success: false,
+          message: 'Brak zawartości CSV'
+        });
+        return;
+      }
+
+      const result = await this.warehouseStockService.analyzeCSVForDuplicates(csvContent);
+
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Błąd podczas analizy CSV'
+      });
+    }
+  };
+
+  /**
    * POST /api/warehouse-stock/import
    * Import z CSV
    */
@@ -328,22 +366,43 @@ export class WarehouseStockController {
         return;
       }
 
-      const file = (req as any).file;
-      if (!file) {
+      // Support both file upload and direct CSV content
+      let csvContent: string;
+      
+      if ((req as any).file) {
+        // File upload
+        csvContent = (req as any).file.buffer.toString('utf-8');
+      } else if (req.body.csvContent) {
+        // Direct CSV content
+        csvContent = req.body.csvContent;
+      } else {
         res.status(400).json({
           success: false,
-          message: 'Brak pliku CSV'
+          message: 'Brak pliku CSV lub zawartości CSV'
         });
         return;
       }
 
-      const csvContent = file.buffer.toString('utf-8');
-      const result = await this.warehouseStockService.importFromCSV(csvContent, userId);
+      // Check if we have update options
+      const updateOptions = req.body.updateOptions || {
+        updateQuantity: false,
+        updatePrice: false,
+        updateDescription: false,
+        updateLocation: false,
+        updateSupplier: false,
+        skipDuplicates: true
+      };
+
+      const result = await this.warehouseStockService.importWithOptions(
+        csvContent,
+        updateOptions,
+        userId
+      );
 
       res.json({
         success: true,
         data: result,
-        message: `Import zakończony. Sukces: ${result.success}, Błędy: ${result.failed}`
+        message: `Import zakończony. Zaimportowano: ${result.imported}, Zaktualizowano: ${result.updated}, Pominięto: ${result.skipped}, Błędy: ${result.failed}`
       });
     } catch (error: any) {
       res.status(400).json({
