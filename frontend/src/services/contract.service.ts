@@ -24,6 +24,7 @@ export interface Subsystem {
   status: string;
   params?: Record<string, any>;
   tasks?: SubsystemTask[];
+  ipPool?: string;
   createdAt: string;
   updatedAt: string;
   // Optional fields for compatibility

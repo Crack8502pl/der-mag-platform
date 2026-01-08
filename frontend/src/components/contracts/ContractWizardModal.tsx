@@ -23,6 +23,7 @@ interface SubsystemWizardData {
   taskDetails?: TaskDetail[];
   isExisting?: boolean;     // NOWE - czy podsystem już istnieje w bazie
   taskCount?: number;       // NOWE - liczba zadań (dla blokady usuwania)
+  ipPool?: string;          // NOWE - pula adresowa IP (np. "192.168.1.0/24")
 }
 
 interface TaskDetail {
@@ -125,9 +126,10 @@ export const ContractWizardModal: React.FC<Props> = ({
         id: sub.id, // WAŻNE - zachowaj ID dla aktualizacji
         type: sub.systemType as SubsystemType,
         params: sub.params || {},
+        ipPool: sub.ipPool, // NOWE - zachowaj pulę IP
         taskDetails: (sub.tasks || []).map(task => ({
           id: task.id, // WAŻNE - zachowaj ID zadania
-          taskType: task.taskType,
+          taskType: task.taskType as TaskDetail['taskType'],
           kilometraz: task.metadata?.kilometraz || '',
           kategoria: task.metadata?.kategoria || '',
           nazwa: task.taskName || task.metadata?.nazwa || '',
@@ -635,8 +637,93 @@ export const ContractWizardModal: React.FC<Props> = ({
     return { type: 'success' };
   };
 
+  // Get step info for a specific step number
+  const getStepInfo = (step: number) => {
+    if (step === 1) return { type: 'basic' };
+    if (step === 2) return { type: 'selection' };
+    
+    let stepCount = 2;
+    for (let i = 0; i < wizardData.subsystems.length; i++) {
+      stepCount++; // Config step
+      if (step === stepCount) {
+        return { type: 'config', subsystemIndex: i };
+      }
+      
+      if (wizardData.subsystems[i].type === 'SMOKIP_A' || wizardData.subsystems[i].type === 'SMOKIP_B') {
+        stepCount++; // Details step
+        if (step === stepCount) {
+          return { type: 'details', subsystemIndex: i };
+        }
+      }
+    }
+    
+    stepCount++; // Preview
+    if (step === stepCount) return { type: 'preview' };
+    
+    return { type: 'success' };
+  };
+
+  /**
+   * Walidacja unikalności pul IP w kontrakcie
+   * @returns true jeśli walidacja przeszła, false jeśli są duplikaty
+   */
+  const validateUniqueIPPools = (): { valid: boolean; error?: string } => {
+    // Pobierz wszystkie pule IP z podsystemów (pomiń puste/undefined)
+    const ipPools = wizardData.subsystems
+      .map((s, index) => ({ 
+        ipPool: s.ipPool?.trim(), 
+        type: s.type,
+        index 
+      }))
+      .filter(s => s.ipPool); // Tylko podsystemy z przypisaną pulą
+    
+    // Jeśli żaden podsystem nie ma puli - walidacja przechodzi
+    if (ipPools.length === 0) {
+      return { valid: true };
+    }
+    
+    // Szukaj duplikatów
+    const seen = new Map<string, { type: SubsystemType; index: number }>();
+    const duplicates: string[] = [];
+    
+    for (const pool of ipPools) {
+      if (seen.has(pool.ipPool!)) {
+        const existing = seen.get(pool.ipPool!)!;
+        const config1 = SUBSYSTEM_WIZARD_CONFIG[existing.type];
+        const config2 = SUBSYSTEM_WIZARD_CONFIG[pool.type];
+        duplicates.push(
+          `${config1.label} i ${config2.label} mają tę samą pulę IP: ${pool.ipPool}`
+        );
+      } else {
+        seen.set(pool.ipPool!, { type: pool.type, index: pool.index });
+      }
+    }
+    
+    if (duplicates.length > 0) {
+      return {
+        valid: false,
+        error: `Podsystemy w kontrakcie muszą mieć różne pule adresowe IP!\n${duplicates.join('\n')}`
+      };
+    }
+    
+    return { valid: true };
+  };
+
   const handleNextStep = () => {
     const stepInfo = getCurrentStepInfo();
+    
+    // Przed przejściem do Preview - waliduj pule IP
+    if (stepInfo.type === 'config' || stepInfo.type === 'details') {
+      // Sprawdź czy to ostatni krok przed preview
+      const nextStepInfo = getStepInfo(currentStep + 1);
+      if (nextStepInfo.type === 'preview') {
+        const validation = validateUniqueIPPools();
+        if (!validation.valid) {
+          setError(validation.error!);
+          return; // Nie przechodź dalej
+        }
+      }
+    }
     
     if (stepInfo.type === 'preview') {
       // Generate tasks before moving to preview
@@ -693,6 +780,7 @@ export const ContractWizardModal: React.FC<Props> = ({
             return {
               type: subsystem.type,
               params: subsystem.params,
+              ipPool: subsystem.ipPool,
               tasks: subsystemTasks.map(t => ({
                 number: t.number,
                 name: t.name,
@@ -734,6 +822,7 @@ export const ContractWizardModal: React.FC<Props> = ({
           return {
             type: subsystem.type,
             params: subsystem.params,
+            ipPool: subsystem.ipPool,
             tasks: subsystemTasks.map(t => ({
               number: t.number,
               name: t.name,
@@ -978,6 +1067,24 @@ export const ContractWizardModal: React.FC<Props> = ({
             ⚠️ Typ podsystemu nie może być zmieniony. Możesz tylko edytować parametry i dodawać nowe zadania.
           </div>
         )}
+        
+        {/* Pole puli IP */}
+        <div className="form-group">
+          <label>Pula adresowa IP (opcjonalnie)</label>
+          <input
+            type="text"
+            value={subsystem.ipPool || ''}
+            onChange={(e) => {
+              const newSubsystems = [...wizardData.subsystems];
+              newSubsystems[subsystemIndex].ipPool = e.target.value.trim();
+              setWizardData({...wizardData, subsystems: newSubsystems});
+            }}
+            placeholder="np. 192.168.1.0/24"
+          />
+          <small className="form-help">
+            Format CIDR (np. 192.168.1.0/24). Każdy podsystem musi mieć unikalną pulę.
+          </small>
+        </div>
         
         {config.fields.map((field) => {
           const paramValue = subsystem.params[field.name];
@@ -1288,9 +1395,16 @@ export const ContractWizardModal: React.FC<Props> = ({
         <h3>Podgląd wszystkich zadań</h3>
         
         <div className="tasks-preview">
-          {tasksBySubsystem.map(({ config, tasks }, index) => (
+          {tasksBySubsystem.map(({ config, subsystem, tasks }, index) => (
             <div key={index} className="subsystem-tasks">
-              <h4>{config.icon} {config.label} ({tasks.length} zadań)</h4>
+              <h4>
+                {config.icon} {config.label} ({tasks.length} zadań)
+                {subsystem.ipPool && (
+                  <span className="ip-pool-badge" style={{ marginLeft: '10px', padding: '4px 8px', backgroundColor: '#e3f2fd', borderRadius: '4px', fontSize: '0.85em' }}>
+                    🌐 {subsystem.ipPool}
+                  </span>
+                )}
+              </h4>
               {tasks.length > 0 ? (
                 <table className="tasks-table">
                   <thead>
@@ -1326,7 +1440,7 @@ export const ContractWizardModal: React.FC<Props> = ({
     const tasksBySubsystem = wizardData.subsystems.map((subsystem) => {
       const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
       const tasks = generatedTasks.filter(t => t.subsystemType === subsystem.type);
-      return { config, tasks };
+      return { config, subsystem, tasks };
     });
 
     return (
