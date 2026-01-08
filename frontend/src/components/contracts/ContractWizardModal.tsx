@@ -129,7 +129,7 @@ export const ContractWizardModal: React.FC<Props> = ({
         ipPool: sub.ipPool, // NOWE - zachowaj pulę IP
         taskDetails: (sub.tasks || []).map(task => ({
           id: task.id, // WAŻNE - zachowaj ID zadania
-          taskType: task.taskType,
+          taskType: task.taskType as TaskDetail['taskType'],
           kilometraz: task.metadata?.kilometraz || '',
           kategoria: task.metadata?.kategoria || '',
           nazwa: task.taskName || task.metadata?.nazwa || '',
