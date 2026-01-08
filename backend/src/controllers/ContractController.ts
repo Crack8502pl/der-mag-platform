@@ -7,6 +7,10 @@ import { ContractStatus } from '../entities/Contract';
 import { SubsystemService } from '../services/SubsystemService';
 import { SystemType } from '../entities/Subsystem';
 import { SubsystemTaskService } from '../services/SubsystemTaskService';
+import { AppDataSource } from '../config/database';
+import { Task } from '../entities/Task';
+import { TaskType } from '../entities/TaskType';
+import { TaskNumberGenerator } from '../services/TaskNumberGenerator';
 
 export class ContractController {
   private contractService: ContractService;
@@ -331,6 +335,10 @@ export class ContractController {
       
       // New format: multiple subsystems
       if (Array.isArray(subsystems) && subsystems.length > 0) {
+        // Get repositories needed for Task creation
+        const taskRepository = AppDataSource.getRepository(Task);
+        const taskTypeRepository = AppDataSource.getRepository(TaskType);
+        
         for (const subsystemData of subsystems) {
           const { type, params, tasks: subsystemTasks } = subsystemData;
           
@@ -349,37 +357,93 @@ export class ContractController {
             quantity: subsystemTasks?.length || 0
           });
           
-          // Zapisz zadania do bazy
+          // Zapisz zadania do bazy (SubsystemTask i Task)
           const createdTasks = [];
+          const createdMainTasks = [];
+          
           if (subsystemTasks && Array.isArray(subsystemTasks)) {
             for (const taskData of subsystemTasks) {
-              const task = await this.taskService.createTask({
-                subsystemId: subsystem.id,
-                taskName: taskData.name || 'Zadanie',
-                taskType: taskData.type || 'GENERIC',
-                metadata: params || {}
-              });
-              createdTasks.push(task);
+              try {
+                // 1. Create SubsystemTask (existing behavior)
+                const subsystemTask = await this.taskService.createTask({
+                  subsystemId: subsystem.id,
+                  taskName: taskData.name || 'Zadanie',
+                  taskType: taskData.type || 'GENERIC',
+                  metadata: params || {}
+                });
+                createdTasks.push(subsystemTask);
+                
+                // 2. Create main Task entity
+                try {
+                  // Generate unique task number
+                  const taskNumber = await TaskNumberGenerator.generate();
+                  
+                  // Find task type - match by code or use default
+                  const DEFAULT_TASK_TYPE_ID = 1;
+                  let taskTypeId = DEFAULT_TASK_TYPE_ID;
+                  if (taskData.type) {
+                    const taskType = await taskTypeRepository.findOne({
+                      where: { code: taskData.type }
+                    });
+                    if (taskType) {
+                      taskTypeId = taskType.id;
+                    }
+                  }
+                  
+                  // Create empty task for later editing
+                  const mainTask = taskRepository.create({
+                    taskNumber,
+                    title: taskData.name || `Zadanie ${taskData.type || 'nowe'}`,
+                    description: taskData.description || '',
+                    taskTypeId,
+                    status: 'created',
+                    contractId: contract.id,
+                    subsystemId: subsystem.id,
+                    location: contract.customName,
+                    priority: 0,
+                    metadata: {
+                      createdFromWizard: true,
+                      wizardData: taskData,
+                      subsystemType: type
+                    }
+                  });
+                  
+                  const savedMainTask = await taskRepository.save(mainTask);
+                  createdMainTasks.push(savedMainTask);
+                  
+                } catch (taskError) {
+                  console.error(`Failed to create main task for ${taskData.name}:`, taskError);
+                  // Continue with next task - don't break entire process
+                }
+              } catch (error) {
+                console.error(`Failed to create task for subsystem ${subsystem.subsystemNumber}:`, error);
+                // Continue with next task
+              }
             }
           }
           
           createdSubsystems.push({
             ...subsystem,
             params,
-            tasks: createdTasks
+            tasks: createdTasks,
+            mainTasks: createdMainTasks
           });
         }
         
-        const totalTasks = createdSubsystems.reduce((sum, s) => sum + (s.tasks?.length || 0), 0);
+        const totalSubsystemTasks = createdSubsystems.reduce((sum, s) => sum + (s.tasks?.length || 0), 0);
+        const totalMainTasks = createdSubsystems.reduce((sum, s) => sum + (s.mainTasks?.length || 0), 0);
         
         res.status(201).json({
           success: true,
-          message: `Kontrakt utworzony pomyślnie z ${createdSubsystems.length} podsystemami i ${totalTasks} zadaniami`,
+          message: `Kontrakt utworzony pomyślnie z ${createdSubsystems.length} podsystemami i ${totalMainTasks} zadaniami`,
           data: {
-            ...contract,
-            subsystems: createdSubsystems
+            contract,
+            subsystems: createdSubsystems,
+            tasksCreated: totalMainTasks,
+            subsystemTasksCreated: totalSubsystemTasks
           }
         });
+        return;
       }
       // Legacy format: single subsystem
       else if (subsystemType || (Array.isArray(tasks) && tasks.length > 0)) {
@@ -427,10 +491,6 @@ export class ContractController {
         });
         return;
       }
-
-      // 3. TODO: W przyszłości - utworzenie poszczególnych zadań w bazie
-      // Na razie zadania są tylko w metadanych subsystemu
-      // Można rozszerzyć o dedykowaną tabelę Task z pełną strukturą
 
     } catch (error: any) {
       console.error('Błąd tworzenia kontraktu przez kreatora:', error);

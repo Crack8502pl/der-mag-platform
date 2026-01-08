@@ -9,11 +9,15 @@ import { TaskActivity } from './TaskActivity';
 import { QualityPhoto } from './QualityPhoto';
 import { TaskAssignment } from './TaskAssignment';
 import { TaskMetric } from './TaskMetric';
+import { Contract } from './Contract';
+import { Subsystem } from './Subsystem';
 
 @Entity('tasks')
 @Index(['taskNumber'], { unique: true })
 @Index(['status'])
 @Index(['taskTypeId'])
+@Index(['contractId'])
+@Index(['subsystemId'])
 export class Task {
   @PrimaryGeneratedColumn()
   id: number;
@@ -55,6 +59,20 @@ export class Task {
 
   @OneToMany(() => Task, task => task.parentTask)
   childTasks: Task[];
+
+  @ManyToOne(() => Contract, { nullable: true })
+  @JoinColumn({ name: 'contract_id' })
+  contract: Contract;
+
+  @Column({ name: 'contract_id', nullable: true })
+  contractId: number;
+
+  @ManyToOne(() => Subsystem, { nullable: true })
+  @JoinColumn({ name: 'subsystem_id' })
+  subsystem: Subsystem;
+
+  @Column({ name: 'subsystem_id', nullable: true })
+  subsystemId: number;
 
   @Column({ name: 'planned_start_date', type: 'date', nullable: true })
   plannedStartDate: Date;
