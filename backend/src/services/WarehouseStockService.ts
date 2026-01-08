@@ -29,6 +29,46 @@ interface PaginationOptions {
   sortOrder?: 'ASC' | 'DESC';
 }
 
+interface ImportRow {
+  rowNumber: number;
+  catalog_number: string;
+  material_name: string;
+  description?: string;
+  category?: string;
+  subcategory?: string;
+  material_type?: string;
+  unit?: string;
+  quantity_in_stock?: string;
+  min_stock_level?: string;
+  supplier?: string;
+  unit_price?: string;
+  warehouse_location?: string;
+}
+
+interface AnalyzedRow extends ImportRow {
+  status: 'new' | 'duplicate_catalog' | 'duplicate_name' | 'conflict';
+  existingRecord?: WarehouseStock;
+  changedFields?: string[];
+  validationErrors?: string[];
+}
+
+interface UpdateOptions {
+  updateQuantity: boolean;
+  updatePrice: boolean;
+  updateDescription: boolean;
+  updateLocation: boolean;
+  updateSupplier: boolean;
+  skipDuplicates: boolean;
+}
+
+interface ImportResultDetailed {
+  imported: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  errors: Array<{ row: number; field?: string; error: string }>;
+}
+
 export class WarehouseStockService {
   private stockRepository: Repository<WarehouseStock>;
   private historyRepository: Repository<WarehouseStockHistory>;
@@ -372,48 +412,305 @@ export class WarehouseStockService {
   }
 
   /**
-   * Import z CSV
+   * Parse CSV with proper handling of quoted fields
    */
-  async importFromCSV(csvContent: string, userId: number): Promise<{ success: number; failed: number; errors: any[] }> {
-    const lines = csvContent.split('\n').filter(line => line.trim());
-    const headers = lines[0].split(',').map(h => h.trim());
+  private parseCSVLine(line: string): string[] {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
     
-    let success = 0;
-    let failed = 0;
-    const errors: any[] = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      try {
-        const values = lines[i].split(',').map(v => v.trim());
-        const row: any = {};
-        
-        headers.forEach((header, index) => {
-          row[header] = values[index];
-        });
-
-        await this.create({
-          catalogNumber: row.catalog_number || row.catalogNumber,
-          materialName: row.material_name || row.materialName,
-          description: row.description,
-          category: row.category,
-          subcategory: row.subcategory,
-          materialType: row.material_type || row.materialType || MaterialType.CONSUMABLE,
-          unit: row.unit || 'szt',
-          quantityInStock: parseFloat(row.quantity_in_stock || row.quantityInStock || '0'),
-          minStockLevel: row.min_stock_level ? parseFloat(row.min_stock_level) : undefined,
-          supplier: row.supplier,
-          unitPrice: row.unit_price ? parseFloat(row.unit_price) : undefined,
-          warehouseLocation: row.warehouse_location || row.warehouseLocation
-        }, userId);
-
-        success++;
-      } catch (error: any) {
-        failed++;
-        errors.push({ row: i + 1, error: error.message });
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+      
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          // Escaped quote
+          current += '"';
+          i++; // Skip next quote
+        } else {
+          // Toggle quotes
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        // Field separator
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
       }
     }
+    
+    // Add last field
+    result.push(current.trim());
+    return result;
+  }
 
-    return { success, failed, errors };
+  /**
+   * Parse CSV content into rows
+   */
+  private parseCSV(csvContent: string): ImportRow[] {
+    const lines = csvContent.split('\n').filter(line => line.trim());
+    if (lines.length < 2) {
+      throw new Error('Plik CSV musi zawierać nagłówki i co najmniej jeden wiersz danych');
+    }
+    
+    const headers = this.parseCSVLine(lines[0]).map(h => h.trim());
+    const rows: ImportRow[] = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+      const values = this.parseCSVLine(lines[i]);
+      const row: any = { rowNumber: i };
+      
+      headers.forEach((header, index) => {
+        const value = values[index]?.trim() || '';
+        row[header] = value;
+      });
+      
+      // Validate required fields
+      if (!row.catalog_number || !row.material_name) {
+        continue; // Skip invalid rows
+      }
+      
+      rows.push(row as ImportRow);
+    }
+    
+    return rows;
+  }
+
+  /**
+   * Get changed fields between existing record and import row
+   */
+  private getChangedFields(existing: WarehouseStock, row: ImportRow): string[] {
+    const changed: string[] = [];
+    
+    if (row.description && row.description !== existing.description) {
+      changed.push('description');
+    }
+    if (row.quantity_in_stock && parseFloat(row.quantity_in_stock) !== existing.quantityInStock) {
+      changed.push('quantity_in_stock');
+    }
+    if (row.unit_price && parseFloat(row.unit_price) !== existing.unitPrice) {
+      changed.push('unit_price');
+    }
+    if (row.warehouse_location && row.warehouse_location !== existing.warehouseLocation) {
+      changed.push('warehouse_location');
+    }
+    if (row.supplier && row.supplier !== existing.supplier) {
+      changed.push('supplier');
+    }
+    if (row.category && row.category !== existing.category) {
+      changed.push('category');
+    }
+    if (row.subcategory && row.subcategory !== existing.subcategory) {
+      changed.push('subcategory');
+    }
+    if (row.min_stock_level && parseFloat(row.min_stock_level) !== existing.minStockLevel) {
+      changed.push('min_stock_level');
+    }
+    
+    return changed;
+  }
+
+  /**
+   * Analyze CSV for duplicates before import
+   */
+  async analyzeCSVForDuplicates(csvContent: string): Promise<{
+    totalRows: number;
+    newRecords: AnalyzedRow[];
+    duplicates: AnalyzedRow[];
+    errors: AnalyzedRow[];
+  }> {
+    const rows = this.parseCSV(csvContent);
+    const newRecords: AnalyzedRow[] = [];
+    const duplicates: AnalyzedRow[] = [];
+    const errors: AnalyzedRow[] = [];
+    
+    for (const row of rows) {
+      const analyzedRow: AnalyzedRow = { ...row, status: 'new' };
+      const validationErrors: string[] = [];
+      
+      // Basic validation
+      if (!row.catalog_number) {
+        validationErrors.push('Brak numeru katalogowego');
+      }
+      if (!row.material_name) {
+        validationErrors.push('Brak nazwy materiału');
+      }
+      
+      if (validationErrors.length > 0) {
+        analyzedRow.status = 'conflict';
+        analyzedRow.validationErrors = validationErrors;
+        errors.push(analyzedRow);
+        continue;
+      }
+      
+      // Check for duplicates by catalog number
+      const byCatalog = await this.stockRepository.findOne({
+        where: { catalogNumber: row.catalog_number }
+      });
+      
+      if (byCatalog) {
+        const changedFields = this.getChangedFields(byCatalog, row);
+        analyzedRow.status = 'duplicate_catalog';
+        analyzedRow.existingRecord = byCatalog;
+        analyzedRow.changedFields = changedFields;
+        duplicates.push(analyzedRow);
+        continue;
+      }
+      
+      // Check for duplicates by material name
+      const byName = await this.stockRepository.findOne({
+        where: { materialName: row.material_name }
+      });
+      
+      if (byName) {
+        const changedFields = this.getChangedFields(byName, row);
+        analyzedRow.status = 'duplicate_name';
+        analyzedRow.existingRecord = byName;
+        analyzedRow.changedFields = changedFields;
+        duplicates.push(analyzedRow);
+        continue;
+      }
+      
+      newRecords.push(analyzedRow);
+    }
+    
+    return {
+      totalRows: rows.length,
+      newRecords,
+      duplicates,
+      errors
+    };
+  }
+
+  /**
+   * Map ImportRow to WarehouseStock entity
+   */
+  private mapRowToStock(row: ImportRow): Partial<WarehouseStock> {
+    return {
+      catalogNumber: row.catalog_number,
+      materialName: row.material_name,
+      description: row.description || undefined,
+      category: row.category || undefined,
+      subcategory: row.subcategory || undefined,
+      materialType: (row.material_type as MaterialType) || MaterialType.CONSUMABLE,
+      unit: row.unit || 'szt',
+      quantityInStock: row.quantity_in_stock ? parseFloat(row.quantity_in_stock) : 0,
+      minStockLevel: row.min_stock_level ? parseFloat(row.min_stock_level) : undefined,
+      supplier: row.supplier || undefined,
+      unitPrice: row.unit_price ? parseFloat(row.unit_price) : undefined,
+      warehouseLocation: row.warehouse_location || undefined
+    };
+  }
+
+  /**
+   * Import with selective field update options
+   */
+  async importWithOptions(
+    csvContent: string,
+    updateOptions: UpdateOptions,
+    userId: number
+  ): Promise<ImportResultDetailed> {
+    const rows = this.parseCSV(csvContent);
+    let imported = 0;
+    let updated = 0;
+    let skipped = 0;
+    let failed = 0;
+    const errors: Array<{ row: number; field?: string; error: string }> = [];
+    
+    for (const row of rows) {
+      try {
+        // Check for existing record
+        const existing = await this.stockRepository.findOne({
+          where: { catalogNumber: row.catalog_number }
+        });
+        
+        if (existing) {
+          if (updateOptions.skipDuplicates) {
+            skipped++;
+            continue;
+          }
+          
+          // Build update data based on options
+          const updateData: Partial<WarehouseStock> = {};
+          
+          if (updateOptions.updateQuantity && row.quantity_in_stock !== undefined) {
+            updateData.quantityInStock = parseFloat(row.quantity_in_stock);
+          }
+          if (updateOptions.updatePrice && row.unit_price) {
+            updateData.unitPrice = parseFloat(row.unit_price);
+          }
+          if (updateOptions.updateDescription && row.description) {
+            updateData.description = row.description;
+          }
+          if (updateOptions.updateLocation && row.warehouse_location) {
+            updateData.warehouseLocation = row.warehouse_location;
+          }
+          if (updateOptions.updateSupplier && row.supplier) {
+            updateData.supplier = row.supplier;
+          }
+          
+          // Also update other fields if provided
+          if (row.category) updateData.category = row.category;
+          if (row.subcategory) updateData.subcategory = row.subcategory;
+          if (row.min_stock_level) updateData.minStockLevel = parseFloat(row.min_stock_level);
+          if (row.unit) updateData.unit = row.unit;
+          
+          if (Object.keys(updateData).length > 0) {
+            await this.update(existing.id, updateData, userId);
+            
+            // Log to history
+            await this.logHistory(existing.id, StockOperationType.IMPORT, null, userId, {
+              action: 'update',
+              updatedFields: Object.keys(updateData),
+              source: 'csv_import'
+            });
+            
+            updated++;
+          } else {
+            skipped++;
+          }
+        } else {
+          // Create new record
+          const stockData = this.mapRowToStock(row);
+          await this.create(stockData, userId);
+          imported++;
+        }
+      } catch (error: any) {
+        failed++;
+        errors.push({ 
+          row: row.rowNumber, 
+          error: error.message 
+        });
+      }
+    }
+    
+    return { imported, updated, skipped, failed, errors };
+  }
+
+  /**
+   * Import z CSV (legacy method - kept for backward compatibility)
+   */
+  async importFromCSV(csvContent: string, userId: number): Promise<{ success: number; failed: number; errors: any[] }> {
+    const result = await this.importWithOptions(
+      csvContent, 
+      {
+        updateQuantity: false,
+        updatePrice: false,
+        updateDescription: false,
+        updateLocation: false,
+        updateSupplier: false,
+        skipDuplicates: true
+      },
+      userId
+    );
+    
+    return {
+      success: result.imported,
+      failed: result.failed,
+      errors: result.errors
+    };
   }
 
   /**

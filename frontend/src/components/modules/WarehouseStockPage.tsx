@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { BackButton } from '../common/BackButton';
 import { useAuth } from '../../hooks/useAuth';
 import { warehouseStockService } from '../../services/warehouseStock.service';
+import { WarehouseStockImportModal } from './WarehouseStockImportModal';
 import type { WarehouseStock, StockFilters, StockStatus, MaterialType } from '../../types/warehouseStock.types';
 import './WarehouseStockPage.css';
 
@@ -489,10 +490,15 @@ export const WarehouseStockPage: React.FC = () => {
       )}
       
       {showImportModal && (
-        <div className="modal-placeholder">
-          <p>Modal importu CSV (do zaimplementowania)</p>
-          <button onClick={() => setShowImportModal(false)}>Zamknij</button>
-        </div>
+        <WarehouseStockImportModal
+          onClose={() => setShowImportModal(false)}
+          onSuccess={() => {
+            setShowImportModal(false);
+            loadItems();
+            setSuccess('Import zakończony pomyślnie');
+            setTimeout(() => setSuccess(''), 5000);
+          }}
+        />
       )}
       
       {editingItem && (
