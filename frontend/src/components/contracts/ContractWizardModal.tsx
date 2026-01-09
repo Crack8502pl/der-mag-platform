@@ -7,7 +7,7 @@ import { SUBSYSTEM_WIZARD_CONFIG, detectSubsystemTypes } from '../../config/subs
 import type { SubsystemType } from '../../config/subsystemWizardConfig';
 import contractService, { type Subsystem, type Contract } from '../../services/contract.service';
 import { AdminService } from '../../services/admin.service';
-import type { User as AdminUser } from '../../types/admin.types';
+import type { User as AdminUser, Role } from '../../types/admin.types';
 
 interface Props {
   onClose: () => void;
@@ -77,8 +77,16 @@ export const ContractWizardModal: React.FC<Props> = ({
   
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
 
+  // Helper to get role name (handles both string and object types)
+  const getRoleName = (role: string | Role | null | undefined): string => {
+    if (typeof role === 'string') return role;
+    if (role && typeof role === 'object' && role.name) return role.name;
+    return '';
+  };
+
   // Check if current user can select managers (Admin or Board)
-  const canSelectManager = user?.role === 'admin' || user?.role === 'board';
+  const roleName = getRoleName(user?.role);
+  const canSelectManager = roleName === 'admin' || roleName === 'board';
 
   // Set initial projectManagerId when user is available
   useEffect(() => {
@@ -230,6 +238,17 @@ export const ContractWizardModal: React.FC<Props> = ({
     });
   };
 
+  // Handle manager selection and auto-fill manager code
+  const handleManagerChange = (selectedManagerId: string) => {
+    const selectedManager = availableManagers.find(m => m.id.toString() === selectedManagerId);
+    setWizardData({
+      ...wizardData, 
+      projectManagerId: selectedManagerId,
+      // Automatycznie ustaw employeeCode jako managerCode
+      managerCode: selectedManager?.employeeCode || wizardData.managerCode
+    });
+  };
+
   // Add a subsystem manually
   const addSubsystem = (type: SubsystemType) => {
     setWizardData({
@@ -306,9 +325,14 @@ export const ContractWizardModal: React.FC<Props> = ({
       if (getBooleanValue(params, 'hasLCS')) {
         taskDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '' });
       }
-      // CUID
+      // CUID - kopiuj dane z LCS
       if (getBooleanValue(params, 'hasCUID')) {
-        taskDetails.push({ taskType: 'CUID', nazwa: '', miejscowosc: '' });
+        const lcsTask = taskDetails.find(t => t.taskType === 'LCS');
+        taskDetails.push({ 
+          taskType: 'CUID', 
+          nazwa: lcsTask?.nazwa || '', 
+          miejscowosc: lcsTask?.miejscowosc || '' 
+        });
       }
     } else if (subsystem.type === 'SMOKIP_B') {
       // PRZEJAZD_KAT_B
@@ -323,9 +347,14 @@ export const ContractWizardModal: React.FC<Props> = ({
       if (getBooleanValue(params, 'hasLCS')) {
         taskDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '' });
       }
-      // CUID
+      // CUID - kopiuj dane z LCS
       if (getBooleanValue(params, 'hasCUID')) {
-        taskDetails.push({ taskType: 'CUID', nazwa: '', miejscowosc: '' });
+        const lcsTask = taskDetails.find(t => t.taskType === 'LCS');
+        taskDetails.push({ 
+          taskType: 'CUID', 
+          nazwa: lcsTask?.nazwa || '', 
+          miejscowosc: lcsTask?.miejscowosc || '' 
+        });
       }
     }
     
@@ -341,10 +370,28 @@ export const ContractWizardModal: React.FC<Props> = ({
     if (!newSubsystems[subsystemIndex].taskDetails) {
       newSubsystems[subsystemIndex].taskDetails = [];
     }
-    newSubsystems[subsystemIndex].taskDetails![taskIndex] = {
-      ...newSubsystems[subsystemIndex].taskDetails![taskIndex],
+    
+    const taskDetails = newSubsystems[subsystemIndex].taskDetails!;
+    taskDetails[taskIndex] = {
+      ...taskDetails[taskIndex],
       ...updates
     };
+    
+    // Synchronizacja LCS -> CUID: jeśli modyfikujemy LCS, zaktualizuj CUID
+    const updatedTask = taskDetails[taskIndex];
+    if (updatedTask.taskType === 'LCS' && (updates.nazwa !== undefined || updates.miejscowosc !== undefined)) {
+      // Znajdź CUID w tym samym podsystemie
+      const cuidIndex = taskDetails.findIndex(t => t.taskType === 'CUID');
+      if (cuidIndex !== -1) {
+        const cuidTask = taskDetails[cuidIndex];
+        taskDetails[cuidIndex] = {
+          ...cuidTask,
+          nazwa: updates.nazwa !== undefined ? updates.nazwa : updatedTask.nazwa,
+          miejscowosc: updates.miejscowosc !== undefined ? updates.miejscowosc : updatedTask.miejscowosc
+        };
+      }
+    }
+    
     setWizardData({ ...wizardData, subsystems: newSubsystems });
   };
 
@@ -755,8 +802,9 @@ export const ContractWizardModal: React.FC<Props> = ({
       }
     }
     
-    if (stepInfo.type === 'preview') {
-      // Generate tasks before moving to preview
+    // Przed przejściem do Preview - wygeneruj zadania
+    const nextStepInfo = getStepInfo(currentStep + 1);
+    if (nextStepInfo.type === 'preview') {
       const tasks = generateAllTasks();
       setGeneratedTasks(tasks);
     }
@@ -897,7 +945,7 @@ export const ContractWizardModal: React.FC<Props> = ({
     
     if (stepInfo.type === 'basic') {
       return wizardData.customName && wizardData.orderDate && 
-             wizardData.projectManagerId && wizardData.managerCode.length === 3;
+             wizardData.projectManagerId && wizardData.managerCode.length >= 1 && wizardData.managerCode.length <= 5;
     }
     if (stepInfo.type === 'selection') {
       return wizardData.subsystems.length > 0;
@@ -978,7 +1026,7 @@ export const ContractWizardModal: React.FC<Props> = ({
           <>
             <select
               value={wizardData.projectManagerId}
-              onChange={(e) => setWizardData({...wizardData, projectManagerId: e.target.value})}
+              onChange={(e) => handleManagerChange(e.target.value)}
               disabled={loadingManagers}
             >
               <option value="">Wybierz kierownika projektu</option>
@@ -1006,13 +1054,13 @@ export const ContractWizardModal: React.FC<Props> = ({
       </div>
       
       <div className="form-group">
-        <label>Kod kierownika (3 znaki) *</label>
+        <label>Kod kierownika (do 5 znaków) *</label>
         <input
           type="text"
           value={wizardData.managerCode}
-          onChange={(e) => setWizardData({...wizardData, managerCode: e.target.value.toUpperCase().slice(0, 3)})}
-          maxLength={3}
-          placeholder="np. ABC"
+          onChange={(e) => setWizardData({...wizardData, managerCode: e.target.value.toUpperCase().slice(0, 5)})}
+          maxLength={5}
+          placeholder="np. ABC12"
         />
       </div>
     </div>
