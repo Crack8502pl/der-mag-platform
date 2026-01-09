@@ -6,12 +6,16 @@ import { verifyAccessToken, JWTPayload } from '../config/jwt';
 import { AppDataSource } from '../config/database';
 import { User } from '../entities/User';
 import { RefreshToken } from '../entities/RefreshToken';
+import { Role } from '../entities/Role';
 
 // Rozszerzenie typu Request o dane użytkownika
 declare global {
   namespace Express {
     interface Request {
-      user?: JWTPayload;
+      user?: JWTPayload & {
+        role?: Role | string;
+        permissions?: any;
+      };
       userId?: number;
     }
   }
@@ -42,13 +46,14 @@ export const authenticate = async (
 
     try {
       const payload = verifyAccessToken(token);
-      req.user = payload;
       req.userId = payload.userId;
 
       // Sprawdź czy użytkownik nadal istnieje i jest aktywny
+      // Załaduj pełne dane użytkownika z uprawnieniami
       const userRepository = AppDataSource.getRepository(User);
       const user = await userRepository.findOne({
-        where: { id: payload.userId, active: true }
+        where: { id: payload.userId, active: true },
+        relations: ['role']
       });
 
       if (!user) {
@@ -58,6 +63,13 @@ export const authenticate = async (
         });
         return;
       }
+
+      // Ustaw req.user z pełnymi danymi użytkownika i uprawnieniami z roli
+      req.user = {
+        ...payload,
+        role: user.role as any,
+        permissions: user.role.permissions
+      };
 
       // Paranoid mode: verify token exists in database and is not revoked
       if (PARANOID_MODE && payload.jti) {

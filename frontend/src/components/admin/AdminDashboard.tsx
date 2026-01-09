@@ -25,6 +25,13 @@ export const AdminDashboard: React.FC = () => {
 
   const adminCards: AdminCard[] = [
     {
+      title: 'Uprawnienia 🔑',
+      description: 'Przegląd matrycy uprawnień wszystkich ról',
+      icon: '🔑',
+      path: '/admin/permissions',
+      roles: ['admin'],
+    },
+    {
       title: 'Konfiguracja SMTP',
       description: 'Skonfiguruj serwer pocztowy do wysyłki emaili',
       icon: '📧',
@@ -112,6 +119,9 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="admin-dashboard">
       <div className="dashboard-header">
+        <button onClick={() => navigate('/dashboard')} className="back-button">
+          ← Powrót
+        </button>
         <h1>Panel Administratora</h1>
         <p className="subtitle">Zarządzaj systemem i konfiguracją</p>
       </div>
@@ -185,6 +195,23 @@ export const AdminDashboard: React.FC = () => {
 
         .dashboard-header {
           margin-bottom: 30px;
+        }
+
+        .dashboard-header .back-button {
+          background: #6c757d;
+          color: white;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          transition: background 0.2s;
+          margin-bottom: 15px;
+        }
+
+        .dashboard-header .back-button:hover {
+          background: #5a6268;
         }
 
         .dashboard-header h1 {

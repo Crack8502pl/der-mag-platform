@@ -157,7 +157,39 @@ export interface NotificationPermissions {
 }
 
 /**
- * Struktura wszystkich uprawnień - 15 modułów, 27 akcji
+ * Granularne uprawnienia dla magazynu
+ */
+export interface WarehouseStockPermissions {
+  read?: boolean;
+  create?: boolean;
+  update?: boolean;
+  delete?: boolean;
+  manage_locations?: boolean;
+  adjust_stock?: boolean;
+  view_history?: boolean;
+  view_prices?: boolean;
+  export?: boolean;
+  import?: boolean;
+  reserve_stock?: boolean;
+  release_stock?: boolean;
+  auto_assign?: boolean;
+  scan_material?: boolean;
+}
+
+/**
+ * Granularne uprawnienia dla brygad
+ */
+export interface BrigadePermissions {
+  read?: boolean;
+  create?: boolean;
+  update?: boolean;
+  delete?: boolean;
+  assignMembers?: boolean;
+  viewMembers?: boolean;
+}
+
+/**
+ * Struktura wszystkich uprawnień - 17 modułów
  */
 export interface RolePermissions {
   all?: boolean; // Admin - pełny dostęp
@@ -176,6 +208,8 @@ export interface RolePermissions {
   photos?: PhotoPermissions;
   documents?: DocumentPermissions;
   notifications?: NotificationPermissions;
+  warehouse_stock?: WarehouseStockPermissions;
+  brigades?: BrigadePermissions;
   // Zachowanie kompatybilności z istniejącymi uprawnieniami
   [key: string]: any;
 }
