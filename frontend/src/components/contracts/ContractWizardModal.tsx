@@ -7,7 +7,7 @@ import { SUBSYSTEM_WIZARD_CONFIG, detectSubsystemTypes } from '../../config/subs
 import type { SubsystemType } from '../../config/subsystemWizardConfig';
 import contractService, { type Subsystem, type Contract } from '../../services/contract.service';
 import { AdminService } from '../../services/admin.service';
-import type { User as AdminUser } from '../../types/admin.types';
+import type { User as AdminUser, Role } from '../../types/admin.types';
 
 interface Props {
   onClose: () => void;
@@ -78,7 +78,7 @@ export const ContractWizardModal: React.FC<Props> = ({
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
 
   // Helper to get role name (handles both string and object types)
-  const getRoleName = (role: any): string => {
+  const getRoleName = (role: string | Role | null | undefined): string => {
     if (typeof role === 'string') return role;
     if (role && typeof role === 'object' && role.name) return role.name;
     return '';
@@ -238,6 +238,17 @@ export const ContractWizardModal: React.FC<Props> = ({
     });
   };
 
+  // Handle manager selection and auto-fill manager code
+  const handleManagerChange = (selectedManagerId: string) => {
+    const selectedManager = availableManagers.find(m => m.id.toString() === selectedManagerId);
+    setWizardData({
+      ...wizardData, 
+      projectManagerId: selectedManagerId,
+      // Automatycznie ustaw employeeCode jako managerCode
+      managerCode: selectedManager?.employeeCode || wizardData.managerCode
+    });
+  };
+
   // Add a subsystem manually
   const addSubsystem = (type: SubsystemType) => {
     setWizardData({
@@ -359,19 +370,21 @@ export const ContractWizardModal: React.FC<Props> = ({
     if (!newSubsystems[subsystemIndex].taskDetails) {
       newSubsystems[subsystemIndex].taskDetails = [];
     }
-    newSubsystems[subsystemIndex].taskDetails![taskIndex] = {
-      ...newSubsystems[subsystemIndex].taskDetails![taskIndex],
+    
+    const taskDetails = newSubsystems[subsystemIndex].taskDetails!;
+    taskDetails[taskIndex] = {
+      ...taskDetails[taskIndex],
       ...updates
     };
     
     // Synchronizacja LCS -> CUID: jeśli modyfikujemy LCS, zaktualizuj CUID
-    const updatedTask = newSubsystems[subsystemIndex].taskDetails![taskIndex];
+    const updatedTask = taskDetails[taskIndex];
     if (updatedTask.taskType === 'LCS' && (updates.nazwa !== undefined || updates.miejscowosc !== undefined)) {
       // Znajdź CUID w tej samej podsystemie
-      const cuidIndex = newSubsystems[subsystemIndex].taskDetails!.findIndex(t => t.taskType === 'CUID');
+      const cuidIndex = taskDetails.findIndex(t => t.taskType === 'CUID');
       if (cuidIndex !== -1) {
-        const cuidTask = newSubsystems[subsystemIndex].taskDetails![cuidIndex];
-        newSubsystems[subsystemIndex].taskDetails![cuidIndex] = {
+        const cuidTask = taskDetails[cuidIndex];
+        taskDetails[cuidIndex] = {
           ...cuidTask,
           nazwa: updates.nazwa !== undefined ? updates.nazwa : updatedTask.nazwa,
           miejscowosc: updates.miejscowosc !== undefined ? updates.miejscowosc : updatedTask.miejscowosc
@@ -1013,16 +1026,7 @@ export const ContractWizardModal: React.FC<Props> = ({
           <>
             <select
               value={wizardData.projectManagerId}
-              onChange={(e) => {
-                const selectedManagerId = e.target.value;
-                const selectedManager = availableManagers.find(m => m.id.toString() === selectedManagerId);
-                setWizardData({
-                  ...wizardData, 
-                  projectManagerId: selectedManagerId,
-                  // Automatycznie ustaw employeeCode jako managerCode
-                  managerCode: selectedManager?.employeeCode || wizardData.managerCode
-                });
-              }}
+              onChange={(e) => handleManagerChange(e.target.value)}
               disabled={loadingManagers}
             >
               <option value="">Wybierz kierownika projektu</option>
