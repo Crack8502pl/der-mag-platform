@@ -59,16 +59,33 @@ describe('Auth Middleware', () => {
         authorization: 'Bearer valid-token',
       };
 
+      const mockRole = {
+        id: 1,
+        name: 'admin',
+        permissions: { all: true }
+      };
+
       (jwt.verifyAccessToken as jest.Mock).mockReturnValue(mockPayload);
-      mockUserRepository.findOne.mockResolvedValue({ id: 1, username: 'testuser', active: true });
+      mockUserRepository.findOne.mockResolvedValue({ 
+        id: 1, 
+        username: 'testuser', 
+        active: true,
+        role: mockRole
+      });
 
       await authenticate(req as Request, res as Response, next);
 
       expect(jwt.verifyAccessToken).toHaveBeenCalledWith('valid-token');
-      expect(req.user).toEqual(mockPayload);
       expect(req.userId).toBe(1);
+      expect(req.user).toMatchObject({
+        userId: 1,
+        username: 'testuser',
+        role: mockRole,
+        permissions: mockRole.permissions
+      });
       expect(mockUserRepository.findOne).toHaveBeenCalledWith({
         where: { id: 1, active: true },
+        relations: ['role']
       });
       expect(next).toHaveBeenCalled();
     });
@@ -203,7 +220,7 @@ describe('Auth Middleware', () => {
       };
     });
 
-    it('should allow access for authorized role', async () => {
+    it('should allow access for authorized role (string)', async () => {
       const middleware = authorize('admin', 'manager');
 
       await middleware(req as Request, res as Response, next);
@@ -212,8 +229,58 @@ describe('Auth Middleware', () => {
       expect(res.status).not.toHaveBeenCalled();
     });
 
-    it('should deny access for unauthorized role', async () => {
+    it('should allow access for authorized role (object)', async () => {
+      req.user = {
+        userId: 1,
+        username: 'testuser',
+        role: { id: 2, name: 'manager' } as any,
+      };
+      const middleware = authorize('admin', 'manager');
+
+      await middleware(req as Request, res as Response, next);
+
+      expect(next).toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it('should deny access for unauthorized role (string)', async () => {
       const middleware = authorize('admin');
+
+      await middleware(req as Request, res as Response, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Brak uprawnień do wykonania tej operacji',
+      });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('should deny access for unauthorized role (object)', async () => {
+      req.user = {
+        userId: 1,
+        username: 'testuser',
+        role: { id: 2, name: 'manager' } as any,
+      };
+      const middleware = authorize('admin');
+
+      await middleware(req as Request, res as Response, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Brak uprawnień do wykonania tej operacji',
+      });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('should deny access when role object has no name', async () => {
+      req.user = {
+        userId: 1,
+        username: 'testuser',
+        role: { id: 2 } as any,
+      };
+      const middleware = authorize('admin', 'manager');
 
       await middleware(req as Request, res as Response, next);
 
