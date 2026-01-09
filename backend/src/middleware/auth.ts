@@ -6,12 +6,16 @@ import { verifyAccessToken, JWTPayload } from '../config/jwt';
 import { AppDataSource } from '../config/database';
 import { User } from '../entities/User';
 import { RefreshToken } from '../entities/RefreshToken';
+import { Role } from '../entities/Role';
 
 // Rozszerzenie typu Request o dane użytkownika
 declare global {
   namespace Express {
     interface Request {
-      user?: JWTPayload;
+      user?: JWTPayload & {
+        role?: Role | string;
+        permissions?: any;
+      };
       userId?: number;
     }
   }
@@ -63,7 +67,7 @@ export const authenticate = async (
       // Ustaw req.user z pełnymi danymi użytkownika i uprawnieniami z roli
       req.user = {
         ...payload,
-        role: user.role,
+        role: user.role as any,
         permissions: user.role.permissions
       };
 
