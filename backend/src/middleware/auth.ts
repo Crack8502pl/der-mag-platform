@@ -42,13 +42,14 @@ export const authenticate = async (
 
     try {
       const payload = verifyAccessToken(token);
-      req.user = payload;
       req.userId = payload.userId;
 
       // Sprawdź czy użytkownik nadal istnieje i jest aktywny
+      // Załaduj pełne dane użytkownika z uprawnieniami
       const userRepository = AppDataSource.getRepository(User);
       const user = await userRepository.findOne({
-        where: { id: payload.userId, active: true }
+        where: { id: payload.userId, active: true },
+        relations: ['role']
       });
 
       if (!user) {
@@ -58,6 +59,13 @@ export const authenticate = async (
         });
         return;
       }
+
+      // Ustaw req.user z pełnymi danymi użytkownika i uprawnieniami z roli
+      req.user = {
+        ...payload,
+        role: user.role,
+        permissions: user.role.permissions
+      };
 
       // Paranoid mode: verify token exists in database and is not revoked
       if (PARANOID_MODE && payload.jti) {

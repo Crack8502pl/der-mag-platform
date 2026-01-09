@@ -23,8 +23,9 @@ const authorize = (action: string) => {
       return res.status(401).json({ success: false, message: 'Brak autoryzacji' });
     }
 
-    // Admin ma pełny dostęp
-    if (user.role === 'admin' || user.permissions?.all) {
+    // Admin ma pełny dostęp - sprawdź zarówno string jak i obiekt Role
+    const roleName = typeof user.role === 'string' ? user.role : user.role?.name;
+    if (roleName === 'admin' || user.permissions?.all || user.role?.permissions?.all) {
       return next();
     }
 
