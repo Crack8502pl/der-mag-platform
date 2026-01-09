@@ -380,7 +380,7 @@ export const ContractWizardModal: React.FC<Props> = ({
     // Synchronizacja LCS -> CUID: jeśli modyfikujemy LCS, zaktualizuj CUID
     const updatedTask = taskDetails[taskIndex];
     if (updatedTask.taskType === 'LCS' && (updates.nazwa !== undefined || updates.miejscowosc !== undefined)) {
-      // Znajdź CUID w tej samej podsystemie
+      // Znajdź CUID w tym samym podsystemie
       const cuidIndex = taskDetails.findIndex(t => t.taskType === 'CUID');
       if (cuidIndex !== -1) {
         const cuidTask = taskDetails[cuidIndex];
