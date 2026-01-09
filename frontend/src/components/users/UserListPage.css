@@ -173,20 +173,20 @@
 
 .status-badge.status-active {
   background: rgba(40, 167, 69, 0.2);
-  color: #28a745;
-  border: 1px solid #28a745;
+  color: var(--status-success);
+  border: 1px solid var(--status-success);
 }
 
 .status-badge.status-inactive {
   background: rgba(220, 53, 69, 0.2);
-  color: #dc3545;
-  border: 1px solid #dc3545;
+  color: var(--danger);
+  border: 1px solid var(--danger);
 }
 
 .status-badge.status-warning {
   background: rgba(255, 193, 7, 0.2);
-  color: #ff9800;
-  border: 1px solid #ff9800;
+  color: var(--status-warning);
+  border: 1px solid var(--status-warning);
 }
 
 .role-badge {
@@ -198,8 +198,8 @@
   font-size: 12px;
   font-weight: 500;
   background: rgba(66, 153, 225, 0.2);
-  color: #4299e1;
-  border: 1px solid #4299e1;
+  color: var(--info);
+  border: 1px solid var(--info);
 }
 
 /* Actions dropdown - fallback for old styles */
