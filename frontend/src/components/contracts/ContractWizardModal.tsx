@@ -71,7 +71,7 @@ export const ContractWizardModal: React.FC<Props> = ({
     customName: '',
     orderDate: '',
     projectManagerId: user?.id?.toString() || '',
-    managerCode: '',
+    managerCode: user?.employeeCode || '',
     subsystems: []
   });
   
@@ -88,12 +88,13 @@ export const ContractWizardModal: React.FC<Props> = ({
   const roleName = getRoleName(user?.role);
   const canSelectManager = roleName === 'admin' || roleName === 'board';
 
-  // Set initial projectManagerId when user is available
+  // Set initial projectManagerId and managerCode when user is available
   useEffect(() => {
-    if (user && !wizardData.projectManagerId) {
+    if (user && (!wizardData.projectManagerId || !wizardData.managerCode)) {
       setWizardData(prev => ({
         ...prev,
-        projectManagerId: user.id.toString()
+        projectManagerId: user.id.toString(),
+        managerCode: user.employeeCode || prev.managerCode
       }));
     }
   }, [user]);

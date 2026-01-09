@@ -511,6 +511,7 @@ export class AuthController {
           firstName: user.firstName,
           lastName: user.lastName,
           phone: user.phone,
+          employeeCode: user.employeeCode,
           role: user.role.name,
           permissions: user.role.permissions,
           lastLogin: user.lastLogin
