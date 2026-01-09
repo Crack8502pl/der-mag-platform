@@ -13,8 +13,7 @@
   --bg-card: #252525;
   --bg-hover: #2d2d2d;
   --bg-input: #1f1f1f;
-  --bg-primary: #1a1a1a;
-  --bg-secondary: #252525;
+  --bg-secondary: #252525;  /* Alias for --bg-card, used in tables/sections */
   
   /* Additional UI Elements */
   /* Note: Light theme colors reserved for future light mode implementation */
