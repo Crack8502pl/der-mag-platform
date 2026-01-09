@@ -20,7 +20,7 @@
 .page-header h1 {
   margin: 0;
   font-size: 2rem;
-  color: #333;
+  color: var(--text-primary);
 }
 
 /* Filters Section */
@@ -42,22 +42,24 @@
 
 .filter-group label {
   font-weight: 600;
-  color: #555;
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
 .filter-group input,
 .filter-group select {
   padding: 0.6rem;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 0.95rem;
+  background: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .filter-group input:focus,
 .filter-group select:focus {
   outline: none;
-  border-color: #4CAF50;
+  border-color: var(--primary-color);
 }
 
 /* Results Section */
@@ -74,8 +76,8 @@
 }
 
 .error-message {
-  color: #d32f2f;
-  background-color: #ffebee;
+  color: var(--danger);
+  background-color: var(--danger-light);
   border-radius: 4px;
 }
 
@@ -92,7 +94,7 @@
 }
 
 .subsystems-table thead {
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -102,8 +104,8 @@
   padding: 1rem 0.75rem;
   text-align: left;
   font-weight: 600;
-  color: #333;
-  border-bottom: 2px solid #ddd;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border-color);
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
@@ -111,17 +113,17 @@
 }
 
 .subsystems-table th:hover {
-  background-color: #eeeeee;
+  background-color: var(--bg-hover);
 }
 
 .subsystems-table td {
   padding: 0.75rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
   vertical-align: top;
 }
 
 .subsystems-table tbody tr:hover {
-  background-color: #f9f9f9;
+  background-color: var(--bg-hover);
 }
 
 /* Table Cell Styles */
@@ -142,7 +144,7 @@
 }
 
 .system-name {
-  color: #555;
+  color: var(--text-secondary);
 }
 
 .quantity {
@@ -186,11 +188,11 @@
 
 .contract-number {
   font-family: monospace;
-  color: #555;
+  color: var(--text-secondary);
 }
 
 .project-manager {
-  color: #333;
+  color: var(--text-primary);
 }
 
 /* Documents Button */
@@ -199,7 +201,7 @@
 }
 
 .btn-documents {
-  background-color: #4CAF50;
+  background-color: var(--success);
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -210,7 +212,8 @@
 }
 
 .btn-documents:hover {
-  background-color: #45a049;
+  background-color: var(--success);
+  opacity: 0.9;
 }
 
 /* Pagination */
@@ -224,7 +227,7 @@
 
 .page-info {
   font-weight: 600;
-  color: #555;
+  color: var(--text-secondary);
 }
 
 /* Buttons */
@@ -239,22 +242,23 @@
 }
 
 .btn-primary {
-  background-color: #4CAF50;
+  background-color: var(--success);
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: #45a049;
+  background-color: var(--success);
+  opacity: 0.9;
 }
 
 .btn-secondary {
-  background-color: #f5f5f5;
-  color: #333;
-  border: 1px solid #ddd;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover {
-  background-color: #eeeeee;
+  background-color: var(--bg-hover);
 }
 
 .btn-secondary:disabled {
@@ -264,7 +268,7 @@
 
 /* Card */
 .card {
-  background-color: white;
+  background-color: var(--bg-card);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }

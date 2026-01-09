@@ -230,23 +230,24 @@
   padding: 0;
   font-size: 16px;
   border-radius: 4px;
-  border: 1px solid #ddd;
-  background: white;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
   cursor: pointer;
   transition: all 0.2s;
+  color: var(--text-secondary);
 }
 
 .action-buttons .btn-icon:hover {
-  background: #f5f5f5;
+  background: var(--bg-hover);
 }
 
 .action-buttons .btn-icon.btn-danger {
-  color: #f44336;
-  border-color: #f44336;
+  color: var(--danger);
+  border-color: var(--danger);
 }
 
 .action-buttons .btn-icon.btn-danger:hover {
-  background: #ffebee;
+  background: var(--danger-light);
 }
 
 /* Pagination */
