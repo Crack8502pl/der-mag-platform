@@ -13,6 +13,14 @@
   --bg-card: #252525;
   --bg-hover: #2d2d2d;
   --bg-input: #1f1f1f;
+  --bg-secondary: #252525;  /* Alias for --bg-card, used in tables/sections */
+  
+  /* Additional UI Elements */
+  /* Note: Light theme colors reserved for future light mode implementation */
+  --bg-light: #f5f5f5;
+  --border-light-gray: #ddd;
+  --text-light: #666;
+  --text-dark: #333;
   
   /* Text Colors */
   --text-primary: #ffffff;
@@ -24,6 +32,17 @@
   --error: #f56565;
   --warning: #ed8936;
   --info: #4299e1;
+  
+  /* Semantic Status Badge Colors (Bootstrap-style) */
+  --status-success: #28a745;
+  --status-warning: #ff9800;
+  
+  /* Action Colors */
+  --action-hover: #2d2d2d;
+  --danger: #dc3545;
+  --danger-hover: #c82333;
+  --danger-light: #ffebee;
+  --success-light: #e8f5e9;
   
   /* Border Colors */
   --border-color: #333333;

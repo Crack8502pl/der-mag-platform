@@ -3,6 +3,9 @@
 .user-list-toolbar {
   margin-bottom: 20px;
   padding: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
 }
 
 .toolbar-row {
@@ -17,10 +20,20 @@
   border-radius: 8px;
   font-size: 15px;
   transition: all 0.3s ease;
+  background: var(--bg-input);
+  border: 2px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
 }
 
 .search-input:focus {
   outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.2);
+  background: var(--bg-input);
 }
 
 .toolbar-filters {
@@ -36,29 +49,52 @@
   font-size: 14px;
   cursor: pointer;
   transition: all 0.3s ease;
+  background: var(--bg-input);
+  border: 2px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.filter-select:hover {
+  border-color: var(--border-light);
 }
 
 .filter-select:focus {
   outline: none;
+  border-color: var(--primary-color);
+}
+
+.filter-select option {
+  background: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .user-count {
   font-size: 14px;
   margin-left: auto;
+  color: var(--text-secondary);
+}
+
+.user-count strong {
+  color: var(--text-primary);
 }
 
 /* Users table */
 .users-table-container {
   overflow-x: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
 }
 
 .users-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+  background: var(--bg-card);
 }
 
 .users-table thead {
+  background: var(--bg-secondary);
 }
 
 .users-table th {
@@ -66,6 +102,8 @@
   text-align: left;
   font-weight: 600;
   white-space: nowrap;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border-color);
 }
 
 .users-table th.sortable {
@@ -74,9 +112,19 @@
   transition: background-color 0.2s ease;
 }
 
+.users-table th.sortable:hover {
+  background-color: var(--bg-hover);
+}
+
 .users-table td {
   padding: 15px 12px;
   vertical-align: middle;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.users-table tbody tr:hover {
+  background: var(--bg-hover);
 }
 
 .user-name {
@@ -87,10 +135,12 @@
 
 .user-name strong {
   font-size: 14px;
+  color: var(--text-primary);
 }
 
 .user-name small {
   font-size: 12px;
+  color: var(--text-muted);
 }
 
 .users-table code {
@@ -98,6 +148,9 @@
   border-radius: 4px;
   font-family: 'Courier New', monospace;
   font-size: 13px;
+  background-color: var(--bg-secondary);
+  color: var(--primary-color);
+  border: 1px solid var(--border-color);
 }
 
 /* Status badges */
@@ -108,20 +161,45 @@
 }
 
 .status-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 5px 10px;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
 }
 
+.status-badge.status-active {
+  background: rgba(40, 167, 69, 0.2);
+  color: var(--status-success);
+  border: 1px solid var(--status-success);
+}
+
+.status-badge.status-inactive {
+  background: rgba(220, 53, 69, 0.2);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.status-badge.status-warning {
+  background: rgba(255, 193, 7, 0.2);
+  color: var(--status-warning);
+  border: 1px solid var(--status-warning);
+}
+
 .role-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 5px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 500;
+  background: rgba(66, 153, 225, 0.2);
+  color: var(--info);
+  border: 1px solid var(--info);
 }
 
 /* Actions dropdown - fallback for old styles */
@@ -137,6 +215,12 @@
   padding: 5px 10px;
   border-radius: 4px;
   transition: all 0.2s ease;
+  color: var(--text-secondary);
+}
+
+.btn-icon:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .dropdown-menu {
@@ -148,6 +232,9 @@
   min-width: 200px;
   z-index: 1000;
   margin-top: 5px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
 .actions-dropdown:hover .dropdown-menu,
@@ -165,6 +252,32 @@
   cursor: pointer;
   font-size: 14px;
   transition: background-color 0.2s ease;
+  color: var(--text-primary);
+}
+
+.dropdown-item:hover {
+  background: var(--bg-hover);
+}
+
+.dropdown-item.danger {
+  color: var(--danger);
+}
+
+.dropdown-item.danger:hover {
+  background: var(--danger-light);
+}
+
+.dropdown-item.success {
+  color: var(--success);
+}
+
+.dropdown-item.success:hover {
+  background: var(--success-light);
+}
+
+.dropdown-divider {
+  border-top: 1px solid var(--border-color);
+  margin: 4px 0;
 }
 
 /* Pagination */
@@ -175,10 +288,14 @@
   gap: 20px;
   margin-top: 30px;
   padding: 20px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
 }
 
 .page-info {
   font-size: 14px;
+  color: var(--text-secondary);
 }
 
 /* Modal styles */
@@ -188,7 +305,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -206,13 +323,16 @@
 }
 
 .modal {
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   max-width: 600px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 @keyframes slideUp {
@@ -231,11 +351,14 @@
   justify-content: space-between;
   align-items: center;
   padding: 25px 30px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
 }
 
 .modal-header h2 {
   margin: 0;
   font-size: 24px;
+  color: var(--text-primary);
 }
 
 .modal-close {
@@ -243,7 +366,7 @@
   border: none;
   font-size: 28px;
   cursor: pointer;
-  transition: color 0.2s ease;
+  transition: all 0.2s ease;
   padding: 0;
   width: 32px;
   height: 32px;
@@ -251,6 +374,12 @@
   align-items: center;
   justify-content: center;
   border-radius: 4px;
+  color: var(--text-secondary);
+}
+
+.modal-close:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
 }
 
 .modal-body {
@@ -270,9 +399,11 @@
   margin-bottom: 8px;
   font-weight: 600;
   font-size: 14px;
+  color: var(--text-primary);
 }
 
 .form-group .input,
+.form-group select,
 .form-group textarea {
   width: 100%;
   padding: 12px 14px;
@@ -280,21 +411,46 @@
   font-size: 15px;
   transition: all 0.3s ease;
   font-family: inherit;
+  background: var(--bg-input);
+  border: 2px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.form-group .input::placeholder,
+.form-group textarea::placeholder {
+  color: var(--text-muted);
 }
 
 .form-group .input:focus,
+.form-group select:focus,
 .form-group textarea:focus {
   outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.2);
+  background: var(--bg-input);
 }
 
 .form-group .input:disabled {
   cursor: not-allowed;
+  background-color: var(--bg-secondary);
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.form-group select option {
+  background: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .form-help {
   display: block;
   margin-top: 6px;
   font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.required {
+  color: var(--danger);
 }
 
 .form-row {
@@ -309,12 +465,13 @@
   gap: 12px;
   margin-top: 30px;
   padding-top: 20px;
+  border-top: 1px solid var(--border-color);
 }
 
 /* Alerts */
 .alert {
   padding: 15px 18px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-bottom: 20px;
   font-size: 14px;
   line-height: 1.5;
@@ -325,11 +482,35 @@
   padding-left: 20px;
 }
 
+.alert-error {
+  background: var(--danger-light);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.alert-success {
+  background: var(--success-light);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+.alert-info {
+  background: rgba(66, 153, 225, 0.15);
+  color: var(--info);
+  border: 1px solid var(--info);
+}
+
+.alert-warning {
+  background: rgba(255, 152, 0, 0.15);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+}
+
 /* Buttons */
 .btn {
   padding: 12px 24px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
@@ -344,222 +525,41 @@
   cursor: not-allowed;
 }
 
-/* ============================================
-   DARK MODE STYLES
-   ============================================ */
-
-/* Modal Dark Mode */
-.modal {
-  background: #1e1e1e;
-  color: #e0e0e0;
-  border: 1px solid #333;
+.btn-primary {
+  background: var(--primary-color);
+  color: white;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
 }
 
-.modal-header {
-  border-bottom: 1px solid #333;
-  background: #252525;
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+  transform: translateY(-1px);
 }
 
-.modal-header h2 {
-  color: #ffffff;
+.btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
-.modal-close {
-  color: #aaa;
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-light);
 }
 
-.modal-close:hover {
-  color: #fff;
-  background-color: #333;
+.btn-danger {
+  background: var(--danger);
+  color: white;
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
 }
 
-/* Form Dark Mode */
-.form-group label {
-  color: #e0e0e0;
+.btn-danger:hover:not(:disabled) {
+  background: var(--danger-hover);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
 }
 
-.form-group .input,
-.form-group select,
-.form-group textarea {
-  background: #2d2d2d;
-  border: 2px solid #444;
-  color: #e0e0e0;
-}
-
-.form-group .input::placeholder {
-  color: #888;
-}
-
-.form-group .input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  border-color: #1976d2;
-  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.3);
-  background: #333;
-}
-
-.form-group .input:disabled {
-  background-color: #1a1a1a;
-  color: #666;
-}
-
-.form-help {
-  color: #aaa;
-}
-
-.required {
-  color: #ff6b6b;
-}
-
-/* Select dropdown Dark Mode */
-.form-group select option {
-  background: #2d2d2d;
-  color: #e0e0e0;
-}
-
-/* Modal actions Dark Mode */
-.modal-actions {
-  border-top: 1px solid #333;
-}
-
-/* ============================================
-   TABLE DARK MODE
-   ============================================ */
-
-.users-table-container {
-  background: #1e1e1e;
-  border: 1px solid #333;
-  border-radius: 12px;
-}
-
-.users-table {
-  background: #1e1e1e;
-}
-
-.users-table thead {
-  background: #252525;
-}
-
-.users-table th {
-  color: #e0e0e0;
-  border-bottom: 2px solid #444;
-}
-
-.users-table th.sortable:hover {
-  background-color: #333;
-}
-
-.users-table td {
-  color: #e0e0e0;
-  border-bottom: 1px solid #333;
-}
-
-.users-table tbody tr:hover {
-  background: #2a2a2a;
-}
-
-.user-name strong {
-  color: #ffffff;
-}
-
-.user-name small {
-  color: #888;
-}
-
-.users-table code {
-  background-color: #2d2d2d;
-  color: #ff7b72;
-  border: 1px solid #444;
-}
-
-/* ============================================
-   TOOLBAR DARK MODE
-   ============================================ */
-
-.user-list-toolbar {
-  background: #1e1e1e;
-  border: 1px solid #333;
-}
-
-.search-input {
-  background: #2d2d2d;
-  border: 2px solid #444;
-  color: #e0e0e0;
-}
-
-.search-input::placeholder {
-  color: #888;
-}
-
-.search-input:focus {
-  border-color: #1976d2;
-  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.2);
-  background: #333;
-}
-
-.filter-select {
-  background: #2d2d2d;
-  border: 2px solid #444;
-  color: #e0e0e0;
-}
-
-.filter-select:hover {
-  border-color: #555;
-}
-
-.filter-select:focus {
-  border-color: #1976d2;
-}
-
-.filter-select option {
-  background: #2d2d2d;
-  color: #e0e0e0;
-}
-
-.user-count {
-  color: #aaa;
-}
-
-.user-count strong {
-  color: #fff;
-}
-
-/* ============================================
-   STATUS BADGES DARK MODE
-   ============================================ */
-
-.status-badge {
-  font-weight: 600;
-}
-
-.status-active {
-  background-color: rgba(76, 175, 80, 0.2);
-  color: #81c784;
-  border: 1px solid rgba(76, 175, 80, 0.3);
-}
-
-.status-inactive {
-  background-color: rgba(244, 67, 54, 0.2);
-  color: #e57373;
-  border: 1px solid rgba(244, 67, 54, 0.3);
-}
-
-.status-warning {
-  background-color: rgba(255, 193, 7, 0.2);
-  color: #ffd54f;
-  border: 1px solid rgba(255, 193, 7, 0.3);
-}
-
-.role-badge {
-  background-color: rgba(33, 150, 243, 0.2);
-  color: #64b5f6;
-  border: 1px solid rgba(33, 150, 243, 0.3);
-}
-
-/* ============================================
-   WIDOCZNE PRZYCISKI AKCJI (zamiast dropdown)
-   ============================================ */
-
+/* Action Buttons */
 .action-buttons {
   display: flex;
   gap: 6px;
@@ -579,8 +579,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #2d2d2d;
-  border: 1px solid #444;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
 }
 
 .btn-action:hover {
@@ -636,8 +637,8 @@
   left: 50%;
   transform: translateX(-50%);
   padding: 6px 10px;
-  background: #333;
-  color: #fff;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   font-size: 12px;
   border-radius: 4px;
   white-space: nowrap;
@@ -647,6 +648,7 @@
   pointer-events: none;
   margin-bottom: 5px;
   z-index: 1000;
+  border: 1px solid var(--border-color);
 }
 
 .btn-action:hover::after {
@@ -654,140 +656,16 @@
   visibility: visible;
 }
 
-/* ============================================
-   ALERTS DARK MODE
-   ============================================ */
-
-.alert-error {
-  background-color: rgba(244, 67, 54, 0.15);
-  color: #ef5350;
-  border: 1px solid rgba(244, 67, 54, 0.3);
-}
-
-.alert-success {
-  background-color: rgba(76, 175, 80, 0.15);
-  color: #81c784;
-  border: 1px solid rgba(76, 175, 80, 0.3);
-}
-
-.alert-info {
-  background-color: rgba(33, 150, 243, 0.15);
-  color: #64b5f6;
-  border: 1px solid rgba(33, 150, 243, 0.3);
-}
-
-.alert-warning {
-  background-color: rgba(255, 152, 0, 0.15);
-  color: #ffb74d;
-  border: 1px solid rgba(255, 152, 0, 0.3);
-}
-
-/* ============================================
-   BUTTONS DARK MODE
-   ============================================ */
-
-.btn-primary {
-  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #1e88e5 0%, #1976d2 100%);
-  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4);
-  transform: translateY(-1px);
-}
-
-.btn-secondary {
-  background: #2d2d2d;
-  color: #e0e0e0;
-  border: 1px solid #444;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #3a3a3a;
-  border-color: #555;
-}
-
-.btn-danger {
-  background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(211, 47, 47, 0.3);
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
-  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.4);
-}
-
-/* ============================================
-   PAGINATION DARK MODE
-   ============================================ */
-
-.pagination {
-  background: #1e1e1e;
-  border-radius: 12px;
-  border: 1px solid #333;
-}
-
-.page-info {
-  color: #aaa;
-}
-
-/* ============================================
-   DROPDOWN DARK MODE (fallback)
-   ============================================ */
-
-.dropdown-menu {
-  background: #2d2d2d;
-  border: 1px solid #444;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-}
-
-.dropdown-item {
-  color: #e0e0e0;
-}
-
-.dropdown-item:hover {
-  background: #3a3a3a;
-}
-
-.dropdown-item.danger {
-  color: #ef5350;
-}
-
-.dropdown-item.danger:hover {
-  background: rgba(244, 67, 54, 0.15);
-}
-
-.dropdown-item.success {
-  color: #81c784;
-}
-
-.dropdown-item.success:hover {
-  background: rgba(76, 175, 80, 0.15);
-}
-
-.dropdown-divider {
-  border-top: 1px solid #444;
-}
-
-/* ============================================
-   CARD DARK MODE
-   ============================================ */
-
+/* Card */
 .card {
-  background: #1e1e1e;
-  border: 1px solid #333;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
 }
 
-/* ============================================
-   LOADING DARK MODE
-   ============================================ */
-
+/* Loading */
 .loading {
-  color: #aaa;
+  color: var(--text-secondary);
 }
 
 /* Responsive */
