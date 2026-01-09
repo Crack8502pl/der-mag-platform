@@ -204,5 +204,7 @@ export type PermissionAction =
   | 'deletePool'
   | 'receiveOrder'
   | 'reportMissing'
-  | 'updatePool';
+  | 'updatePool'
+  | 'access'; // Used for admin-only routes with module: 'all'
+
 
