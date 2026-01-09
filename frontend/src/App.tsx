@@ -18,6 +18,7 @@ import { PortalConfigPage } from './components/admin/PortalConfigPage';
 import { AdminPasswordChange } from './components/admin/AdminPasswordChange';
 import { MaterialImportPage } from './components/admin/MaterialImportPage';
 import { BOMBuilderPage } from './components/admin/BOMBuilderPage';
+import { PermissionsMatrixPage } from './components/admin/PermissionsMatrixPage';
 import { SubsystemsPage } from './components/modules/SubsystemsPage';
 import { TasksPage } from './components/modules/TasksPage';
 import { PrefabricationPage } from './components/modules/PrefabricationPage';
@@ -371,6 +372,16 @@ function App() {
             <ProtectedRoute>
               <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
                 <MaterialImportPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/permissions"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
+                <PermissionsMatrixPage />
               </RoleBasedRoute>
             </ProtectedRoute>
           }
