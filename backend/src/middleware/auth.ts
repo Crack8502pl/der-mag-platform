@@ -118,7 +118,12 @@ export const authorize = (...allowedRoles: string[]) => {
         return;
       }
 
-      if (!allowedRoles.includes(req.user.role)) {
+      // Pobierz nazwę roli (obsłuż zarówno string jak i obiekt Role)
+      const roleName = typeof req.user.role === 'string' 
+        ? req.user.role 
+        : (req.user.role as any)?.name;
+
+      if (!roleName || !allowedRoles.includes(roleName)) {
         res.status(403).json({
           success: false,
           message: 'Brak uprawnień do wykonania tej operacji'
