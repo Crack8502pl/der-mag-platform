@@ -39,7 +39,7 @@ export class DatabaseSeeder {
     const roles = [
       {
         name: 'admin',
-        description: 'Administrator Systemu - Pełny dostęp do wszystkich funkcji systemu',
+        description: 'Administrator Systemu - Pełny dostęp',
         permissions: { all: true }
       },
       {

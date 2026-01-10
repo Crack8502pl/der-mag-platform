@@ -3,6 +3,7 @@
 
 import { Router } from 'express';
 import { authenticate, authorize } from '../middleware/auth';
+import { requirePermission } from '../middleware/PermissionMiddleware';
 import { SystemConfigController } from '../controllers/SystemConfigController';
 import { UserController } from '../controllers/UserController';
 import { RoleController } from '../controllers/RoleController';
@@ -51,11 +52,23 @@ router.post('/users/:id/reset-password', UserController.resetPassword);
 // Role Management Routes
 // ============================================
 
+// Get permissions schema (no special permission required - any admin can view)
+router.get('/roles/permissions-schema', authenticate, RoleController.getPermissionsSchema);
+
 // Get all roles
 router.get('/roles', RoleController.getAll);
 
 // Get role by id
 router.get('/roles/:id', RoleController.getById);
+
+// Update role
+router.put('/roles/:id', authenticate, requirePermission('users', 'update'), RoleController.update);
+
+// Create role
+router.post('/roles', authenticate, requirePermission('users', 'create'), RoleController.create);
+
+// Delete role
+router.delete('/roles/:id', authenticate, requirePermission('users', 'delete'), RoleController.delete);
 
 // ============================================
 // Database Management Routes
