@@ -1,8 +1,7 @@
 // src/services/warehouseStock.service.ts
 // API client for warehouse stock operations
 
-import axios from 'axios';
-import { getApiBaseURL } from '../utils/api-url';
+import api from './api';
 import type {
   WarehouseStock,
   StockFilters,
@@ -14,15 +13,6 @@ import type {
   MapToBomRequest,
   MapToWorkflowBomRequest
 } from '../types/warehouseStock.types';
-
-const API_BASE_URL = getApiBaseURL();
-
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('accessToken');
-  return {
-    Authorization: `Bearer ${token}`
-  };
-};
 
 export interface WarehouseStockListResponse {
   success: boolean;
@@ -48,10 +38,7 @@ export const warehouseStockService = {
     sortOrder: 'ASC' | 'DESC' = 'DESC'
   ): Promise<WarehouseStockListResponse> {
     const params: any = { page, limit, sortBy, sortOrder, ...filters };
-    const response = await axios.get(`${API_BASE_URL}/warehouse-stock`, {
-      headers: getAuthHeaders(),
-      params
-    });
+    const response = await api.get('/warehouse-stock', { params });
     return response.data;
   },
 
@@ -59,9 +46,7 @@ export const warehouseStockService = {
    * Pobierz materiał po ID
    */
   async getById(id: number): Promise<WarehouseStockResponse> {
-    const response = await axios.get(`${API_BASE_URL}/warehouse-stock/${id}`, {
-      headers: getAuthHeaders()
-    });
+    const response = await api.get(`/warehouse-stock/${id}`);
     return response.data;
   },
 
@@ -69,9 +54,7 @@ export const warehouseStockService = {
    * Utwórz nowy materiał
    */
   async create(data: Partial<WarehouseStock>): Promise<WarehouseStockResponse> {
-    const response = await axios.post(`${API_BASE_URL}/warehouse-stock`, data, {
-      headers: getAuthHeaders()
-    });
+    const response = await api.post('/warehouse-stock', data);
     return response.data;
   },
 
@@ -79,9 +62,7 @@ export const warehouseStockService = {
    * Aktualizuj materiał
    */
   async update(id: number, data: Partial<WarehouseStock>): Promise<WarehouseStockResponse> {
-    const response = await axios.put(`${API_BASE_URL}/warehouse-stock/${id}`, data, {
-      headers: getAuthHeaders()
-    });
+    const response = await api.put(`/warehouse-stock/${id}`, data);
     return response.data;
   },
 
@@ -89,9 +70,7 @@ export const warehouseStockService = {
    * Usuń materiał
    */
   async delete(id: number): Promise<{ success: boolean; message: string }> {
-    const response = await axios.delete(`${API_BASE_URL}/warehouse-stock/${id}`, {
-      headers: getAuthHeaders()
-    });
+    const response = await api.delete(`/warehouse-stock/${id}`);
     return response.data;
   },
 
@@ -99,9 +78,7 @@ export const warehouseStockService = {
    * Pobierz listę kategorii
    */
   async getCategories(): Promise<string[]> {
-    const response = await axios.get(`${API_BASE_URL}/warehouse-stock/categories`, {
-      headers: getAuthHeaders()
-    });
+    const response = await api.get('/warehouse-stock/categories');
     return response.data.data;
   },
 
@@ -109,9 +86,7 @@ export const warehouseStockService = {
    * Pobierz listę dostawców
    */
   async getSuppliers(): Promise<string[]> {
-    const response = await axios.get(`${API_BASE_URL}/warehouse-stock/suppliers`, {
-      headers: getAuthHeaders()
-    });
+    const response = await api.get('/warehouse-stock/suppliers');
     return response.data.data;
   },
 
@@ -119,9 +94,7 @@ export const warehouseStockService = {
    * Zarezerwuj materiał
    */
   async reserve(id: number, request: ReserveStockRequest): Promise<WarehouseStockResponse> {
-    const response = await axios.post(`${API_BASE_URL}/warehouse-stock/${id}/reserve`, request, {
-      headers: getAuthHeaders()
-    });
+    const response = await api.post(`/warehouse-stock/${id}/reserve`, request);
     return response.data;
   },
 
@@ -129,9 +102,7 @@ export const warehouseStockService = {
    * Zwolnij rezerwację
    */
   async release(id: number, request: ReleaseStockRequest): Promise<WarehouseStockResponse> {
-    const response = await axios.post(`${API_BASE_URL}/warehouse-stock/${id}/release`, request, {
-      headers: getAuthHeaders()
-    });
+    const response = await api.post(`/warehouse-stock/${id}/release`, request);
     return response.data;
   },
 
@@ -139,11 +110,7 @@ export const warehouseStockService = {
    * Analyze CSV before import
    */
   async analyzeImport(csvContent: string): Promise<{ success: boolean; data: any }> {
-    const response = await axios.post(
-      `${API_BASE_URL}/warehouse-stock/import/analyze`,
-      { csvContent },
-      { headers: getAuthHeaders() }
-    );
+    const response = await api.post('/warehouse-stock/import/analyze', { csvContent });
     return response.data;
   },
 
@@ -154,11 +121,7 @@ export const warehouseStockService = {
     csvContent: string,
     updateOptions: any
   ): Promise<{ success: boolean; data: any; message: string }> {
-    const response = await axios.post(
-      `${API_BASE_URL}/warehouse-stock/import`,
-      { csvContent, updateOptions },
-      { headers: getAuthHeaders() }
-    );
+    const response = await api.post('/warehouse-stock/import', { csvContent, updateOptions });
     return response.data;
   },
 
@@ -169,12 +132,7 @@ export const warehouseStockService = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await axios.post(`${API_BASE_URL}/warehouse-stock/import`, formData, {
-      headers: {
-        ...getAuthHeaders(),
-        'Content-Type': 'multipart/form-data'
-      }
-    });
+    const response = await api.post('/warehouse-stock/import', formData);
     return response.data;
   },
 
@@ -182,8 +140,7 @@ export const warehouseStockService = {
    * Pobierz szablon CSV
    */
   async downloadTemplate(): Promise<void> {
-    const response = await axios.get(`${API_BASE_URL}/warehouse-stock/template`, {
-      headers: getAuthHeaders(),
+    const response = await api.get('/warehouse-stock/template', {
       responseType: 'blob'
     });
 
@@ -200,10 +157,7 @@ export const warehouseStockService = {
    * Export do Excel
    */
   async exportToExcel(filters: StockFilters = {}): Promise<void> {
-    const response = await axios.get(`${API_BASE_URL}/warehouse-stock/export`, {
-      headers: getAuthHeaders(),
-      params: filters
-    });
+    const response = await api.get('/warehouse-stock/export', { params: filters });
 
     // Konwertuj dane do CSV i pobierz
     const data = response.data.data;
@@ -222,11 +176,7 @@ export const warehouseStockService = {
    * Auto-przypisanie do subsystemu
    */
   async autoAssignToSubsystem(subsystemId: number): Promise<{ success: boolean; data: { count: number }; message: string }> {
-    const response = await axios.post(
-      `${API_BASE_URL}/warehouse-stock/subsystem/${subsystemId}/auto-assign`,
-      {},
-      { headers: getAuthHeaders() }
-    );
+    const response = await api.post(`/warehouse-stock/subsystem/${subsystemId}/auto-assign`, {});
     return response.data;
   },
 
@@ -234,11 +184,7 @@ export const warehouseStockService = {
    * Auto-przypisanie do taska
    */
   async autoAssignToTask(taskId: number, taskTypeId: number): Promise<{ success: boolean; data: { count: number }; message: string }> {
-    const response = await axios.post(
-      `${API_BASE_URL}/warehouse-stock/task/${taskId}/auto-assign`,
-      { taskTypeId },
-      { headers: getAuthHeaders() }
-    );
+    const response = await api.post(`/warehouse-stock/task/${taskId}/auto-assign`, { taskTypeId });
     return response.data;
   },
 
@@ -246,9 +192,7 @@ export const warehouseStockService = {
    * Mapuj do BOM template
    */
   async mapToBom(id: number, request: MapToBomRequest): Promise<{ success: boolean; data: any; message: string }> {
-    const response = await axios.post(`${API_BASE_URL}/warehouse-stock/${id}/map-bom`, request, {
-      headers: getAuthHeaders()
-    });
+    const response = await api.post(`/warehouse-stock/${id}/map-bom`, request);
     return response.data;
   },
 
@@ -256,9 +200,7 @@ export const warehouseStockService = {
    * Mapuj do workflow BOM item
    */
   async mapToWorkflowBom(id: number, request: MapToWorkflowBomRequest): Promise<{ success: boolean; data: any; message: string }> {
-    const response = await axios.post(`${API_BASE_URL}/warehouse-stock/${id}/map-workflow-bom`, request, {
-      headers: getAuthHeaders()
-    });
+    const response = await api.post(`/warehouse-stock/${id}/map-workflow-bom`, request);
     return response.data;
   },
 
@@ -266,10 +208,7 @@ export const warehouseStockService = {
    * Pobierz historię operacji
    */
   async getHistory(id: number, limit: number = 50): Promise<{ success: boolean; data: WarehouseStockHistory[] }> {
-    const response = await axios.get(`${API_BASE_URL}/warehouse-stock/${id}/history`, {
-      headers: getAuthHeaders(),
-      params: { limit }
-    });
+    const response = await api.get(`/warehouse-stock/${id}/history`, { params: { limit } });
     return response.data;
   },
 
