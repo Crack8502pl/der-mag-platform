@@ -81,6 +81,37 @@ export class AdminService {
     }
   }
 
+  /**
+   * Get permissions schema - all available modules and actions
+   */
+  async getPermissionsSchema(): Promise<any[]> {
+    const response = await api.get('/admin/roles/permissions-schema');
+    return response.data.data;
+  }
+
+  /**
+   * Update role permissions
+   */
+  async updateRole(roleId: number, data: Partial<Role>): Promise<Role> {
+    const response = await api.put(`/admin/roles/${roleId}`, data);
+    return response.data.data;
+  }
+
+  /**
+   * Create new role
+   */
+  async createRole(data: { name: string; description: string; permissions: any }): Promise<Role> {
+    const response = await api.post('/admin/roles', data);
+    return response.data.data;
+  }
+
+  /**
+   * Delete role
+   */
+  async deleteRole(roleId: number): Promise<void> {
+    await api.delete(`/admin/roles/${roleId}`);
+  }
+
   // ============================================
   // System Configuration
   // ============================================
