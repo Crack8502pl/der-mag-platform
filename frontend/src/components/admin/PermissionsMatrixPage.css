@@ -1,6 +1,8 @@
 /* PermissionsMatrixPage.css */
 /* Styles for permissions matrix page */
 
+@import '../../styles/grover-theme.css';
+
 .permissions-matrix-page {
   padding: 20px;
   max-width: 100%;
@@ -236,6 +238,133 @@
   transform: scale(1.15);
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
   z-index: 1;
+}
+
+/* New styles for edit mode */
+.matrix-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  background: var(--bg-card);
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.matrix-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.permission-cell.editable {
+  cursor: pointer;
+}
+
+.permission-cell.editable:hover {
+  background-color: #f0f0f0;
+  transform: scale(1.1);
+}
+
+.permission-cell.changed {
+  background-color: #fff3cd !important;
+  border: 2px solid #ffc107;
+}
+
+.filters-section {
+  background: var(--bg-card);
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.filters {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.filter-group select {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-group select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+.sort-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.sort-btn {
+  padding: 8px 16px;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.sort-btn:hover {
+  background: var(--border-light);
+  color: var(--text-primary);
+}
+
+.sort-btn.active {
+  background: var(--primary-color);
+  color: var(--text-primary);
+  border-color: var(--primary-color);
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+.spinner {
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--primary-color);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Responsive */
