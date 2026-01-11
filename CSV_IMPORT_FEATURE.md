@@ -45,13 +45,13 @@ The CSV Import feature provides an intelligent way to import warehouse stock dat
 
 #### Wymagane
 | Kolumna | Opis | Limit znaków |
-|---------|------|--------------|
+|:--------|:-----|:-------------|
 | `catalog_number` | Numer katalogowy (unikalny) | 200 |
 | `material_name` | Nazwa materiału | 500 |
 
 #### Identyfikacja (opcjonalne)
 | Kolumna | Opis | Limit znaków |
-|---------|------|--------------|
+|:--------|:-----|:-------------|
 | `description` | Opis | bez limitu |
 | `category` | Kategoria | 200 |
 | `subcategory` | Podkategoria | 200 |
@@ -60,7 +60,7 @@ The CSV Import feature provides an intelligent way to import warehouse stock dat
 
 #### Ilości i jednostki
 | Kolumna | Opis | Format |
-|---------|------|--------|
+|:--------|:-----|:-------|
 | `unit` | Jednostka (domyślnie: szt) | tekst |
 | `quantity_in_stock` | Ilość na stanie | liczba |
 | `min_stock_level` | Minimalny poziom | liczba |
@@ -69,13 +69,13 @@ The CSV Import feature provides an intelligent way to import warehouse stock dat
 
 #### Lokalizacja
 | Kolumna | Opis | Limit znaków |
-|---------|------|--------------|
+|:--------|:-----|:-------------|
 | `warehouse_location` | Lokalizacja magazynowa | 500 |
 | `storage_zone` | Strefa magazynowa | 100 |
 
 #### Dostawca i producent
 | Kolumna | Opis | Limit znaków |
-|---------|------|--------------|
+|:--------|:-----|:-------------|
 | `supplier` | Dostawca | 500 |
 | `supplier_catalog_number` | Numer katalogowy dostawcy | 200 |
 | `manufacturer` | Producent | 500 |
@@ -83,14 +83,14 @@ The CSV Import feature provides an intelligent way to import warehouse stock dat
 
 #### Ceny
 | Kolumna | Opis | Format |
-|---------|------|--------|
+|:--------|:-----|:-------|
 | `unit_price` | Cena jednostkowa | liczba |
 | `purchase_price` | Cena zakupu | liczba |
 | `currency` | Waluta (domyślnie: PLN) | 10 znaków |
 
 #### Flagi (wartości: true/false, 1/0, tak/nie, yes/no)
 | Kolumna | Opis | Domyślnie |
-|---------|------|-----------|
+|:--------|:-----|:----------|
 | `is_serialized` | Czy ma numery seryjne | false |
 | `is_batch_tracked` | Czy śledzony partiami | false |
 | `requires_ip_address` | Czy wymaga IP | false |
@@ -99,14 +99,14 @@ The CSV Import feature provides an intelligent way to import warehouse stock dat
 
 #### Notatki
 | Kolumna | Opis |
-|---------|------|
+|:--------|:-----|
 | `notes` | Notatki publiczne |
 | `internal_notes` | Notatki wewnętrzne |
 
 ### 📏 Limity znaków
 
 | Kolumna | Limit znaków |
-|---------|--------------|
+|:--------|:-------------|
 | catalog_number | 200 |
 | material_name | 500 |
 | category | 200 |

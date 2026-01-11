@@ -542,7 +542,8 @@ export class WarehouseStockService {
    */
   private parseBoolean(value: string | undefined): boolean | undefined {
     if (!value) return undefined;
-    const v = value.toLowerCase().trim();
+    const v = value.trim().toLowerCase();
+    if (!v) return undefined; // Handle empty string after trim
     if (['true', '1', 'tak', 'yes', 't', 'y'].includes(v)) return true;
     if (['false', '0', 'nie', 'no', 'f', 'n'].includes(v)) return false;
     return undefined;
