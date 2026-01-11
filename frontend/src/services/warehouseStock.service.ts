@@ -110,7 +110,10 @@ export const warehouseStockService = {
    * Analyze CSV before import
    */
   async analyzeImport(csvContent: string): Promise<{ success: boolean; data: any }> {
-    const response = await api.post('/warehouse-stock/import/analyze', { csvContent });
+    const response = await api.post('/warehouse-stock/import/analyze', 
+      { csvContent },
+      { timeout: 60000 } // 60 sekund na partię
+    );
     return response.data;
   },
 
@@ -121,7 +124,10 @@ export const warehouseStockService = {
     csvContent: string,
     updateOptions: any
   ): Promise<{ success: boolean; data: any; message: string }> {
-    const response = await api.post('/warehouse-stock/import', { csvContent, updateOptions });
+    const response = await api.post('/warehouse-stock/import', 
+      { csvContent, updateOptions },
+      { timeout: 60000 } // 60 sekund na partię
+    );
     return response.data;
   },
 

@@ -411,6 +411,33 @@
   font-size: 14px;
 }
 
+/* ===== BATCH PROGRESS ===== */
+.batch-progress {
+  margin: 20px 0;
+  text-align: center;
+}
+
+.batch-progress .progress-bar {
+  width: 100%;
+  height: 20px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.batch-progress .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  transition: width 0.3s ease;
+}
+
+.batch-progress span {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
 /* ===== COMPLETE PHASE ===== */
 .complete-phase {
   padding: 40px 30px;
