@@ -41,6 +41,9 @@ export const WarehouseStockImportModal: React.FC<Props> = ({ onClose, onSuccess 
   // Import results
   const [importResult, setImportResult] = useState<ImportResultDetailed | null>(null);
   
+  // Batch progress
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const parseCSVLine = (line: string): string[] => {
@@ -74,6 +77,33 @@ export const WarehouseStockImportModal: React.FC<Props> = ({ onClose, onSuccess 
   const parseCSVPreview = (content: string): string[][] => {
     const lines = content.split('\n').filter(line => line.trim());
     return lines.slice(0, 11).map(line => parseCSVLine(line)); // Headers + 10 rows
+  };
+
+  const splitCSVIntoBatches = (csvContent: string, batchSize: number = 1000): string[] => {
+    const lines = csvContent.split('\n');
+    
+    // Validate CSV has at least a header row
+    if (lines.length === 0 || !lines[0]?.trim()) {
+      return [];
+    }
+    
+    const header = lines[0];
+    const dataLines = lines.slice(1).filter(line => line.trim()); // remove empty lines
+    
+    // If no data lines, return empty array
+    if (dataLines.length === 0) {
+      return [];
+    }
+    
+    const batches: string[] = [];
+    
+    for (let i = 0; i < dataLines.length; i += batchSize) {
+      const batchLines = dataLines.slice(i, i + batchSize);
+      const batchCSV = [header, ...batchLines].join('\n');
+      batches.push(batchCSV);
+    }
+    
+    return batches;
   };
 
   const handleFileSelect = (selectedFile: File) => {
@@ -138,20 +168,63 @@ export const WarehouseStockImportModal: React.FC<Props> = ({ onClose, onSuccess 
     
     setAnalyzing(true);
     setError('');
+    setBatchProgress(null);
     
     try {
-      const response = await warehouseStockService.analyzeImport(csvContent);
+      // Split CSV into batches
+      const batches = splitCSVIntoBatches(csvContent, 1000);
       
-      if (response.success && response.data) {
-        setNewRecords(response.data.newRecords || []);
-        setDuplicates(response.data.duplicates || []);
-        setErrors(response.data.errors || []);
-        setPhase('analyze');
-      } else {
-        setError('Błąd analizy pliku CSV');
+      // Check if we have any batches to process
+      if (batches.length === 0) {
+        setError('Plik CSV jest pusty lub nie zawiera danych do zaimportowania');
+        setAnalyzing(false);
+        return;
       }
+      
+      // Initialize aggregated results
+      let allNewRecords: AnalyzedRow[] = [];
+      let allDuplicates: AnalyzedRow[] = [];
+      let allErrors: AnalyzedRow[] = [];
+      
+      // Process batches sequentially
+      for (let i = 0; i < batches.length; i++) {
+        setBatchProgress({ current: i + 1, total: batches.length });
+        
+        try {
+          const response = await warehouseStockService.analyzeImport(batches[i]);
+          
+          if (response.success && response.data) {
+            // Aggregate results from this batch - using push for better performance
+            if (response.data.newRecords) {
+              allNewRecords.push(...response.data.newRecords);
+            }
+            if (response.data.duplicates) {
+              allDuplicates.push(...response.data.duplicates);
+            }
+            if (response.data.errors) {
+              allErrors.push(...response.data.errors);
+            }
+          } else {
+            throw new Error(`Błąd analizy partii ${i + 1}`);
+          }
+        } catch (batchErr: any) {
+          // Handle batch-specific error
+          setError(`Błąd podczas analizy partii ${i + 1} z ${batches.length}: ${batchErr.response?.data?.message || batchErr.message}`);
+          setAnalyzing(false);
+          setBatchProgress(null);
+          return;
+        }
+      }
+      
+      // Set aggregated results
+      setNewRecords(allNewRecords);
+      setDuplicates(allDuplicates);
+      setErrors(allErrors);
+      setPhase('analyze');
+      setBatchProgress(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd podczas analizy CSV');
+      setBatchProgress(null);
     } finally {
       setAnalyzing(false);
     }
@@ -163,20 +236,70 @@ export const WarehouseStockImportModal: React.FC<Props> = ({ onClose, onSuccess 
     setImporting(true);
     setError('');
     setPhase('import');
+    setBatchProgress(null);
     
     try {
-      const response = await warehouseStockService.importWithOptions(csvContent, updateOptions);
+      // Split CSV into batches
+      const batches = splitCSVIntoBatches(csvContent, 1000);
       
-      if (response.success && response.data) {
-        setImportResult(response.data);
-        setPhase('complete');
-      } else {
-        setError('Błąd importu danych');
+      // Check if we have any batches to process
+      if (batches.length === 0) {
+        setError('Plik CSV jest pusty lub nie zawiera danych do zaimportowania');
+        setImporting(false);
         setPhase('analyze');
+        return;
       }
+      
+      // Initialize aggregated results
+      let totalImported = 0;
+      let totalUpdated = 0;
+      let totalSkipped = 0;
+      let totalFailed = 0;
+      let allErrors: Array<{ row: number; field?: string; error: string }> = [];
+      
+      // Process batches sequentially
+      for (let i = 0; i < batches.length; i++) {
+        setBatchProgress({ current: i + 1, total: batches.length });
+        
+        try {
+          const response = await warehouseStockService.importWithOptions(batches[i], updateOptions);
+          
+          if (response.success && response.data) {
+            // Aggregate results from this batch
+            totalImported += response.data.imported || 0;
+            totalUpdated += response.data.updated || 0;
+            totalSkipped += response.data.skipped || 0;
+            totalFailed += response.data.failed || 0;
+            if (response.data.errors) {
+              allErrors.push(...response.data.errors);
+            }
+          } else {
+            throw new Error(`Błąd importu partii ${i + 1}`);
+          }
+        } catch (batchErr: any) {
+          // Handle batch-specific error
+          setError(`Błąd podczas importu partii ${i + 1} z ${batches.length}: ${batchErr.response?.data?.message || batchErr.message}`);
+          setImporting(false);
+          setBatchProgress(null);
+          setPhase('analyze');
+          return;
+        }
+      }
+      
+      // Set aggregated results
+      setImportResult({
+        imported: totalImported,
+        updated: totalUpdated,
+        skipped: totalSkipped,
+        failed: totalFailed,
+        errors: allErrors
+      });
+      setPhase('complete');
+      setBatchProgress(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd podczas importu');
       setPhase('analyze');
+      setBatchProgress(null);
     } finally {
       setImporting(false);
     }
@@ -264,6 +387,18 @@ export const WarehouseStockImportModal: React.FC<Props> = ({ onClose, onSuccess 
           </tbody>
         </table>
       </div>
+      
+      {batchProgress && (
+        <div className="batch-progress">
+          <div className="progress-bar">
+            <div 
+              className="progress-fill" 
+              style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
+            />
+          </div>
+          <span>Przetwarzanie partii {batchProgress.current} z {batchProgress.total}...</span>
+        </div>
+      )}
       
       <div className="phase-actions">
         <button className="btn btn-secondary" onClick={() => {
@@ -449,10 +584,26 @@ export const WarehouseStockImportModal: React.FC<Props> = ({ onClose, onSuccess 
       <div className="import-progress">
         <div className="progress-icon">⏳</div>
         <h3>Importowanie danych...</h3>
-        <div className="progress-bar">
-          <div className="progress-bar-fill"></div>
-        </div>
-        <p>Proszę czekać, trwa przetwarzanie pliku CSV...</p>
+        {batchProgress ? (
+          <>
+            <div className="batch-progress">
+              <div className="progress-bar">
+                <div 
+                  className="progress-fill" 
+                  style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
+                />
+              </div>
+              <span>Przetwarzanie partii {batchProgress.current} z {batchProgress.total}...</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="progress-bar">
+              <div className="progress-bar-fill"></div>
+            </div>
+            <p>Proszę czekać, trwa przetwarzanie pliku CSV...</p>
+          </>
+        )}
       </div>
     </div>
   );
