@@ -53,6 +53,7 @@ The CSV Import feature provides an intelligent way to import warehouse stock dat
 | warehouse_location | 500 |
 | manufacturer | 500 |
 | unit | 50 |
+| material_type | 50 |
 
 Wartości przekraczające limity zostaną odrzucone z komunikatem błędu.
 
