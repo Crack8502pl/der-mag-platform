@@ -158,7 +158,7 @@ export class WarehouseStockController {
    */
   create = async (req: Request, res: Response): Promise<void> => {
     try {
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId || (req as any).userId;
       if (!userId) {
         res.status(401).json({
           success: false,
@@ -189,7 +189,7 @@ export class WarehouseStockController {
   update = async (req: Request, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId || (req as any).userId;
       
       if (!userId) {
         res.status(401).json({
@@ -243,7 +243,7 @@ export class WarehouseStockController {
     try {
       const { id } = req.params;
       const { quantity, referenceType, referenceId } = req.body;
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId || (req as any).userId;
 
       if (!userId) {
         res.status(401).json({
@@ -282,7 +282,7 @@ export class WarehouseStockController {
     try {
       const { id } = req.params;
       const { quantity, referenceType, referenceId } = req.body;
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId || (req as any).userId;
 
       if (!userId) {
         res.status(401).json({
@@ -319,7 +319,7 @@ export class WarehouseStockController {
    */
   analyzeImport = async (req: Request, res: Response): Promise<void> => {
     try {
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId || (req as any).userId;
       if (!userId) {
         res.status(401).json({
           success: false,
@@ -357,7 +357,7 @@ export class WarehouseStockController {
    */
   import = async (req: Request, res: Response): Promise<void> => {
     try {
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId || (req as any).userId;
       if (!userId) {
         res.status(401).json({
           success: false,
@@ -457,7 +457,7 @@ export class WarehouseStockController {
   autoAssignToSubsystem = async (req: Request, res: Response): Promise<void> => {
     try {
       const { subsystemId } = req.params;
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId || (req as any).userId;
 
       if (!userId) {
         res.status(401).json({
@@ -493,7 +493,7 @@ export class WarehouseStockController {
     try {
       const { taskId } = req.params;
       const { taskTypeId } = req.body;
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId || (req as any).userId;
 
       if (!userId) {
         res.status(401).json({
