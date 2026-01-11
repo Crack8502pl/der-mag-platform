@@ -81,8 +81,19 @@ export const WarehouseStockImportModal: React.FC<Props> = ({ onClose, onSuccess 
 
   const splitCSVIntoBatches = (csvContent: string, batchSize: number = 1000): string[] => {
     const lines = csvContent.split('\n');
+    
+    // Validate CSV has at least a header row
+    if (lines.length === 0 || !lines[0]?.trim()) {
+      return [];
+    }
+    
     const header = lines[0];
-    const dataLines = lines.slice(1).filter(line => line.trim()); // usuń puste linie
+    const dataLines = lines.slice(1).filter(line => line.trim()); // remove empty lines
+    
+    // If no data lines, return empty array
+    if (dataLines.length === 0) {
+      return [];
+    }
     
     const batches: string[] = [];
     
@@ -163,6 +174,13 @@ export const WarehouseStockImportModal: React.FC<Props> = ({ onClose, onSuccess 
       // Split CSV into batches
       const batches = splitCSVIntoBatches(csvContent, 1000);
       
+      // Check if we have any batches to process
+      if (batches.length === 0) {
+        setError('Plik CSV jest pusty lub nie zawiera danych do zaimportowania');
+        setAnalyzing(false);
+        return;
+      }
+      
       // Initialize aggregated results
       let allNewRecords: AnalyzedRow[] = [];
       let allDuplicates: AnalyzedRow[] = [];
@@ -217,6 +235,14 @@ export const WarehouseStockImportModal: React.FC<Props> = ({ onClose, onSuccess 
     try {
       // Split CSV into batches
       const batches = splitCSVIntoBatches(csvContent, 1000);
+      
+      // Check if we have any batches to process
+      if (batches.length === 0) {
+        setError('Plik CSV jest pusty lub nie zawiera danych do zaimportowania');
+        setImporting(false);
+        setPhase('analyze');
+        return;
+      }
       
       // Initialize aggregated results
       let totalImported = 0;

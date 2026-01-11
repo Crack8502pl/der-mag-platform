@@ -112,7 +112,7 @@ export const warehouseStockService = {
   async analyzeImport(csvContent: string): Promise<{ success: boolean; data: any }> {
     const response = await api.post('/warehouse-stock/import/analyze', 
       { csvContent },
-      { timeout: 60000 } // 60 sekund na partię
+      { timeout: 60000 } // 60 seconds per batch
     );
     return response.data;
   },
@@ -126,7 +126,7 @@ export const warehouseStockService = {
   ): Promise<{ success: boolean; data: any; message: string }> {
     const response = await api.post('/warehouse-stock/import', 
       { csvContent, updateOptions },
-      { timeout: 60000 } // 60 sekund na partię
+      { timeout: 60000 } // 60 seconds per batch
     );
     return response.data;
   },
