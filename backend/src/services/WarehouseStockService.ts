@@ -583,6 +583,9 @@ export class WarehouseStockService {
     if (row.min_stock_level && parseFloat(row.min_stock_level) !== existing.minStockLevel) {
       changed.push('min_stock_level');
     }
+    if (row.manufacturer && row.manufacturer !== existing.manufacturer) {
+      changed.push('manufacturer');
+    }
     
     return changed;
   }
@@ -681,7 +684,8 @@ export class WarehouseStockService {
       minStockLevel: row.min_stock_level ? parseFloat(row.min_stock_level) : undefined,
       supplier: row.supplier || undefined,
       unitPrice: row.unit_price ? parseFloat(row.unit_price) : undefined,
-      warehouseLocation: row.warehouse_location || undefined
+      warehouseLocation: row.warehouse_location || undefined,
+      manufacturer: row.manufacturer || undefined
     };
   }
 
@@ -749,6 +753,7 @@ export class WarehouseStockService {
           if (row.subcategory) updateData.subcategory = row.subcategory;
           if (row.min_stock_level) updateData.minStockLevel = parseFloat(row.min_stock_level);
           if (row.unit) updateData.unit = row.unit;
+          if (row.manufacturer) updateData.manufacturer = row.manufacturer;
           
           if (Object.keys(updateData).length > 0) {
             await this.update(existing.id, updateData, userId);
