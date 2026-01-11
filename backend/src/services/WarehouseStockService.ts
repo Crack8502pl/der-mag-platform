@@ -31,19 +31,42 @@ interface PaginationOptions {
 
 interface ImportRow {
   rowNumber: number;
+  // Wymagane
   catalog_number: string;
   material_name: string;
+  // Opcjonalne - identyfikacja
   description?: string;
   category?: string;
   subcategory?: string;
   material_type?: string;
+  device_category?: string;
+  // Ilości i jednostki
   unit?: string;
   quantity_in_stock?: string;
   min_stock_level?: string;
-  supplier?: string;
-  unit_price?: string;
+  max_stock_level?: string;
+  reorder_point?: string;
+  // Lokalizacja
   warehouse_location?: string;
+  storage_zone?: string;
+  // Dostawca i producent
+  supplier?: string;
+  supplier_catalog_number?: string;
   manufacturer?: string;
+  part_number?: string;
+  // Ceny
+  unit_price?: string;
+  purchase_price?: string;
+  currency?: string;
+  // Flagi (przyjmuj wartości: true, false, 1, 0, tak, nie, yes, no)
+  is_serialized?: string;
+  is_batch_tracked?: string;
+  requires_ip_address?: string;
+  is_hazardous?: string;
+  requires_certification?: string;
+  // Notatki
+  notes?: string;
+  internal_notes?: string;
 }
 
 interface AnalyzedRow extends ImportRow {
@@ -79,7 +102,13 @@ const COLUMN_LIMITS = {
   warehouse_location: 500,
   manufacturer: 500,
   unit: 50,
-  material_type: 50
+  material_type: 50,
+  // Nowe limity
+  storage_zone: 100,
+  supplier_catalog_number: 200,
+  part_number: 200,
+  currency: 10,
+  device_category: 100
 };
 
 export class WarehouseStockService {
@@ -509,6 +538,18 @@ export class WarehouseStockService {
   }
 
   /**
+   * Parse boolean value from string
+   */
+  private parseBoolean(value: string | undefined): boolean | undefined {
+    if (!value) return undefined;
+    const v = value.trim().toLowerCase();
+    if (!v) return undefined; // Handle empty string after trim
+    if (['true', '1', 'tak', 'yes', 't', 'y'].includes(v)) return true;
+    if (['false', '0', 'nie', 'no', 'f', 'n'].includes(v)) return false;
+    return undefined;
+  }
+
+  /**
    * Validate row field lengths against column limits
    */
   private validateRowLengths(row: ImportRow): string[] {
@@ -550,6 +591,26 @@ export class WarehouseStockService {
       errors.push(`Typ materiału przekracza ${COLUMN_LIMITS.material_type} znaków (ma ${row.material_type.length})`);
     }
     
+    if (row.storage_zone && row.storage_zone.length > COLUMN_LIMITS.storage_zone) {
+      errors.push(`Strefa magazynowa przekracza ${COLUMN_LIMITS.storage_zone} znaków (ma ${row.storage_zone.length})`);
+    }
+    
+    if (row.supplier_catalog_number && row.supplier_catalog_number.length > COLUMN_LIMITS.supplier_catalog_number) {
+      errors.push(`Numer katalogowy dostawcy przekracza ${COLUMN_LIMITS.supplier_catalog_number} znaków (ma ${row.supplier_catalog_number.length})`);
+    }
+    
+    if (row.part_number && row.part_number.length > COLUMN_LIMITS.part_number) {
+      errors.push(`Numer części przekracza ${COLUMN_LIMITS.part_number} znaków (ma ${row.part_number.length})`);
+    }
+    
+    if (row.currency && row.currency.length > COLUMN_LIMITS.currency) {
+      errors.push(`Waluta przekracza ${COLUMN_LIMITS.currency} znaków (ma ${row.currency.length})`);
+    }
+    
+    if (row.device_category && row.device_category.length > COLUMN_LIMITS.device_category) {
+      errors.push(`Kategoria urządzenia przekracza ${COLUMN_LIMITS.device_category} znaków (ma ${row.device_category.length})`);
+    }
+    
     return errors;
   }
 
@@ -585,6 +646,35 @@ export class WarehouseStockService {
     }
     if (row.manufacturer && row.manufacturer !== existing.manufacturer) {
       changed.push('manufacturer');
+    }
+    
+    // Nowe pola
+    if (row.max_stock_level && parseFloat(row.max_stock_level) !== existing.maxStockLevel) {
+      changed.push('max_stock_level');
+    }
+    if (row.reorder_point && parseFloat(row.reorder_point) !== existing.reorderPoint) {
+      changed.push('reorder_point');
+    }
+    if (row.storage_zone && row.storage_zone !== existing.storageZone) {
+      changed.push('storage_zone');
+    }
+    if (row.supplier_catalog_number && row.supplier_catalog_number !== existing.supplierCatalogNumber) {
+      changed.push('supplier_catalog_number');
+    }
+    if (row.part_number && row.part_number !== existing.partNumber) {
+      changed.push('part_number');
+    }
+    if (row.purchase_price && parseFloat(row.purchase_price) !== existing.purchasePrice) {
+      changed.push('purchase_price');
+    }
+    if (row.currency && row.currency !== existing.currency) {
+      changed.push('currency');
+    }
+    if (row.device_category && row.device_category !== existing.deviceCategory) {
+      changed.push('device_category');
+    }
+    if (row.notes && row.notes !== existing.notes) {
+      changed.push('notes');
     }
     
     return changed;
@@ -673,19 +763,49 @@ export class WarehouseStockService {
    */
   private mapRowToStock(row: ImportRow): Partial<WarehouseStock> {
     return {
+      // Identyfikacja (wymagane)
       catalogNumber: row.catalog_number,
       materialName: row.material_name,
+      
+      // Identyfikacja (opcjonalne)
       description: row.description || undefined,
       category: row.category || undefined,
       subcategory: row.subcategory || undefined,
       materialType: (row.material_type as MaterialType) || MaterialType.CONSUMABLE,
+      deviceCategory: row.device_category || undefined,
+      
+      // Ilości i jednostki
       unit: row.unit || 'szt',
       quantityInStock: row.quantity_in_stock ? parseFloat(row.quantity_in_stock) : 0,
       minStockLevel: row.min_stock_level ? parseFloat(row.min_stock_level) : undefined,
-      supplier: row.supplier || undefined,
-      unitPrice: row.unit_price ? parseFloat(row.unit_price) : undefined,
+      maxStockLevel: row.max_stock_level ? parseFloat(row.max_stock_level) : undefined,
+      reorderPoint: row.reorder_point ? parseFloat(row.reorder_point) : undefined,
+      
+      // Lokalizacja
       warehouseLocation: row.warehouse_location || undefined,
-      manufacturer: row.manufacturer || undefined
+      storageZone: row.storage_zone || undefined,
+      
+      // Dostawca i producent
+      supplier: row.supplier || undefined,
+      supplierCatalogNumber: row.supplier_catalog_number || undefined,
+      manufacturer: row.manufacturer || undefined,
+      partNumber: row.part_number || undefined,
+      
+      // Ceny
+      unitPrice: row.unit_price ? parseFloat(row.unit_price) : undefined,
+      purchasePrice: row.purchase_price ? parseFloat(row.purchase_price) : undefined,
+      currency: row.currency || 'PLN',
+      
+      // Flagi
+      isSerialized: this.parseBoolean(row.is_serialized),
+      isBatchTracked: this.parseBoolean(row.is_batch_tracked),
+      requiresIpAddress: this.parseBoolean(row.requires_ip_address),
+      isHazardous: this.parseBoolean(row.is_hazardous),
+      requiresCertification: this.parseBoolean(row.requires_certification),
+      
+      // Notatki
+      notes: row.notes || undefined,
+      internalNotes: row.internal_notes || undefined
     };
   }
 
@@ -755,6 +875,34 @@ export class WarehouseStockService {
           if (row.unit) updateData.unit = row.unit;
           if (row.manufacturer) updateData.manufacturer = row.manufacturer;
           
+          // Nowe pola - zawsze aktualizuj jeśli podane
+          if (row.max_stock_level) updateData.maxStockLevel = parseFloat(row.max_stock_level);
+          if (row.reorder_point) updateData.reorderPoint = parseFloat(row.reorder_point);
+          if (row.storage_zone) updateData.storageZone = row.storage_zone;
+          if (row.supplier_catalog_number) updateData.supplierCatalogNumber = row.supplier_catalog_number;
+          if (row.part_number) updateData.partNumber = row.part_number;
+          if (row.purchase_price) updateData.purchasePrice = parseFloat(row.purchase_price);
+          if (row.currency) updateData.currency = row.currency;
+          if (row.device_category) updateData.deviceCategory = row.device_category;
+          if (row.notes) updateData.notes = row.notes;
+          if (row.internal_notes) updateData.internalNotes = row.internal_notes;
+          
+          // Flagi
+          const isSerialized = this.parseBoolean(row.is_serialized);
+          if (isSerialized !== undefined) updateData.isSerialized = isSerialized;
+          
+          const isBatchTracked = this.parseBoolean(row.is_batch_tracked);
+          if (isBatchTracked !== undefined) updateData.isBatchTracked = isBatchTracked;
+          
+          const requiresIpAddress = this.parseBoolean(row.requires_ip_address);
+          if (requiresIpAddress !== undefined) updateData.requiresIpAddress = requiresIpAddress;
+          
+          const isHazardous = this.parseBoolean(row.is_hazardous);
+          if (isHazardous !== undefined) updateData.isHazardous = isHazardous;
+          
+          const requiresCertification = this.parseBoolean(row.requires_certification);
+          if (requiresCertification !== undefined) updateData.requiresCertification = requiresCertification;
+          
           if (Object.keys(updateData).length > 0) {
             await this.update(existing.id, updateData, userId);
             
@@ -818,18 +966,42 @@ export class WarehouseStockService {
    */
   generateCSVTemplate(): string {
     const headers = [
+      // Wymagane
       'catalog_number',
       'material_name',
+      // Identyfikacja
       'description',
       'category',
       'subcategory',
       'material_type',
+      'device_category',
+      // Ilości
       'unit',
       'quantity_in_stock',
       'min_stock_level',
+      'max_stock_level',
+      'reorder_point',
+      // Lokalizacja
+      'warehouse_location',
+      'storage_zone',
+      // Dostawca
       'supplier',
+      'supplier_catalog_number',
+      'manufacturer',
+      'part_number',
+      // Ceny
       'unit_price',
-      'warehouse_location'
+      'purchase_price',
+      'currency',
+      // Flagi
+      'is_serialized',
+      'is_batch_tracked',
+      'requires_ip_address',
+      'is_hazardous',
+      'requires_certification',
+      // Notatki
+      'notes',
+      'internal_notes'
     ];
 
     const exampleRow = [
@@ -839,12 +1011,28 @@ export class WarehouseStockService {
       'Elektronika',
       'Rezystory',
       'consumable',
+      '',
       'szt',
       '100',
       '10',
+      '200',
+      '20',
+      'A-01-02',
+      'Strefa A',
       'Dostawca ABC',
+      'SUP-001',
+      'Producent XYZ',
+      'PN-12345',
       '5.50',
-      'A-01-02'
+      '4.00',
+      'PLN',
+      'false',
+      'false',
+      'false',
+      'false',
+      'false',
+      'Notatka publiczna',
+      'Notatka wewnętrzna'
     ];
 
     return headers.join(',') + '\n' + exampleRow.join(',');

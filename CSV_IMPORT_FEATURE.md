@@ -41,10 +41,72 @@ The CSV Import feature provides an intelligent way to import warehouse stock dat
 - `unit_price` - Unit price
 - `warehouse_location` - Storage location
 
+### 📋 Pełna lista kolumn CSV
+
+#### Wymagane
+| Kolumna | Opis | Limit znaków |
+|:--------|:-----|:-------------|
+| `catalog_number` | Numer katalogowy (unikalny) | 200 |
+| `material_name` | Nazwa materiału | 500 |
+
+#### Identyfikacja (opcjonalne)
+| Kolumna | Opis | Limit znaków |
+|:--------|:-----|:-------------|
+| `description` | Opis | bez limitu |
+| `category` | Kategoria | 200 |
+| `subcategory` | Podkategoria | 200 |
+| `material_type` | Typ: consumable, device, tool, component | 50 |
+| `device_category` | Kategoria urządzenia | 100 |
+
+#### Ilości i jednostki
+| Kolumna | Opis | Format |
+|:--------|:-----|:-------|
+| `unit` | Jednostka (domyślnie: szt) | tekst |
+| `quantity_in_stock` | Ilość na stanie | liczba |
+| `min_stock_level` | Minimalny poziom | liczba |
+| `max_stock_level` | Maksymalny poziom | liczba |
+| `reorder_point` | Punkt ponownego zamówienia | liczba |
+
+#### Lokalizacja
+| Kolumna | Opis | Limit znaków |
+|:--------|:-----|:-------------|
+| `warehouse_location` | Lokalizacja magazynowa | 500 |
+| `storage_zone` | Strefa magazynowa | 100 |
+
+#### Dostawca i producent
+| Kolumna | Opis | Limit znaków |
+|:--------|:-----|:-------------|
+| `supplier` | Dostawca | 500 |
+| `supplier_catalog_number` | Numer katalogowy dostawcy | 200 |
+| `manufacturer` | Producent | 500 |
+| `part_number` | Numer części | 200 |
+
+#### Ceny
+| Kolumna | Opis | Format |
+|:--------|:-----|:-------|
+| `unit_price` | Cena jednostkowa | liczba |
+| `purchase_price` | Cena zakupu | liczba |
+| `currency` | Waluta (domyślnie: PLN) | 10 znaków |
+
+#### Flagi (wartości: true/false, 1/0, tak/nie, yes/no)
+| Kolumna | Opis | Domyślnie |
+|:--------|:-----|:----------|
+| `is_serialized` | Czy ma numery seryjne | false |
+| `is_batch_tracked` | Czy śledzony partiami | false |
+| `requires_ip_address` | Czy wymaga IP | false |
+| `is_hazardous` | Czy niebezpieczny | false |
+| `requires_certification` | Czy wymaga certyfikacji | false |
+
+#### Notatki
+| Kolumna | Opis |
+|:--------|:-----|
+| `notes` | Notatki publiczne |
+| `internal_notes` | Notatki wewnętrzne |
+
 ### 📏 Limity znaków
 
 | Kolumna | Limit znaków |
-|---------|--------------|
+|:--------|:-------------|
 | catalog_number | 200 |
 | material_name | 500 |
 | category | 200 |
@@ -54,16 +116,21 @@ The CSV Import feature provides an intelligent way to import warehouse stock dat
 | manufacturer | 500 |
 | unit | 50 |
 | material_type | 50 |
+| storage_zone | 100 |
+| supplier_catalog_number | 200 |
+| part_number | 200 |
+| currency | 10 |
+| device_category | 100 |
 
 Wartości przekraczające limity zostaną odrzucone z komunikatem błędu.
 
 ### 📝 Sample CSV
 
 ```csv
-catalog_number,material_name,description,category,subcategory,material_type,unit,quantity_in_stock,min_stock_level,supplier,unit_price,warehouse_location
-"Zasilacz awaryjny SINUS PRO 800 W","Zasilacz awaryjny SINUS PRO 800 E 12/230V (500/800W)","Zasilacz awaryjny SINUS PRO 800 E 12/230V (500/800W)",,,,szt,0,,,,
-10132,"Przewód połączeniowy HDMI-HDMI 5m","Przewód połączeniowy HDMI-HDMI 5m",,,,szt,19,,,,
-MAT-001,"Kabel zasilający 2m","Kabel zasilający 230V, 2 metry",Elektronika,Kable,consumable,szt,50,10,"Elektro-Hurt",12.50,A-01-05
+catalog_number,material_name,description,category,subcategory,material_type,device_category,unit,quantity_in_stock,min_stock_level,max_stock_level,reorder_point,warehouse_location,storage_zone,supplier,supplier_catalog_number,manufacturer,part_number,unit_price,purchase_price,currency,is_serialized,is_batch_tracked,requires_ip_address,is_hazardous,requires_certification,notes,internal_notes
+MAT-001,Przykładowy materiał,Opis materiału,Elektronika,Rezystory,consumable,,szt,100,10,200,20,A-01-02,Strefa A,Dostawca ABC,SUP-001,Producent XYZ,PN-12345,5.50,4.00,PLN,false,false,false,false,false,Notatka publiczna,Notatka wewnętrzna
+"Zasilacz awaryjny SINUS PRO 800 W","Zasilacz awaryjny SINUS PRO 800 E 12/230V (500/800W)","Zasilacz awaryjny SINUS PRO 800 E 12/230V (500/800W)",Zasilacze,UPS,device,power_supply,szt,5,2,20,3,B-12-05,Strefa B,Supplier Tech,SUP-800,Brand XYZ,UPS-800-PRO,450.00,380.00,PLN,true,false,false,false,true,Zasilacz awaryjny z funkcją UPS,Wymaga certyfikacji CE
+10132,"Przewód połączeniowy HDMI-HDMI 5m","Przewód połączeniowy HDMI-HDMI 5m",Kable,HDMI,consumable,,szt,19,5,50,10,C-03-12,Strefa C,Cable Corp,CC-HDMI-5M,Cable Brand,HDMI-5M,25.00,18.00,PLN,false,false,false,false,false,,
 ```
 
 ## User Workflow
