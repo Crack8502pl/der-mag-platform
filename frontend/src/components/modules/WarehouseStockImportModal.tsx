@@ -194,10 +194,16 @@ export const WarehouseStockImportModal: React.FC<Props> = ({ onClose, onSuccess 
           const response = await warehouseStockService.analyzeImport(batches[i]);
           
           if (response.success && response.data) {
-            // Aggregate results from this batch
-            allNewRecords = [...allNewRecords, ...(response.data.newRecords || [])];
-            allDuplicates = [...allDuplicates, ...(response.data.duplicates || [])];
-            allErrors = [...allErrors, ...(response.data.errors || [])];
+            // Aggregate results from this batch - using push for better performance
+            if (response.data.newRecords) {
+              allNewRecords.push(...response.data.newRecords);
+            }
+            if (response.data.duplicates) {
+              allDuplicates.push(...response.data.duplicates);
+            }
+            if (response.data.errors) {
+              allErrors.push(...response.data.errors);
+            }
           } else {
             throw new Error(`Błąd analizy partii ${i + 1}`);
           }
@@ -264,7 +270,9 @@ export const WarehouseStockImportModal: React.FC<Props> = ({ onClose, onSuccess 
             totalUpdated += response.data.updated || 0;
             totalSkipped += response.data.skipped || 0;
             totalFailed += response.data.failed || 0;
-            allErrors = [...allErrors, ...(response.data.errors || [])];
+            if (response.data.errors) {
+              allErrors.push(...response.data.errors);
+            }
           } else {
             throw new Error(`Błąd importu partii ${i + 1}`);
           }
