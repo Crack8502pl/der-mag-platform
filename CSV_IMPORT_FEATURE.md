@@ -41,6 +41,21 @@ The CSV Import feature provides an intelligent way to import warehouse stock dat
 - `unit_price` - Unit price
 - `warehouse_location` - Storage location
 
+### 📏 Limity znaków
+
+| Kolumna | Limit znaków |
+|---------|--------------|
+| catalog_number | 200 |
+| material_name | 500 |
+| category | 200 |
+| subcategory | 200 |
+| supplier | 500 |
+| warehouse_location | 500 |
+| manufacturer | 500 |
+| unit | 50 |
+
+Wartości przekraczające limity zostaną odrzucone z komunikatem błędu.
+
 ### 📝 Sample CSV
 
 ```csv

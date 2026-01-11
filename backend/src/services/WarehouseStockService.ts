@@ -43,6 +43,7 @@ interface ImportRow {
   supplier?: string;
   unit_price?: string;
   warehouse_location?: string;
+  manufacturer?: string;
 }
 
 interface AnalyzedRow extends ImportRow {
@@ -68,6 +69,18 @@ interface ImportResultDetailed {
   failed: number;
   errors: Array<{ row: number; field?: string; error: string }>;
 }
+
+const COLUMN_LIMITS = {
+  catalog_number: 200,
+  material_name: 500,
+  category: 200,
+  subcategory: 200,
+  supplier: 500,
+  warehouse_location: 500,
+  manufacturer: 500,
+  unit: 50,
+  material_type: 50
+};
 
 export class WarehouseStockService {
   private stockRepository: Repository<WarehouseStock>;
@@ -496,6 +509,51 @@ export class WarehouseStockService {
   }
 
   /**
+   * Validate row field lengths against column limits
+   */
+  private validateRowLengths(row: ImportRow): string[] {
+    const errors: string[] = [];
+    
+    if (row.catalog_number && row.catalog_number.length > COLUMN_LIMITS.catalog_number) {
+      errors.push(`Numer katalogowy przekracza ${COLUMN_LIMITS.catalog_number} znaków (ma ${row.catalog_number.length})`);
+    }
+    
+    if (row.material_name && row.material_name.length > COLUMN_LIMITS.material_name) {
+      errors.push(`Nazwa materiału przekracza ${COLUMN_LIMITS.material_name} znaków (ma ${row.material_name.length})`);
+    }
+    
+    if (row.category && row.category.length > COLUMN_LIMITS.category) {
+      errors.push(`Kategoria przekracza ${COLUMN_LIMITS.category} znaków (ma ${row.category.length})`);
+    }
+    
+    if (row.subcategory && row.subcategory.length > COLUMN_LIMITS.subcategory) {
+      errors.push(`Podkategoria przekracza ${COLUMN_LIMITS.subcategory} znaków (ma ${row.subcategory.length})`);
+    }
+    
+    if (row.supplier && row.supplier.length > COLUMN_LIMITS.supplier) {
+      errors.push(`Dostawca przekracza ${COLUMN_LIMITS.supplier} znaków (ma ${row.supplier.length})`);
+    }
+    
+    if (row.warehouse_location && row.warehouse_location.length > COLUMN_LIMITS.warehouse_location) {
+      errors.push(`Lokalizacja przekracza ${COLUMN_LIMITS.warehouse_location} znaków (ma ${row.warehouse_location.length})`);
+    }
+    
+    if (row.manufacturer && row.manufacturer.length > COLUMN_LIMITS.manufacturer) {
+      errors.push(`Producent przekracza ${COLUMN_LIMITS.manufacturer} znaków (ma ${row.manufacturer.length})`);
+    }
+    
+    if (row.unit && row.unit.length > COLUMN_LIMITS.unit) {
+      errors.push(`Jednostka przekracza ${COLUMN_LIMITS.unit} znaków (ma ${row.unit.length})`);
+    }
+    
+    if (row.material_type && row.material_type.length > COLUMN_LIMITS.material_type) {
+      errors.push(`Typ materiału przekracza ${COLUMN_LIMITS.material_type} znaków (ma ${row.material_type.length})`);
+    }
+    
+    return errors;
+  }
+
+  /**
    * Get changed fields between existing record and import row
    */
   private getChangedFields(existing: WarehouseStock, row: ImportRow): string[] {
@@ -553,6 +611,12 @@ export class WarehouseStockService {
       }
       if (!row.material_name) {
         validationErrors.push('Brak nazwy materiału');
+      }
+      
+      // Validate field lengths
+      const lengthErrors = this.validateRowLengths(row);
+      if (lengthErrors.length > 0) {
+        validationErrors.push(...lengthErrors);
       }
       
       if (validationErrors.length > 0) {
@@ -638,6 +702,18 @@ export class WarehouseStockService {
     
     for (const row of rows) {
       try {
+        // Validate field lengths
+        const lengthErrors = this.validateRowLengths(row);
+        if (lengthErrors.length > 0) {
+          failed++;
+          errors.push({
+            row: row.rowNumber,
+            field: 'validation',
+            error: lengthErrors.join('; ')
+          });
+          continue; // Skip this row
+        }
+        
         // Check for existing record
         const existing = await this.stockRepository.findOne({
           where: { catalogNumber: row.catalog_number }

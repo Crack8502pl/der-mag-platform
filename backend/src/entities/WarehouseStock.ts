@@ -39,19 +39,19 @@ export class WarehouseStock {
   uuid: string;
 
   // Identyfikacja materiału
-  @Column({ name: 'catalog_number', length: 100, unique: true })
+  @Column({ name: 'catalog_number', length: 200, unique: true })
   catalogNumber: string;
 
-  @Column({ name: 'material_name', length: 200 })
+  @Column({ name: 'material_name', length: 500 })
   materialName: string;
 
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ length: 100, nullable: true })
+  @Column({ length: 200, nullable: true })
   category: string;
 
-  @Column({ length: 100, nullable: true })
+  @Column({ length: 200, nullable: true })
   subcategory: string;
 
   @Column({
@@ -86,20 +86,20 @@ export class WarehouseStock {
   reorderPoint: number;
 
   // Lokalizacja magazynowa
-  @Column({ name: 'warehouse_location', length: 200, nullable: true })
+  @Column({ name: 'warehouse_location', length: 500, nullable: true })
   warehouseLocation: string;
 
   @Column({ name: 'storage_zone', length: 100, nullable: true })
   storageZone: string;
 
   // Dane dostawcy i producenta
-  @Column({ length: 200, nullable: true })
+  @Column({ length: 500, nullable: true })
   supplier: string;
 
   @Column({ name: 'supplier_catalog_number', length: 200, nullable: true })
   supplierCatalogNumber: string;
 
-  @Column({ length: 200, nullable: true })
+  @Column({ length: 500, nullable: true })
   manufacturer: string;
 
   @Column({ name: 'part_number', length: 200, nullable: true })
