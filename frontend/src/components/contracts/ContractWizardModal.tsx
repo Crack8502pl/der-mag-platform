@@ -1286,8 +1286,8 @@ export const ContractWizardModal: React.FC<Props> = ({
     
     // Special handling for SMW - single-page comprehensive form
     if (subsystem.type === 'SMW') {
-      // Initialize smwData if not present
-      const smwData = (subsystem.params as SmwWizardData) || {
+      // Initialize smwData if not present with proper defaults
+      const defaultSmwData: SmwWizardData = {
         iloscStacji: 0,
         iloscKontenerow: 0,
         sokEnabled: false,
@@ -1296,6 +1296,17 @@ export const ContractWizardModal: React.FC<Props> = ({
         sokConfig: { nameAddress: '', cabinets: [] },
         extraViewingConfig: { nameAddress: '', cabinets: [] },
         lcsConfig: { cabinets: [] }
+      };
+
+      // Merge with defaults to ensure all properties exist
+      const rawSmwData = subsystem.params as SmwWizardData;
+      const smwData: SmwWizardData = {
+        ...defaultSmwData,
+        ...rawSmwData,
+        stations: rawSmwData?.stations || [],
+        sokConfig: { ...defaultSmwData.sokConfig, ...rawSmwData?.sokConfig },
+        extraViewingConfig: { ...defaultSmwData.extraViewingConfig, ...rawSmwData?.extraViewingConfig },
+        lcsConfig: { ...defaultSmwData.lcsConfig, ...rawSmwData?.lcsConfig }
       };
 
       const updateSmwData = (updates: Partial<SmwWizardData>) => {
@@ -1525,7 +1536,7 @@ export const ContractWizardModal: React.FC<Props> = ({
           )}
 
           {/* Stations Configuration */}
-          {smwData.stations.map((station, stationIdx) => (
+          {(smwData.stations || []).map((station, stationIdx) => (
             <div key={stationIdx} className="smw-section" style={{ marginTop: '20px', padding: '15px', border: '2px solid #4CAF50', borderRadius: '4px' }}>
               <h4>Stacja {stationIdx + 1}</h4>
               
