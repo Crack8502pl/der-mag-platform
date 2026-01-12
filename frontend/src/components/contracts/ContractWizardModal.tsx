@@ -1318,12 +1318,12 @@ export const ContractWizardModal: React.FC<Props> = ({
         ...rawSmwData,
         stations: rawSmwData?.stations || [],
         sokConfig: {
-          nameAddress: rawSmwData?.sokConfig?.nameAddress ?? defaultSmwData.sokConfig?.nameAddress ?? '',
-          cabinets: rawSmwData?.sokConfig?.cabinets ?? defaultSmwData.sokConfig?.cabinets ?? []
+          nameAddress: rawSmwData?.sokConfig?.nameAddress ?? defaultSmwData.sokConfig!.nameAddress,
+          cabinets: rawSmwData?.sokConfig?.cabinets ?? defaultSmwData.sokConfig!.cabinets
         },
         extraViewingConfig: {
-          nameAddress: rawSmwData?.extraViewingConfig?.nameAddress ?? defaultSmwData.extraViewingConfig?.nameAddress ?? '',
-          cabinets: rawSmwData?.extraViewingConfig?.cabinets ?? defaultSmwData.extraViewingConfig?.cabinets ?? []
+          nameAddress: rawSmwData?.extraViewingConfig?.nameAddress ?? defaultSmwData.extraViewingConfig!.nameAddress,
+          cabinets: rawSmwData?.extraViewingConfig?.cabinets ?? defaultSmwData.extraViewingConfig!.cabinets
         },
         lcsConfig: {
           cabinets: rawSmwData?.lcsConfig?.cabinets ?? defaultSmwData.lcsConfig.cabinets
