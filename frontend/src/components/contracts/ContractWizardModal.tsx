@@ -84,6 +84,9 @@ export const ContractWizardModal: React.FC<Props> = ({
   
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
 
+  // Helper text for optional kilometraż fields
+  const OPTIONAL_KILOMETRAZ_HELP = 'Pole opcjonalne - wpisz w formacie XXX,XXX';
+
   // Helper to get role name (handles both string and object types)
   const getRoleName = (role: string | Role | null | undefined): string => {
     if (typeof role === 'string') return role;
@@ -258,15 +261,16 @@ export const ContractWizardModal: React.FC<Props> = ({
     }
   };
 
-  // Format kilometraż to XXX,XXX format with leading zeros
-  const formatKilometraz = (value: string): string => {
+  // Format kilometraż to XXX,XXX format with leading zeros (used on blur)
+  const formatKilometrazDisplay = (value: string): string => {
+    if (!value) return '';
     // Remove all non-digit characters
     const digitsOnly = value.replace(/\D/g, '');
     
+    if (!digitsOnly) return '';
+    
     // Limit to 6 digits
     const limited = digitsOnly.slice(0, 6);
-    
-    if (!limited) return '';
     
     // Pad with leading zeros to make 6 digits
     const padded = limited.padStart(6, '0');
@@ -275,9 +279,18 @@ export const ContractWizardModal: React.FC<Props> = ({
     return `${padded.slice(0, 3)},${padded.slice(3)}`;
   };
 
-  // Handle kilometraż input change
-  const handleKilometrazChange = (subsystemIndex: number, taskIndex: number, value: string) => {
-    const formatted = formatKilometraz(value);
+  // Handle kilometraż input change (without formatting, just filtering)
+  const handleKilometrazInput = (subsystemIndex: number, taskIndex: number, value: string) => {
+    // Remove everything except digits and comma
+    const cleaned = value.replace(/[^\d,]/g, '').replace(/,/g, '');
+    // Limit to 6 digits
+    const limited = cleaned.slice(0, 6);
+    updateTaskDetail(subsystemIndex, taskIndex, { kilometraz: limited });
+  };
+
+  // Handle kilometraż blur (apply formatting)
+  const handleKilometrazBlur = (subsystemIndex: number, taskIndex: number, value: string) => {
+    const formatted = formatKilometrazDisplay(value);
     updateTaskDetail(subsystemIndex, taskIndex, { kilometraz: formatted });
   };
 
@@ -1849,9 +1862,10 @@ export const ContractWizardModal: React.FC<Props> = ({
                     <label>Kilometraż *</label>
                     <input
                       type="text"
-                      placeholder="000,123"
+                      placeholder="123456"
                       value={detail.kilometraz || ''}
-                      onChange={(e) => handleKilometrazChange(subsystemIndex, idx, e.target.value)}
+                      onChange={(e) => handleKilometrazInput(subsystemIndex, idx, e.target.value)}
+                      onBlur={(e) => handleKilometrazBlur(subsystemIndex, idx, e.target.value)}
                       required
                     />
                   </div>
@@ -1878,9 +1892,10 @@ export const ContractWizardModal: React.FC<Props> = ({
                     <label>Kilometraż *</label>
                     <input
                       type="text"
-                      placeholder="000,123"
+                      placeholder="123456"
                       value={detail.kilometraz || ''}
-                      onChange={(e) => handleKilometrazChange(subsystemIndex, idx, e.target.value)}
+                      onChange={(e) => handleKilometrazInput(subsystemIndex, idx, e.target.value)}
+                      onBlur={(e) => handleKilometrazBlur(subsystemIndex, idx, e.target.value)}
                       required
                     />
                   </div>
@@ -1908,9 +1923,10 @@ export const ContractWizardModal: React.FC<Props> = ({
                     <label>Kilometraż *</label>
                     <input
                       type="text"
-                      placeholder="000,123"
+                      placeholder="123456"
                       value={detail.kilometraz || ''}
-                      onChange={(e) => handleKilometrazChange(subsystemIndex, idx, e.target.value)}
+                      onChange={(e) => handleKilometrazInput(subsystemIndex, idx, e.target.value)}
+                      onBlur={(e) => handleKilometrazBlur(subsystemIndex, idx, e.target.value)}
                       required
                     />
                   </div>
@@ -1941,10 +1957,11 @@ export const ContractWizardModal: React.FC<Props> = ({
                     <label>Kilometraż (opcjonalnie)</label>
                     <input
                       type="text"
-                      placeholder="np. 123.456"
+                      placeholder="np. 123,456"
                       value={detail.kilometraz || ''}
                       onChange={(e) => updateTaskDetail(subsystemIndex, idx, { kilometraz: e.target.value })}
                     />
+                    <small className="form-help">{OPTIONAL_KILOMETRAZ_HELP}</small>
                   </div>
                 </div>
               )}
@@ -1973,10 +1990,11 @@ export const ContractWizardModal: React.FC<Props> = ({
                     <label>Kilometraż (opcjonalnie)</label>
                     <input
                       type="text"
-                      placeholder="np. 123.456"
+                      placeholder="np. 123,456"
                       value={detail.kilometraz || ''}
                       onChange={(e) => updateTaskDetail(subsystemIndex, idx, { kilometraz: e.target.value })}
                     />
+                    <small className="form-help">{OPTIONAL_KILOMETRAZ_HELP}</small>
                   </div>
                 </div>
               )}
