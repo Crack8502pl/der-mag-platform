@@ -1446,7 +1446,7 @@ export const ContractWizardModal: React.FC<Props> = ({
               </div>
 
               {(smwData.sokConfig?.cabinets || []).map((cabinet: SmwCabinet, idx: number) => (
-                <div key={idx} className="cabinet-config" style={{ marginLeft: '20px', marginBottom: '15px', padding: '10px', background: '#f9f9f9', borderRadius: '4px' }}>
+                <div key={idx} className="cabinet-config" style={{ marginLeft: '20px', marginBottom: '15px', padding: '10px', background: '#333333', borderRadius: '4px' }}>
                   <h5>Szafa {idx + 1}</h5>
                   <div className="form-row" style={{ display: 'flex', gap: '10px' }}>
                     <div className="form-group" style={{ flex: 1 }}>
@@ -1518,7 +1518,7 @@ export const ContractWizardModal: React.FC<Props> = ({
               </div>
 
               {(smwData.extraViewingConfig?.cabinets || []).map((cabinet: SmwCabinet, idx: number) => (
-                <div key={idx} className="cabinet-config" style={{ marginLeft: '20px', marginBottom: '15px', padding: '10px', background: '#f9f9f9', borderRadius: '4px' }}>
+                <div key={idx} className="cabinet-config" style={{ marginLeft: '20px', marginBottom: '15px', padding: '10px', background: '#333333', borderRadius: '4px' }}>
                   <h5>Szafa {idx + 1}</h5>
                   <div className="form-row" style={{ display: 'flex', gap: '10px' }}>
                     <div className="form-group" style={{ flex: 1 }}>
@@ -1710,7 +1710,7 @@ export const ContractWizardModal: React.FC<Props> = ({
             </div>
 
             {(smwData.lcsConfig?.cabinets || []).map((cabinet: SmwCabinet, idx: number) => (
-              <div key={idx} className="cabinet-config" style={{ marginLeft: '20px', marginBottom: '15px', padding: '10px', background: '#f9f9f9', borderRadius: '4px' }}>
+              <div key={idx} className="cabinet-config" style={{ marginLeft: '20px', marginBottom: '15px', padding: '10px', background: '#333333', borderRadius: '4px' }}>
                 <h5>Szafa LCS {idx + 1}</h5>
                 <div className="form-row" style={{ display: 'flex', gap: '10px' }}>
                   <div className="form-group" style={{ flex: 1 }}>
