@@ -591,32 +591,33 @@
   padding: 0;
   font-size: 16px;
   border-radius: 4px;
-  border: 1px solid #ddd;
-  background: white;
+  border: 1px solid var(--border-color);
+  background: var(--bg-input);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .action-buttons .btn-icon:hover {
-  background: #f5f5f5;
+  background: var(--bg-hover);
 }
 
 .action-buttons .btn-icon.btn-success {
-  color: #4caf50;
-  border-color: #4caf50;
+  color: var(--success);
+  border-color: var(--success);
 }
 
 .action-buttons .btn-icon.btn-success:hover {
-  background: #e8f5e9;
+  background: rgba(72, 187, 120, 0.1);
 }
 
 .action-buttons .btn-icon.btn-danger {
-  color: #f44336;
-  border-color: #f44336;
+  color: var(--danger);
+  border-color: var(--danger);
 }
 
 .action-buttons .btn-icon.btn-danger:hover {
-  background: #ffebee;
+  background: var(--danger-light);
 }
 
 /* Wizard Modal */
@@ -629,7 +630,7 @@
   display: flex;
   justify-content: space-between;
   padding: 20px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .wizard-step {
@@ -647,7 +648,7 @@
   left: 50%;
   width: 100%;
   height: 2px;
-  background: #ddd;
+  background: var(--border-color);
 }
 
 .wizard-step:last-child::after {
@@ -658,8 +659,8 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #e0e0e0;
-  color: #666;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -668,8 +669,8 @@
 }
 
 .wizard-step.active .step-number {
-  background: #1976d2;
-  color: white;
+  background: var(--primary-color);
+  color: var(--text-primary);
 }
 
 .wizard-step.completed .step-number {
@@ -680,11 +681,11 @@
 .step-label {
   margin-top: 8px;
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .wizard-step.active .step-label {
-  color: #1976d2;
+  color: var(--primary-color);
   font-weight: bold;
 }
 
@@ -695,8 +696,8 @@
 .detected-subsystem {
   margin-top: 8px;
   padding: 8px 12px;
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: rgba(72, 187, 120, 0.1);
+  color: var(--success);
   border-radius: 4px;
   font-size: 14px;
 }
@@ -715,20 +716,23 @@
 .tasks-table td {
   padding: 8px 12px;
   text-align: left;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .tasks-table th {
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .tasks-summary {
   margin-top: 16px;
   padding: 12px;
-  background: #e3f2fd;
+  background: var(--bg-card);
+  border: 1px solid var(--primary-color);
   border-radius: 4px;
   text-align: center;
+  color: var(--text-primary);
 }
 
 .wizard-success {
@@ -761,7 +765,7 @@
 .modal-footer {
   display: flex;
   padding: 16px 20px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border-color);
   gap: 12px;
 }
 
@@ -824,10 +828,10 @@
 
 .info-text {
   padding: 12px;
-  background: #e3f2fd;
-  border-left: 4px solid #1976d2;
+  background: rgba(66, 153, 225, 0.1);
+  border-left: 4px solid var(--info);
   border-radius: 4px;
-  color: #1565c0;
+  color: var(--info);
   font-size: 14px;
   margin-bottom: 12px;
 }
