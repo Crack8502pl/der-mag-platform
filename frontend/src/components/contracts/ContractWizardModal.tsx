@@ -1317,9 +1317,17 @@ export const ContractWizardModal: React.FC<Props> = ({
         ...defaultSmwData,
         ...rawSmwData,
         stations: rawSmwData?.stations || [],
-        sokConfig: { ...defaultSmwData.sokConfig, ...rawSmwData?.sokConfig },
-        extraViewingConfig: { ...defaultSmwData.extraViewingConfig, ...rawSmwData?.extraViewingConfig },
-        lcsConfig: { ...defaultSmwData.lcsConfig, ...rawSmwData?.lcsConfig }
+        sokConfig: {
+          nameAddress: rawSmwData?.sokConfig?.nameAddress ?? defaultSmwData.sokConfig!.nameAddress,
+          cabinets: rawSmwData?.sokConfig?.cabinets ?? defaultSmwData.sokConfig!.cabinets
+        },
+        extraViewingConfig: {
+          nameAddress: rawSmwData?.extraViewingConfig?.nameAddress ?? defaultSmwData.extraViewingConfig!.nameAddress,
+          cabinets: rawSmwData?.extraViewingConfig?.cabinets ?? defaultSmwData.extraViewingConfig!.cabinets
+        },
+        lcsConfig: {
+          cabinets: rawSmwData?.lcsConfig?.cabinets ?? defaultSmwData.lcsConfig.cabinets
+        }
       };
 
       const updateSmwData = (updates: Partial<SmwWizardData>) => {
