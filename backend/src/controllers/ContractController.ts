@@ -127,6 +127,15 @@ export class ContractController {
         return;
       }
 
+      // Walidacja długości kodu kierownika
+      if (managerCode.length > 5) {
+        res.status(400).json({
+          success: false,
+          message: 'Kod kierownika może mieć maksymalnie 5 znaków'
+        });
+        return;
+      }
+
       const contract = await this.contractService.createContract({
         contractNumber,
         customName,
@@ -318,6 +327,15 @@ export class ContractController {
         res.status(400).json({
           success: false,
           message: 'Brakuje wymaganych pól: customName, orderDate, managerCode, projectManagerId'
+        });
+        return;
+      }
+
+      // Walidacja długości kodu kierownika
+      if (managerCode.length > 5) {
+        res.status(400).json({
+          success: false,
+          message: 'Kod kierownika może mieć maksymalnie 5 znaków'
         });
         return;
       }
