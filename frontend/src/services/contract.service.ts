@@ -122,7 +122,7 @@ class ContractService {
     managerCode: string;
     subsystems?: Array<{
       type: string;
-      params: Record<string, number | boolean>;
+      params: Record<string, number | boolean | any>;  // Allow complex objects like SmwWizardData
       tasks: Array<{ number: string; name: string; type: string }>;
     }>;
     // Legacy support:

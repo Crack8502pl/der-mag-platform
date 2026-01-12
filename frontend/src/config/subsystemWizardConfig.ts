@@ -63,16 +63,24 @@ export interface SmwLcsConfig {
 
 export interface SmwWizardData {
   // Step 1 - Basic
-  stationsCount: number;
-  containersCount: number;
+  iloscStacji: number;  // Number of stations
+  iloscKontenerow: number;  // Number of containers
   sokEnabled: boolean;
   extraViewingEnabled: boolean;
   
   // Step 2+ - Dynamic based on counts
   stations: SmwStation[];
-  sok?: SmwSokConfig;
-  extraViewing?: SmwExtraViewingStation;
-  lcs: SmwLcsConfig;
+  sokConfig?: {
+    nameAddress: string;
+    cabinets: SmwCabinet[];
+  };
+  extraViewingConfig?: {
+    nameAddress: string;
+    cabinets: SmwCabinet[];
+  };
+  lcsConfig: {
+    cabinets: SmwCabinet[];
+  };
 }
 
 export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {

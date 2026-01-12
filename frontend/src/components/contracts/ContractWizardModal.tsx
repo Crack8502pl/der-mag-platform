@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { SUBSYSTEM_WIZARD_CONFIG, detectSubsystemTypes } from '../../config/subsystemWizardConfig';
+import { SUBSYSTEM_WIZARD_CONFIG, detectSubsystemTypes, type SmwWizardData, type SmwCabinet } from '../../config/subsystemWizardConfig';
 import type { SubsystemType } from '../../config/subsystemWizardConfig';
 import contractService, { type Subsystem, type Contract } from '../../services/contract.service';
 import { AdminService } from '../../services/admin.service';
@@ -19,12 +19,12 @@ interface Props {
 interface SubsystemWizardData {
   id?: number;              // NOWE - ID podsystemu (dla edycji)
   type: SubsystemType;
-  params: Record<string, number | boolean | any>;  // Allow complex objects for SMW
+  params: Record<string, number | boolean> | SmwWizardData;  // Allow SMW complex structure
   taskDetails?: TaskDetail[];
   isExisting?: boolean;     // NOWE - czy podsystem już istnieje w bazie
   taskCount?: number;       // NOWE - liczba zadań (dla blokady usuwania)
   ipPool?: string;          // NOWE - pula adresowa IP (np. "192.168.1.0/24")
-  smwData?: any;            // NOWE - SMW specific wizard data
+  smwData?: SmwWizardData;  // NOWE - SMW specific wizard data
   smwStep?: number;         // NOWE - Current SMW wizard sub-step
 }
 
@@ -359,27 +359,27 @@ export const ContractWizardModal: React.FC<Props> = ({
   const initializeTaskDetails = (subsystemIndex: number) => {
     const subsystem = wizardData.subsystems[subsystemIndex];
     const taskDetails: TaskDetail[] = [];
-    const params = subsystem.params;
+    const simpleParams = subsystem.params as Record<string, number | boolean>;
     
     if (subsystem.type === 'SMOKIP_A') {
       // PRZEJAZD_KAT_A
-      for (let i = 0; i < getNumericValue(params, 'przejazdyKatA'); i++) {
+      for (let i = 0; i < getNumericValue(simpleParams, 'przejazdyKatA'); i++) {
         taskDetails.push({ taskType: 'PRZEJAZD_KAT_A', kilometraz: '', kategoria: 'KAT A' });
       }
       // SKP
-      for (let i = 0; i < getNumericValue(params, 'iloscSKP'); i++) {
+      for (let i = 0; i < getNumericValue(simpleParams, 'iloscSKP'); i++) {
         taskDetails.push({ taskType: 'SKP', kilometraz: '' });
       }
       // NASTAWNIA
-      for (let i = 0; i < getNumericValue(params, 'iloscNastawni'); i++) {
+      for (let i = 0; i < getNumericValue(simpleParams, 'iloscNastawni'); i++) {
         taskDetails.push({ taskType: 'NASTAWNIA', nazwa: '', miejscowosc: '' });
       }
       // LCS
-      if (getBooleanValue(params, 'hasLCS')) {
+      if (getBooleanValue(simpleParams, 'hasLCS')) {
         taskDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '' });
       }
       // CUID - kopiuj dane z LCS
-      if (getBooleanValue(params, 'hasCUID')) {
+      if (getBooleanValue(simpleParams, 'hasCUID')) {
         const lcsTask = taskDetails.find(t => t.taskType === 'LCS');
         taskDetails.push({ 
           taskType: 'CUID', 
@@ -389,19 +389,19 @@ export const ContractWizardModal: React.FC<Props> = ({
       }
     } else if (subsystem.type === 'SMOKIP_B') {
       // PRZEJAZD_KAT_B
-      for (let i = 0; i < getNumericValue(params, 'przejazdyKatB'); i++) {
+      for (let i = 0; i < getNumericValue(simpleParams, 'przejazdyKatB'); i++) {
         taskDetails.push({ taskType: 'PRZEJAZD_KAT_B', kilometraz: '', kategoria: 'KAT B' });
       }
       // NASTAWNIA
-      for (let i = 0; i < getNumericValue(params, 'iloscNastawni'); i++) {
+      for (let i = 0; i < getNumericValue(simpleParams, 'iloscNastawni'); i++) {
         taskDetails.push({ taskType: 'NASTAWNIA', nazwa: '', miejscowosc: '' });
       }
       // LCS
-      if (getBooleanValue(params, 'hasLCS')) {
+      if (getBooleanValue(simpleParams, 'hasLCS')) {
         taskDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '' });
       }
       // CUID - kopiuj dane z LCS
-      if (getBooleanValue(params, 'hasCUID')) {
+      if (getBooleanValue(simpleParams, 'hasCUID')) {
         const lcsTask = taskDetails.find(t => t.taskType === 'LCS');
         taskDetails.push({ 
           taskType: 'CUID', 
@@ -507,7 +507,10 @@ export const ContractWizardModal: React.FC<Props> = ({
     _startIndex: number
   ): GeneratedTask[] => {
     const tasks: GeneratedTask[] = [];
-    const params = subsystem.params;
+    // Cast params to appropriate type based on subsystem
+    const params = subsystem.type === 'SMW' && 'iloscStacji' in subsystem.params 
+      ? subsystem.params as SmwWizardData
+      : subsystem.params as Record<string, number | boolean>;
 
     // SMOK-A specific
     if (subsystem.type === 'SMOKIP_A') {
@@ -543,7 +546,8 @@ export const ContractWizardModal: React.FC<Props> = ({
         });
       } else {
         // Generic task generation
-        for (let i = 0; i < getNumericValue(params, 'przejazdyKatA'); i++) {
+        const simpleParams = params as Record<string, number | boolean>;
+        for (let i = 0; i < getNumericValue(simpleParams, 'przejazdyKatA'); i++) {
           tasks.push({
             number: '',
             name: `Przejazd Kat A #${i + 1}`,
@@ -551,7 +555,7 @@ export const ContractWizardModal: React.FC<Props> = ({
             subsystemType: subsystem.type
           });
         }
-        for (let i = 0; i < getNumericValue(params, 'iloscSKP'); i++) {
+        for (let i = 0; i < getNumericValue(simpleParams, 'iloscSKP'); i++) {
           tasks.push({
             number: '',
             name: `SKP #${i + 1}`,
@@ -559,7 +563,7 @@ export const ContractWizardModal: React.FC<Props> = ({
             subsystemType: subsystem.type
           });
         }
-        for (let i = 0; i < getNumericValue(params, 'iloscNastawni'); i++) {
+        for (let i = 0; i < getNumericValue(simpleParams, 'iloscNastawni'); i++) {
           tasks.push({
             number: '',
             name: `Nastawnia #${i + 1}`,
@@ -567,15 +571,15 @@ export const ContractWizardModal: React.FC<Props> = ({
             subsystemType: subsystem.type
           });
         }
-        if (getBooleanValue(params, 'hasLCS')) {
+        if (getBooleanValue(simpleParams, 'hasLCS')) {
           tasks.push({
             number: '',
-            name: `LCS (${getNumericValue(params, 'lcsMonitory')} monitorów, ${getNumericValue(params, 'lcsStanowiska')} stanowisk)`,
+            name: `LCS (${getNumericValue(simpleParams, 'lcsMonitory')} monitorów, ${getNumericValue(simpleParams, 'lcsStanowiska')} stanowisk)`,
             type: 'LCS',
             subsystemType: subsystem.type
           });
         }
-        if (getBooleanValue(params, 'hasCUID')) {
+        if (getBooleanValue(simpleParams, 'hasCUID')) {
           tasks.push({
             number: '',
             name: 'CUID',
@@ -615,7 +619,8 @@ export const ContractWizardModal: React.FC<Props> = ({
           });
         });
       } else {
-        for (let i = 0; i < getNumericValue(params, 'przejazdyKatB'); i++) {
+        const simpleParams = params as Record<string, number | boolean>;
+        for (let i = 0; i < getNumericValue(simpleParams, 'przejazdyKatB'); i++) {
           tasks.push({
             number: '',
             name: `Przejazd Kat B #${i + 1}`,
@@ -623,7 +628,7 @@ export const ContractWizardModal: React.FC<Props> = ({
             subsystemType: subsystem.type
           });
         }
-        for (let i = 0; i < getNumericValue(params, 'iloscNastawni'); i++) {
+        for (let i = 0; i < getNumericValue(simpleParams, 'iloscNastawni'); i++) {
           tasks.push({
             number: '',
             name: `Nastawnia #${i + 1}`,
@@ -631,15 +636,15 @@ export const ContractWizardModal: React.FC<Props> = ({
             subsystemType: subsystem.type
           });
         }
-        if (getBooleanValue(params, 'hasLCS')) {
+        if (getBooleanValue(simpleParams, 'hasLCS')) {
           tasks.push({
             number: '',
-            name: `LCS (${getNumericValue(params, 'lcsMonitory')} monitorów, ${getNumericValue(params, 'lcsStanowiska')} stanowisk)`,
+            name: `LCS (${getNumericValue(simpleParams, 'lcsMonitory')} monitorów, ${getNumericValue(simpleParams, 'lcsStanowiska')} stanowisk)`,
             type: 'LCS',
             subsystemType: subsystem.type
           });
         }
-        if (getBooleanValue(params, 'hasCUID')) {
+        if (getBooleanValue(simpleParams, 'hasCUID')) {
           tasks.push({
             number: '',
             name: 'CUID',
@@ -651,13 +656,13 @@ export const ContractWizardModal: React.FC<Props> = ({
     }
     // SMW specific - Generate tasks based on smwData
     else if (subsystem.type === 'SMW') {
-      const smwData = subsystem.smwData || subsystem.params;
+      const smwData = (subsystem.smwData || params) as SmwWizardData;
       
       // Tasks for each platform of each station
       if (smwData.stations && Array.isArray(smwData.stations)) {
-        smwData.stations.forEach((station: any, stationIdx: number) => {
+        smwData.stations.forEach((station, stationIdx: number) => {
           if (station.platformCabinets && Array.isArray(station.platformCabinets)) {
-            station.platformCabinets.forEach((platform: any) => {
+            station.platformCabinets.forEach((platform) => {
               const cabinetInfo = platform.cabinets && platform.cabinets.length > 0
                 ? ` (${platform.cabinets.length} szaf)`
                 : '';
@@ -709,8 +714,8 @@ export const ContractWizardModal: React.FC<Props> = ({
       }
       
       // Fallback: If no smwData, generate generic tasks based on simple params
-      if (tasks.length === 0) {
-        for (let i = 0; i < getNumericValue(params, 'iloscKontenerow'); i++) {
+      if (tasks.length === 0 && 'iloscKontenerow' in smwData) {
+        for (let i = 0; i < (smwData.iloscKontenerow || 0); i++) {
           tasks.push({
             number: '',
             name: `SMW - Kontener #${i + 1}`,
@@ -722,7 +727,8 @@ export const ContractWizardModal: React.FC<Props> = ({
     }
     // SKD specific
     else if (subsystem.type === 'SKD') {
-      for (let i = 0; i < getNumericValue(params, 'iloscBudynkow'); i++) {
+      const simpleParams = params as Record<string, number | boolean>;
+      for (let i = 0; i < getNumericValue(simpleParams, 'iloscBudynkow'); i++) {
         tasks.push({
           number: '',
           name: `Budynek SKD #${i + 1}`,
@@ -730,7 +736,7 @@ export const ContractWizardModal: React.FC<Props> = ({
           subsystemType: subsystem.type
         });
       }
-      for (let i = 0; i < getNumericValue(params, 'iloscKontenerow'); i++) {
+      for (let i = 0; i < getNumericValue(simpleParams, 'iloscKontenerow'); i++) {
         tasks.push({
           number: '',
           name: `Kontener SKD #${i + 1}`,
@@ -738,7 +744,7 @@ export const ContractWizardModal: React.FC<Props> = ({
           subsystemType: subsystem.type
         });
       }
-      for (let i = 0; i < getNumericValue(params, 'iloscPrzejsc'); i++) {
+      for (let i = 0; i < getNumericValue(simpleParams, 'iloscPrzejsc'); i++) {
         tasks.push({
           number: '',
           name: `Przejście #${i + 1}`,
@@ -747,11 +753,12 @@ export const ContractWizardModal: React.FC<Props> = ({
         });
       }
     }
-    // Default for other subsystems (SSWiN, CCTV, SMW, SDIP, SUG, SSP, LAN, OTK, ZASILANIE)
+    // Default for other subsystems (SSWiN, CCTV, SDIP, SUG, SSP, LAN, OTK, ZASILANIE)
     else {
+      const simpleParams = params as Record<string, number | boolean>;
       const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
       const subsystemLabel = config?.label || 'Zadanie';
-      for (let i = 0; i < getNumericValue(params, 'iloscBudynkow'); i++) {
+      for (let i = 0; i < getNumericValue(simpleParams, 'iloscBudynkow'); i++) {
         tasks.push({
           number: '',
           name: `${subsystemLabel} - Budynek #${i + 1}`,
@@ -759,7 +766,7 @@ export const ContractWizardModal: React.FC<Props> = ({
           subsystemType: subsystem.type
         });
       }
-      for (let i = 0; i < getNumericValue(params, 'iloscPomieszczen'); i++) {
+      for (let i = 0; i < getNumericValue(simpleParams, 'iloscPomieszczen'); i++) {
         tasks.push({
           number: '',
           name: `${subsystemLabel} - Pomieszczenie #${i + 1}`,
@@ -767,7 +774,7 @@ export const ContractWizardModal: React.FC<Props> = ({
           subsystemType: subsystem.type
         });
       }
-      for (let i = 0; i < getNumericValue(params, 'iloscKontenerow'); i++) {
+      for (let i = 0; i < getNumericValue(simpleParams, 'iloscKontenerow'); i++) {
         tasks.push({
           number: '',
           name: `${subsystemLabel} - Kontener #${i + 1}`,
@@ -1022,9 +1029,13 @@ export const ContractWizardModal: React.FC<Props> = ({
         // Format data for backend
         const subsystemsData = wizardData.subsystems.map((subsystem) => {
           const subsystemTasks = generatedTasks.filter(t => t.subsystemType === subsystem.type);
+          // For SMW, use smwData if available, otherwise use params
+          const params = subsystem.type === 'SMW' && subsystem.smwData 
+            ? subsystem.smwData 
+            : subsystem.params;
           return {
             type: subsystem.type,
-            params: subsystem.params,
+            params: params as Record<string, number | boolean | any>, // Allow complex SMW data
             ipPool: subsystem.ipPool,
             tasks: subsystemTasks.map(t => ({
               number: t.number,
@@ -1282,7 +1293,7 @@ export const ContractWizardModal: React.FC<Props> = ({
       lcsConfig: { cabinets: [] }
     };
 
-    const updateSmwData = (updates: any) => {
+    const updateSmwData = (updates: Partial<SmwWizardData>) => {
       const newSubsystems = [...wizardData.subsystems];
       newSubsystems[subsystemIndex].smwData = { ...smwData, ...updates };
       setWizardData({ ...wizardData, subsystems: newSubsystems });
@@ -1500,8 +1511,8 @@ export const ContractWizardModal: React.FC<Props> = ({
               value={sokConfig.cabinets?.length || 0}
               onChange={(e) => {
                 const count = parseInt(e.target.value) || 0;
-                const cabinets = Array.from({ length: count }, (_, i) => ({
-                  type: 'S1',
+                const cabinets: SmwCabinet[] = Array.from({ length: count }, (_, i) => ({
+                  type: 'S1' as const,
                   name: `Szafa ${i + 1}`
                 }));
                 updateSmwData({ sokConfig: { ...sokConfig, cabinets } });
@@ -1519,7 +1530,7 @@ export const ContractWizardModal: React.FC<Props> = ({
                     value={cabinet.type || 'S1'}
                     onChange={(e) => {
                       const newCabinets = [...sokConfig.cabinets];
-                      newCabinets[idx].type = e.target.value;
+                      newCabinets[idx].type = e.target.value as 'S1' | 'S2' | 'S3' | 'S4';
                       updateSmwData({ sokConfig: { ...sokConfig, cabinets: newCabinets } });
                     }}
                   >
@@ -1601,7 +1612,7 @@ export const ContractWizardModal: React.FC<Props> = ({
               onChange={(e) => {
                 const count = parseInt(e.target.value) || 0;
                 const cabinets = Array.from({ length: count }, (_, i) => ({
-                  type: 'S1',
+                  type: 'S1' as const,
                   name: `Szafa ${i + 1}`
                 }));
                 updateSmwData({ extraViewingConfig: { ...extraViewingConfig, cabinets } });
@@ -1619,7 +1630,7 @@ export const ContractWizardModal: React.FC<Props> = ({
                     value={cabinet.type || 'S1'}
                     onChange={(e) => {
                       const newCabinets = [...extraViewingConfig.cabinets];
-                      newCabinets[idx].type = e.target.value;
+                      newCabinets[idx].type = e.target.value as 'S1' | 'S2' | 'S3' | 'S4';
                       updateSmwData({ extraViewingConfig: { ...extraViewingConfig, cabinets: newCabinets } });
                     }}
                   >
@@ -1721,7 +1732,7 @@ export const ContractWizardModal: React.FC<Props> = ({
                         const count = parseInt(e.target.value) || 0;
                         const newStations = [...smwData.stations];
                         newStations[stationIdx].platformCabinets[platformIdx].cabinets = Array.from({ length: count }, (_, i) => ({
-                          type: 'S1',
+                          type: 'S1' as const,
                           name: `Szafa ${i + 1}`
                         }));
                         updateSmwData({ stations: newStations });
@@ -1739,7 +1750,7 @@ export const ContractWizardModal: React.FC<Props> = ({
                             value={cabinet.type || 'S1'}
                             onChange={(e) => {
                               const newStations = [...smwData.stations];
-                              newStations[stationIdx].platformCabinets[platformIdx].cabinets[cabinetIdx].type = e.target.value;
+                              newStations[stationIdx].platformCabinets[platformIdx].cabinets[cabinetIdx].type = e.target.value as 'S1' | 'S2' | 'S3' | 'S4';
                               updateSmwData({ stations: newStations });
                             }}
                           >
@@ -1807,7 +1818,7 @@ export const ContractWizardModal: React.FC<Props> = ({
               onChange={(e) => {
                 const count = parseInt(e.target.value) || 0;
                 const cabinets = Array.from({ length: count }, (_, i) => ({
-                  type: 'S1',
+                  type: 'S1' as const,
                   name: `Szafa LCS ${i + 1}`
                 }));
                 updateSmwData({ lcsConfig: { cabinets } });
@@ -1825,7 +1836,7 @@ export const ContractWizardModal: React.FC<Props> = ({
                     value={cabinet.type || 'S1'}
                     onChange={(e) => {
                       const newCabinets = [...lcsConfig.cabinets];
-                      newCabinets[idx].type = e.target.value;
+                      newCabinets[idx].type = e.target.value as 'S1' | 'S2' | 'S3' | 'S4';
                       updateSmwData({ lcsConfig: { ...lcsConfig, cabinets: newCabinets } });
                     }}
                   >
@@ -1924,10 +1935,16 @@ export const ContractWizardModal: React.FC<Props> = ({
         </div>
         
         {config.fields.map((field) => {
-          const paramValue = subsystem.params[field.name];
+          // For SMW multi-step wizard, skip rendering basic fields here
+          if (subsystem.type === 'SMW' && config.isMultiStep) {
+            return null;
+          }
+          
+          const params = subsystem.params as Record<string, number | boolean>;
+          const paramValue = params[field.name];
           
           // Check dependency
-          if (field.dependsOn && !subsystem.params[field.dependsOn]) {
+          if (field.dependsOn && !params[field.dependsOn]) {
             return null;
           }
           
@@ -1940,7 +1957,7 @@ export const ContractWizardModal: React.FC<Props> = ({
                   min={0}
                   value={typeof paramValue === 'number' ? paramValue : 0}
                   onChange={(e) => {
-                    const newParams = { ...subsystem.params };
+                    const newParams = { ...params };
                     newParams[field.name] = parseInt(e.target.value) || 0;
                     updateSubsystemParams(subsystemIndex, newParams);
                   }}
@@ -1951,7 +1968,7 @@ export const ContractWizardModal: React.FC<Props> = ({
                   type="checkbox"
                   checked={typeof paramValue === 'boolean' ? paramValue : false}
                   onChange={(e) => {
-                    const newParams = { ...subsystem.params };
+                    const newParams = { ...params };
                     newParams[field.name] = e.target.checked;
                     updateSubsystemParams(subsystemIndex, newParams);
                   }}
