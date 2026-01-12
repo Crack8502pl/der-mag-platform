@@ -84,6 +84,9 @@ export const ContractWizardModal: React.FC<Props> = ({
   
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
 
+  // Helper text for optional kilometraż fields
+  const OPTIONAL_KILOMETRAZ_HELP = 'Pole opcjonalne - wpisz w formacie XXX,XXX';
+
   // Helper to get role name (handles both string and object types)
   const getRoleName = (role: string | Role | null | undefined): string => {
     if (typeof role === 'string') return role;
@@ -1958,7 +1961,7 @@ export const ContractWizardModal: React.FC<Props> = ({
                       value={detail.kilometraz || ''}
                       onChange={(e) => updateTaskDetail(subsystemIndex, idx, { kilometraz: e.target.value })}
                     />
-                    <small className="form-help">Pole opcjonalne - wpisz w formacie XXX,XXX</small>
+                    <small className="form-help">{OPTIONAL_KILOMETRAZ_HELP}</small>
                   </div>
                 </div>
               )}
@@ -1991,7 +1994,7 @@ export const ContractWizardModal: React.FC<Props> = ({
                       value={detail.kilometraz || ''}
                       onChange={(e) => updateTaskDetail(subsystemIndex, idx, { kilometraz: e.target.value })}
                     />
-                    <small className="form-help">Pole opcjonalne - wpisz w formacie XXX,XXX</small>
+                    <small className="form-help">{OPTIONAL_KILOMETRAZ_HELP}</small>
                   </div>
                 </div>
               )}
