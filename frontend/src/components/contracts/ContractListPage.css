@@ -675,7 +675,7 @@
 
 .wizard-step.completed .step-number {
   background: #4caf50;
-  color: white;
+  color: var(--text-primary);
 }
 
 .step-label {
