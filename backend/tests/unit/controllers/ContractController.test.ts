@@ -329,6 +329,42 @@ describe('ContractController', () => {
       });
     });
 
+    it('should return 400 when managerCode is empty', async () => {
+      req.body = {
+        customName: 'Test Contract',
+        orderDate: '2026-01-06',
+        managerCode: '',
+        projectManagerId: 1,
+        tasks: [{ number: 'P000010126', name: 'Task 1', type: 'TYPE_A' }],
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Kod kierownika nie może być pusty',
+      });
+    });
+
+    it('should return 400 when managerCode is whitespace only', async () => {
+      req.body = {
+        customName: 'Test Contract',
+        orderDate: '2026-01-06',
+        managerCode: '   ',
+        projectManagerId: 1,
+        tasks: [{ number: 'P000010126', name: 'Task 1', type: 'TYPE_A' }],
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Kod kierownika nie może być pusty',
+      });
+    });
+
     it('should accept managerCode with exactly 5 characters', async () => {
       const mockContract = {
         id: 1,
