@@ -115,6 +115,7 @@ class ContractService {
   }
 
   async createContractWithWizard(data: {
+    contractNumber?: string;
     customName: string;
     orderDate: string;
     projectManagerId: number;

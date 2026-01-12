@@ -23,7 +23,9 @@ export class AdminService {
    */
   async getAllUsers(): Promise<User[]> {
     const response = await api.get('/admin/users');
-    return response.data.data;
+    // Handle nested structure: response.data = { success, data: { users: [...], pagination: {...} } }
+    const data = response.data.data;
+    return Array.isArray(data) ? data : (data?.users || []);
   }
 
   /**

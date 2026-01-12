@@ -37,6 +37,7 @@ interface TaskDetail {
 
 interface WizardData {
   // Step 1
+  contractNumber: string;
   customName: string;
   orderDate: string;
   projectManagerId: string;
@@ -63,11 +64,13 @@ export const ContractWizardModal: React.FC<Props> = ({
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [contractNumberError, setContractNumberError] = useState('');
   const [detectedSubsystems, setDetectedSubsystems] = useState<SubsystemType[]>([]);
   const [availableManagers, setAvailableManagers] = useState<AdminUser[]>([]);
   const [loadingManagers, setLoadingManagers] = useState(false);
   
   const [wizardData, setWizardData] = useState<WizardData>({
+    contractNumber: '',
     customName: '',
     orderDate: '',
     projectManagerId: user?.id?.toString() || '',
@@ -120,6 +123,7 @@ export const ContractWizardModal: React.FC<Props> = ({
       // 1. Ustaw dane podstawowe
       setWizardData(prev => ({
         ...prev,
+        contractNumber: contract.contractNumber || '',
         customName: contract.customName || '',
         orderDate: contract.orderDate?.split('T')[0] || '',
         projectManagerId: contract.projectManagerId?.toString() || '',
@@ -226,6 +230,51 @@ export const ContractWizardModal: React.FC<Props> = ({
     } finally {
       setLoadingManagers(false);
     }
+  };
+
+  // Validate contract number format
+  const validateContractNumber = (value: string): boolean => {
+    if (!value) return true; // Empty is valid (optional field)
+    const regex = /^R\d{7}_[A-Z]$/;
+    return regex.test(value);
+  };
+
+  // Handle contract number change with validation
+  const handleContractNumberChange = (value: string) => {
+    const upperValue = value.toUpperCase();
+    setWizardData({
+      ...wizardData,
+      contractNumber: upperValue
+    });
+    
+    if (upperValue && !validateContractNumber(upperValue)) {
+      setContractNumberError('Format: R0000001_A (R + 7 cyfr + _ + wielka litera)');
+    } else {
+      setContractNumberError('');
+    }
+  };
+
+  // Format kilometraż to XXX,XXX format with leading zeros
+  const formatKilometraz = (value: string): string => {
+    // Remove all non-digit characters
+    const digitsOnly = value.replace(/\D/g, '');
+    
+    // Limit to 6 digits
+    const limited = digitsOnly.slice(0, 6);
+    
+    if (!limited) return '';
+    
+    // Pad with leading zeros to make 6 digits
+    const padded = limited.padStart(6, '0');
+    
+    // Insert comma after 3rd digit: XXX,XXX
+    return `${padded.slice(0, 3)},${padded.slice(3)}`;
+  };
+
+  // Handle kilometraż input change
+  const handleKilometrazChange = (subsystemIndex: number, taskIndex: number, value: string) => {
+    const formatted = formatKilometraz(value);
+    updateTaskDetail(subsystemIndex, taskIndex, { kilometraz: formatted });
   };
 
   // Step 1: Detect subsystems from name
@@ -844,6 +893,7 @@ export const ContractWizardModal: React.FC<Props> = ({
         
         // 1. Aktualizuj dane podstawowe kontraktu
         await contractService.updateContract(contractToEdit.id, {
+          contractNumber: wizardData.contractNumber || undefined,
           customName: wizardData.customName,
           orderDate: wizardData.orderDate,
           projectManagerId: parseInt(wizardData.projectManagerId),
@@ -911,6 +961,7 @@ export const ContractWizardModal: React.FC<Props> = ({
         });
 
         const response = await contractService.createContractWithWizard({
+          contractNumber: wizardData.contractNumber || undefined,
           customName: wizardData.customName,
           orderDate: wizardData.orderDate,
           projectManagerId: parseInt(wizardData.projectManagerId),
@@ -993,6 +1044,20 @@ export const ContractWizardModal: React.FC<Props> = ({
   const renderStep1 = () => (
     <div className="wizard-step-content">
       <h3>Krok 1: Dane podstawowe</h3>
+      
+      <div className="form-group">
+        <label>
+          Numer kontraktu <span className="text-muted">(opcjonalny - auto-generowany)</span>
+        </label>
+        <input
+          type="text"
+          value={wizardData.contractNumber}
+          onChange={(e) => handleContractNumberChange(e.target.value)}
+          placeholder="R0000001_A"
+          className={contractNumberError ? 'error' : ''}
+        />
+        {contractNumberError && <span className="error-text">{contractNumberError}</span>}
+      </div>
       
       <div className="form-group">
         <label>Nazwa kontraktu *</label>
@@ -1251,9 +1316,9 @@ export const ContractWizardModal: React.FC<Props> = ({
                     <label>Kilometraż *</label>
                     <input
                       type="text"
-                      placeholder="np. 123.456"
+                      placeholder="000,123"
                       value={detail.kilometraz || ''}
-                      onChange={(e) => updateTaskDetail(subsystemIndex, idx, { kilometraz: e.target.value })}
+                      onChange={(e) => handleKilometrazChange(subsystemIndex, idx, e.target.value)}
                       required
                     />
                   </div>
@@ -1267,8 +1332,6 @@ export const ContractWizardModal: React.FC<Props> = ({
                       required
                     >
                       <option value="KAT A">KAT A</option>
-                      <option value="KAT B">KAT B</option>
-                      <option value="KAT C">KAT C</option>
                       <option value="KAT E">KAT E</option>
                       <option value="KAT F">KAT F</option>
                     </select>
@@ -1282,9 +1345,9 @@ export const ContractWizardModal: React.FC<Props> = ({
                     <label>Kilometraż *</label>
                     <input
                       type="text"
-                      placeholder="np. 123.456"
+                      placeholder="000,123"
                       value={detail.kilometraz || ''}
-                      onChange={(e) => updateTaskDetail(subsystemIndex, idx, { kilometraz: e.target.value })}
+                      onChange={(e) => handleKilometrazChange(subsystemIndex, idx, e.target.value)}
                       required
                     />
                   </div>
