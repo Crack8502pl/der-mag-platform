@@ -1649,7 +1649,7 @@ export const ContractWizardModal: React.FC<Props> = ({
                   </div>
 
                   {(platformCabinet.cabinets || []).map((cabinet, cabinetIdx) => (
-                    <div key={cabinetIdx} style={{ marginLeft: '20px', marginBottom: '10px', padding: '8px', background: '#fff', borderRadius: '4px' }}>
+                    <div key={cabinetIdx} style={{ marginLeft: '20px', marginBottom: '10px', padding: '8px', background: '#333333', borderRadius: '4px' }}>
                       <div className="form-row" style={{ display: 'flex', gap: '10px' }}>
                         <div className="form-group" style={{ flex: 1 }}>
                           <label>Typ Szafy</label>
