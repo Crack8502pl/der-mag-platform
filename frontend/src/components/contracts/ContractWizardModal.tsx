@@ -19,20 +19,23 @@ interface Props {
 interface SubsystemWizardData {
   id?: number;              // NOWE - ID podsystemu (dla edycji)
   type: SubsystemType;
-  params: Record<string, number | boolean>;
+  params: Record<string, number | boolean | any>;  // Allow complex objects for SMW
   taskDetails?: TaskDetail[];
   isExisting?: boolean;     // NOWE - czy podsystem już istnieje w bazie
   taskCount?: number;       // NOWE - liczba zadań (dla blokady usuwania)
   ipPool?: string;          // NOWE - pula adresowa IP (np. "192.168.1.0/24")
+  smwData?: any;            // NOWE - SMW specific wizard data
+  smwStep?: number;         // NOWE - Current SMW wizard sub-step
 }
 
 interface TaskDetail {
   id?: number;              // NOWE - ID zadania (dla edycji)
-  taskType: 'PRZEJAZD_KAT_A' | 'PRZEJAZD_KAT_B' | 'SKP' | 'NASTAWNIA' | 'LCS' | 'CUID';
+  taskType: 'PRZEJAZD_KAT_A' | 'PRZEJAZD_KAT_B' | 'SKP' | 'NASTAWNIA' | 'LCS' | 'CUID' | 'SMW_PLATFORM' | 'SMW_SOK' | 'SMW_LCS' | 'SMW_EXTRA_VIEWING';
   kilometraz?: string;
   kategoria?: 'KAT A' | 'KAT B' | 'KAT C' | 'KAT E' | 'KAT F';
   nazwa?: string;
   miejscowosc?: string;
+  smwCabinets?: Array<{ type: string; name: string }>;  // NOWE - for SMW tasks
 }
 
 interface WizardData {
@@ -646,6 +649,77 @@ export const ContractWizardModal: React.FC<Props> = ({
         }
       }
     }
+    // SMW specific - Generate tasks based on smwData
+    else if (subsystem.type === 'SMW') {
+      const smwData = subsystem.smwData || subsystem.params;
+      
+      // Tasks for each platform of each station
+      if (smwData.stations && Array.isArray(smwData.stations)) {
+        smwData.stations.forEach((station: any, stationIdx: number) => {
+          if (station.platformCabinets && Array.isArray(station.platformCabinets)) {
+            station.platformCabinets.forEach((platform: any) => {
+              const cabinetInfo = platform.cabinets && platform.cabinets.length > 0
+                ? ` (${platform.cabinets.length} szaf)`
+                : '';
+              tasks.push({
+                number: '',
+                name: `${station.name || `Stacja ${stationIdx + 1}`} - Peron ${platform.platformNumber}${cabinetInfo}`,
+                type: 'SMW_PLATFORM',
+                subsystemType: subsystem.type
+              });
+            });
+          }
+        });
+      }
+      
+      // Task for SOK if enabled
+      if (smwData.sokEnabled && smwData.sokConfig) {
+        const sokCabinets = smwData.sokConfig.cabinets || [];
+        const cabinetInfo = sokCabinets.length > 0 ? ` (${sokCabinets.length} szaf)` : '';
+        tasks.push({
+          number: '',
+          name: `SOK${smwData.sokConfig.nameAddress ? ` - ${smwData.sokConfig.nameAddress}` : ''}${cabinetInfo}`,
+          type: 'SMW_SOK',
+          subsystemType: subsystem.type
+        });
+      }
+      
+      // Task for Extra Viewing Station if enabled
+      if (smwData.extraViewingEnabled && smwData.extraViewingConfig) {
+        const extraCabinets = smwData.extraViewingConfig.cabinets || [];
+        const cabinetInfo = extraCabinets.length > 0 ? ` (${extraCabinets.length} szaf)` : '';
+        tasks.push({
+          number: '',
+          name: `Stanowisko Oglądowe${smwData.extraViewingConfig.nameAddress ? ` - ${smwData.extraViewingConfig.nameAddress}` : ''}${cabinetInfo}`,
+          type: 'SMW_EXTRA_VIEWING',
+          subsystemType: subsystem.type
+        });
+      }
+      
+      // Task for LCS
+      if (smwData.lcsConfig) {
+        const lcsCabinets = smwData.lcsConfig.cabinets || [];
+        const cabinetInfo = lcsCabinets.length > 0 ? ` (${lcsCabinets.length} szaf)` : '';
+        tasks.push({
+          number: '',
+          name: `LCS${cabinetInfo}`,
+          type: 'SMW_LCS',
+          subsystemType: subsystem.type
+        });
+      }
+      
+      // Fallback: If no smwData, generate generic tasks based on simple params
+      if (tasks.length === 0) {
+        for (let i = 0; i < getNumericValue(params, 'iloscKontenerow'); i++) {
+          tasks.push({
+            number: '',
+            name: `SMW - Kontener #${i + 1}`,
+            type: 'KONTENER',
+            subsystemType: subsystem.type
+          });
+        }
+      }
+    }
     // SKD specific
     else if (subsystem.type === 'SKD') {
       for (let i = 0; i < getNumericValue(params, 'iloscBudynkow'); i++) {
@@ -1193,9 +1267,628 @@ export const ContractWizardModal: React.FC<Props> = ({
     );
   };
 
+  // SMW Multi-step wizard renderer
+  const renderSmwWizard = (subsystemIndex: number) => {
+    const subsystem = wizardData.subsystems[subsystemIndex];
+    const smwStep = subsystem.smwStep || 1;
+    const smwData = subsystem.smwData || {
+      iloscStacji: 0,
+      iloscKontenerow: 0,
+      sokEnabled: false,
+      extraViewingEnabled: false,
+      stations: [],
+      sokConfig: { nameAddress: '', cabinets: [] },
+      extraViewingConfig: { nameAddress: '', cabinets: [] },
+      lcsConfig: { cabinets: [] }
+    };
+
+    const updateSmwData = (updates: any) => {
+      const newSubsystems = [...wizardData.subsystems];
+      newSubsystems[subsystemIndex].smwData = { ...smwData, ...updates };
+      setWizardData({ ...wizardData, subsystems: newSubsystems });
+    };
+
+    const updateSmwStep = (newStep: number) => {
+      const newSubsystems = [...wizardData.subsystems];
+      newSubsystems[subsystemIndex].smwStep = newStep;
+      setWizardData({ ...wizardData, subsystems: newSubsystems });
+    };
+
+    // Step 1: Basic configuration
+    if (smwStep === 1) {
+      return (
+        <div className="wizard-step-content">
+          <h3>SMW - Krok 1: Konfiguracja podstawowa</h3>
+          
+          <div className="form-group">
+            <label>Ilość Stacji *</label>
+            <input
+              type="number"
+              min={0}
+              value={smwData.iloscStacji || 0}
+              onChange={(e) => {
+                const count = parseInt(e.target.value) || 0;
+                const stations = Array.from({ length: count }, (_, i) => ({
+                  name: `Stacja ${i + 1}`,
+                  platforms: 0,
+                  elevators: 0,
+                  tunnels: 0,
+                  platformCabinets: []
+                }));
+                updateSmwData({ iloscStacji: count, stations });
+              }}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Ilość kontenerów *</label>
+            <input
+              type="number"
+              min={0}
+              value={smwData.iloscKontenerow || 0}
+              onChange={(e) => updateSmwData({ iloscKontenerow: parseInt(e.target.value) || 0 })}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={smwData.sokEnabled || false}
+                onChange={(e) => updateSmwData({ sokEnabled: e.target.checked })}
+              />
+              {' '}SOK
+            </label>
+          </div>
+
+          <div className="form-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={smwData.extraViewingEnabled || false}
+                onChange={(e) => updateSmwData({ extraViewingEnabled: e.target.checked })}
+              />
+              {' '}Dodatkowe stanowisko Oglądowe
+            </label>
+          </div>
+
+          <div className="wizard-actions">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                if (smwData.iloscStacji > 0) {
+                  updateSmwStep(2);
+                } else {
+                  alert('Proszę wprowadzić ilość stacji');
+                }
+              }}
+            >
+              Dalej →
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Step 2: For each station - platforms, elevators, tunnels
+    if (smwStep === 2) {
+      return (
+        <div className="wizard-step-content">
+          <h3>SMW - Krok 2: Konfiguracja stacji</h3>
+          
+          {(smwData.stations || []).map((station: any, idx: number) => (
+            <div key={idx} className="subsystem-config-section">
+              <h4>Stacja {idx + 1}</h4>
+              
+              <div className="form-group">
+                <label>Nazwa stacji</label>
+                <input
+                  type="text"
+                  value={station.name || ''}
+                  onChange={(e) => {
+                    const newStations = [...smwData.stations];
+                    newStations[idx].name = e.target.value;
+                    updateSmwData({ stations: newStations });
+                  }}
+                  placeholder={`Stacja ${idx + 1}`}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Ilość Peronów *</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={station.platforms || 0}
+                  onChange={(e) => {
+                    const count = parseInt(e.target.value) || 0;
+                    const newStations = [...smwData.stations];
+                    newStations[idx].platforms = count;
+                    newStations[idx].platformCabinets = Array.from({ length: count }, (_, i) => ({
+                      platformNumber: i + 1,
+                      cabinets: []
+                    }));
+                    updateSmwData({ stations: newStations });
+                  }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Ilość Wind *</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={station.elevators || 0}
+                  onChange={(e) => {
+                    const newStations = [...smwData.stations];
+                    newStations[idx].elevators = parseInt(e.target.value) || 0;
+                    updateSmwData({ stations: newStations });
+                  }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Ilość Tuneli *</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={station.tunnels || 0}
+                  onChange={(e) => {
+                    const newStations = [...smwData.stations];
+                    newStations[idx].tunnels = parseInt(e.target.value) || 0;
+                    updateSmwData({ stations: newStations });
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+
+          <div className="wizard-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => updateSmwStep(1)}
+            >
+              ← Wstecz
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                if (smwData.sokEnabled) {
+                  updateSmwStep(3); // Go to SOK config
+                } else if (smwData.extraViewingEnabled) {
+                  updateSmwStep(4); // Go to extra viewing config
+                } else {
+                  updateSmwStep(5); // Go to platform cabinets
+                }
+              }}
+            >
+              Dalej →
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Step 3: SOK configuration (if enabled)
+    if (smwStep === 3 && smwData.sokEnabled) {
+      const sokConfig = smwData.sokConfig || { nameAddress: '', cabinets: [] };
+      
+      return (
+        <div className="wizard-step-content">
+          <h3>SMW - Krok 3: Konfiguracja SOK</h3>
+          
+          <div className="form-group">
+            <label>Nazwa/Adres SOK *</label>
+            <input
+              type="text"
+              value={sokConfig.nameAddress || ''}
+              onChange={(e) => updateSmwData({ 
+                sokConfig: { ...sokConfig, nameAddress: e.target.value } 
+              })}
+              placeholder="Wprowadź nazwę lub adres"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Ilość szaf *</label>
+            <input
+              type="number"
+              min={0}
+              value={sokConfig.cabinets?.length || 0}
+              onChange={(e) => {
+                const count = parseInt(e.target.value) || 0;
+                const cabinets = Array.from({ length: count }, (_, i) => ({
+                  type: 'S1',
+                  name: `Szafa ${i + 1}`
+                }));
+                updateSmwData({ sokConfig: { ...sokConfig, cabinets } });
+              }}
+            />
+          </div>
+
+          {(sokConfig.cabinets || []).map((cabinet: any, idx: number) => (
+            <div key={idx} className="cabinet-config">
+              <h5>Szafa {idx + 1}</h5>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Typ Szafy</label>
+                  <select
+                    value={cabinet.type || 'S1'}
+                    onChange={(e) => {
+                      const newCabinets = [...sokConfig.cabinets];
+                      newCabinets[idx].type = e.target.value;
+                      updateSmwData({ sokConfig: { ...sokConfig, cabinets: newCabinets } });
+                    }}
+                  >
+                    <option value="S1">S1</option>
+                    <option value="S2">S2</option>
+                    <option value="S3">S3</option>
+                    <option value="S4">S4</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Nazwa Szafy</label>
+                  <input
+                    type="text"
+                    value={cabinet.name || ''}
+                    onChange={(e) => {
+                      const newCabinets = [...sokConfig.cabinets];
+                      newCabinets[idx].name = e.target.value;
+                      updateSmwData({ sokConfig: { ...sokConfig, cabinets: newCabinets } });
+                    }}
+                    placeholder={`Szafa ${idx + 1}`}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <div className="wizard-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => updateSmwStep(2)}
+            >
+              ← Wstecz
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                if (smwData.extraViewingEnabled) {
+                  updateSmwStep(4);
+                } else {
+                  updateSmwStep(5);
+                }
+              }}
+            >
+              Dalej →
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Step 4: Extra viewing station configuration (if enabled)
+    if (smwStep === 4 && smwData.extraViewingEnabled) {
+      const extraViewingConfig = smwData.extraViewingConfig || { nameAddress: '', cabinets: [] };
+      
+      return (
+        <div className="wizard-step-content">
+          <h3>SMW - Krok 4: Dodatkowe stanowisko Oglądowe</h3>
+          
+          <div className="form-group">
+            <label>Nazwa/Adres *</label>
+            <input
+              type="text"
+              value={extraViewingConfig.nameAddress || ''}
+              onChange={(e) => updateSmwData({ 
+                extraViewingConfig: { ...extraViewingConfig, nameAddress: e.target.value } 
+              })}
+              placeholder="Wprowadź nazwę lub adres"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Ilość szaf *</label>
+            <input
+              type="number"
+              min={0}
+              value={extraViewingConfig.cabinets?.length || 0}
+              onChange={(e) => {
+                const count = parseInt(e.target.value) || 0;
+                const cabinets = Array.from({ length: count }, (_, i) => ({
+                  type: 'S1',
+                  name: `Szafa ${i + 1}`
+                }));
+                updateSmwData({ extraViewingConfig: { ...extraViewingConfig, cabinets } });
+              }}
+            />
+          </div>
+
+          {(extraViewingConfig.cabinets || []).map((cabinet: any, idx: number) => (
+            <div key={idx} className="cabinet-config">
+              <h5>Szafa {idx + 1}</h5>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Typ Szafy</label>
+                  <select
+                    value={cabinet.type || 'S1'}
+                    onChange={(e) => {
+                      const newCabinets = [...extraViewingConfig.cabinets];
+                      newCabinets[idx].type = e.target.value;
+                      updateSmwData({ extraViewingConfig: { ...extraViewingConfig, cabinets: newCabinets } });
+                    }}
+                  >
+                    <option value="S1">S1</option>
+                    <option value="S2">S2</option>
+                    <option value="S3">S3</option>
+                    <option value="S4">S4</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Nazwa Szafy</label>
+                  <input
+                    type="text"
+                    value={cabinet.name || ''}
+                    onChange={(e) => {
+                      const newCabinets = [...extraViewingConfig.cabinets];
+                      newCabinets[idx].name = e.target.value;
+                      updateSmwData({ extraViewingConfig: { ...extraViewingConfig, cabinets: newCabinets } });
+                    }}
+                    placeholder={`Szafa ${idx + 1}`}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <div className="wizard-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                if (smwData.sokEnabled) {
+                  updateSmwStep(3);
+                } else {
+                  updateSmwStep(2);
+                }
+              }}
+            >
+              ← Wstecz
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => updateSmwStep(5)}
+            >
+              Dalej →
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Step 5: Platform cabinets configuration
+    if (smwStep === 5) {
+      const totalPlatforms = (smwData.stations || []).reduce((sum: number, station: any) => sum + (station.platforms || 0), 0);
+      
+      if (totalPlatforms === 0) {
+        return (
+          <div className="wizard-step-content">
+            <h3>SMW - Krok 5: Konfiguracja szaf na peronach</h3>
+            <p>Brak peronów do skonfigurowania.</p>
+            <div className="wizard-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => updateSmwStep(smwData.extraViewingEnabled ? 4 : (smwData.sokEnabled ? 3 : 2))}
+              >
+                ← Wstecz
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => updateSmwStep(6)}
+              >
+                Dalej →
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="wizard-step-content">
+          <h3>SMW - Krok 5: Konfiguracja szaf na peronach</h3>
+          
+          {(smwData.stations || []).map((station: any, stationIdx: number) => (
+            <div key={stationIdx}>
+              {(station.platformCabinets || []).map((platform: any, platformIdx: number) => (
+                <div key={platformIdx} className="subsystem-config-section">
+                  <h4>{station.name} - Peron {platform.platformNumber}</h4>
+                  
+                  <div className="form-group">
+                    <label>Ilość szaf na peronie *</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={platform.cabinets?.length || 0}
+                      onChange={(e) => {
+                        const count = parseInt(e.target.value) || 0;
+                        const newStations = [...smwData.stations];
+                        newStations[stationIdx].platformCabinets[platformIdx].cabinets = Array.from({ length: count }, (_, i) => ({
+                          type: 'S1',
+                          name: `Szafa ${i + 1}`
+                        }));
+                        updateSmwData({ stations: newStations });
+                      }}
+                    />
+                  </div>
+
+                  {(platform.cabinets || []).map((cabinet: any, cabinetIdx: number) => (
+                    <div key={cabinetIdx} className="cabinet-config">
+                      <h5>Szafa {cabinetIdx + 1}</h5>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>Typ Szafy</label>
+                          <select
+                            value={cabinet.type || 'S1'}
+                            onChange={(e) => {
+                              const newStations = [...smwData.stations];
+                              newStations[stationIdx].platformCabinets[platformIdx].cabinets[cabinetIdx].type = e.target.value;
+                              updateSmwData({ stations: newStations });
+                            }}
+                          >
+                            <option value="S1">S1</option>
+                            <option value="S2">S2</option>
+                            <option value="S3">S3</option>
+                            <option value="S4">S4</option>
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label>Nazwa Szafy</label>
+                          <input
+                            type="text"
+                            value={cabinet.name || ''}
+                            onChange={(e) => {
+                              const newStations = [...smwData.stations];
+                              newStations[stationIdx].platformCabinets[platformIdx].cabinets[cabinetIdx].name = e.target.value;
+                              updateSmwData({ stations: newStations });
+                            }}
+                            placeholder={`Szafa ${cabinetIdx + 1}`}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          ))}
+
+          <div className="wizard-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => updateSmwStep(smwData.extraViewingEnabled ? 4 : (smwData.sokEnabled ? 3 : 2))}
+            >
+              ← Wstecz
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => updateSmwStep(6)}
+            >
+              Dalej →
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Step 6: LCS configuration
+    if (smwStep === 6) {
+      const lcsConfig = smwData.lcsConfig || { cabinets: [] };
+      
+      return (
+        <div className="wizard-step-content">
+          <h3>SMW - Krok 6: Konfiguracja LCS</h3>
+          
+          <div className="form-group">
+            <label>Ilość szaf LCS *</label>
+            <input
+              type="number"
+              min={0}
+              value={lcsConfig.cabinets?.length || 0}
+              onChange={(e) => {
+                const count = parseInt(e.target.value) || 0;
+                const cabinets = Array.from({ length: count }, (_, i) => ({
+                  type: 'S1',
+                  name: `Szafa LCS ${i + 1}`
+                }));
+                updateSmwData({ lcsConfig: { cabinets } });
+              }}
+            />
+          </div>
+
+          {(lcsConfig.cabinets || []).map((cabinet: any, idx: number) => (
+            <div key={idx} className="cabinet-config">
+              <h5>Szafa LCS {idx + 1}</h5>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Typ Szafy</label>
+                  <select
+                    value={cabinet.type || 'S1'}
+                    onChange={(e) => {
+                      const newCabinets = [...lcsConfig.cabinets];
+                      newCabinets[idx].type = e.target.value;
+                      updateSmwData({ lcsConfig: { ...lcsConfig, cabinets: newCabinets } });
+                    }}
+                  >
+                    <option value="S1">S1</option>
+                    <option value="S2">S2</option>
+                    <option value="S3">S3</option>
+                    <option value="S4">S4</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Nazwa Szafy</label>
+                  <input
+                    type="text"
+                    value={cabinet.name || ''}
+                    onChange={(e) => {
+                      const newCabinets = [...lcsConfig.cabinets];
+                      newCabinets[idx].name = e.target.value;
+                      updateSmwData({ lcsConfig: { ...lcsConfig, cabinets: newCabinets } });
+                    }}
+                    placeholder={`Szafa LCS ${idx + 1}`}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <div className="wizard-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => updateSmwStep(5)}
+            >
+              ← Wstecz
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                // Generate SMW tasks and move to next step
+                const newSubsystems = [...wizardData.subsystems];
+                newSubsystems[subsystemIndex].params = smwData;
+                setWizardData({ ...wizardData, subsystems: newSubsystems });
+                // Continue with the normal wizard flow
+              }}
+            >
+              Zakończ konfigurację SMW
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   const renderConfigStep = (subsystemIndex: number) => {
     const subsystem = wizardData.subsystems[subsystemIndex];
     const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
+    
+    // Check if this is SMW with multi-step wizard
+    if (subsystem.type === 'SMW' && config.isMultiStep) {
+      return renderSmwWizard(subsystemIndex);
+    }
     
     return (
       <div className="wizard-step-content">
