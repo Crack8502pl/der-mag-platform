@@ -27,6 +27,16 @@ export class AdminService {
   }
 
   /**
+   * Get users with manager role (for project manager selection)
+   */
+  async getManagerUsers(): Promise<User[]> {
+    const response = await api.get('/admin/users', {
+      params: { role: 'manager' }
+    });
+    return response.data.data || response.data || [];
+  }
+
+  /**
    * Create user with OTP
    */
   async createUser(userData: CreateUserDto): Promise<CreateUserResponse> {

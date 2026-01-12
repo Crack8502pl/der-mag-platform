@@ -1085,7 +1085,7 @@ export const ContractWizardModal: React.FC<Props> = ({
               const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
               return (
                 <div key={index} className="subsystem-item">
-                  <span>{config.icon} {config.label}</span>
+                  <span>{config.label}</span>
                   <button 
                     type="button"
                     className="btn btn-small btn-danger"
@@ -1117,7 +1117,7 @@ export const ContractWizardModal: React.FC<Props> = ({
                 const config = SUBSYSTEM_WIZARD_CONFIG[type];
                 return (
                   <option key={type} value={type}>
-                    {config.icon} {config.label}
+                    {config.label}
                   </option>
                 );
               })}
@@ -1135,7 +1135,7 @@ export const ContractWizardModal: React.FC<Props> = ({
     return (
       <div className="wizard-step-content">
         <h3>
-          Konfiguracja: {config.icon} {config.label}
+          Konfiguracja: {config.label}
           {subsystem.isExisting && (
             <span className="badge badge-info" style={{ marginLeft: '10px', fontSize: '0.85em' }}>Istniejący podsystem</span>
           )}
@@ -1225,7 +1225,7 @@ export const ContractWizardModal: React.FC<Props> = ({
     
     return (
       <div className="wizard-step-content">
-        <h3>Szczegóły zadań: {config.icon} {config.label}</h3>
+        <h3>Szczegóły zadań: {config.label}</h3>
         <p className="info-text">
           Opisane: {describedTasks}/{totalTasks} zadań
         </p>
@@ -1477,7 +1477,7 @@ export const ContractWizardModal: React.FC<Props> = ({
           {tasksBySubsystem.map(({ config, subsystem, tasks }, index) => (
             <div key={index} className="subsystem-tasks">
               <h4>
-                {config.icon} {config.label} ({tasks.length} zadań)
+                {config.label} ({tasks.length} zadań)
                 {subsystem.ipPool && (
                   <span className="ip-pool-badge" style={{ marginLeft: '10px', padding: '4px 8px', backgroundColor: '#e3f2fd', borderRadius: '4px', fontSize: '0.85em' }}>
                     🌐 {subsystem.ipPool}
@@ -1530,7 +1530,7 @@ export const ContractWizardModal: React.FC<Props> = ({
         <ul className="success-summary">
           {tasksBySubsystem.map(({ config, tasks }, index) => (
             <li key={index}>
-              {config.icon} {config.label} ({tasks.length} zadań)
+              {config.label} ({tasks.length} zadań)
             </li>
           ))}
         </ul>

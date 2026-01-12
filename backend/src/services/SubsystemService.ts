@@ -18,21 +18,21 @@ export class SubsystemService {
   /**
    * Generator numeru podsystemu w formacie PXXXXXYYZZ
    * XXXXX = kolejny numer (00001-99999)
-   * YY = dzień założenia (01-31)
+   * YY = miesiąc założenia (01-12)
    * ZZ = rok (np. 25 dla 2025)
    */
   async generateSubsystemNumber(): Promise<string> {
     const now = new Date();
-    const day = now.getDate().toString().padStart(2, '0'); // YY
+    const month = (now.getMonth() + 1).toString().padStart(2, '0'); // YY
     const year = now.getFullYear().toString().slice(-2); // ZZ (ostatnie 2 cyfry roku)
 
-    // Pobierz ostatni numer podsystemu dla tego dnia i roku
-    const pattern = `P_____${day}${year}`;
+    // Pobierz ostatni numer podsystemu dla tego miesiąca i roku
+    const pattern = `P_____${month}${year}`;
     
     const lastSubsystem = await this.subsystemRepository
       .createQueryBuilder('subsystem')
       .where('subsystem.subsystemNumber LIKE :pattern', { 
-        pattern: `P%${day}${year}` 
+        pattern: `P%${month}${year}` 
       })
       .orderBy('subsystem.subsystemNumber', 'DESC')
       .limit(1)
@@ -42,19 +42,19 @@ export class SubsystemService {
     if (lastSubsystem && lastSubsystem.subsystemNumber) {
       // Wyciągnij numer z formatu PXXXXXYYZZ
       const match = lastSubsystem.subsystemNumber.match(/^P(\d{5})(\d{2})(\d{2})$/);
-      if (match && match[2] === day && match[3] === year) {
+      if (match && match[2] === month && match[3] === year) {
         const currentNumber = parseInt(match[1], 10);
         nextNumber = currentNumber + 1;
       }
     }
 
     if (nextNumber > 99999) {
-      throw new Error('Osiągnięto maksymalną liczbę podsystemów dla tego dnia');
+      throw new Error('Osiągnięto maksymalną liczbę podsystemów dla tego miesiąca');
     }
 
-    // Format: P00001DDYY
+    // Format: P00001MMYY
     const paddedNumber = nextNumber.toString().padStart(5, '0');
-    return `P${paddedNumber}${day}${year}`;
+    return `P${paddedNumber}${month}${year}`;
   }
 
   /**
