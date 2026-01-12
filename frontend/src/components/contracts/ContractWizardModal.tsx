@@ -1593,7 +1593,7 @@ export const ContractWizardModal: React.FC<Props> = ({
               </div>
 
               {/* Platform Cabinets */}
-              {station.platformCabinets.map((platformCabinet, platformIdx) => (
+              {(station.platformCabinets || []).map((platformCabinet, platformIdx) => (
                 <div key={platformIdx} style={{ marginLeft: '20px', marginTop: '15px', padding: '10px', background: '#f0f8ff', borderRadius: '4px' }}>
                   <h5>Peron {platformIdx + 1}</h5>
                   
@@ -1616,7 +1616,7 @@ export const ContractWizardModal: React.FC<Props> = ({
                     />
                   </div>
 
-                  {platformCabinet.cabinets.map((cabinet, cabinetIdx) => (
+                  {(platformCabinet.cabinets || []).map((cabinet, cabinetIdx) => (
                     <div key={cabinetIdx} style={{ marginLeft: '20px', marginBottom: '10px', padding: '8px', background: '#fff', borderRadius: '4px' }}>
                       <div className="form-row" style={{ display: 'flex', gap: '10px' }}>
                         <div className="form-group" style={{ flex: 1 }}>
