@@ -8,6 +8,7 @@ import type { SubsystemType } from '../../config/subsystemWizardConfig';
 import contractService, { type Subsystem, type Contract } from '../../services/contract.service';
 import { AdminService } from '../../services/admin.service';
 import type { User as AdminUser, Role } from '../../types/admin.types';
+import '../../styles/grover-theme.css';
 
 interface Props {
   onClose: () => void;
@@ -1278,39 +1279,55 @@ export const ContractWizardModal: React.FC<Props> = ({
     );
   };
 
-  // SMW Multi-step wizard renderer
-  const renderSmwWizard = (subsystemIndex: number) => {
+
+  const renderConfigStep = (subsystemIndex: number) => {
     const subsystem = wizardData.subsystems[subsystemIndex];
-    const smwStep = subsystem.smwStep || 1;
-    const smwData = subsystem.smwData || {
-      iloscStacji: 0,
-      iloscKontenerow: 0,
-      sokEnabled: false,
-      extraViewingEnabled: false,
-      stations: [],
-      sokConfig: { nameAddress: '', cabinets: [] },
-      extraViewingConfig: { nameAddress: '', cabinets: [] },
-      lcsConfig: { cabinets: [] }
-    };
+    const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
+    
+    // Special handling for SMW - single-page comprehensive form
+    if (subsystem.type === 'SMW') {
+      // Initialize smwData if not present
+      const smwData = (subsystem.params as SmwWizardData) || {
+        iloscStacji: 0,
+        iloscKontenerow: 0,
+        sokEnabled: false,
+        extraViewingEnabled: false,
+        stations: [],
+        sokConfig: { nameAddress: '', cabinets: [] },
+        extraViewingConfig: { nameAddress: '', cabinets: [] },
+        lcsConfig: { cabinets: [] }
+      };
 
-    const updateSmwData = (updates: Partial<SmwWizardData>) => {
-      const newSubsystems = [...wizardData.subsystems];
-      newSubsystems[subsystemIndex].smwData = { ...smwData, ...updates };
-      setWizardData({ ...wizardData, subsystems: newSubsystems });
-    };
+      const updateSmwData = (updates: Partial<SmwWizardData>) => {
+        const newSubsystems = [...wizardData.subsystems];
+        const currentData = (newSubsystems[subsystemIndex].params as SmwWizardData) || smwData;
+        newSubsystems[subsystemIndex].params = { ...currentData, ...updates };
+        setWizardData({ ...wizardData, subsystems: newSubsystems });
+      };
 
-    const updateSmwStep = (newStep: number) => {
-      const newSubsystems = [...wizardData.subsystems];
-      newSubsystems[subsystemIndex].smwStep = newStep;
-      setWizardData({ ...wizardData, subsystems: newSubsystems });
-    };
-
-    // Step 1: Basic configuration
-    if (smwStep === 1) {
       return (
         <div className="wizard-step-content">
-          <h3>SMW - Krok 1: Konfiguracja podstawowa</h3>
+          <h3>Konfiguracja: {config.label}</h3>
           
+          {/* Pole puli IP */}
+          <div className="form-group">
+            <label>Pula adresowa IP (opcjonalnie)</label>
+            <input
+              type="text"
+              value={subsystem.ipPool || ''}
+              onChange={(e) => {
+                const newSubsystems = [...wizardData.subsystems];
+                newSubsystems[subsystemIndex].ipPool = e.target.value.trim();
+                setWizardData({...wizardData, subsystems: newSubsystems});
+              }}
+              placeholder="np. 192.168.1.0/24"
+            />
+            <small className="form-help">
+              Format CIDR (np. 192.168.1.0/24). Każdy podsystem musi mieć unikalną pulę.
+            </small>
+          </div>
+
+          {/* Basic Configuration */}
           <div className="form-group">
             <label>Ilość Stacji *</label>
             <input
@@ -1363,388 +1380,246 @@ export const ContractWizardModal: React.FC<Props> = ({
             </label>
           </div>
 
-          <div className="wizard-actions">
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => {
-                if (smwData.iloscStacji > 0) {
-                  updateSmwStep(2);
-                } else {
-                  alert('Proszę wprowadzić ilość stacji');
-                }
-              }}
-            >
-              Dalej →
-            </button>
-          </div>
-        </div>
-      );
-    }
+          {/* SOK Configuration - if enabled */}
+          {smwData.sokEnabled && (
+            <div className="smw-section" style={{ marginTop: '20px', padding: '15px', border: '1px solid #ddd', borderRadius: '4px' }}>
+              <h4>Konfiguracja SOK</h4>
+              <div className="form-group">
+                <label>Nazwa/Adres SOK *</label>
+                <input
+                  type="text"
+                  value={smwData.sokConfig?.nameAddress || ''}
+                  onChange={(e) => updateSmwData({ 
+                    sokConfig: { nameAddress: e.target.value, cabinets: smwData.sokConfig?.cabinets || [] } 
+                  })}
+                  placeholder="Wprowadź nazwę lub adres"
+                />
+              </div>
 
-    // Step 2: For each station - platforms, elevators, tunnels
-    if (smwStep === 2) {
-      return (
-        <div className="wizard-step-content">
-          <h3>SMW - Krok 2: Konfiguracja stacji</h3>
-          
-          {(smwData.stations || []).map((station: any, idx: number) => (
-            <div key={idx} className="subsystem-config-section">
-              <h4>Stacja {idx + 1}</h4>
+              <div className="form-group">
+                <label>Ilość szaf *</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={smwData.sokConfig?.cabinets?.length || 0}
+                  onChange={(e) => {
+                    const count = parseInt(e.target.value) || 0;
+                    const cabinets: SmwCabinet[] = Array.from({ length: count }, (_, i) => ({
+                      type: 'S1' as const,
+                      name: `Szafa SOK ${i + 1}`
+                    }));
+                    updateSmwData({ sokConfig: { ...smwData.sokConfig, nameAddress: smwData.sokConfig?.nameAddress || '', cabinets } });
+                  }}
+                />
+              </div>
+
+              {(smwData.sokConfig?.cabinets || []).map((cabinet: SmwCabinet, idx: number) => (
+                <div key={idx} className="cabinet-config" style={{ marginLeft: '20px', marginBottom: '15px', padding: '10px', background: '#f9f9f9', borderRadius: '4px' }}>
+                  <h5>Szafa {idx + 1}</h5>
+                  <div className="form-row" style={{ display: 'flex', gap: '10px' }}>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label>Typ Szafy</label>
+                      <select
+                        value={cabinet.type || 'S1'}
+                        onChange={(e) => {
+                          const newCabinets = [...(smwData.sokConfig?.cabinets || [])];
+                          newCabinets[idx].type = e.target.value as 'S1' | 'S2' | 'S3' | 'S4';
+                          updateSmwData({ sokConfig: { ...smwData.sokConfig, nameAddress: smwData.sokConfig?.nameAddress || '', cabinets: newCabinets } });
+                        }}
+                      >
+                        <option value="S1">S1</option>
+                        <option value="S2">S2</option>
+                        <option value="S3">S3</option>
+                        <option value="S4">S4</option>
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label>Nazwa Szafy</label>
+                      <input
+                        type="text"
+                        value={cabinet.name || ''}
+                        onChange={(e) => {
+                          const newCabinets = [...(smwData.sokConfig?.cabinets || [])];
+                          newCabinets[idx].name = e.target.value;
+                          updateSmwData({ sokConfig: { ...smwData.sokConfig, nameAddress: smwData.sokConfig?.nameAddress || '', cabinets: newCabinets } });
+                        }}
+                        placeholder={`Szafa SOK ${idx + 1}`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Extra Viewing Station Configuration - if enabled */}
+          {smwData.extraViewingEnabled && (
+            <div className="smw-section" style={{ marginTop: '20px', padding: '15px', border: '1px solid #ddd', borderRadius: '4px' }}>
+              <h4>Konfiguracja Dodatkowego Stanowiska Oglądowego</h4>
+              <div className="form-group">
+                <label>Nazwa/Adres *</label>
+                <input
+                  type="text"
+                  value={smwData.extraViewingConfig?.nameAddress || ''}
+                  onChange={(e) => updateSmwData({ 
+                    extraViewingConfig: { nameAddress: e.target.value, cabinets: smwData.extraViewingConfig?.cabinets || [] } 
+                  })}
+                  placeholder="Wprowadź nazwę lub adres"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Ilość szaf *</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={smwData.extraViewingConfig?.cabinets?.length || 0}
+                  onChange={(e) => {
+                    const count = parseInt(e.target.value) || 0;
+                    const cabinets: SmwCabinet[] = Array.from({ length: count }, (_, i) => ({
+                      type: 'S1' as const,
+                      name: `Szafa Extra ${i + 1}`
+                    }));
+                    updateSmwData({ extraViewingConfig: { ...smwData.extraViewingConfig, nameAddress: smwData.extraViewingConfig?.nameAddress || '', cabinets } });
+                  }}
+                />
+              </div>
+
+              {(smwData.extraViewingConfig?.cabinets || []).map((cabinet: SmwCabinet, idx: number) => (
+                <div key={idx} className="cabinet-config" style={{ marginLeft: '20px', marginBottom: '15px', padding: '10px', background: '#f9f9f9', borderRadius: '4px' }}>
+                  <h5>Szafa {idx + 1}</h5>
+                  <div className="form-row" style={{ display: 'flex', gap: '10px' }}>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label>Typ Szafy</label>
+                      <select
+                        value={cabinet.type || 'S1'}
+                        onChange={(e) => {
+                          const newCabinets = [...(smwData.extraViewingConfig?.cabinets || [])];
+                          newCabinets[idx].type = e.target.value as 'S1' | 'S2' | 'S3' | 'S4';
+                          updateSmwData({ extraViewingConfig: { ...smwData.extraViewingConfig, nameAddress: smwData.extraViewingConfig?.nameAddress || '', cabinets: newCabinets } });
+                        }}
+                      >
+                        <option value="S1">S1</option>
+                        <option value="S2">S2</option>
+                        <option value="S3">S3</option>
+                        <option value="S4">S4</option>
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label>Nazwa Szafy</label>
+                      <input
+                        type="text"
+                        value={cabinet.name || ''}
+                        onChange={(e) => {
+                          const newCabinets = [...(smwData.extraViewingConfig?.cabinets || [])];
+                          newCabinets[idx].name = e.target.value;
+                          updateSmwData({ extraViewingConfig: { ...smwData.extraViewingConfig, nameAddress: smwData.extraViewingConfig?.nameAddress || '', cabinets: newCabinets } });
+                        }}
+                        placeholder={`Szafa Extra ${idx + 1}`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Stations Configuration */}
+          {smwData.stations.map((station, stationIdx) => (
+            <div key={stationIdx} className="smw-section" style={{ marginTop: '20px', padding: '15px', border: '2px solid #4CAF50', borderRadius: '4px' }}>
+              <h4>Stacja {stationIdx + 1}</h4>
               
               <div className="form-group">
-                <label>Nazwa stacji</label>
+                <label>Nazwa Stacji *</label>
                 <input
                   type="text"
                   value={station.name || ''}
                   onChange={(e) => {
                     const newStations = [...smwData.stations];
-                    newStations[idx].name = e.target.value;
+                    newStations[stationIdx].name = e.target.value;
                     updateSmwData({ stations: newStations });
                   }}
-                  placeholder={`Stacja ${idx + 1}`}
+                  placeholder={`Stacja ${stationIdx + 1}`}
                 />
               </div>
 
-              <div className="form-group">
-                <label>Ilość Peronów *</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={station.platforms || 0}
-                  onChange={(e) => {
-                    const count = parseInt(e.target.value) || 0;
-                    const newStations = [...smwData.stations];
-                    newStations[idx].platforms = count;
-                    newStations[idx].platformCabinets = Array.from({ length: count }, (_, i) => ({
-                      platformNumber: i + 1,
-                      cabinets: []
-                    }));
-                    updateSmwData({ stations: newStations });
-                  }}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Ilość Wind *</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={station.elevators || 0}
-                  onChange={(e) => {
-                    const newStations = [...smwData.stations];
-                    newStations[idx].elevators = parseInt(e.target.value) || 0;
-                    updateSmwData({ stations: newStations });
-                  }}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Ilość Tuneli *</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={station.tunnels || 0}
-                  onChange={(e) => {
-                    const newStations = [...smwData.stations];
-                    newStations[idx].tunnels = parseInt(e.target.value) || 0;
-                    updateSmwData({ stations: newStations });
-                  }}
-                />
-              </div>
-            </div>
-          ))}
-
-          <div className="wizard-actions">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => updateSmwStep(1)}
-            >
-              ← Wstecz
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => {
-                if (smwData.sokEnabled) {
-                  updateSmwStep(3); // Go to SOK config
-                } else if (smwData.extraViewingEnabled) {
-                  updateSmwStep(4); // Go to extra viewing config
-                } else {
-                  updateSmwStep(5); // Go to platform cabinets
-                }
-              }}
-            >
-              Dalej →
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    // Step 3: SOK configuration (if enabled)
-    if (smwStep === 3 && smwData.sokEnabled) {
-      const sokConfig = smwData.sokConfig || { nameAddress: '', cabinets: [] };
-      
-      return (
-        <div className="wizard-step-content">
-          <h3>SMW - Krok 3: Konfiguracja SOK</h3>
-          
-          <div className="form-group">
-            <label>Nazwa/Adres SOK *</label>
-            <input
-              type="text"
-              value={sokConfig.nameAddress || ''}
-              onChange={(e) => updateSmwData({ 
-                sokConfig: { ...sokConfig, nameAddress: e.target.value } 
-              })}
-              placeholder="Wprowadź nazwę lub adres"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Ilość szaf *</label>
-            <input
-              type="number"
-              min={0}
-              value={sokConfig.cabinets?.length || 0}
-              onChange={(e) => {
-                const count = parseInt(e.target.value) || 0;
-                const cabinets: SmwCabinet[] = Array.from({ length: count }, (_, i) => ({
-                  type: 'S1' as const,
-                  name: `Szafa ${i + 1}`
-                }));
-                updateSmwData({ sokConfig: { ...sokConfig, cabinets } });
-              }}
-            />
-          </div>
-
-          {(sokConfig.cabinets || []).map((cabinet: any, idx: number) => (
-            <div key={idx} className="cabinet-config">
-              <h5>Szafa {idx + 1}</h5>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Typ Szafy</label>
-                  <select
-                    value={cabinet.type || 'S1'}
-                    onChange={(e) => {
-                      const newCabinets = [...sokConfig.cabinets];
-                      newCabinets[idx].type = e.target.value as 'S1' | 'S2' | 'S3' | 'S4';
-                      updateSmwData({ sokConfig: { ...sokConfig, cabinets: newCabinets } });
-                    }}
-                  >
-                    <option value="S1">S1</option>
-                    <option value="S2">S2</option>
-                    <option value="S3">S3</option>
-                    <option value="S4">S4</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Nazwa Szafy</label>
+              <div className="form-row" style={{ display: 'flex', gap: '10px' }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Ilość Peronów *</label>
                   <input
-                    type="text"
-                    value={cabinet.name || ''}
+                    type="number"
+                    min={0}
+                    value={station.platforms || 0}
                     onChange={(e) => {
-                      const newCabinets = [...sokConfig.cabinets];
-                      newCabinets[idx].name = e.target.value;
-                      updateSmwData({ sokConfig: { ...sokConfig, cabinets: newCabinets } });
+                      const count = parseInt(e.target.value) || 0;
+                      const newStations = [...smwData.stations];
+                      newStations[stationIdx].platforms = count;
+                      newStations[stationIdx].platformCabinets = Array.from({ length: count }, (_, i) => ({
+                        platformNumber: i + 1,
+                        cabinets: []
+                      }));
+                      updateSmwData({ stations: newStations });
                     }}
-                    placeholder={`Szafa ${idx + 1}`}
+                  />
+                </div>
+
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Ilość Wind *</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={station.elevators || 0}
+                    onChange={(e) => {
+                      const newStations = [...smwData.stations];
+                      newStations[stationIdx].elevators = parseInt(e.target.value) || 0;
+                      updateSmwData({ stations: newStations });
+                    }}
+                  />
+                </div>
+
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Ilość Tuneli *</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={station.tunnels || 0}
+                    onChange={(e) => {
+                      const newStations = [...smwData.stations];
+                      newStations[stationIdx].tunnels = parseInt(e.target.value) || 0;
+                      updateSmwData({ stations: newStations });
+                    }}
                   />
                 </div>
               </div>
-            </div>
-          ))}
 
-          <div className="wizard-actions">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => updateSmwStep(2)}
-            >
-              ← Wstecz
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => {
-                if (smwData.extraViewingEnabled) {
-                  updateSmwStep(4);
-                } else {
-                  updateSmwStep(5);
-                }
-              }}
-            >
-              Dalej →
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    // Step 4: Extra viewing station configuration (if enabled)
-    if (smwStep === 4 && smwData.extraViewingEnabled) {
-      const extraViewingConfig = smwData.extraViewingConfig || { nameAddress: '', cabinets: [] };
-      
-      return (
-        <div className="wizard-step-content">
-          <h3>SMW - Krok 4: Dodatkowe stanowisko Oglądowe</h3>
-          
-          <div className="form-group">
-            <label>Nazwa/Adres *</label>
-            <input
-              type="text"
-              value={extraViewingConfig.nameAddress || ''}
-              onChange={(e) => updateSmwData({ 
-                extraViewingConfig: { ...extraViewingConfig, nameAddress: e.target.value } 
-              })}
-              placeholder="Wprowadź nazwę lub adres"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Ilość szaf *</label>
-            <input
-              type="number"
-              min={0}
-              value={extraViewingConfig.cabinets?.length || 0}
-              onChange={(e) => {
-                const count = parseInt(e.target.value) || 0;
-                const cabinets = Array.from({ length: count }, (_, i) => ({
-                  type: 'S1' as const,
-                  name: `Szafa ${i + 1}`
-                }));
-                updateSmwData({ extraViewingConfig: { ...extraViewingConfig, cabinets } });
-              }}
-            />
-          </div>
-
-          {(extraViewingConfig.cabinets || []).map((cabinet: any, idx: number) => (
-            <div key={idx} className="cabinet-config">
-              <h5>Szafa {idx + 1}</h5>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Typ Szafy</label>
-                  <select
-                    value={cabinet.type || 'S1'}
-                    onChange={(e) => {
-                      const newCabinets = [...extraViewingConfig.cabinets];
-                      newCabinets[idx].type = e.target.value as 'S1' | 'S2' | 'S3' | 'S4';
-                      updateSmwData({ extraViewingConfig: { ...extraViewingConfig, cabinets: newCabinets } });
-                    }}
-                  >
-                    <option value="S1">S1</option>
-                    <option value="S2">S2</option>
-                    <option value="S3">S3</option>
-                    <option value="S4">S4</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Nazwa Szafy</label>
-                  <input
-                    type="text"
-                    value={cabinet.name || ''}
-                    onChange={(e) => {
-                      const newCabinets = [...extraViewingConfig.cabinets];
-                      newCabinets[idx].name = e.target.value;
-                      updateSmwData({ extraViewingConfig: { ...extraViewingConfig, cabinets: newCabinets } });
-                    }}
-                    placeholder={`Szafa ${idx + 1}`}
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-
-          <div className="wizard-actions">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => {
-                if (smwData.sokEnabled) {
-                  updateSmwStep(3);
-                } else {
-                  updateSmwStep(2);
-                }
-              }}
-            >
-              ← Wstecz
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => updateSmwStep(5)}
-            >
-              Dalej →
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    // Step 5: Platform cabinets configuration
-    if (smwStep === 5) {
-      const totalPlatforms = (smwData.stations || []).reduce((sum: number, station: any) => sum + (station.platforms || 0), 0);
-      
-      if (totalPlatforms === 0) {
-        return (
-          <div className="wizard-step-content">
-            <h3>SMW - Krok 5: Konfiguracja szaf na peronach</h3>
-            <p>Brak peronów do skonfigurowania.</p>
-            <div className="wizard-actions">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => updateSmwStep(smwData.extraViewingEnabled ? 4 : (smwData.sokEnabled ? 3 : 2))}
-              >
-                ← Wstecz
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => updateSmwStep(6)}
-              >
-                Dalej →
-              </button>
-            </div>
-          </div>
-        );
-      }
-
-      return (
-        <div className="wizard-step-content">
-          <h3>SMW - Krok 5: Konfiguracja szaf na peronach</h3>
-          
-          {(smwData.stations || []).map((station: any, stationIdx: number) => (
-            <div key={stationIdx}>
-              {(station.platformCabinets || []).map((platform: any, platformIdx: number) => (
-                <div key={platformIdx} className="subsystem-config-section">
-                  <h4>{station.name} - Peron {platform.platformNumber}</h4>
+              {/* Platform Cabinets */}
+              {(station.platformCabinets || []).map((platformCabinet, platformIdx) => (
+                <div key={platformIdx} style={{ marginLeft: '20px', marginTop: '15px', padding: '10px', background: '#f0f8ff', borderRadius: '4px' }}>
+                  <h5>Peron {platformIdx + 1}</h5>
                   
                   <div className="form-group">
-                    <label>Ilość szaf na peronie *</label>
+                    <label>Ilość szaf *</label>
                     <input
                       type="number"
                       min={0}
-                      value={platform.cabinets?.length || 0}
+                      value={platformCabinet.cabinets?.length || 0}
                       onChange={(e) => {
                         const count = parseInt(e.target.value) || 0;
-                        const newStations = [...smwData.stations];
-                        newStations[stationIdx].platformCabinets[platformIdx].cabinets = Array.from({ length: count }, (_, i) => ({
+                        const cabinets: SmwCabinet[] = Array.from({ length: count }, (_, i) => ({
                           type: 'S1' as const,
-                          name: `Szafa ${i + 1}`
+                          name: `Peron ${platformIdx + 1} Szafa ${i + 1}`
                         }));
+                        const newStations = [...smwData.stations];
+                        newStations[stationIdx].platformCabinets[platformIdx].cabinets = cabinets;
                         updateSmwData({ stations: newStations });
                       }}
                     />
                   </div>
 
-                  {(platform.cabinets || []).map((cabinet: any, cabinetIdx: number) => (
-                    <div key={cabinetIdx} className="cabinet-config">
-                      <h5>Szafa {cabinetIdx + 1}</h5>
-                      <div className="form-row">
-                        <div className="form-group">
+                  {(platformCabinet.cabinets || []).map((cabinet, cabinetIdx) => (
+                    <div key={cabinetIdx} style={{ marginLeft: '20px', marginBottom: '10px', padding: '8px', background: '#fff', borderRadius: '4px' }}>
+                      <div className="form-row" style={{ display: 'flex', gap: '10px' }}>
+                        <div className="form-group" style={{ flex: 1 }}>
                           <label>Typ Szafy</label>
                           <select
                             value={cabinet.type || 'S1'}
@@ -1760,7 +1635,7 @@ export const ContractWizardModal: React.FC<Props> = ({
                             <option value="S4">S4</option>
                           </select>
                         </div>
-                        <div className="form-group">
+                        <div className="form-group" style={{ flex: 1 }}>
                           <label>Nazwa Szafy</label>
                           <input
                             type="text"
@@ -1770,7 +1645,7 @@ export const ContractWizardModal: React.FC<Props> = ({
                               newStations[stationIdx].platformCabinets[platformIdx].cabinets[cabinetIdx].name = e.target.value;
                               updateSmwData({ stations: newStations });
                             }}
-                            placeholder={`Szafa ${cabinetIdx + 1}`}
+                            placeholder={`Peron ${platformIdx + 1} Szafa ${cabinetIdx + 1}`}
                           />
                         </div>
                       </div>
@@ -1781,124 +1656,66 @@ export const ContractWizardModal: React.FC<Props> = ({
             </div>
           ))}
 
-          <div className="wizard-actions">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => updateSmwStep(smwData.extraViewingEnabled ? 4 : (smwData.sokEnabled ? 3 : 2))}
-            >
-              ← Wstecz
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => updateSmwStep(6)}
-            >
-              Dalej →
-            </button>
-          </div>
-        </div>
-      );
-    }
+          {/* LCS Configuration */}
+          <div className="smw-section" style={{ marginTop: '20px', padding: '15px', border: '1px solid #ddd', borderRadius: '4px' }}>
+            <h4>Konfiguracja LCS</h4>
+            
+            <div className="form-group">
+              <label>Ilość szaf LCS *</label>
+              <input
+                type="number"
+                min={0}
+                value={smwData.lcsConfig?.cabinets?.length || 0}
+                onChange={(e) => {
+                  const count = parseInt(e.target.value) || 0;
+                  const cabinets: SmwCabinet[] = Array.from({ length: count }, (_, i) => ({
+                    type: 'S1' as const,
+                    name: `Szafa LCS ${i + 1}`
+                  }));
+                  updateSmwData({ lcsConfig: { cabinets } });
+                }}
+              />
+            </div>
 
-    // Step 6: LCS configuration
-    if (smwStep === 6) {
-      const lcsConfig = smwData.lcsConfig || { cabinets: [] };
-      
-      return (
-        <div className="wizard-step-content">
-          <h3>SMW - Krok 6: Konfiguracja LCS</h3>
-          
-          <div className="form-group">
-            <label>Ilość szaf LCS *</label>
-            <input
-              type="number"
-              min={0}
-              value={lcsConfig.cabinets?.length || 0}
-              onChange={(e) => {
-                const count = parseInt(e.target.value) || 0;
-                const cabinets = Array.from({ length: count }, (_, i) => ({
-                  type: 'S1' as const,
-                  name: `Szafa LCS ${i + 1}`
-                }));
-                updateSmwData({ lcsConfig: { cabinets } });
-              }}
-            />
-          </div>
-
-          {(lcsConfig.cabinets || []).map((cabinet: any, idx: number) => (
-            <div key={idx} className="cabinet-config">
-              <h5>Szafa LCS {idx + 1}</h5>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Typ Szafy</label>
-                  <select
-                    value={cabinet.type || 'S1'}
-                    onChange={(e) => {
-                      const newCabinets = [...lcsConfig.cabinets];
-                      newCabinets[idx].type = e.target.value as 'S1' | 'S2' | 'S3' | 'S4';
-                      updateSmwData({ lcsConfig: { ...lcsConfig, cabinets: newCabinets } });
-                    }}
-                  >
-                    <option value="S1">S1</option>
-                    <option value="S2">S2</option>
-                    <option value="S3">S3</option>
-                    <option value="S4">S4</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Nazwa Szafy</label>
-                  <input
-                    type="text"
-                    value={cabinet.name || ''}
-                    onChange={(e) => {
-                      const newCabinets = [...lcsConfig.cabinets];
-                      newCabinets[idx].name = e.target.value;
-                      updateSmwData({ lcsConfig: { ...lcsConfig, cabinets: newCabinets } });
-                    }}
-                    placeholder={`Szafa LCS ${idx + 1}`}
-                  />
+            {(smwData.lcsConfig?.cabinets || []).map((cabinet: SmwCabinet, idx: number) => (
+              <div key={idx} className="cabinet-config" style={{ marginLeft: '20px', marginBottom: '15px', padding: '10px', background: '#f9f9f9', borderRadius: '4px' }}>
+                <h5>Szafa LCS {idx + 1}</h5>
+                <div className="form-row" style={{ display: 'flex', gap: '10px' }}>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Typ Szafy</label>
+                    <select
+                      value={cabinet.type || 'S1'}
+                      onChange={(e) => {
+                        const newCabinets = [...(smwData.lcsConfig?.cabinets || [])];
+                        newCabinets[idx].type = e.target.value as 'S1' | 'S2' | 'S3' | 'S4';
+                        updateSmwData({ lcsConfig: { cabinets: newCabinets } });
+                      }}
+                    >
+                      <option value="S1">S1</option>
+                      <option value="S2">S2</option>
+                      <option value="S3">S3</option>
+                      <option value="S4">S4</option>
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Nazwa Szafy</label>
+                    <input
+                      type="text"
+                      value={cabinet.name || ''}
+                      onChange={(e) => {
+                        const newCabinets = [...(smwData.lcsConfig?.cabinets || [])];
+                        newCabinets[idx].name = e.target.value;
+                        updateSmwData({ lcsConfig: { cabinets: newCabinets } });
+                      }}
+                      placeholder={`Szafa LCS ${idx + 1}`}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-
-          <div className="wizard-actions">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => updateSmwStep(5)}
-            >
-              ← Wstecz
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => {
-                // Generate SMW tasks and move to next step
-                const newSubsystems = [...wizardData.subsystems];
-                newSubsystems[subsystemIndex].params = smwData;
-                setWizardData({ ...wizardData, subsystems: newSubsystems });
-                // Continue with the normal wizard flow
-              }}
-            >
-              Zakończ konfigurację SMW
-            </button>
+            ))}
           </div>
         </div>
       );
-    }
-
-    return null;
-  };
-
-  const renderConfigStep = (subsystemIndex: number) => {
-    const subsystem = wizardData.subsystems[subsystemIndex];
-    const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
-    
-    // Check if this is SMW with multi-step wizard
-    if (subsystem.type === 'SMW' && config.isMultiStep) {
-      return renderSmwWizard(subsystemIndex);
     }
     
     return (
@@ -1935,11 +1752,6 @@ export const ContractWizardModal: React.FC<Props> = ({
         </div>
         
         {config.fields.map((field) => {
-          // For SMW multi-step wizard, skip rendering basic fields here
-          if (subsystem.type === 'SMW' && config.isMultiStep) {
-            return null;
-          }
-          
           const params = subsystem.params as Record<string, number | boolean>;
           const paramValue = params[field.name];
           
@@ -2020,7 +1832,7 @@ export const ContractWizardModal: React.FC<Props> = ({
                 </button>
               </div>
               
-              {(detail.taskType === 'PRZEJAZD_KAT_A' || detail.taskType === 'PRZEJAZD_KAT_B') && (
+              {detail.taskType === 'PRZEJAZD_KAT_A' && (
                 <div className="task-fields">
                   <div className="form-group">
                     <label>Kilometraż *</label>
@@ -2042,6 +1854,36 @@ export const ContractWizardModal: React.FC<Props> = ({
                       required
                     >
                       <option value="KAT A">KAT A</option>
+                      <option value="KAT E">KAT E</option>
+                      <option value="KAT F">KAT F</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+              
+              {detail.taskType === 'PRZEJAZD_KAT_B' && (
+                <div className="task-fields">
+                  <div className="form-group">
+                    <label>Kilometraż *</label>
+                    <input
+                      type="text"
+                      placeholder="000,123"
+                      value={detail.kilometraz || ''}
+                      onChange={(e) => handleKilometrazChange(subsystemIndex, idx, e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Kategoria *</label>
+                    <select
+                      value={detail.kategoria || 'KAT B'}
+                      onChange={(e) => updateTaskDetail(subsystemIndex, idx, { 
+                        kategoria: e.target.value as TaskDetail['kategoria']
+                      })}
+                      required
+                    >
+                      <option value="KAT B">KAT B</option>
+                      <option value="KAT C">KAT C</option>
                       <option value="KAT E">KAT E</option>
                       <option value="KAT F">KAT F</option>
                     </select>

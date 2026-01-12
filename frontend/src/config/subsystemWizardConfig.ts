@@ -139,9 +139,8 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
   },
   'SMW': {
     label: '📺 📺 SMW',
-    isMultiStep: true,  // This subsystem uses custom multi-step wizard
     fields: [
-      // Step 1 - Basic configuration
+      // All SMW configuration on a single page
       { name: 'iloscStacji', label: 'Ilość Stacji', type: 'number' },
       { name: 'iloscKontenerow', label: 'Ilość kontenerów', type: 'number' },
       { name: 'sokEnabled', label: 'SOK', type: 'checkbox' },
