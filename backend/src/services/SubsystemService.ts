@@ -49,7 +49,7 @@ export class SubsystemService {
     }
 
     if (nextNumber > 99999) {
-      throw new Error('Osiągnięto maksymalną liczbę podsystemów dla tego miesiąca');
+      throw new Error(`Osiągnięto maksymalną liczbę podsystemów dla miesiąca ${month}/${year}`);
     }
 
     // Format: P00001MMYY

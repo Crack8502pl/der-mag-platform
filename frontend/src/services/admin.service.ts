@@ -33,6 +33,7 @@ export class AdminService {
     const response = await api.get('/admin/users', {
       params: { role: 'manager' }
     });
+    // Handle both standard API format {data: {data: [...]}} and direct array format
     return response.data.data || response.data || [];
   }
 
