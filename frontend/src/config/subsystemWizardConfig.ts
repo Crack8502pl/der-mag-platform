@@ -23,15 +23,13 @@ export interface WizardField {
 }
 
 export interface SubsystemConfig {
-  label: string;
-  icon: string;
+  label: string;  // Contains emoji icon, e.g. "🔵 SMOK-A"
   fields: WizardField[];
 }
 
 export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
   'SMOKIP_A': {
     label: '🔵 SMOK-A',
-    icon: '🔵',
     fields: [
       { name: 'przejazdyKatA', label: '1.1 Ilość przejazdów Kat A', type: 'number' },
       { name: 'iloscSKP', label: '1.2 Ilość SKP', type: 'number' },
@@ -39,33 +37,36 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
       { name: 'hasLCS', label: '1.4 LCS', type: 'checkbox' },
       { name: 'lcsMonitory', label: 'Ilość monitorów LCS', type: 'number', dependsOn: 'hasLCS' },
       { name: 'lcsStanowiska', label: 'Ilość stanowisk LCS', type: 'number', dependsOn: 'hasLCS' },
-      { name: 'hasCUID', label: '1.5 CUID (obecny/nieobecny)', type: 'checkbox' }
+      { name: 'hasCUID', label: '1.5 CUID (obecny/nieobecny)', type: 'checkbox' },
+      { name: 'gatewayIP', label: 'Gateway IP', type: 'text' },
+      { name: 'subnetMask', label: 'Subnet Mask', type: 'text' }
     ]
   },
   'SMOKIP_B': {
     label: '🟢 SMOK-B',
-    icon: '🟢',
     fields: [
       { name: 'przejazdyKatB', label: '1.1 Ilość przejazdów Kat B', type: 'number' },
       { name: 'iloscNastawni', label: '1.3 Ilość Nastawni', type: 'number' },
       { name: 'hasLCS', label: '1.4 LCS', type: 'checkbox' },
       { name: 'lcsMonitory', label: 'Ilość monitorów LCS', type: 'number', dependsOn: 'hasLCS' },
       { name: 'lcsStanowiska', label: 'Ilość stanowisk LCS', type: 'number', dependsOn: 'hasLCS' },
-      { name: 'hasCUID', label: '1.5 CUID (obecny/nieobecny)', type: 'checkbox' }
+      { name: 'hasCUID', label: '1.5 CUID (obecny/nieobecny)', type: 'checkbox' },
+      { name: 'gatewayIP', label: 'Gateway IP', type: 'text' },
+      { name: 'subnetMask', label: 'Subnet Mask', type: 'text' }
     ]
   },
   'SKD': {
     label: '🔐 SKD',
-    icon: '🔐',
     fields: [
       { name: 'iloscBudynkow', label: '2.1 Ilość budynków', type: 'number' },
-      { name: 'iloscKontenerow', label: '2.2 Ilość kontenerów', type: 'number' },
-      { name: 'iloscPrzejsc', label: '2.3 Ilość przejść', type: 'number' }
+      { name: 'iloscDrzwi', label: '2.2 Ilość drzwi', type: 'number' },
+      { name: 'iloscCzytelnikow', label: '2.3 Ilość czytników', type: 'number' },
+      { name: 'gatewayIP', label: 'Gateway IP', type: 'text' },
+      { name: 'subnetMask', label: 'Subnet Mask', type: 'text' }
     ]
   },
   'SSWIN': {
-    label: '🚨 SSWiN',
-    icon: '🚨',
+    label: '🎤 SSWIN',
     fields: [
       { name: 'iloscBudynkow', label: '3.1 Ilość budynków', type: 'number' },
       { name: 'iloscPomieszczen', label: '3.2 Ilość pomieszczeń', type: 'number' },
@@ -74,7 +75,6 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
   },
   'CCTV': {
     label: '📹 CCTV',
-    icon: '📹',
     fields: [
       { name: 'iloscBudynkow', label: '3.1 Ilość budynków', type: 'number' },
       { name: 'iloscPomieszczen', label: '3.2 Ilość pomieszczeń', type: 'number' },
@@ -82,8 +82,7 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
     ]
   },
   'SMW': {
-    label: '📺 SMW',
-    icon: '📺',
+    label: '📸 SMW',
     fields: [
       { name: 'iloscBudynkow', label: '3.1 Ilość budynków', type: 'number' },
       { name: 'iloscPomieszczen', label: '3.2 Ilość pomieszczeń', type: 'number' },
@@ -91,8 +90,7 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
     ]
   },
   'SDIP': {
-    label: '📢 SDIP',
-    icon: '📢',
+    label: '🌊 SDIP',
     fields: [
       { name: 'iloscBudynkow', label: '3.1 Ilość budynków', type: 'number' },
       { name: 'iloscPomieszczen', label: '3.2 Ilość pomieszczeń', type: 'number' },
@@ -100,8 +98,7 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
     ]
   },
   'SUG': {
-    label: '🔥 SUG',
-    icon: '🔥',
+    label: '🔊 SUG',
     fields: [
       { name: 'iloscBudynkow', label: '3.1 Ilość budynków', type: 'number' },
       { name: 'iloscPomieszczen', label: '3.2 Ilość pomieszczeń', type: 'number' },
@@ -109,8 +106,7 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
     ]
   },
   'SSP': {
-    label: '🚒 SSP',
-    icon: '🚒',
+    label: '📡 SSP',
     fields: [
       { name: 'iloscBudynkow', label: '3.1 Ilość budynków', type: 'number' },
       { name: 'iloscPomieszczen', label: '3.2 Ilość pomieszczeń', type: 'number' },
@@ -119,7 +115,6 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
   },
   'LAN': {
     label: '🌐 LAN',
-    icon: '🌐',
     fields: [
       { name: 'iloscBudynkow', label: '3.1 Ilość budynków', type: 'number' },
       { name: 'iloscPomieszczen', label: '3.2 Ilość pomieszczeń', type: 'number' },
@@ -127,8 +122,7 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
     ]
   },
   'OTK': {
-    label: '📡 OTK',
-    icon: '📡',
+    label: '🚆 OTK',
     fields: [
       { name: 'iloscBudynkow', label: '3.1 Ilość budynków', type: 'number' },
       { name: 'iloscPomieszczen', label: '3.2 Ilość pomieszczeń', type: 'number' },
@@ -137,7 +131,6 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
   },
   'ZASILANIE': {
     label: '⚡ Zasilanie',
-    icon: '⚡',
     fields: [
       { name: 'iloscBudynkow', label: '3.1 Ilość budynków', type: 'number' },
       { name: 'iloscPomieszczen', label: '3.2 Ilość pomieszczeń', type: 'number' },

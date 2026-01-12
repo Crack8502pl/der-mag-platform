@@ -99,6 +99,13 @@ export class SubsystemTask {
   @Column({ name: 'verification_completed_at', type: 'timestamp', nullable: true })
   verificationCompletedAt: Date | null;
 
+  // Realization tracking
+  @Column({ name: 'realization_started_at', type: 'timestamp', nullable: true })
+  realizationStartedAt: Date | null;
+
+  @Column({ name: 'realization_completed_at', type: 'timestamp', nullable: true })
+  realizationCompletedAt: Date | null;
+
   // Metadata
   @Column({ type: 'jsonb', default: '{}' })
   metadata: Record<string, any>;

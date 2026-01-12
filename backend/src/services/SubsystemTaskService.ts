@@ -79,7 +79,9 @@ export class SubsystemTaskService {
       prefabricationCompletedAt: null,
       deploymentScheduledAt: null,
       deploymentCompletedAt: null,
-      verificationCompletedAt: null
+      verificationCompletedAt: null,
+      realizationStartedAt: null,
+      realizationCompletedAt: null
     });
 
     return await this.taskRepository.save(task);
