@@ -1626,7 +1626,7 @@ export const ContractWizardModal: React.FC<Props> = ({
 
               {/* Platform Cabinets */}
               {(station.platformCabinets || []).map((platformCabinet, platformIdx) => (
-                <div key={platformIdx} style={{ marginLeft: '20px', marginTop: '15px', padding: '10px', background: '#f0f8ff', borderRadius: '4px' }}>
+                <div key={platformIdx} style={{ marginLeft: '20px', marginTop: '15px', padding: '10px', background: '#333333', borderRadius: '4px' }}>
                   <h5>Peron {platformIdx + 1}</h5>
                   
                   <div className="form-group">
