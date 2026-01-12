@@ -25,6 +25,62 @@ export interface WizardField {
 export interface SubsystemConfig {
   label: string;  // Contains emoji icon, e.g. "🔵 SMOK-A"
   fields: WizardField[];
+  isMultiStep?: boolean;  // NEW - indicates this subsystem uses custom multi-step wizard
+}
+
+// SMW specific types for multi-step wizard
+export interface SmwCabinet {
+  type: 'S1' | 'S2' | 'S3' | 'S4';
+  name: string;
+}
+
+export interface SmwStation {
+  name: string;
+  platforms: number;
+  elevators: number;
+  tunnels: number;
+  platformCabinets: Array<{
+    platformNumber: number;
+    cabinets: SmwCabinet[];
+  }>;
+}
+
+export interface SmwSokConfig {
+  enabled: boolean;
+  nameAddress: string;
+  cabinets: SmwCabinet[];
+}
+
+export interface SmwExtraViewingStation {
+  enabled: boolean;
+  nameAddress: string;
+  cabinets: SmwCabinet[];
+}
+
+export interface SmwLcsConfig {
+  cabinets: SmwCabinet[];
+}
+
+export interface SmwWizardData {
+  // Step 1 - Basic
+  iloscStacji: number;  // Number of stations
+  iloscKontenerow: number;  // Number of containers
+  sokEnabled: boolean;
+  extraViewingEnabled: boolean;
+  
+  // Step 2+ - Dynamic based on counts
+  stations: SmwStation[];
+  sokConfig?: {
+    nameAddress: string;
+    cabinets: SmwCabinet[];
+  };
+  extraViewingConfig?: {
+    nameAddress: string;
+    cabinets: SmwCabinet[];
+  };
+  lcsConfig: {
+    cabinets: SmwCabinet[];
+  };
 }
 
 export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
@@ -82,11 +138,14 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
     ]
   },
   'SMW': {
-    label: '📸 SMW',
+    label: '📺 📺 SMW',
+    isMultiStep: true,  // This subsystem uses custom multi-step wizard
     fields: [
-      { name: 'iloscBudynkow', label: '3.1 Ilość budynków', type: 'number' },
-      { name: 'iloscPomieszczen', label: '3.2 Ilość pomieszczeń', type: 'number' },
-      { name: 'iloscKontenerow', label: '3.3 Ilość kontenerów', type: 'number' }
+      // Step 1 - Basic configuration
+      { name: 'iloscStacji', label: 'Ilość Stacji', type: 'number' },
+      { name: 'iloscKontenerow', label: 'Ilość kontenerów', type: 'number' },
+      { name: 'sokEnabled', label: 'SOK', type: 'checkbox' },
+      { name: 'extraViewingEnabled', label: 'Dodatkowe stanowisko Oglądowe', type: 'checkbox' }
     ]
   },
   'SDIP': {
