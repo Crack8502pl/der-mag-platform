@@ -24,6 +24,23 @@ export class ContractController {
   }
 
   /**
+   * Walidacja kodu kierownika
+   * @param managerCode Kod kierownika do walidacji
+   * @returns Error message jeśli walidacja nie przeszła, null jeśli OK
+   */
+  private validateManagerCode(managerCode: string): string | null {
+    if (!managerCode || !managerCode.trim()) {
+      return 'Kod kierownika nie może być pusty';
+    }
+    
+    if (managerCode.length > 5) {
+      return 'Kod kierownika może mieć maksymalnie 5 znaków';
+    }
+    
+    return null;
+  }
+
+  /**
    * GET /api/contracts
    * Lista wszystkich kontraktów
    */
@@ -123,6 +140,16 @@ export class ContractController {
         res.status(400).json({
           success: false,
           message: 'Brakuje wymaganych pól: customName, orderDate, managerCode, projectManagerId'
+        });
+        return;
+      }
+
+      // Walidacja kodu kierownika
+      const managerCodeError = this.validateManagerCode(managerCode);
+      if (managerCodeError) {
+        res.status(400).json({
+          success: false,
+          message: managerCodeError
         });
         return;
       }
@@ -318,6 +345,16 @@ export class ContractController {
         res.status(400).json({
           success: false,
           message: 'Brakuje wymaganych pól: customName, orderDate, managerCode, projectManagerId'
+        });
+        return;
+      }
+
+      // Walidacja kodu kierownika
+      const managerCodeError = this.validateManagerCode(managerCode);
+      if (managerCodeError) {
+        res.status(400).json({
+          success: false,
+          message: managerCodeError
         });
         return;
       }

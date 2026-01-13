@@ -311,6 +311,93 @@ describe('ContractController', () => {
       });
     });
 
+    it('should return 400 when managerCode is too long', async () => {
+      req.body = {
+        customName: 'Test Contract',
+        orderDate: '2026-01-06',
+        managerCode: 'TOOLONG', // 7 characters, max is 5
+        projectManagerId: 1,
+        tasks: [{ number: 'P000010126', name: 'Task 1', type: 'TYPE_A' }],
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Kod kierownika może mieć maksymalnie 5 znaków',
+      });
+    });
+
+    it('should return 400 when managerCode is empty', async () => {
+      req.body = {
+        customName: 'Test Contract',
+        orderDate: '2026-01-06',
+        managerCode: '',
+        projectManagerId: 1,
+        tasks: [{ number: 'P000010126', name: 'Task 1', type: 'TYPE_A' }],
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Kod kierownika nie może być pusty',
+      });
+    });
+
+    it('should return 400 when managerCode is whitespace only', async () => {
+      req.body = {
+        customName: 'Test Contract',
+        orderDate: '2026-01-06',
+        managerCode: '   ',
+        projectManagerId: 1,
+        tasks: [{ number: 'P000010126', name: 'Task 1', type: 'TYPE_A' }],
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Kod kierownika nie może być pusty',
+      });
+    });
+
+    it('should accept managerCode with exactly 5 characters', async () => {
+      const mockContract = {
+        id: 1,
+        contractNumber: 'R0000001_A',
+        customName: 'Test Contract',
+        status: ContractStatus.CREATED,
+        orderDate: new Date('2026-01-06'),
+        managerCode: 'ABCDE',
+        projectManagerId: 1,
+      };
+
+      mockContractService.createContract = jest.fn().mockResolvedValue(mockContract);
+
+      req.body = {
+        customName: 'Test Contract',
+        orderDate: '2026-01-06',
+        managerCode: 'ABCDE', // Exactly 5 characters
+        projectManagerId: 1,
+        tasks: [{ number: 'P000010126', name: 'Task 1', type: 'TYPE_A' }],
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      expect(mockContractService.createContract).toHaveBeenCalledWith({
+        customName: 'Test Contract',
+        orderDate: new Date('2026-01-06'),
+        managerCode: 'ABCDE',
+        projectManagerId: 1,
+      });
+
+      expect(res.status).toHaveBeenCalledWith(201);
+    });
+
     it('should return 400 when tasks array is empty', async () => {
       req.body = {
         customName: 'Test Contract',

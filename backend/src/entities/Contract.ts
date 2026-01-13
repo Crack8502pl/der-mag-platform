@@ -28,8 +28,8 @@ export class Contract {
   @Column({ name: 'order_date', type: 'date' })
   orderDate: Date;
 
-  @Column({ name: 'manager_code', type: 'varchar', length: 3 })
-  managerCode: string; // 3-literowy skrót kierownika
+  @Column({ name: 'manager_code', type: 'varchar', length: 5 })
+  managerCode: string; // Kod kierownika (do 5 znaków)
 
   @Column({ name: 'jowisz_ref', type: 'varchar', length: 100, nullable: true })
   jowiszRef: string; // Referencja API Jowisz
