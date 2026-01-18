@@ -37,7 +37,10 @@
     "lodash": "^4.17.21",
     "@oclif/plugin-warn-if-update-available": {
       "lodash.template": "npm:lodash@^4.17.21"
-    }
+    },
+    "braces": "^3.0.3",
+    "tar": "^7.5.3",
+    "diff": "^8.0.3"
   },
   "keywords": [
     "der-mag",
