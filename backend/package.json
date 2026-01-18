@@ -82,7 +82,7 @@
     "reflect-metadata": "^0.2.1",
     "sharp": "^0.33.1",
     "typeorm": "^0.3.19",
-    "typescript": "^5.3.3",
+    "typescript": "^5.9.3",
     "uuid": "^13.0.0",
     "webdav-server": "^2.6.2"
   },
