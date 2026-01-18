@@ -16,6 +16,7 @@ import { BrigadeService } from './BrigadeService';
 import { ContractService } from './ContractService';
 import { WarehouseStockService } from './WarehouseStockService';
 import { EmailTemplate } from '../types/EmailTypes';
+import { emailConfig } from '../config/email';
 
 export class NotificationSchedulerService {
   private scheduleRepository = AppDataSource.getRepository(NotificationSchedule);
@@ -54,6 +55,14 @@ export class NotificationSchedulerService {
       
       // Sprawdzanie stanów magazynowych - Codziennie 7:30
       this.scheduleJob('stock-alerts', '30 7 * * *', () => this.checkStockLevels());
+
+      // Dzienny digest alertów magazynowych (jeśli tryb batch)
+      if (emailConfig.alerts.mode === 'batch') {
+        const [hour, minute] = emailConfig.alerts.batchTime.split(':');
+        const cronExpr = `${minute} ${hour} * * *`;
+        this.scheduleJob('stock-alerts-digest', cronExpr, () => this.sendDailyStockAlertsDigest());
+        console.log(`📅 Dzienny digest alertów magazynowych: ${emailConfig.alerts.batchTime}`);
+      }
 
       this.initialized = true;
       console.log('✅ NotificationSchedulerService zainicjalizowany - zadania cykliczne uruchomione');
@@ -494,6 +503,74 @@ export class NotificationSchedulerService {
 
     Object.assign(schedule, data);
     return await this.scheduleRepository.save(schedule);
+  }
+
+  /**
+   * Wysyła dzienny digest alertów magazynowych
+   */
+  async sendDailyStockAlertsDigest(): Promise<void> {
+    try {
+      console.log('📊 Generowanie dziennego digestu alertów magazynowych...');
+
+      // Pobierz materiały o niskim stanie
+      const lowStockItems = await this.stockRepository
+        .createQueryBuilder('stock')
+        .where('stock.quantityInStock < stock.minStockLevel')
+        .andWhere('stock.minStockLevel IS NOT NULL')
+        .andWhere('stock.quantityInStock >= 0')
+        .orderBy('stock.quantityInStock', 'ASC')
+        .getMany();
+
+      if (lowStockItems.length === 0) {
+        console.log('✅ Brak materiałów o niskim stanie - digest nie zostanie wysłany');
+        return;
+      }
+
+      // Przygotuj dane dla digestu
+      const alertsData = lowStockItems.map(item => ({
+        materialName: item.materialName,
+        catalogNumber: item.catalogNumber,
+        currentStock: item.quantityInStock,
+        minStockLevel: item.minStockLevel,
+        unit: item.unit,
+        warehouseLocation: item.warehouseLocation || 'Nie określono',
+        category: item.category || 'Brak kategorii',
+        status: item.quantityInStock === 0 ? 'CRITICAL' : 'LOW',
+        stockUrl: `${process.env.FRONTEND_URL}/warehouse-stock/${item.id}`,
+      }));
+
+      // Pobierz emaile magazynierów i managerów
+      const recipients = await this.getEmailsByRoles(['warehouse_manager', 'manager', 'admin']);
+
+      if (recipients.length === 0) {
+        console.warn('⚠️  Brak odbiorców dla dziennego digestu alertów magazynowych');
+        return;
+      }
+
+      const criticalCount = alertsData.filter(a => a.status === 'CRITICAL').length;
+      const lowCount = alertsData.filter(a => a.status === 'LOW').length;
+
+      for (const email of recipients) {
+        await EmailQueueService.addToQueue({
+          to: email,
+          subject: `📦 Dzienny raport stanów magazynowych - ${new Date().toLocaleDateString('pl-PL')}`,
+          template: EmailTemplate.STOCK_ALERTS_DIGEST,
+          context: {
+            date: new Date().toLocaleDateString('pl-PL'),
+            totalAlerts: alertsData.length,
+            criticalCount,
+            lowCount,
+            alerts: alertsData,
+            warehouseUrl: `${process.env.FRONTEND_URL}/warehouse-stock`,
+          },
+          priority: 'high'
+        });
+      }
+
+      console.log(`✅ Dzienny digest alertów magazynowych wysłany (${alertsData.length} alertów)`);
+    } catch (error) {
+      console.error('❌ Błąd wysyłania dziennego digestu alertów magazynowych:', error);
+    }
   }
 
   /**

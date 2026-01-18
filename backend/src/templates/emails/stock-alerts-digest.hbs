@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dzienny raport stanów magazynowych - Grover Platform</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table role="presentation" style="width: 800px; border-collapse: collapse; background-color: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">📦 Dzienny Raport Stanów Magazynowych</h1>
+                            <p style="margin: 10px 0 0 0; color: #ffffff; font-size: 16px;">{{date}}</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <p style="margin: 0 0 30px 0; color: #333333; font-size: 16px; line-height: 1.6;">
+                                Raport zawiera podsumowanie wszystkich materiałów o niskim stanie magazynowym z ostatnich 24 godzin.
+                            </p>
+                            
+                            <!-- Statystyki -->
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+                                <tr>
+                                    <td style="width: 33.33%; padding: 20px; background-color: #f8f9fa; border-radius: 8px; text-align: center;">
+                                        <div style="font-size: 32px; font-weight: 700; color: #667eea; margin-bottom: 5px;">{{totalAlerts}}</div>
+                                        <div style="font-size: 14px; color: #666;">Łącznie alertów</div>
+                                    </td>
+                                    <td style="width: 5%;"></td>
+                                    <td style="width: 33.33%; padding: 20px; background-color: #fff3e0; border-radius: 8px; text-align: center;">
+                                        <div style="font-size: 32px; font-weight: 700; color: #ff9800; margin-bottom: 5px;">{{lowCount}}</div>
+                                        <div style="font-size: 14px; color: #666;">Niski stan</div>
+                                    </td>
+                                    <td style="width: 5%;"></td>
+                                    <td style="width: 33.33%; padding: 20px; background-color: #ffebee; border-radius: 8px; text-align: center;">
+                                        <div style="font-size: 32px; font-weight: 700; color: #f44336; margin-bottom: 5px;">{{criticalCount}}</div>
+                                        <div style="font-size: 14px; color: #666;">Krytyczny brak</div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Tabela alertów -->
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; border: 1px solid #e0e0e0; margin-bottom: 30px;">
+                                <thead>
+                                    <tr style="background-color: #f8f9fa;">
+                                        <th style="padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #666; border-bottom: 2px solid #e0e0e0;">Status</th>
+                                        <th style="padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #666; border-bottom: 2px solid #e0e0e0;">Materiał</th>
+                                        <th style="padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #666; border-bottom: 2px solid #e0e0e0;">Nr katalogowy</th>
+                                        <th style="padding: 12px; text-align: right; font-size: 13px; font-weight: 600; color: #666; border-bottom: 2px solid #e0e0e0;">Stan</th>
+                                        <th style="padding: 12px; text-align: right; font-size: 13px; font-weight: 600; color: #666; border-bottom: 2px solid #e0e0e0;">Min</th>
+                                        <th style="padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #666; border-bottom: 2px solid #e0e0e0;">Lokalizacja</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{#each alerts}}
+                                    <tr style="border-bottom: 1px solid #f0f0f0;">
+                                        <td style="padding: 12px;">
+                                            {{#if (eq status 'CRITICAL')}}
+                                            <span style="display: inline-block; padding: 4px 8px; background-color: #ffebee; color: #f44336; border-radius: 4px; font-size: 11px; font-weight: 600;">🚨 KRYTYCZNY</span>
+                                            {{else}}
+                                            <span style="display: inline-block; padding: 4px 8px; background-color: #fff3e0; color: #ff9800; border-radius: 4px; font-size: 11px; font-weight: 600;">⚠️ NISKI</span>
+                                            {{/if}}
+                                        </td>
+                                        <td style="padding: 12px; font-size: 14px; color: #333;">{{materialName}}</td>
+                                        <td style="padding: 12px; font-size: 13px; color: #666;">{{catalogNumber}}</td>
+                                        <td style="padding: 12px; text-align: right; font-size: 14px; font-weight: 600; color: {{#if (eq status 'CRITICAL')}}#f44336{{else}}#ff9800{{/if}};">
+                                            {{currentStock}} {{unit}}
+                                        </td>
+                                        <td style="padding: 12px; text-align: right; font-size: 13px; color: #666;">{{minStockLevel}} {{unit}}</td>
+                                        <td style="padding: 12px; font-size: 13px; color: #666;">{{warehouseLocation}}</td>
+                                    </tr>
+                                    {{/each}}
+                                </tbody>
+                            </table>
+
+                            <!-- Przycisk akcji -->
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{{warehouseUrl}}" style="display: inline-block; padding: 14px 40px; background-color: #667eea; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">
+                                            Przejdź do magazynu
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Informacja -->
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+                                <tr>
+                                    <td style="padding: 15px;">
+                                        <p style="margin: 0; color: #1565c0; font-size: 13px; line-height: 1.6;">
+                                            💡 <strong>Uwaga:</strong> Ten email zawiera podsumowanie wszystkich materiałów wymagających uzupełnienia. 
+                                            Zalecamy regularne sprawdzanie stanów magazynowych i składanie zamówień.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e0e0e0;">
+                            <p style="margin: 0; color: #999999; font-size: 12px;">© {{currentYear}} Grover. Wszelkie prawa zastrzeżone.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

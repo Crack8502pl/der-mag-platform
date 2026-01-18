@@ -87,7 +87,20 @@ export class NotificationController {
     try {
       // Sprawdź uprawnienia użytkownika
       const user = req.user;
-      if (!user || user.role !== 'admin') {
+      if (!user) {
+        res.status(401).json({
+          success: false,
+          message: 'Brak uwierzytelnienia.',
+        });
+        return;
+      }
+
+      // Sprawdź czy użytkownik ma rolę admin
+      const roleName = typeof user.role === 'string' 
+        ? user.role 
+        : (user.role as any)?.name;
+
+      if (roleName !== 'admin') {
         res.status(403).json({
           success: false,
           message: 'Brak uprawnień. Tylko administrator może wyczyścić kolejkę.',
