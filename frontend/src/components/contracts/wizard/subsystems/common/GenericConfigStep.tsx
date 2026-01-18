@@ -5,9 +5,7 @@ import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../../config/subsystemWizardCo
 export const GenericConfigStep: React.FC<SubsystemConfigStepProps> = ({
   subsystem,
   subsystemIndex,
-  onUpdate,
-  onNext,
-  onPrev
+  onUpdate
 }) => {
   const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
 
@@ -102,16 +100,6 @@ export const GenericConfigStep: React.FC<SubsystemConfigStepProps> = ({
           </div>
         );
       })}
-
-      {/* Navigation Buttons */}
-      <div className="wizard-actions">
-        <button type="button" className="btn btn-secondary" onClick={onPrev}>
-          ← Wstecz
-        </button>
-        <button type="button" className="btn btn-primary" onClick={onNext}>
-          Dalej →
-        </button>
-      </div>
     </div>
   );
 };

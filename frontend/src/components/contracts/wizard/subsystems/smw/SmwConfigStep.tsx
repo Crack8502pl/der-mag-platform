@@ -496,7 +496,7 @@ export const SmwConfigStep: React.FC<SubsystemConfigStepProps> = ({
         </div>
       )}
 
-      {/* Navigation Buttons */}
+      {/* Navigation Buttons - SMW has internal multi-step navigation */}
       <div className="wizard-buttons">
         <button type="button" onClick={handleSmwPrev} className="btn-secondary">
           Wstecz

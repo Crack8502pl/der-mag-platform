@@ -22,8 +22,6 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
   onAddTask,
   onRemoveTask,
   onUpdateTask,
-  onNext,
-  onPrev,
   handleKilometrazInput,
   handleKilometrazBlur
 }) => {
@@ -238,15 +236,6 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
             </button>
           </div>
         </div>
-      </div>
-
-      <div className="wizard-actions">
-        <button type="button" className="btn btn-secondary" onClick={onPrev}>
-          ← Wstecz
-        </button>
-        <button type="button" className="btn btn-primary" onClick={onNext}>
-          Dalej →
-        </button>
       </div>
     </div>
   );

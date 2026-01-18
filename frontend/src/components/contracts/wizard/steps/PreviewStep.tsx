@@ -67,15 +67,6 @@ export const PreviewStep: React.FC<Props> = ({
           <strong>Łącznie: {generatedTasks.length} zadań z {wizardData.subsystems.length} podsystemów</strong>
         </div>
       </div>
-
-      <div className="wizard-actions">
-        <button onClick={onPrev} className="btn-secondary">
-          ← Wstecz
-        </button>
-        <button onClick={onNext} className="btn-primary">
-          Utwórz kontrakt
-        </button>
-      </div>
     </div>
   );
 };

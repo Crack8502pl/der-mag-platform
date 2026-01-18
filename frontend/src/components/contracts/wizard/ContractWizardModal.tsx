@@ -289,8 +289,9 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         newSubsystems[index] = { ...newSubsystems[index], ...updates };
         updateWizardData({ subsystems: newSubsystems });
       },
-      onNext: handleNextStep,
-      onPrev: handlePrevStep
+      // SmwConfigStep needs these for internal multi-step navigation
+      onNext: subsystem.type === 'SMW' ? handleNextStep : undefined,
+      onPrev: subsystem.type === 'SMW' ? handlePrevStep : undefined
     };
     
     const configComponents: Record<string, React.FC<any>> = {
@@ -339,7 +340,6 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           detectedSubsystems={detectedSubsystems}
           onUpdate={updateWizardData}
           onDetectSubsystems={detectSubsystems}
-          onNext={handleNextStep}
         />
       ),
       selection: () => (
@@ -347,8 +347,6 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           subsystems={wizardData.subsystems}
           onAdd={addSubsystem}
           onRemove={(index) => removeSubsystem(index, setError)}
-          onNext={handleNextStep}
-          onPrev={handlePrevStep}
         />
       ),
       config: () => stepInfo.subsystemIndex !== undefined && renderConfigStep(stepInfo.subsystemIndex),
@@ -379,6 +377,11 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
   const stepInfo = getCurrentStepInfo();
   const isLastStep = stepInfo.type === 'success';
+  
+  // Check if we're in SMW config step with internal navigation
+  const isSmwConfigStep = stepInfo.type === 'config' && 
+    stepInfo.subsystemIndex !== undefined && 
+    wizardData.subsystems[stepInfo.subsystemIndex]?.type === 'SMW';
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -396,7 +399,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           {renderCurrentStep()}
         </div>
         
-        {!isLastStep && (
+        {!isLastStep && !isSmwConfigStep && (
           <div className="modal-footer">
             {currentStep > 1 && (
               <button className="btn btn-secondary" onClick={handlePrevStep}>

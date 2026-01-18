@@ -123,6 +123,7 @@ class ContractService {
     subsystems?: Array<{
       type: string;
       params: Record<string, number | boolean | any>;  // Allow complex objects like SmwWizardData
+      ipPool?: string;
       tasks: Array<{ number: string; name: string; type: string }>;
     }>;
     // Legacy support:
