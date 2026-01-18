@@ -9,16 +9,12 @@ interface Props {
   subsystems: SubsystemWizardData[];
   onAdd: (type: SubsystemType) => void;
   onRemove: (index: number) => void;
-  onNext: () => void;
-  onPrev: () => void;
 }
 
 export const SubsystemSelectionStep: React.FC<Props> = ({
   subsystems,
   onAdd,
-  onRemove,
-  onNext,
-  onPrev
+  onRemove
 }) => {
   // Get all available subsystem types
   const availableTypes = Object.keys(SUBSYSTEM_WIZARD_CONFIG) as SubsystemType[];
@@ -85,19 +81,6 @@ export const SubsystemSelectionStep: React.FC<Props> = ({
           </select>
         </div>
       )}
-
-      <div className="wizard-actions">
-        <button onClick={onPrev} className="btn-secondary">
-          ← Wstecz
-        </button>
-        <button 
-          onClick={onNext} 
-          disabled={subsystems.length === 0}
-          className="btn-primary"
-        >
-          Dalej →
-        </button>
-      </div>
     </div>
   );
 };

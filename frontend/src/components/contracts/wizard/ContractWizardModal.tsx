@@ -288,9 +288,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         const newSubsystems = [...wizardData.subsystems];
         newSubsystems[index] = { ...newSubsystems[index], ...updates };
         updateWizardData({ subsystems: newSubsystems });
-      },
-      onNext: handleNextStep,
-      onPrev: handlePrevStep
+      }
     };
     
     const configComponents: Record<string, React.FC<any>> = {
@@ -339,7 +337,6 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           detectedSubsystems={detectedSubsystems}
           onUpdate={updateWizardData}
           onDetectSubsystems={detectSubsystems}
-          onNext={handleNextStep}
         />
       ),
       selection: () => (
@@ -347,8 +344,6 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           subsystems={wizardData.subsystems}
           onAdd={addSubsystem}
           onRemove={(index) => removeSubsystem(index, setError)}
-          onNext={handleNextStep}
-          onPrev={handlePrevStep}
         />
       ),
       config: () => stepInfo.subsystemIndex !== undefined && renderConfigStep(stepInfo.subsystemIndex),

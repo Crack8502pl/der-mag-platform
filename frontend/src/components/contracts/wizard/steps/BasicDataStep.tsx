@@ -6,7 +6,7 @@ import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../config/subsystemWizardConfi
 import { validateContractNumber } from '../utils/validation';
 import type { WizardData } from '../types/wizard.types';
 import type { User as AdminUser, Role } from '../../../../types/admin.types';
-import { AdminService } from '../../../../services/admin.service';
+import { api } from '../../../../services/api';
 import { useAuth } from '../../../../hooks/useAuth';
 
 interface Props {
@@ -14,7 +14,6 @@ interface Props {
   detectedSubsystems: string[];
   onUpdate: (data: Partial<WizardData>) => void;
   onDetectSubsystems: (name: string) => void;
-  onNext: () => void;
 }
 
 // Helper to get role name
@@ -28,8 +27,7 @@ export const BasicDataStep: React.FC<Props> = ({
   wizardData,
   detectedSubsystems,
   onUpdate,
-  onDetectSubsystems,
-  onNext
+  onDetectSubsystems
 }) => {
   const { user } = useAuth();
   const [contractNumberError, setContractNumberError] = useState('');
@@ -50,41 +48,36 @@ export const BasicDataStep: React.FC<Props> = ({
   const loadManagers = async () => {
     setLoadingManagers(true);
     try {
-      const adminService = new AdminService();
-      const usersResponse = await adminService.getAllUsers();
+      // Use new dedicated endpoint for project managers
+      const response = await api.get('/users/project-managers');
       
-      const users = Array.isArray(usersResponse) ? usersResponse : [];
-      
-      if (users.length === 0) {
-        console.warn('getAllUsers() returned empty array or invalid data');
-      }
-      
-      // Filter for active users with manager, admin, or board roles
-      const managers = users.filter(u => 
-        u.active && (u.role?.name === 'manager' || u.role?.name === 'admin' || u.role?.name === 'board')
-      );
-      
-      // If no managers found, add current user as fallback
-      if (managers.length === 0 && user) {
-        setAvailableManagers([{
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          phone: undefined,
-          roleId: 0,
-          role: { id: 0, name: user.role || '', permissions: user.permissions || {} },
-          active: true,
-          forcePasswordChange: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }]);
-      } else {
+      if (response.data.success && Array.isArray(response.data.data)) {
+        const managers = response.data.data;
         setAvailableManagers(managers);
+      } else {
+        console.warn('Project managers endpoint returned invalid data');
+        // Fallback to current user if endpoint returns no data
+        if (user) {
+          setAvailableManagers([{
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            phone: undefined,
+            roleId: 0,
+            role: { id: 0, name: user.role || '', permissions: user.permissions || {} },
+            active: true,
+            forcePasswordChange: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }]);
+        } else {
+          setAvailableManagers([]);
+        }
       }
     } catch (err) {
-      console.error('Failed to load managers:', err);
+      console.error('Failed to load project managers:', err);
       // If loading fails, at least include current user
       if (user) {
         setAvailableManagers([{
@@ -218,12 +211,6 @@ export const BasicDataStep: React.FC<Props> = ({
           maxLength={5}
           placeholder="np. ABC12"
         />
-      </div>
-
-      <div className="wizard-actions">
-        <button onClick={onNext} disabled={!isValid} className="btn-primary">
-          Dalej →
-        </button>
       </div>
     </div>
   );

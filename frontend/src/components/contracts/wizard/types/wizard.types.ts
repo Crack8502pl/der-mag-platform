@@ -58,14 +58,10 @@ export interface StepInfo {
 export interface StepProps {
   wizardData: WizardData;
   onUpdate: (data: Partial<WizardData>) => void;
-  onNext: () => void;
-  onPrev: () => void;
 }
 
 export interface SubsystemConfigStepProps {
   subsystem: SubsystemWizardData;
   subsystemIndex: number;
   onUpdate: (index: number, updates: Partial<SubsystemWizardData>) => void;
-  onNext: () => void;
-  onPrev: () => void;
 }
