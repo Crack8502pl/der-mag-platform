@@ -1,5 +1,5 @@
 import React from 'react';
-import { SubsystemConfigStepProps } from '../../types/wizard.types';
+import type { SubsystemConfigStepProps } from '../../types/wizard.types';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../../config/subsystemWizardConfig';
 
 export const GenericConfigStep: React.FC<SubsystemConfigStepProps> = ({
@@ -12,16 +12,16 @@ export const GenericConfigStep: React.FC<SubsystemConfigStepProps> = ({
   const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
 
   const updateParams = (paramName: string, value: number | boolean | string) => {
-    const params = subsystem.params as Record<string, number | boolean | string>;
+    const params = (subsystem.params || {}) as Record<string, number | boolean | string>;
     const newParams = { ...params, [paramName]: value };
-    onUpdate(subsystemIndex, { params: newParams });
+    onUpdate(subsystemIndex, { params: newParams as any });
   };
 
   const updateIpPool = (value: string) => {
     onUpdate(subsystemIndex, { ipPool: value.trim() });
   };
 
-  const params = subsystem.params as Record<string, number | boolean | string>;
+  const params = (subsystem.params || {}) as Record<string, number | boolean | string>;
 
   return (
     <div className="wizard-step-content">

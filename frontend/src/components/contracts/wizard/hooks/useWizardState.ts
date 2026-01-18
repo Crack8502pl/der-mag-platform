@@ -375,9 +375,9 @@ export const useWizardState = ({
             }),
             isExisting: true, // FLAG - subsystem already exists in database
             taskCount: sub.tasks?.length || 0
-          };
+          } as SubsystemWizardData;
         })
-        .filter((sub): sub is SubsystemWizardData => sub !== null);
+        .filter((sub): sub is SubsystemWizardData => sub !== null) as SubsystemWizardData[];
       
       setWizardData(prev => ({
         ...prev,

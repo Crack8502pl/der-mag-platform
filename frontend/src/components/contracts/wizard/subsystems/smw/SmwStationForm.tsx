@@ -1,5 +1,5 @@
 import React from 'react';
-import { SmwStation } from '../../../../../config/subsystemWizardConfig';
+import type { SmwStation } from '../../../../../config/subsystemWizardConfig';
 
 interface SmwStationFormProps {
   station: SmwStation;

@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import contractService from '../../../services/contract.service';
-import { SUBSYSTEM_WIZARD_CONFIG } from '../../../config/subsystemWizardConfig';
+// SUBSYSTEM_WIZARD_CONFIG imported in child components
 import { useWizardState } from './hooks/useWizardState';
 import { generateAllTasks } from './utils/taskGenerator';
 import { validateUniqueIPPools } from './utils/validation';
@@ -50,11 +50,9 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
   const {
     wizardData,
     detectedSubsystems,
-    setDetectedSubsystems,
     detectSubsystems,
     addSubsystem,
     removeSubsystem,
-    updateSubsystemParams,
     initializeTaskDetails,
     updateTaskDetail,
     addTaskDetail,
@@ -62,7 +60,6 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     handleKilometrazInput,
     handleKilometrazBlur,
     canProceedFromDetails,
-    loadContractDataForEdit,
     updateWizardData
   } = useWizardState({
     initialUserId: user?.id?.toString() || '',

@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { BackButton } from '../common/BackButton';
 import { ContractCreateModal } from './ContractCreateModal';
 import { ContractImportModal } from './ContractImportModal';
-import { ContractWizardModal } from './ContractWizardModal';
+import { ContractWizardModal } from './wizard';
 import { ContractStatusBadge } from './ContractStatusBadge';
 import { useAuth } from '../../hooks/useAuth';
 import type { Contract } from '../../services/contract.service';

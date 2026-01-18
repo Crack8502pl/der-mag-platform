@@ -159,8 +159,8 @@ export const BasicDataStep: React.FC<Props> = ({
         />
         {detectedSubsystems.length > 0 && (
           <div className="detected-subsystem">
-            ✅ Wykryto podsystemy: {detectedSubsystems.map(type => {
-              const config = SUBSYSTEM_WIZARD_CONFIG[type];
+            ✅ Wykryto podsystemy: {detectedSubsystems.map((type: string) => {
+              const config = SUBSYSTEM_WIZARD_CONFIG[type as keyof typeof SUBSYSTEM_WIZARD_CONFIG];
               return config.label;
             }).join(', ')}
           </div>

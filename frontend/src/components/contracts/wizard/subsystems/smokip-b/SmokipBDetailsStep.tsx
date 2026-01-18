@@ -1,5 +1,5 @@
 import React from 'react';
-import { SubsystemWizardData, TaskDetail } from '../../types/wizard.types';
+import type { SubsystemWizardData, TaskDetail } from '../../types/wizard.types';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../../config/subsystemWizardConfig';
 import { OPTIONAL_KILOMETRAZ_HELP } from '../../utils/validation';
 

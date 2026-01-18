@@ -37,6 +37,7 @@ export const SuccessStep: React.FC<Props> = ({
     <div className="wizard-step-content wizard-success">
       <div className="success-icon">✅</div>
       <h3>Kontrakt utworzony!</h3>
+      {contractNumber && <p className="text-muted">Numer: {contractNumber}</p>}
       <p>Utworzono kontrakt z {wizardData.subsystems.length} podsystemami:</p>
       <ul className="success-summary">
         {tasksBySubsystem.map(({ config, tasks }, index) => (

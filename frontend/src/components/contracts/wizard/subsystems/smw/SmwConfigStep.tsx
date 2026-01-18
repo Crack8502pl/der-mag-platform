@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { SubsystemConfigStepProps } from '../../types/wizard.types';
-import { SUBSYSTEM_WIZARD_CONFIG, SmwWizardData, SmwCabinet } from '../../../../../config/subsystemWizardConfig';
+import type { SubsystemConfigStepProps } from '../../types/wizard.types';
+import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../../config/subsystemWizardConfig';
+import type { SmwWizardData, SmwCabinet } from '../../../../../config/subsystemWizardConfig';
 import { SmwStationForm } from './SmwStationForm';
 
 export const SmwConfigStep: React.FC<SubsystemConfigStepProps> = ({
