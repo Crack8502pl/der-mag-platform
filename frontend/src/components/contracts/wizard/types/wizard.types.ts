@@ -64,4 +64,6 @@ export interface SubsystemConfigStepProps {
   subsystem: SubsystemWizardData;
   subsystemIndex: number;
   onUpdate: (index: number, updates: Partial<SubsystemWizardData>) => void;
+  onNext?: () => void;  // Optional - only needed for SmwConfigStep's internal multi-step navigation
+  onPrev?: () => void;  // Optional - only needed for SmwConfigStep's internal multi-step navigation
 }

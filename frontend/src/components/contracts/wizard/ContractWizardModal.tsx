@@ -288,7 +288,10 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         const newSubsystems = [...wizardData.subsystems];
         newSubsystems[index] = { ...newSubsystems[index], ...updates };
         updateWizardData({ subsystems: newSubsystems });
-      }
+      },
+      // SmwConfigStep needs these for internal multi-step navigation
+      onNext: subsystem.type === 'SMW' ? handleNextStep : undefined,
+      onPrev: subsystem.type === 'SMW' ? handlePrevStep : undefined
     };
     
     const configComponents: Record<string, React.FC<any>> = {
@@ -374,6 +377,11 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
   const stepInfo = getCurrentStepInfo();
   const isLastStep = stepInfo.type === 'success';
+  
+  // Check if we're in SMW config step with internal navigation
+  const isSmwConfigStep = stepInfo.type === 'config' && 
+    stepInfo.subsystemIndex !== undefined && 
+    wizardData.subsystems[stepInfo.subsystemIndex]?.type === 'SMW';
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -391,7 +399,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           {renderCurrentStep()}
         </div>
         
-        {!isLastStep && (
+        {!isLastStep && !isSmwConfigStep && (
           <div className="modal-footer">
             {currentStep > 1 && (
               <button className="btn btn-secondary" onClick={handlePrevStep}>
