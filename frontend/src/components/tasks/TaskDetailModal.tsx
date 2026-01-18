@@ -83,7 +83,13 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
               <div className="detail-item">
                 <label>Priorytet</label>
                 <div className="detail-value">
-                  {task.priority > 0 ? `⭐ ${task.priority}` : 'Normalny'}
+                  {task.priority === 0 && '🔶🔶 Bardzo niski'}
+                  {task.priority === 1 && '🔶 Niski'}
+                  {task.priority === 2 && 'Normalny'}
+                  {task.priority === 3 && '⭐️ Wysoki'}
+                  {task.priority === 4 && '⭐️⭐️ Bardzo Wysoki'}
+                  {task.priority === 5 && '🌟🌟🌟 Krytyczny'}
+                  {task.priority !== undefined && task.priority > 5 && `⭐ ${task.priority}`}
                 </div>
               </div>
 

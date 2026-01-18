@@ -88,7 +88,7 @@
                                                     Priorytet:
                                                 </td>
                                                 <td style="padding: 8px 0; color: #333333; font-size: 14px; text-align: right;">
-                                                    {{#if (gt priority 7)}}🔴 Wysoki{{else if (gt priority 4)}}🟠 Średni{{else}}🟢 Niski{{/if}}
+                                                    {{#if (eq priority 0)}}🔶🔶 Bardzo niski{{else if (eq priority 1)}}🔶 Niski{{else if (eq priority 2)}}Normalny{{else if (eq priority 3)}}⭐️ Wysoki{{else if (eq priority 4)}}⭐️⭐️ Bardzo Wysoki{{else if (eq priority 5)}}🌟🌟🌟 Krytyczny{{else}}⭐ Priorytet {{priority}}{{/if}}
                                                 </td>
                                             </tr>
                                             {{/if}}

@@ -1,7 +1,7 @@
 // src/dto/UpdateTaskDto.ts
 // DTO aktualizacji zadania
 
-import { IsString, IsNumber, IsOptional, IsDateString, MaxLength } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsDateString, MaxLength, Min, Max } from 'class-validator';
 
 export class UpdateTaskDto {
   @IsString({ message: 'Tytuł musi być ciągiem znaków' })
@@ -43,5 +43,7 @@ export class UpdateTaskDto {
 
   @IsNumber({}, { message: 'Priorytet musi być liczbą' })
   @IsOptional()
+  @Min(0, { message: 'Priorytet nie może być mniejszy niż 0' })
+  @Max(5, { message: 'Priorytet nie może być większy niż 5' })
   priority?: number;
 }

@@ -400,6 +400,17 @@ export class ContractController {
         for (const subsystemData of subsystems) {
           const { type, params, tasks: subsystemTasks, ipPool } = subsystemData;
           
+          // Log for debugging SMW wizard
+          if (type === 'SMW') {
+            console.log('SMW subsystem data received:', JSON.stringify({
+              type,
+              hasParams: !!params,
+              hasTasks: !!subsystemTasks,
+              taskCount: subsystemTasks?.length || 0,
+              ipPool
+            }, null, 2));
+          }
+          
           // Validate subsystem type
           if (!Object.values(SystemType).includes(type as SystemType)) {
             res.status(400).json({

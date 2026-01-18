@@ -133,8 +133,15 @@ export const TaskListPage: React.FC = () => {
   };
 
   const getPriorityDisplay = (priority: number) => {
-    if (priority === 0) return 'Normalny';
-    return '⭐'.repeat(priority);
+    switch (priority) {
+      case 0: return '🔶🔶 Bardzo niski';
+      case 1: return '🔶 Niski';
+      case 2: return 'Normalny';
+      case 3: return '⭐️ Wysoki';
+      case 4: return '⭐️⭐️ Bardzo Wysoki';
+      case 5: return '🌟🌟🌟 Krytyczny';
+      default: return `⭐ ${priority}`;
+    }
   };
 
   if (loading && tasks.length === 0) {

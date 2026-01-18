@@ -25,7 +25,8 @@ export const SmwConfigStep: React.FC<SubsystemConfigStepProps> = ({
     lcsConfig: { cabinets: [] }
   };
 
-  const rawSmwData = subsystem.params as SmwWizardData;
+  // Try smwData first, then fall back to params for backward compatibility
+  const rawSmwData = (subsystem.smwData || subsystem.params) as SmwWizardData;
   const smwData: SmwWizardData = {
     ...defaultSmwData,
     ...rawSmwData,
@@ -60,7 +61,8 @@ export const SmwConfigStep: React.FC<SubsystemConfigStepProps> = ({
   const updateSmwData = (updates: Partial<SmwWizardData>) => {
     const currentData = smwData;
     const newData = { ...currentData, ...updates };
-    onUpdate(subsystemIndex, { params: newData, smwStep });
+    // Store in both smwData (for task generation) and params (for backward compatibility)
+    onUpdate(subsystemIndex, { smwData: newData, params: newData, smwStep });
   };
 
   const handleSmwNext = () => {
