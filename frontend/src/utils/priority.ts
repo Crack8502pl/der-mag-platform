@@ -7,7 +7,7 @@
  * @returns Formatted priority display string
  */
 export const getPriorityDisplay = (priority: number | undefined): string => {
-  if (priority === undefined || priority === null) {
+  if (priority === undefined) {
     return 'Normalny';
   }
 

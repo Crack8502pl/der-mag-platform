@@ -403,8 +403,8 @@ export class ContractController {
           // For SMW subsystems, prefer smwData over params
           const subsystemParams = type === 'SMW' && smwData ? smwData : (params || {});
           
-          // Log for debugging SMW wizard
-          if (type === 'SMW') {
+          // Log for debugging SMW wizard (only if DEBUG env var is set)
+          if (type === 'SMW' && process.env.DEBUG) {
             console.log('SMW subsystem data received:', JSON.stringify({
               type,
               hasSmwData: !!smwData,
