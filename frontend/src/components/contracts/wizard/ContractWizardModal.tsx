@@ -128,6 +128,10 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
    * Handle final submission (create or update contract)
    */
   const handleSubmit = async () => {
+    console.log('🔍 handleSubmit called');
+    console.log('wizardData:', wizardData);
+    console.log('generatedTasks:', generatedTasks);
+    
     if (!wizardData.projectManagerId) {
       setError('Nie wybrano kierownika projektu');
       return;
@@ -137,6 +141,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     setError('');
     
     try {
+      console.log('📤 Submitting wizard data...');
+      
       if (editMode && contractToEdit) {
         // EDIT MODE - update contract
         
@@ -191,6 +197,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           }
         }
         
+        console.log('✅ Contract updated successfully');
         setCurrentStep(getTotalSteps()); // Success step
       } else {
         // CREATE MODE - create new contract
@@ -211,6 +218,15 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           };
         });
 
+        console.log('📤 Sending contract data:', {
+          contractNumber: wizardData.contractNumber || undefined,
+          customName: wizardData.customName,
+          orderDate: wizardData.orderDate,
+          projectManagerId: parseInt(wizardData.projectManagerId),
+          managerCode: wizardData.managerCode,
+          subsystems: subsystemsData
+        });
+
         const response = await contractService.createContractWithWizard({
           contractNumber: wizardData.contractNumber || undefined,
           customName: wizardData.customName,
@@ -219,6 +235,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           managerCode: wizardData.managerCode,
           subsystems: subsystemsData
         });
+        
+        console.log('✅ Contract created:', response);
         
         // Update generated tasks with actual task numbers from backend
         const createdSubsystems = response.subsystems || [];
@@ -234,9 +252,10 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         setGeneratedTasks(fetchedTasks);
         setCurrentStep(getTotalSteps()); // Success step
       }
-    } catch (err) {
-      const error = err as Error;
-      setError(error.message || 'Błąd tworzenia kontraktu');
+    } catch (err: any) {
+      console.error('❌ Error creating/updating contract:', err);
+      console.error('Error response:', err.response?.data);
+      setError(err.response?.data?.message || err.message || 'Błąd podczas tworzenia kontraktu');
     } finally {
       setLoading(false);
     }
@@ -244,15 +263,35 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
   const canProceed = () => {
     const stepInfo = getCurrentStepInfo();
+    
+    console.log('🔍 canProceed check:', {
+      stepType: stepInfo.type,
+      wizardData,
+      subsystems: wizardData.subsystems
+    });
+    
     if (stepInfo.type === 'basic') {
-      return !!(wizardData.customName && wizardData.orderDate && wizardData.projectManagerId && 
+      const canProceedBasic = !!(wizardData.customName && wizardData.orderDate && wizardData.projectManagerId && 
                 wizardData.managerCode.length >= 1 && wizardData.managerCode.length <= 5);
+      console.log('🔍 Basic step canProceed:', canProceedBasic);
+      return canProceedBasic;
     }
-    if (stepInfo.type === 'selection') return wizardData.subsystems.length > 0;
+    if (stepInfo.type === 'selection') {
+      const canProceedSelection = wizardData.subsystems.length > 0;
+      console.log('🔍 Selection step canProceed:', canProceedSelection);
+      return canProceedSelection;
+    }
     if (stepInfo.type === 'details' && stepInfo.subsystemIndex !== undefined) {
-      return canProceedFromDetails(stepInfo.subsystemIndex);
+      const canProceedDetails = canProceedFromDetails(stepInfo.subsystemIndex);
+      console.log('🔍 Details step canProceed:', canProceedDetails);
+      return canProceedDetails;
     }
-    if (stepInfo.type === 'preview') return generatedTasks.length > 0;
+    if (stepInfo.type === 'preview') {
+      const canProceedPreview = generatedTasks.length > 0;
+      console.log('🔍 Preview step canProceed:', canProceedPreview, 'generatedTasks:', generatedTasks.length);
+      return canProceedPreview;
+    }
+    console.log('🔍 Default canProceed: true');
     return true;
   };
 
