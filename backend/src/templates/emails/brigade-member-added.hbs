@@ -47,7 +47,7 @@
                                                     <strong>{{taskNumber}}</strong> - {{title}}
                                                 </td>
                                                 <td style="padding: 8px 0; text-align: right;">
-                                                    {{#if (gt priority 7)}}🔴 {{priorityLabel}}{{else if (gt priority 4)}}🟠 {{priorityLabel}}{{else}}🟢 {{priorityLabel}}{{/if}}
+                                                    {{#if (eq priority 0)}}🔶🔶 {{priorityLabel}}{{else if (eq priority 1)}}🔶 {{priorityLabel}}{{else if (eq priority 2)}}{{priorityLabel}}{{else if (eq priority 3)}}⭐️ {{priorityLabel}}{{else if (eq priority 4)}}⭐️⭐️ {{priorityLabel}}{{else if (eq priority 5)}}🌟🌟🌟 {{priorityLabel}}{{else}}⭐ {{priorityLabel}}{{/if}}
                                                 </td>
                                             </tr>
                                             {{/each}}

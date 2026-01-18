@@ -39,7 +39,7 @@ export class CreateServiceTaskDto {
 
   @IsNumber({}, { message: 'Priorytet musi być liczbą' })
   @Min(0, { message: 'Priorytet nie może być mniejszy niż 0' })
-  @Max(10, { message: 'Priorytet nie może być większy niż 10' })
+  @Max(5, { message: 'Priorytet nie może być większy niż 5' })
   @IsOptional()
   priority?: number;
 
@@ -78,7 +78,7 @@ export class UpdateServiceTaskDto {
 
   @IsNumber({}, { message: 'Priorytet musi być liczbą' })
   @Min(0, { message: 'Priorytet nie może być mniejszy niż 0' })
-  @Max(10, { message: 'Priorytet nie może być większy niż 10' })
+  @Max(5, { message: 'Priorytet nie może być większy niż 5' })
   @IsOptional()
   priority?: number;
 

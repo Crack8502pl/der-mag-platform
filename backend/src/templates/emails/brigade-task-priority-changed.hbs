@@ -59,7 +59,7 @@
                                                     Stary priorytet:
                                                 </td>
                                                 <td style="padding: 8px 0; color: #666666; font-size: 14px; text-align: right; text-decoration: line-through;">
-                                                    {{#if (gt oldPriority 7)}}🔴{{else if (gt oldPriority 4)}}🟠{{else}}🟢{{/if}} {{oldPriorityLabel}} ({{oldPriority}})
+                                                    {{#if (eq oldPriority 0)}}🔶🔶{{else if (eq oldPriority 1)}}🔶{{else if (eq oldPriority 3)}}⭐️{{else if (eq oldPriority 4)}}⭐️⭐️{{else if (eq oldPriority 5)}}🌟🌟🌟{{/if}} {{oldPriorityLabel}} ({{oldPriority}})
                                                 </td>
                                             </tr>
                                             <tr>
@@ -67,7 +67,7 @@
                                                     Nowy priorytet:
                                                 </td>
                                                 <td style="padding: 8px 0; color: #ff9800; font-size: 16px; font-weight: 700; text-align: right;">
-                                                    {{#if (gt newPriority 7)}}🔴{{else if (gt newPriority 4)}}🟠{{else}}🟢{{/if}} {{newPriorityLabel}} ({{newPriority}})
+                                                    {{#if (eq newPriority 0)}}🔶🔶{{else if (eq newPriority 1)}}🔶{{else if (eq newPriority 3)}}⭐️{{else if (eq newPriority 4)}}⭐️⭐️{{else if (eq newPriority 5)}}🌟🌟🌟{{/if}} {{newPriorityLabel}} ({{newPriority}})
                                                 </td>
                                             </tr>
                                             {{#if changedBy}}

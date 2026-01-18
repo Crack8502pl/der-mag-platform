@@ -10,6 +10,7 @@ import { TaskStatusBadge } from './TaskStatusBadge';
 import { useAuth } from '../../hooks/useAuth';
 import taskService from '../../services/task.service';
 import type { Task, TaskType } from '../../types/task.types';
+import { getPriorityDisplay } from '../../utils/priority';
 import './TaskListPage.css';
 
 export const TaskListPage: React.FC = () => {
@@ -130,11 +131,6 @@ export const TaskListPage: React.FC = () => {
     setSuccess('Zadanie zaktualizowane pomyślnie');
     loadTasks();
     setTimeout(() => setSuccess(''), 5000);
-  };
-
-  const getPriorityDisplay = (priority: number) => {
-    if (priority === 0) return 'Normalny';
-    return '⭐'.repeat(priority);
   };
 
   if (loading && tasks.length === 0) {

@@ -157,11 +157,12 @@ export const TaskCreateModal: React.FC<Props> = ({ onClose, onSuccess }) => {
                 value={formData.priority}
                 onChange={(e) => handleChange('priority', Number(e.target.value))}
               >
-                <option value={0}>Normalny</option>
-                <option value={1}>⭐ Niski</option>
-                <option value={2}>⭐⭐ Średni</option>
-                <option value={3}>⭐⭐⭐ Wysoki</option>
-                <option value={4}>⭐⭐⭐⭐ Krytyczny</option>
+                <option value={0}>🔶🔶 Bardzo niski</option>
+                <option value={1}>🔶 Niski</option>
+                <option value={2}>Normalny</option>
+                <option value={3}>⭐️ Wysoki</option>
+                <option value={4}>⭐️⭐️ Bardzo Wysoki</option>
+                <option value={5}>🌟🌟🌟 Krytyczny</option>
               </select>
             </div>
 

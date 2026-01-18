@@ -89,7 +89,7 @@
                                                     Priorytet:
                                                 </td>
                                                 <td style="padding: 8px 0; color: #333333; font-size: 14px; font-weight: 700; text-align: right;">
-                                                    {{#if (gt taskPriority 7)}}🔴 {{priorityLabel}}{{else if (gt taskPriority 4)}}🟠 {{priorityLabel}}{{else}}🟢 {{priorityLabel}}{{/if}}
+                                                    {{#if (eq taskPriority 0)}}🔶🔶 {{priorityLabel}}{{else if (eq taskPriority 1)}}🔶 {{priorityLabel}}{{else if (eq taskPriority 2)}}{{priorityLabel}}{{else if (eq taskPriority 3)}}⭐️ {{priorityLabel}}{{else if (eq taskPriority 4)}}⭐️⭐️ {{priorityLabel}}{{else if (eq taskPriority 5)}}🌟🌟🌟 {{priorityLabel}}{{else}}⭐ {{priorityLabel}}{{/if}}
                                                 </td>
                                             </tr>
                                             {{/if}}

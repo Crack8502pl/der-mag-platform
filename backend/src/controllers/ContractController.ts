@@ -398,7 +398,22 @@ export class ContractController {
         const taskTypeRepository = AppDataSource.getRepository(TaskType);
         
         for (const subsystemData of subsystems) {
-          const { type, params, tasks: subsystemTasks, ipPool } = subsystemData;
+          const { type, params, smwData, tasks: subsystemTasks, ipPool } = subsystemData;
+          
+          // For SMW subsystems, prefer smwData over params
+          const subsystemParams = type === 'SMW' && smwData ? smwData : (params || {});
+          
+          // Log for debugging SMW wizard (only if DEBUG env var is set)
+          if (type === 'SMW' && process.env.DEBUG) {
+            console.log('SMW subsystem data received:', JSON.stringify({
+              type,
+              hasSmwData: !!smwData,
+              hasParams: !!params,
+              hasTasks: !!subsystemTasks,
+              taskCount: subsystemTasks?.length || 0,
+              ipPool
+            }, null, 2));
+          }
           
           // Validate subsystem type
           if (!Object.values(SystemType).includes(type as SystemType)) {
@@ -428,7 +443,7 @@ export class ContractController {
                   subsystemId: subsystem.id,
                   taskName: taskData.name || 'Zadanie',
                   taskType: taskData.type || 'GENERIC',
-                  metadata: params || {}
+                  metadata: subsystemParams
                 });
                 createdTasks.push(subsystemTask);
                 
@@ -483,7 +498,7 @@ export class ContractController {
           
           createdSubsystems.push({
             ...subsystem,
-            params,
+            params: subsystemParams,
             tasks: createdTasks,
             mainTasks: createdMainTasks
           });
