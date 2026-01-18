@@ -56,6 +56,7 @@ export enum EmailTemplate {
   STOCK_LOW_ALERT = 'stock-low-alert',
   STOCK_CRITICAL_ALERT = 'stock-critical-alert',
   STOCK_IMPORT_COMPLETED = 'stock-import-completed',
+  STOCK_ALERTS_DIGEST = 'stock-alerts-digest',
   
   // User notifications
   USER_ROLE_CHANGED = 'user-role-changed',

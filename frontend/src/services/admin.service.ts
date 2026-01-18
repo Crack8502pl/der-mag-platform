@@ -178,6 +178,25 @@ export class AdminService {
     await api.post('/users/change-password', data);
   }
 
+  // ============================================
+  // Email Queue Management
+  // ============================================
+
+  /**
+   * Get email queue statistics
+   */
+  async getQueueStats(): Promise<{ waiting: number; active: number; completed: number; failed: number; delayed: number }> {
+    const response = await api.get('/notifications/queue/stats');
+    return response.data.data;
+  }
+
+  /**
+   * Clear email queue (admin only)
+   */
+  async clearEmailQueue(): Promise<void> {
+    await api.post('/notifications/queue/clear');
+  }
+
   /**
    * Validate password strength
    */

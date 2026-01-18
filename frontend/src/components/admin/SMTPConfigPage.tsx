@@ -6,6 +6,14 @@ import { useNavigate } from 'react-router-dom';
 import adminService from '../../services/admin.service';
 import type { SmtpConfig } from '../../types/admin.types';
 
+interface QueueStats {
+  waiting: number;
+  active: number;
+  completed: number;
+  failed: number;
+  delayed: number;
+}
+
 export const SMTPConfigPage: React.FC = () => {
   const navigate = useNavigate();
   const [config, setConfig] = useState<SmtpConfig>({
@@ -23,9 +31,22 @@ export const SMTPConfigPage: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [testResult, setTestResult] = useState<string>('');
+  
+  // Queue management state
+  const [queueStats, setQueueStats] = useState<QueueStats>({
+    waiting: 0,
+    active: 0,
+    completed: 0,
+    failed: 0,
+    delayed: 0,
+  });
+  const [loadingStats, setLoadingStats] = useState(false);
+  const [clearingQueue, setClearingQueue] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   useEffect(() => {
     loadConfig();
+    loadQueueStats();
   }, []);
 
   const loadConfig = async () => {
@@ -38,6 +59,18 @@ export const SMTPConfigPage: React.FC = () => {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadQueueStats = async () => {
+    try {
+      setLoadingStats(true);
+      const stats = await adminService.getQueueStats();
+      setQueueStats(stats);
+    } catch (err) {
+      console.error('Błąd pobierania statystyk kolejki:', err);
+    } finally {
+      setLoadingStats(false);
     }
   };
 
@@ -78,6 +111,29 @@ export const SMTPConfigPage: React.FC = () => {
       console.error(err);
     } finally {
       setTesting(false);
+    }
+  };
+
+  const handleRefreshStats = async () => {
+    await loadQueueStats();
+  };
+
+  const handleClearQueue = () => {
+    setShowClearConfirm(true);
+  };
+
+  const confirmClearQueue = async () => {
+    try {
+      setClearingQueue(true);
+      await adminService.clearEmailQueue();
+      setSuccess('Kolejka emaili została wyczyszczona');
+      setShowClearConfirm(false);
+      await loadQueueStats();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Nie udało się wyczyścić kolejki');
+      console.error(err);
+    } finally {
+      setClearingQueue(false);
     }
   };
 
@@ -218,6 +274,65 @@ export const SMTPConfigPage: React.FC = () => {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Queue Management Section */}
+      <div className="queue-management-card">
+        <h2>📬 Zarządzanie kolejką emaili</h2>
+        
+        {/* Queue Statistics */}
+        <div className="queue-stats">
+          <div className="stat-box">
+            <span className="stat-label">Oczekujące:</span>
+            <span className="stat-value">{queueStats.waiting}</span>
+          </div>
+          <div className="stat-box">
+            <span className="stat-label">W trakcie:</span>
+            <span className="stat-value">{queueStats.active}</span>
+          </div>
+          <div className="stat-box">
+            <span className="stat-label">Nieudane:</span>
+            <span className="stat-value danger">{queueStats.failed}</span>
+          </div>
+          <div className="stat-box">
+            <span className="stat-label">Opóźnione:</span>
+            <span className="stat-value">{queueStats.delayed}</span>
+          </div>
+        </div>
+        
+        {/* Action Buttons */}
+        <div className="queue-actions">
+          <button 
+            className="btn btn-secondary"
+            onClick={handleRefreshStats}
+            disabled={loadingStats}
+          >
+            🔄 {loadingStats ? 'Ładowanie...' : 'Odśwież statystyki'}
+          </button>
+          
+          <button 
+            className="btn btn-danger"
+            onClick={handleClearQueue}
+            disabled={clearingQueue}
+          >
+            🗑️ {clearingQueue ? 'Czyszczenie...' : 'Wyczyść kolejkę'}
+          </button>
+        </div>
+        
+        {/* Confirmation Dialog */}
+        {showClearConfirm && (
+          <div className="confirm-dialog">
+            <p>⚠️ Czy na pewno chcesz wyczyścić kolejkę emaili? Ta operacja usunie wszystkie oczekujące emaile.</p>
+            <div className="confirm-actions">
+              <button onClick={confirmClearQueue} className="btn btn-danger">
+                Tak, wyczyść
+              </button>
+              <button onClick={() => setShowClearConfirm(false)} className="btn btn-secondary">
+                Anuluj
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <style>{`
@@ -380,6 +495,103 @@ export const SMTPConfigPage: React.FC = () => {
           text-align: center;
           padding: 40px;
           color: #7f8c8d;
+        }
+
+        .queue-management-card {
+          background: white;
+          border-radius: 8px;
+          padding: 30px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          margin-top: 30px;
+        }
+
+        .queue-management-card h2 {
+          margin: 0 0 25px 0;
+          color: #2c3e50;
+          font-size: 20px;
+        }
+
+        .queue-stats {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 15px;
+          margin-bottom: 25px;
+        }
+
+        .stat-box {
+          background: #f8f9fa;
+          border-radius: 8px;
+          padding: 20px;
+          text-align: center;
+          border: 1px solid #e9ecef;
+        }
+
+        .stat-label {
+          display: block;
+          font-size: 13px;
+          color: #666;
+          margin-bottom: 8px;
+        }
+
+        .stat-value {
+          display: block;
+          font-size: 28px;
+          font-weight: 700;
+          color: #3498db;
+        }
+
+        .stat-value.danger {
+          color: #e74c3c;
+        }
+
+        .queue-actions {
+          display: flex;
+          gap: 10px;
+          justify-content: center;
+        }
+
+        .btn-danger {
+          background: #e74c3c;
+          color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+          background: #c0392b;
+        }
+
+        .confirm-dialog {
+          margin-top: 20px;
+          padding: 20px;
+          background: #fff3cd;
+          border: 1px solid #ffc107;
+          border-radius: 8px;
+        }
+
+        .confirm-dialog p {
+          margin: 0 0 15px 0;
+          color: #856404;
+          font-size: 14px;
+          line-height: 1.6;
+        }
+
+        .confirm-actions {
+          display: flex;
+          gap: 10px;
+          justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+          .queue-stats {
+            grid-template-columns: repeat(2, 1fr);
+          }
+
+          .queue-actions {
+            flex-direction: column;
+          }
+
+          .queue-actions button {
+            width: 100%;
+          }
         }
       `}</style>
     </div>

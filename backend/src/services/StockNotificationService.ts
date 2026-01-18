@@ -1,15 +1,77 @@
 // src/services/StockNotificationService.ts
 // Serwis powiadomień magazynowych
 
+import Redis from 'ioredis';
 import { AppDataSource } from '../config/database';
 import { WarehouseStock } from '../entities/WarehouseStock';
 import { User } from '../entities/User';
 import EmailQueueService from './EmailQueueService';
 import { EmailTemplate } from '../types/EmailTypes';
+import { emailConfig } from '../config/email';
 
 export class StockNotificationService {
   private stockRepository = AppDataSource.getRepository(WarehouseStock);
   private userRepository = AppDataSource.getRepository(User);
+  private redisClient: Redis | null = null;
+  private readonly ALERT_CACHE_TTL = 86400; // 24h w sekundach
+  private readonly ALERT_KEY_PREFIX = 'stock-alert';
+
+  constructor() {
+    this.initRedis();
+  }
+
+  /**
+   * Inicjalizuje połączenie Redis
+   */
+  private initRedis(): void {
+    try {
+      this.redisClient = new Redis({
+        host: emailConfig.redis.host,
+        port: emailConfig.redis.port,
+        password: emailConfig.redis.password,
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
+      });
+      console.log('✅ StockNotificationService: Redis połączony');
+    } catch (error) {
+      console.error('❌ StockNotificationService: Błąd połączenia z Redis:', error);
+      this.redisClient = null;
+    }
+  }
+
+  /**
+   * Sprawdza czy alert był już wysłany
+   */
+  private async wasAlertSent(stockId: number, alertType: 'LOW' | 'CRITICAL'): Promise<boolean> {
+    if (!this.redisClient) {
+      return false; // Jeśli Redis nie działa, nie blokuj wysyłki
+    }
+
+    try {
+      const key = `${this.ALERT_KEY_PREFIX}:${stockId}:${alertType}`;
+      const exists = await this.redisClient.get(key);
+      return exists !== null;
+    } catch (error) {
+      console.error('❌ Błąd sprawdzania cache alertu:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Oznacza alert jako wysłany
+   */
+  private async markAlertAsSent(stockId: number, alertType: 'LOW' | 'CRITICAL'): Promise<void> {
+    if (!this.redisClient) {
+      return;
+    }
+
+    try {
+      const key = `${this.ALERT_KEY_PREFIX}:${stockId}:${alertType}`;
+      await this.redisClient.setex(key, this.ALERT_CACHE_TTL, 'sent');
+    } catch (error) {
+      console.error('❌ Błąd zapisywania cache alertu:', error);
+    }
+  }
 
   /**
    * Pobiera szczegóły materiału
@@ -74,6 +136,13 @@ export class StockNotificationService {
    */
   async notifyLowStock(stockId: number): Promise<void> {
     try {
+      // Sprawdź deduplikację
+      const alreadySent = await this.wasAlertSent(stockId, 'LOW');
+      if (alreadySent) {
+        console.log(`⏭️  Pominięto zduplikowany alert LOW dla materiału ${stockId} (wysłany w ciągu ostatnich 24h)`);
+        return;
+      }
+
       const stock = await this.getStockDetails(stockId);
       const recipients = await this.getWarehouseManagerEmails();
 
@@ -99,6 +168,9 @@ export class StockNotificationService {
         priority: 'high'
       });
 
+      // Oznacz alert jako wysłany
+      await this.markAlertAsSent(stockId, 'LOW');
+
       console.log(`✅ Alert o niskim stanie magazynowym wysłany: ${stock.materialName}`);
     } catch (error) {
       console.error('❌ Błąd wysyłania alertu o niskim stanie magazynowym:', error);
@@ -110,6 +182,13 @@ export class StockNotificationService {
    */
   async notifyCriticalStock(stockId: number): Promise<void> {
     try {
+      // Sprawdź deduplikację
+      const alreadySent = await this.wasAlertSent(stockId, 'CRITICAL');
+      if (alreadySent) {
+        console.log(`⏭️  Pominięto zduplikowany alert CRITICAL dla materiału ${stockId} (wysłany w ciągu ostatnich 24h)`);
+        return;
+      }
+
       const stock = await this.getStockDetails(stockId);
       const recipients = await this.getAdminAndManagerEmails();
 
@@ -134,6 +213,9 @@ export class StockNotificationService {
         },
         priority: 'high'
       });
+
+      // Oznacz alert jako wysłany
+      await this.markAlertAsSent(stockId, 'CRITICAL');
 
       console.log(`✅ Krytyczny alert magazynowy wysłany: ${stock.materialName}`);
     } catch (error) {

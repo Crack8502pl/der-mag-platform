@@ -42,6 +42,18 @@ export const emailConfig = {
     removeOnComplete: true, // Usuń zakończone zadania
     removeOnFail: false, // Zachowaj nieudane zadania do analizy
   },
+  
+  // Rate limiting dla nazwa.pl (50 emaili/godzinę)
+  rateLimit: {
+    max: parseInt(process.env.EMAIL_RATE_LIMIT_MAX || '50'), // Max emaili na okno czasowe
+    window: parseInt(process.env.EMAIL_RATE_LIMIT_WINDOW || '3600000'), // Okno w ms (1h)
+  },
+  
+  // Tryb alertów magazynowych
+  alerts: {
+    mode: process.env.EMAIL_ALERTS_MODE || 'immediate', // 'immediate' | 'batch'
+    batchTime: process.env.EMAIL_BATCH_TIME || '08:00', // Godzina wysyłki digestu
+  },
 };
 
 /**
