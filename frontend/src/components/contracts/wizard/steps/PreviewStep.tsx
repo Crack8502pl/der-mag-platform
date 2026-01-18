@@ -15,8 +15,8 @@ interface Props {
 export const PreviewStep: React.FC<Props> = ({
   wizardData,
   generatedTasks,
-  onNext,
-  onPrev
+  onNext: _onNext,
+  onPrev: _onPrev
 }) => {
   // Group tasks by subsystem
   const tasksBySubsystem = wizardData.subsystems.map((subsystem) => {

@@ -121,9 +121,6 @@ export const BasicDataStep: React.FC<Props> = ({
     });
   };
 
-  const isValid = wizardData.customName && wizardData.orderDate && 
-                  wizardData.projectManagerId && wizardData.managerCode;
-
   return (
     <div className="wizard-step-content">
       <h3>Krok 1: Dane podstawowe</h3>
