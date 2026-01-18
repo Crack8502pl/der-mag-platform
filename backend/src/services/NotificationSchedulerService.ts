@@ -345,7 +345,8 @@ export class NotificationSchedulerService {
 
       const lowStockItems = await this.stockRepository
         .createQueryBuilder('stock')
-        .where('stock.quantityInStock <= stock.minStockLevel')
+        .where('stock.quantityInStock < stock.minStockLevel')  // Zmiana z <= na <
+        .andWhere('stock.minStockLevel IS NOT NULL')  // Dodanie warunku
         .andWhere('stock.quantityInStock >= 0')
         .getMany();
 
