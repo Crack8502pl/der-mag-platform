@@ -1,3 +1,6 @@
+// src/dto/CreateTaskDto.ts
+// DTO tworzenia zadania
+
 import { IsString, IsNotEmpty, IsNumber, IsOptional, IsDateString, MaxLength, Min, Max } from 'class-validator';
 
 export class CreateTaskDto {

@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { TaskStatusBadge } from './TaskStatusBadge';
 import taskService from '../../services/task.service';
 import type { Task } from '../../types/task.types';
+import { getPriorityDisplay } from '../../utils/priority';
 
 interface Props {
   taskNumber: string;
@@ -83,13 +84,7 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
               <div className="detail-item">
                 <label>Priorytet</label>
                 <div className="detail-value">
-                  {task.priority === 0 && '🔶🔶 Bardzo niski'}
-                  {task.priority === 1 && '🔶 Niski'}
-                  {task.priority === 2 && 'Normalny'}
-                  {task.priority === 3 && '⭐️ Wysoki'}
-                  {task.priority === 4 && '⭐️⭐️ Bardzo Wysoki'}
-                  {task.priority === 5 && '🌟🌟🌟 Krytyczny'}
-                  {task.priority !== undefined && task.priority > 5 && `⭐ ${task.priority}`}
+                  {getPriorityDisplay(task.priority)}
                 </div>
               </div>
 
