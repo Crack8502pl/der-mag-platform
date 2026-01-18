@@ -171,7 +171,8 @@ export class WarehouseStockService {
     }
 
     if (filters.lowStock) {
-      queryBuilder.andWhere('stock.quantityInStock <= stock.minStockLevel');
+      queryBuilder.andWhere('stock.quantityInStock < stock.minStockLevel')
+        .andWhere('stock.minStockLevel IS NOT NULL');
     }
 
     // Sortowanie
@@ -291,7 +292,12 @@ export class WarehouseStockService {
     if (newQuantity !== undefined) {
       try {
         const StockNotificationService = (await import('./StockNotificationService')).default;
-        if (newQuantity <= updated.minStockLevel) {
+        
+        // Wysyłaj alerty tylko jeśli minStockLevel jest zdefiniowany i stan jest mniejszy niż minimum
+        if (updated.minStockLevel !== null && 
+            updated.minStockLevel !== undefined &&
+            newQuantity < updated.minStockLevel) {  // Zmiana z <= na <
+          
           if (newQuantity === 0) {
             await StockNotificationService.notifyCriticalStock(updated.id);
           } else {
