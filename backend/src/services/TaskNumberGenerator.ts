@@ -21,6 +21,7 @@ export class TaskNumberGenerator {
     const monthYearSuffix = `${month}${year}`; // np. "0126"
     
     // Znajdź ostatnie zadanie w tym miesiącu
+    // Note: LIKE query uses existing index on taskNumber column defined in Task entity
     const lastTask = await taskRepository
       .createQueryBuilder('task')
       .where('task.taskNumber LIKE :pattern', { 

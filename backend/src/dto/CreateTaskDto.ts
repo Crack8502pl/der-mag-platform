@@ -45,6 +45,7 @@ export class CreateTaskDto {
 
   @IsNumber({}, { message: 'ID zadania nadrzędnego musi być liczbą' })
   @IsOptional()
+  @Min(1, { message: 'ID zadania nadrzędnego musi być liczbą dodatnią' })
   parentTaskId?: number;
 
   @IsDateString({}, { message: 'Nieprawidłowy format daty rozpoczęcia' })

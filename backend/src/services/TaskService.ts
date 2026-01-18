@@ -32,6 +32,7 @@ export class TaskService {
 
     // Pobierz contractNumber jeśli contractId jest podany
     // Jeśli kontrakt nie zostanie znaleziony, contractNumber pozostanie undefined
+    let contractNumber: string | undefined;
     if (data.contractId) {
       const contractRepository = AppDataSource.getRepository(Contract);
       const contract = await contractRepository.findOne({
@@ -39,7 +40,7 @@ export class TaskService {
       });
       
       if (contract) {
-        data.contractNumber = contract.contractNumber;
+        contractNumber = contract.contractNumber;
       }
     }
 
@@ -50,6 +51,7 @@ export class TaskService {
     const task = taskRepository.create({
       ...data,
       taskNumber,
+      contractNumber,
       status: 'created'
     });
 
