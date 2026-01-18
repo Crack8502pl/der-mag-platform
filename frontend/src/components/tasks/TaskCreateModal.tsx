@@ -19,7 +19,7 @@ export const TaskCreateModal: React.FC<Props> = ({ onClose, onSuccess }) => {
     location: '',
     client: '',
     contractNumber: '',
-    priority: 0
+    priority: 2 // DEFAULT: Normalny
   });
 
   const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);

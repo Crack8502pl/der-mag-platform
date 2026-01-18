@@ -50,6 +50,8 @@ export const cleanKilometrazInput = (value: string): string => {
  * Validate uniqueness of IP pools across subsystems
  */
 export const validateUniqueIPPools = (subsystems: SubsystemWizardData[]): { valid: boolean; error?: string } => {
+  console.log('🔍 Validating IP pools for subsystems:', subsystems.length);
+  
   // Get all IP pools from subsystems (skip empty/undefined)
   const ipPools = subsystems
     .map((s, index) => ({ 
@@ -59,8 +61,11 @@ export const validateUniqueIPPools = (subsystems: SubsystemWizardData[]): { vali
     }))
     .filter(s => s.ipPool); // Only subsystems with assigned pool
   
+  console.log('🔍 IP pools to validate:', ipPools);
+  
   // If no subsystem has a pool - validation passes
   if (ipPools.length === 0) {
+    console.log('✅ No IP pools assigned, validation passes');
     return { valid: true };
   }
   
@@ -82,11 +87,13 @@ export const validateUniqueIPPools = (subsystems: SubsystemWizardData[]): { vali
   }
   
   if (duplicates.length > 0) {
+    console.log('❌ IP pool validation failed:', duplicates);
     return {
       valid: false,
       error: `Podsystemy w kontrakcie muszą mieć różne pule adresowe IP!\n${duplicates.join('\n')}`
     };
   }
   
+  console.log('✅ IP pool validation passed');
   return { valid: true };
 };
