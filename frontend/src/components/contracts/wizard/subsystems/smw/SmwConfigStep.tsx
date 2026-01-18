@@ -26,7 +26,7 @@ export const SmwConfigStep: React.FC<SubsystemConfigStepProps> = ({
   };
 
   // Try smwData first, then fall back to params for backward compatibility
-  const rawSmwData = (subsystem.smwData || subsystem.params) as SmwWizardData;
+  const rawSmwData = (subsystem.smwData || subsystem.params || {}) as SmwWizardData;
   const smwData: SmwWizardData = {
     ...defaultSmwData,
     ...rawSmwData,
