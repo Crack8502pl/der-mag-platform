@@ -11,6 +11,7 @@ import { ActivityTemplate } from '../entities/ActivityTemplate';
 import { TaskNumberGenerator } from './TaskNumberGenerator';
 import { CreateTaskDto } from '../dto/CreateTaskDto';
 import { BomTriggerService } from './BomTriggerService';
+import { Contract } from '../entities/Contract';
 
 export class TaskService {
   /**
@@ -31,6 +32,18 @@ export class TaskService {
 
     // Generuj unikalny numer zadania
     const taskNumber = await TaskNumberGenerator.generate();
+
+    // Pobierz contractNumber jeśli contractId jest podany
+    if (data.contractId) {
+      const contractRepository = AppDataSource.getRepository(Contract);
+      const contract = await contractRepository.findOne({
+        where: { id: data.contractId }
+      });
+      
+      if (contract) {
+        data.contractNumber = contract.contractNumber;
+      }
+    }
 
     // Utwórz zadanie
     const task = taskRepository.create({

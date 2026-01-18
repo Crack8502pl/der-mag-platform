@@ -37,7 +37,7 @@ router.get('/project-managers', authenticate, async (req: any, res: any) => {
     }
     
     // For admin/board - return all: admin + board + manager
-    const { AppDataSource } = require('../data-source');
+    const { AppDataSource } = require('../config/database');
     const { User } = require('../entities/User');
     
     const userRepository = AppDataSource.getRepository(User);

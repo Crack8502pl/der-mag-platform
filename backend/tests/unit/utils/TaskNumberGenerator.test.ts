@@ -24,66 +24,89 @@ describe('TaskNumberGenerator', () => {
   });
 
   describe('generate', () => {
-    it('should generate a unique 9-digit task number', async () => {
-      mockTaskRepository.findOne.mockResolvedValue(null);
-
-      const taskNumber = await TaskNumberGenerator.generate();
-
-      expect(taskNumber).toBeDefined();
-      expect(taskNumber.length).toBe(9);
-      expect(parseInt(taskNumber)).toBeGreaterThanOrEqual(100000000);
-      expect(parseInt(taskNumber)).toBeLessThanOrEqual(999999999);
-      expect(mockTaskRepository.findOne).toHaveBeenCalledWith({
-        where: { taskNumber },
-      });
-    });
-
-    it('should retry if first generated number already exists', async () => {
-      // First call returns existing task, second returns null
-      mockTaskRepository.findOne
-        .mockResolvedValueOnce({ id: 1, taskNumber: '123456789' })
-        .mockResolvedValueOnce(null);
-
-      const taskNumber = await TaskNumberGenerator.generate();
-
-      expect(taskNumber).toBeDefined();
-      expect(taskNumber.length).toBe(9);
-      expect(mockTaskRepository.findOne).toHaveBeenCalledTimes(2);
-    });
-
-    it('should throw error after max retries', async () => {
-      // Always return existing task
-      mockTaskRepository.findOne.mockResolvedValue({ id: 1, taskNumber: '123456789' });
-
-      await expect(TaskNumberGenerator.generate()).rejects.toThrow(
-        'Nie udało się wygenerować unikalnego numeru zadania po wielu próbach'
-      );
+    it('should generate task number in ZXXXXMMRR format', async () => {
+      const mockQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(null),
+      };
       
-      expect(mockTaskRepository.findOne).toHaveBeenCalledTimes(10);
+      mockTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder);
+      
+      const taskNumber = await TaskNumberGenerator.generate();
+      
+      expect(taskNumber).toBeDefined();
+      expect(taskNumber.length).toBe(9);
+      expect(taskNumber.startsWith('Z')).toBe(true);
+      expect(/^Z\d{4}(0[1-9]|1[0-2])\d{2}$/.test(taskNumber)).toBe(true);
+    });
+
+    it('should increment sequence number when tasks exist for current month', async () => {
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const year = String(now.getFullYear()).slice(-2);
+      
+      const mockQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue({
+          taskNumber: `Z0005${month}${year}`
+        }),
+      };
+      
+      mockTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder);
+      
+      const taskNumber = await TaskNumberGenerator.generate();
+      
+      expect(taskNumber).toBe(`Z0006${month}${year}`);
+    });
+
+    it('should throw error when max sequence reached', async () => {
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const year = String(now.getFullYear()).slice(-2);
+      
+      const mockQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue({
+          taskNumber: `Z9999${month}${year}`
+        }),
+      };
+      
+      mockTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder);
+      
+      await expect(TaskNumberGenerator.generate()).rejects.toThrow(
+        `Maksymalna liczba zadań (9999) osiągnięta dla miesiąca ${month}/${year}`
+      );
     });
   });
 
   describe('validate', () => {
-    it('should return true for valid task number', () => {
-      expect(TaskNumberGenerator.validate('123456789')).toBe(true);
-      expect(TaskNumberGenerator.validate('100000000')).toBe(true);
-      expect(TaskNumberGenerator.validate('999999999')).toBe(true);
+    it('should return true for valid ZXXXXMMRR format', () => {
+      expect(TaskNumberGenerator.validate('Z00010126')).toBe(true);
+      expect(TaskNumberGenerator.validate('Z99991225')).toBe(true);
+      expect(TaskNumberGenerator.validate('Z00050626')).toBe(true);
     });
 
     it('should return false for invalid length', () => {
-      expect(TaskNumberGenerator.validate('12345678')).toBe(false);
-      expect(TaskNumberGenerator.validate('1234567890')).toBe(false);
+      expect(TaskNumberGenerator.validate('Z0001012')).toBe(false); // Too short
+      expect(TaskNumberGenerator.validate('Z00010126X')).toBe(false); // Too long
       expect(TaskNumberGenerator.validate('')).toBe(false);
     });
 
-    it('should return false for non-numeric values', () => {
-      expect(TaskNumberGenerator.validate('12345678a')).toBe(false);
-      expect(TaskNumberGenerator.validate('abcdefghi')).toBe(false);
+    it('should return false for not starting with Z', () => {
+      expect(TaskNumberGenerator.validate('A00010126')).toBe(false);
+      expect(TaskNumberGenerator.validate('100010126')).toBe(false);
     });
 
-    it('should return false for numbers outside valid range', () => {
-      expect(TaskNumberGenerator.validate('099999999')).toBe(false);
-      expect(TaskNumberGenerator.validate('000000001')).toBe(false);
+    it('should return false for invalid month', () => {
+      expect(TaskNumberGenerator.validate('Z00011326')).toBe(false); // Month 13
+      expect(TaskNumberGenerator.validate('Z00010026')).toBe(false); // Month 00
+    });
+
+    it('should return false for old numeric format', () => {
+      expect(TaskNumberGenerator.validate('123456789')).toBe(false);
     });
 
     it('should return false for null or undefined', () => {

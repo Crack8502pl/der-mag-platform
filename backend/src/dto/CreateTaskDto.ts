@@ -33,6 +33,14 @@ export class CreateTaskDto {
   @MaxLength(100, { message: 'Numer kontraktu może mieć maksymalnie 100 znaków' })
   contractNumber?: string;
 
+  @IsNumber({}, { message: 'ID kontraktu musi być liczbą' })
+  @IsOptional()
+  contractId?: number;
+
+  @IsNumber({}, { message: 'ID podsystemu musi być liczbą' })
+  @IsOptional()
+  subsystemId?: number;
+
   @IsNumber({}, { message: 'ID zadania nadrzędnego musi być liczbą' })
   @IsOptional()
   parentTaskId?: number;
