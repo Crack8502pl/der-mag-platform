@@ -1,53 +1,71 @@
 // src/services/TaskNumberGenerator.ts
-// Serwis generowania unikalnych 9-cyfrowych numerów zadań
+// Serwis generowania unikalnych numerów zadań w formacie ZXXXXMMRR
 
 import { AppDataSource } from '../config/database';
 import { Task } from '../entities/Task';
-import { TASK_NUMBER_FORMAT } from '../config/constants';
 
 export class TaskNumberGenerator {
-  private static readonly MAX_RETRIES = 10;
-
   /**
-   * Generuje unikalny 9-cyfrowy numer zadania
+   * Generuje unikalny numer zadania w formacie ZXXXXMMRR
+   * Z - Zadanie
+   * XXXX - kolejny numer w obrębie miesiąca (0001-9999)
+   * MM - miesiąc stworzenia (01-12)
+   * RR - rok stworzenia (ostatnie 2 cyfry)
    */
   static async generate(): Promise<string> {
     const taskRepository = AppDataSource.getRepository(Task);
     
-    for (let attempt = 0; attempt < this.MAX_RETRIES; attempt++) {
-      const taskNumber = this.generateRandomNumber();
-      
-      // Sprawdź czy numer już istnieje
-      const existing = await taskRepository.findOne({
-        where: { taskNumber }
-      });
-      
-      if (!existing) {
-        return taskNumber;
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0'); // 01-12
+    const year = String(now.getFullYear()).slice(-2); // Ostatnie 2 cyfry
+    const monthYearSuffix = `${month}${year}`; // np. "0126"
+    
+    // Znajdź ostatnie zadanie w tym miesiącu
+    // Note: LIKE query uses existing index on taskNumber column defined in Task entity
+    const lastTask = await taskRepository
+      .createQueryBuilder('task')
+      .where('task.taskNumber LIKE :pattern', { 
+        pattern: `Z%${monthYearSuffix}` 
+      })
+      .orderBy('task.taskNumber', 'DESC')
+      .getOne();
+    
+    let nextSequence = 1;
+    
+    if (lastTask && lastTask.taskNumber) {
+      // Wyciągnij sekwencję: Z00150126 -> 0015
+      const match = lastTask.taskNumber.match(/^Z(\d{4})/);
+      if (match) {
+        const currentSeq = parseInt(match[1], 10);
+        nextSequence = currentSeq + 1;
       }
     }
     
-    throw new Error('Nie udało się wygenerować unikalnego numeru zadania po wielu próbach');
+    if (nextSequence > 9999) {
+      throw new Error(`Maksymalna liczba zadań (9999) osiągnięta dla miesiąca ${month}/${year}`);
+    }
+    
+    const paddedSequence = String(nextSequence).padStart(4, '0');
+    const taskNumber = `Z${paddedSequence}${monthYearSuffix}`;
+    
+    return taskNumber;
   }
 
   /**
-   * Generuje losowy 9-cyfrowy numer
-   */
-  private static generateRandomNumber(): string {
-    const { MIN, MAX } = TASK_NUMBER_FORMAT;
-    const randomNum = Math.floor(Math.random() * (MAX - MIN + 1)) + MIN;
-    return randomNum.toString();
-  }
-
-  /**
-   * Waliduje format numeru zadania
+   * Waliduje format numeru zadania ZXXXXMMRR
    */
   static validate(taskNumber: string): boolean {
-    if (!taskNumber || taskNumber.length !== TASK_NUMBER_FORMAT.LENGTH) {
+    if (!taskNumber || taskNumber.length !== 9) {
       return false;
     }
     
-    const num = parseInt(taskNumber);
-    return !isNaN(num) && num >= TASK_NUMBER_FORMAT.MIN && num <= TASK_NUMBER_FORMAT.MAX;
+    // Musi zaczynać się od 'Z'
+    if (!taskNumber.startsWith('Z')) {
+      return false;
+    }
+    
+    // Format: Z + 4 cyfry + 2 cyfry miesiąca + 2 cyfry roku
+    const regex = /^Z\d{4}(0[1-9]|1[0-2])\d{2}$/;
+    return regex.test(taskNumber);
   }
 }
