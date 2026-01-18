@@ -71,7 +71,7 @@ export const SmwConfigStep: React.FC<SubsystemConfigStepProps> = ({
       onUpdate(subsystemIndex, { smwStep: nextStep });
     } else {
       // Move to next main wizard step
-      onNext();
+      onNext?.();
     }
   };
 
@@ -82,7 +82,7 @@ export const SmwConfigStep: React.FC<SubsystemConfigStepProps> = ({
       onUpdate(subsystemIndex, { smwStep: prevStep });
     } else {
       // Move to previous main wizard step
-      onPrev();
+      onPrev?.();
     }
   };
 
