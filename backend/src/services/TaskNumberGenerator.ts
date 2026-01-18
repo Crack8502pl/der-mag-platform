@@ -21,8 +21,6 @@ export class TaskNumberGenerator {
     const monthYearSuffix = `${month}${year}`; // np. "0126"
     
     // Znajdź ostatnie zadanie w tym miesiącu
-    const pattern = `Z____${monthYearSuffix}`; // Z + 4 dowolne cyfry + MM + RR
-    
     const lastTask = await taskRepository
       .createQueryBuilder('task')
       .where('task.taskNumber LIKE :pattern', { 

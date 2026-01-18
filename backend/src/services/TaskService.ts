@@ -30,9 +30,6 @@ export class TaskService {
       throw new Error('Nieznany typ zadania');
     }
 
-    // Generuj unikalny numer zadania
-    const taskNumber = await TaskNumberGenerator.generate();
-
     // Pobierz contractNumber jeśli contractId jest podany
     if (data.contractId) {
       const contractRepository = AppDataSource.getRepository(Contract);
@@ -44,6 +41,9 @@ export class TaskService {
         data.contractNumber = contract.contractNumber;
       }
     }
+
+    // Generuj unikalny numer zadania
+    const taskNumber = await TaskNumberGenerator.generate();
 
     // Utwórz zadanie
     const task = taskRepository.create({
