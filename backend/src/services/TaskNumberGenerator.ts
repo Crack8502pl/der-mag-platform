@@ -32,7 +32,7 @@ export class TaskNumberGenerator {
     let nextSequence = 1;
     
     if (lastTask && lastTask.taskNumber) {
-      // Wyciągnij sekwencję: Z0015_0126 -> 0015
+      // Wyciągnij sekwencję: Z00150126 -> 0015
       const match = lastTask.taskNumber.match(/^Z(\d{4})/);
       if (match) {
         const currentSeq = parseInt(match[1], 10);

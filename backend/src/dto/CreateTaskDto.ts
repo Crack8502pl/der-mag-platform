@@ -1,7 +1,7 @@
 // src/dto/CreateTaskDto.ts
 // DTO tworzenia zadania
 
-import { IsString, IsNotEmpty, IsNumber, IsOptional, IsDateString, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsOptional, IsDateString, MaxLength, Min } from 'class-validator';
 
 export class CreateTaskDto {
   @IsString({ message: 'Tytuł musi być ciągiem znaków' })
@@ -35,10 +35,12 @@ export class CreateTaskDto {
 
   @IsNumber({}, { message: 'ID kontraktu musi być liczbą' })
   @IsOptional()
+  @Min(1, { message: 'ID kontraktu musi być liczbą dodatnią' })
   contractId?: number;
 
   @IsNumber({}, { message: 'ID podsystemu musi być liczbą' })
   @IsOptional()
+  @Min(1, { message: 'ID podsystemu musi być liczbą dodatnią' })
   subsystemId?: number;
 
   @IsNumber({}, { message: 'ID zadania nadrzędnego musi być liczbą' })

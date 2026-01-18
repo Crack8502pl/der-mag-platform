@@ -31,6 +31,7 @@ export class TaskService {
     }
 
     // Pobierz contractNumber jeśli contractId jest podany
+    // Jeśli kontrakt nie zostanie znaleziony, contractNumber pozostanie undefined
     if (data.contractId) {
       const contractRepository = AppDataSource.getRepository(Contract);
       const contract = await contractRepository.findOne({
