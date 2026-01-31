@@ -1,7 +1,7 @@
 // src/services/api.ts
 // Axios instance with interceptors
 
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, AxiosResponse } from 'axios';
 import type { AxiosInstance } from 'axios';
 
 // Inteligentne wykrywanie API URL dla różnych środowisk
@@ -49,9 +49,74 @@ export const api: AxiosInstance = axios.create({
   timeout: 15000, // 🆕 15s timeout dla slow mobile networks
 });
 
+// ====== CLOCK SKEW COMPENSATION ======
+// Track difference between server time and client time
+let serverTimeOffset = 0;
+let lastServerTimeUpdate = 0;
+const SERVER_TIME_UPDATE_INTERVAL = 30000; // Update every 30s
+
+/**
+ * Calculate offset from server response Date header
+ */
+const calculateServerTimeOffset = (response: AxiosResponse) => {
+  const now = Date.now();
+  
+  // Don't update too frequently
+  if (now - lastServerTimeUpdate < SERVER_TIME_UPDATE_INTERVAL) {
+    return;
+  }
+  
+  const dateHeader = response.headers['date'];
+  if (dateHeader) {
+    const serverTime = new Date(dateHeader).getTime();
+    const newOffset = serverTime - now;
+    
+    // Only update if significantly different (> 1 second)
+    if (Math.abs(newOffset - serverTimeOffset) > 1000) {
+      serverTimeOffset = newOffset;
+      lastServerTimeUpdate = now;
+      
+      // Log if significant difference (> 30 seconds)
+      if (Math.abs(serverTimeOffset) > 30000) {
+        console.warn(`⚠️ Clock skew detected: ${Math.round(serverTimeOffset / 1000)}s difference with server`);
+      }
+    }
+  }
+};
+
+/**
+ * Get current time corrected for server clock skew
+ */
+export const getCorrectedTime = (): number => {
+  return Date.now() + serverTimeOffset;
+};
+
+/**
+ * Get current server time offset in milliseconds
+ */
+export const getServerTimeOffset = (): number => serverTimeOffset;
+
+// ====== AUTH/ME THROTTLING ======
+// Prevent rapid /auth/me requests
+let lastAuthMeRequest = 0;
+const AUTH_ME_MIN_INTERVAL = 5000; // Minimum 5s between /auth/me requests
+
 // Request interceptor - add access token
 api.interceptors.request.use(
   (config) => {
+    // Throttle /auth/me requests to prevent flooding
+    if (config.url?.includes('/auth/me')) {
+      const now = Date.now();
+      if (now - lastAuthMeRequest < AUTH_ME_MIN_INTERVAL) {
+        console.warn('⏸️ Throttling /auth/me - too frequent');
+        return Promise.reject({ 
+          __THROTTLED__: true, 
+          message: 'Request throttled - too frequent' 
+        });
+      }
+      lastAuthMeRequest = now;
+    }
+    
     const accessToken = localStorage.getItem('accessToken');
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
@@ -70,8 +135,17 @@ let rateLimitResetTime = 0;
 
 // Response interceptor - handle token refresh AND rate limiting
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Track server time for clock skew compensation
+    calculateServerTimeOffset(response);
+    return response;
+  },
   async (error: AxiosError) => {
+    // Handle throttled requests gracefully
+    if ((error as any).__THROTTLED__) {
+      return Promise.reject(error);
+    }
+    
     console.error('❌ API Error:', {
       url: error.config?.url,
       method: error.config?.method,

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import authService from '../../services/auth.service';
+import { getCorrectedTime, getServerTimeOffset } from '../../services/api';
 import './TokenTimerWidget.css';
 
 // localStorage key for widget position
@@ -51,6 +52,7 @@ export const TokenTimerWidget: React.FC = () => {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [tokenLifetime, setTokenLifetime] = useState<number>(900000);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [clockSkewWarning, setClockSkewWarning] = useState<string | null>(null);
   
   // Mobile: expanded state
   const [isExpanded, setIsExpanded] = useState(false);
@@ -79,21 +81,33 @@ export const TokenTimerWidget: React.FC = () => {
       
       if (!token) {
         setTimeRemaining(null);
+        setClockSkewWarning(null);
         return;
       }
 
       try {
         const decoded = jwtDecode<{ exp: number; iat: number }>(token);
         const expirationTime = decoded.exp * 1000;
-        const currentTime = Date.now();
+        
+        // ZMIANA: Użyj skorygowanego czasu
+        const currentTime = getCorrectedTime();
         const remaining = Math.max(0, expirationTime - currentTime);
         
         const lifetime = getTokenLifetime(token);
         setTokenLifetime(lifetime);
         setTimeRemaining(remaining);
+        
+        // Show clock skew warning if significant (> 30s)
+        const offset = getServerTimeOffset();
+        if (Math.abs(offset) > 30000) {
+          setClockSkewWarning(`⚠️ Różnica czasu: ${Math.round(Math.abs(offset) / 1000)}s`);
+        } else {
+          setClockSkewWarning(null);
+        }
       } catch (error) {
         console.error('Error decoding token:', error);
         setTimeRemaining(null);
+        setClockSkewWarning(null);
       }
     };
 
@@ -304,6 +318,12 @@ export const TokenTimerWidget: React.FC = () => {
               ? '⚠️ Przygotuj się do odświeżenia'
               : '✅ Token jest aktywny'}
           </p>
+          
+          {clockSkewWarning && (
+            <p className="clock-skew-warning">
+              {clockSkewWarning}
+            </p>
+          )}
         </div>
       )}
 
@@ -346,6 +366,12 @@ export const TokenTimerWidget: React.FC = () => {
           <p className="tooltip-drag-hint">
             <small>🖱️ Przeciągnij aby zmienić pozycję</small>
           </p>
+          
+          {clockSkewWarning && (
+            <p className="clock-skew-warning">
+              {clockSkewWarning}
+            </p>
+          )}
         </div>
       )}
     </div>

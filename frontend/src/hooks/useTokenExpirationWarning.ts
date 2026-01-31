@@ -3,7 +3,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import authService from '../services/auth.service';
 import { jwtDecode } from 'jwt-decode';
-import { isApiRateLimited } from '../services/api';
+import { isApiRateLimited, getCorrectedTime, getServerTimeOffset } from '../services/api';
 
 interface TokenExpirationHook {
   showWarning: boolean;
@@ -18,6 +18,7 @@ const WARNING_THRESHOLD = 40; // 40 sekund przed wygaśnięciem
 const CHECK_INTERVAL = 1000; // Sprawdzaj co sekundę
 const MAX_REFRESH_RETRIES = 3;
 const REFRESH_RETRY_DELAY = 5000; // 5 sekund między próbami
+const MAX_RATE_LIMIT_WAIT = 60000; // Max 60s waiting when rate limited
 
 export const useTokenExpirationWarning = (): TokenExpirationHook => {
   const [showWarning, setShowWarning] = useState(false);
@@ -30,6 +31,7 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
   const checkIntervalRef = useRef<number | null>(null);
   const refreshRetryCountRef = useRef(0);
   const lastRefreshAttemptRef = useRef(0);
+  const rateLimitWaitStartRef = useRef<number | null>(null);
   
   const { logout } = useAuthStore();
 
@@ -98,9 +100,17 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
       try {
         const decoded = jwtDecode<{ exp: number }>(token);
         const expirationTime = decoded.exp * 1000;
-        const currentTime = Date.now();
+        
+        // ZMIANA: Użyj skorygowanego czasu zamiast Date.now()
+        const currentTime = getCorrectedTime();
         const timeRemaining = expirationTime - currentTime;
         const secondsLeft = Math.floor(timeRemaining / 1000);
+
+        // Debug log for significant clock skew
+        const offset = getServerTimeOffset();
+        if (Math.abs(offset) > 30000) {
+          console.log(`🕐 Clock skew: ${Math.round(offset / 1000)}s, Token expires in: ${secondsLeft}s`);
+        }
 
         setSecondsRemaining(secondsLeft);
 
@@ -110,6 +120,7 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
             setShowWarning(true);
             setRefreshError(null);
             refreshRetryCountRef.current = 0;
+            rateLimitWaitStartRef.current = null;
           }
         } else if (secondsLeft <= 0) {
           // Token wygasł
@@ -117,17 +128,34 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
           
           // Jeśli rate limited - nie wylogowuj od razu, spróbuj poczekać
           if (isApiRateLimited()) {
-            console.warn('⚠️ Token expired but rate limited - waiting...');
-            setRefreshError('Sesja wygasła. Serwer jest przeciążony, proszę poczekać...');
+            // Track how long we've been waiting
+            if (!rateLimitWaitStartRef.current) {
+              rateLimitWaitStartRef.current = Date.now();
+            }
+            
+            const waitTime = Date.now() - rateLimitWaitStartRef.current;
+            
+            if (waitTime > MAX_RATE_LIMIT_WAIT) {
+              // Waited too long - force logout
+              console.warn('⏰ Rate limit wait timeout - logging out');
+              rateLimitWaitStartRef.current = null;
+              logout();
+            } else {
+              const remainingWait = Math.ceil((MAX_RATE_LIMIT_WAIT - waitTime) / 1000);
+              console.warn(`⚠️ Token expired but rate limited - waiting... ${remainingWait}s`);
+              setRefreshError(`Sesja wygasła. Serwer przeciążony, wylogowanie za ${remainingWait}s...`);
+            }
             return;
           }
           
+          rateLimitWaitStartRef.current = null;
           logout();
         } else {
           if (showWarning) {
             setShowWarning(false);
             setRefreshError(null);
           }
+          rateLimitWaitStartRef.current = null;
         }
       } catch (error) {
         console.error('Błąd dekodowania tokenu:', error);
