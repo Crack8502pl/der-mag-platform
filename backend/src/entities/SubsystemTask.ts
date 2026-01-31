@@ -38,7 +38,7 @@ export class SubsystemTask {
   subsystem: Subsystem;
 
   @Column({ name: 'task_number', type: 'varchar', length: 20, unique: true })
-  taskNumber: string;  // Format: P000010726-001
+  taskNumber: string;  // Format: ZXXXXMMRR (zunifikowany z Task)
 
   @Column({ name: 'task_name', type: 'varchar', length: 255 })
   taskName: string;
