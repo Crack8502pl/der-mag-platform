@@ -126,7 +126,7 @@ export class ContractService {
   async getContractById(id: number): Promise<Contract | null> {
     return await this.contractRepository.findOne({
       where: { id },
-      relations: ['projectManager', 'subsystems']
+      relations: ['projectManager', 'subsystems', 'subsystems.tasks']
     });
   }
 
@@ -136,7 +136,7 @@ export class ContractService {
   async getContractByNumber(contractNumber: string): Promise<Contract | null> {
     return await this.contractRepository.findOne({
       where: { contractNumber },
-      relations: ['projectManager', 'subsystems']
+      relations: ['projectManager', 'subsystems', 'subsystems.tasks']
     });
   }
 
