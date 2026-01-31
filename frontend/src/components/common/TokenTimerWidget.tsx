@@ -4,46 +4,46 @@ import { jwtDecode } from 'jwt-decode';
 import authService from '../../services/auth.service';
 import './TokenTimerWidget.css';
 
-// Klucz localStorage dla pozycji widgetu
+// localStorage key for widget position
 const POSITION_STORAGE_KEY = 'tokenTimerWidgetPosition';
 
-// Domyślna pozycja
+// Default position
 const DEFAULT_POSITION = { x: 20, y: 20 };
 
-// Dynamiczne obliczanie czasu życia tokenu z JWT
+// Dynamic calculation of token lifetime from JWT
 const getTokenLifetime = (token: string): number => {
   try {
     const decoded = jwtDecode<{ exp: number; iat: number }>(token);
     return (decoded.exp - decoded.iat) * 1000;
   } catch {
-    return 900000; // fallback: 15 minut
+    return 900000; // fallback: 15 minutes
   }
 };
 
-// Funkcja do odczytu pozycji z localStorage
+// Function to read position from localStorage
 const getSavedPosition = (): { x: number; y: number } => {
   try {
     const saved = localStorage.getItem(POSITION_STORAGE_KEY);
     if (saved) {
       const pos = JSON.parse(saved);
-      // Walidacja - upewnij się że pozycja jest w granicach ekranu
+      // Validation - ensure position is within screen bounds
       return {
         x: Math.max(0, Math.min(pos.x, window.innerWidth - 120)),
         y: Math.max(0, Math.min(pos.y, window.innerHeight - 60))
       };
     }
   } catch (e) {
-    console.warn('Błąd odczytu pozycji widgetu:', e);
+    console.warn('Error reading widget position:', e);
   }
   return DEFAULT_POSITION;
 };
 
-// Funkcja do zapisu pozycji w localStorage
+// Function to save position to localStorage
 const savePosition = (x: number, y: number) => {
   try {
     localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify({ x, y }));
   } catch (e) {
-    console.warn('Błąd zapisu pozycji widgetu:', e);
+    console.warn('Error saving widget position:', e);
   }
 };
 
@@ -52,7 +52,7 @@ export const TokenTimerWidget: React.FC = () => {
   const [tokenLifetime, setTokenLifetime] = useState<number>(900000);
   const [showTooltip, setShowTooltip] = useState(false);
   
-  // Mobile: stan rozwinięcia
+  // Mobile: expanded state
   const [isExpanded, setIsExpanded] = useState(false);
   
   // Desktop: drag & drop
@@ -61,8 +61,10 @@ export const TokenTimerWidget: React.FC = () => {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [showResetButton, setShowResetButton] = useState(false);
   
+  // Reactive mobile detection
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
+  
   const widgetRef = useRef<HTMLDivElement>(null);
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   // Timer update effect
   useEffect(() => {
@@ -84,7 +86,7 @@ export const TokenTimerWidget: React.FC = () => {
         setTokenLifetime(lifetime);
         setTimeRemaining(remaining);
       } catch (error) {
-        console.error('Błąd dekodowania tokenu:', error);
+        console.error('Error decoding token:', error);
         setTimeRemaining(null);
       }
     };
@@ -98,7 +100,7 @@ export const TokenTimerWidget: React.FC = () => {
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (isMobile) return;
     
-    // Ignoruj jeśli kliknięto przycisk reset
+    // Ignore if reset button was clicked
     if ((e.target as HTMLElement).classList.contains('reset-position-btn')) {
       return;
     }
@@ -121,7 +123,7 @@ export const TokenTimerWidget: React.FC = () => {
     const newX = e.clientX - dragOffset.x;
     const newY = e.clientY - dragOffset.y;
     
-    // Ogranicz do granic ekranu
+    // Constrain to screen bounds
     const maxX = window.innerWidth - (widgetRef.current?.offsetWidth || 120);
     const maxY = window.innerHeight - (widgetRef.current?.offsetHeight || 60);
     
@@ -172,8 +174,12 @@ export const TokenTimerWidget: React.FC = () => {
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
-      if (!isMobile) {
-        // Upewnij się że widget jest w granicach po resize
+      // Update mobile state
+      const newIsMobile = window.innerWidth < 768;
+      setIsMobile(newIsMobile);
+      
+      if (!newIsMobile) {
+        // Ensure widget is within bounds after resize (desktop mode)
         setPosition(prev => ({
           x: Math.max(0, Math.min(prev.x, window.innerWidth - 120)),
           y: Math.max(0, Math.min(prev.y, window.innerHeight - 60))
@@ -183,7 +189,7 @@ export const TokenTimerWidget: React.FC = () => {
     
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [isMobile]);
+  }, []);
 
   if (timeRemaining === null) {
     return null;
@@ -207,13 +213,13 @@ export const TokenTimerWidget: React.FC = () => {
     return `${seconds} sekund`;
   };
 
-  // Progress bar width (dynamicznie obliczany na podstawie rzeczywistego czasu życia tokenu)
+  // Progress bar width (dynamically calculated based on actual token lifetime)
   const progressPercentage = Math.max(0, Math.min(100, (timeRemaining / tokenLifetime) * 100));
   
-  const isExpiringSoon = timeRemaining <= 60000; // 60 sekund
-  const isExpiring = timeRemaining <= 40000; // 40 sekund (threshold dla modalu ostrzeżenia)
+  const isExpiringSoon = timeRemaining <= 60000; // 60 seconds
+  const isExpiring = timeRemaining <= 40000; // 40 seconds (threshold for warning modal)
 
-  // Styl dla desktop (pozycja z drag & drop)
+  // Style for desktop (position from drag & drop)
   const desktopStyle: React.CSSProperties = !isMobile ? {
     top: position.y,
     left: position.x,
@@ -241,12 +247,12 @@ export const TokenTimerWidget: React.FC = () => {
       }}
       onClick={handleMobileClick}
     >
-      {/* Reset position button - tylko desktop */}
+      {/* Reset position button - desktop only */}
       {!isMobile && showResetButton && (
         <button 
           className="reset-position-btn"
           onClick={resetPosition}
-          title="Resetuj pozycję"
+          title="Reset position"
         >
           ⟲
         </button>
@@ -265,7 +271,7 @@ export const TokenTimerWidget: React.FC = () => {
         />
       </div>
 
-      {/* Mobile: Expanded content (zamiast tooltip) */}
+      {/* Mobile: Expanded content (instead of tooltip) */}
       {isMobile && isExpanded && (
         <div className="mobile-expanded-content">
           <div className="expanded-stats">

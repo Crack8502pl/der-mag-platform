@@ -329,25 +329,25 @@
 
 @media (max-width: 768px) {
   .token-timer-widget {
-    /* Pozycja na dole ekranu */
+    /* Position at bottom of screen */
     top: auto !important;
     left: auto !important;
     bottom: 16px;
     right: 16px;
     
-    /* Kompaktowy rozmiar */
+    /* Compact size */
     padding: 6px 10px 8px 10px;
     min-width: auto;
     border-radius: 20px;
     gap: 2px;
     
-    /* Lżejszy cień */
+    /* Lighter shadow */
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
     
-    /* Wyłącz kursor grab na mobile */
+    /* Disable grab cursor on mobile */
     cursor: pointer;
     
-    /* Płynne przejście przy rozwijaniu */
+    /* Smooth transition when expanding */
     transition: all 0.3s ease;
   }
   
@@ -355,7 +355,7 @@
     transform: none;
   }
   
-  /* Ukryj przycisk reset na mobile */
+  /* Hide reset button on mobile */
   .reset-position-btn {
     display: none !important;
   }
@@ -366,7 +366,7 @@
 
   .timer-icon {
     font-size: 14px;
-    /* Wyłącz animację rotacji - oszczędzaj baterię */
+    /* Disable rotation animation - save battery */
     animation: none;
   }
 
@@ -382,12 +382,12 @@
     margin-top: 1px;
   }
 
-  /* Ukryj tooltip na mobile */
+  /* Hide tooltip on mobile */
   .timer-tooltip {
     display: none !important;
   }
   
-  /* Stany ostrzeżeń - spokojniejsze animacje */
+  /* Warning states - calmer animations */
   .token-timer-widget.expiring-soon .timer-icon,
   .token-timer-widget.expiring .timer-icon {
     animation: none;
