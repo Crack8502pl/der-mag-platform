@@ -193,8 +193,30 @@ export const ContractDetailPage: React.FC = () => {
           <div className="subsystems-list">
             {contract.subsystems.map((subsystem) => (
               <div key={subsystem.id} className="subsystem-item">
-                <div className="subsystem-name">{subsystem.name || `Podsystem #${subsystem.id}`}</div>
-                <div className="subsystem-meta">{subsystem.type || 'N/A'}</div>
+                <div className="subsystem-header">
+                  <div className="subsystem-name">
+                    <strong>{subsystem.subsystemNumber}</strong>
+                  </div>
+                  <div className="subsystem-meta">
+                    {subsystem.systemType}
+                  </div>
+                </div>
+                
+                {/* Lista zadań */}
+                {subsystem.tasks && subsystem.tasks.length > 0 ? (
+                  <div className="subsystem-tasks-list">
+                    <h4>Zadania ({subsystem.tasks.length}):</h4>
+                    <ul>
+                      {subsystem.tasks.map((task: any) => (
+                        <li key={task.id}>
+                          <code>{task.taskNumber}</code> - {task.taskName}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="no-tasks">Brak zadań</div>
+                )}
               </div>
             ))}
           </div>

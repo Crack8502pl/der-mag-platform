@@ -513,9 +513,6 @@
 .subsystem-item {
   padding: 12px;
   border-bottom: 1px solid var(--border-color);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
 .subsystem-item:last-child {
@@ -973,4 +970,40 @@
   font-size: 13px;
 }
 
+/* Subsystem header and tasks */
+.subsystem-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.subsystem-tasks-list {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.subsystem-tasks-list h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.subsystem-tasks-list ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.subsystem-tasks-list li {
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.subsystem-tasks-list code {
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
 
