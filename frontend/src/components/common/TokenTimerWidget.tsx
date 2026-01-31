@@ -64,6 +64,12 @@ export const TokenTimerWidget: React.FC = () => {
   // Reactive mobile detection
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
   
+  // Orientation detection for mobile landscape
+  const [isLandscape, setIsLandscape] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth > window.innerHeight;
+  });
+  
   const widgetRef = useRef<HTMLDivElement>(null);
 
   // Timer update effect
@@ -171,15 +177,17 @@ export const TokenTimerWidget: React.FC = () => {
     }
   }, [isMobile]);
 
-  // Handle window resize
+  // Handle window resize and orientation change
   useEffect(() => {
-    const handleResize = () => {
-      // Update mobile state
+    const handleResizeAndOrientation = () => {
       const newIsMobile = window.innerWidth < 768;
+      const newIsLandscape = window.innerWidth > window.innerHeight;
+      
       setIsMobile(newIsMobile);
+      setIsLandscape(newIsLandscape);
       
       if (!newIsMobile) {
-        // Ensure widget is within bounds after resize (desktop mode)
+        // Desktop - ensure widget is within bounds
         setPosition(prev => ({
           x: Math.max(0, Math.min(prev.x, window.innerWidth - 120)),
           y: Math.max(0, Math.min(prev.y, window.innerHeight - 60))
@@ -187,8 +195,13 @@ export const TokenTimerWidget: React.FC = () => {
       }
     };
     
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResizeAndOrientation);
+    window.addEventListener('orientationchange', handleResizeAndOrientation);
+    
+    return () => {
+      window.removeEventListener('resize', handleResizeAndOrientation);
+      window.removeEventListener('orientationchange', handleResizeAndOrientation);
+    };
   }, []);
 
   if (timeRemaining === null) {
@@ -230,7 +243,7 @@ export const TokenTimerWidget: React.FC = () => {
   return (
     <div 
       ref={widgetRef}
-      className={`token-timer-widget ${isExpiring ? 'expiring' : isExpiringSoon ? 'expiring-soon' : ''} ${isDragging ? 'dragging' : ''} ${isExpanded ? 'expanded' : ''}`}
+      className={`token-timer-widget ${isExpiring ? 'expiring' : isExpiringSoon ? 'expiring-soon' : ''} ${isDragging ? 'dragging' : ''} ${isExpanded ? 'expanded' : ''} ${isMobile && isLandscape ? 'mobile-landscape' : ''}`}
       style={desktopStyle}
       onMouseDown={handleMouseDown}
       onMouseEnter={() => {

@@ -487,6 +487,127 @@
 }
 
 /* ============================================
+   MOBILE LANDSCAPE - Dostosowana pozycja
+   ============================================ */
+
+@media (max-width: 896px) and (orientation: landscape) {
+  .token-timer-widget {
+    /* Przenieś do LEWEGO dolnego rogu - nie koliduje z przyciskiem Powrót */
+    top: auto !important;
+    left: 12px !important;
+    right: auto !important;
+    bottom: 12px;
+    
+    /* Jeszcze bardziej kompaktowy w landscape */
+    padding: 4px 8px 6px 8px;
+    min-width: auto;
+    border-radius: 16px;
+    gap: 2px;
+    
+    /* Mniejszy cień */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  }
+  
+  .token-timer-widget .timer-content {
+    gap: 5px;
+  }
+
+  .token-timer-widget .timer-icon {
+    font-size: 12px;
+  }
+
+  .token-timer-widget .timer-text {
+    font-size: 11px;
+    min-width: 34px;
+    letter-spacing: 0;
+  }
+
+  .token-timer-widget .timer-progress {
+    height: 2px;
+    margin-top: 1px;
+  }
+  
+  /* Expanded state w landscape - bardziej kompaktowy */
+  .token-timer-widget.expanded {
+    padding: 6px 10px 8px 10px;
+    min-width: 150px;
+    max-width: 200px;
+  }
+  
+  .token-timer-widget.expanded .timer-icon {
+    font-size: 13px;
+  }
+  
+  .token-timer-widget.expanded .timer-text {
+    font-size: 12px;
+  }
+  
+  .token-timer-widget.expanded .timer-progress {
+    height: 2px;
+  }
+  
+  /* Mobile expanded content w landscape */
+  .token-timer-widget .mobile-expanded-content {
+    margin-top: 6px;
+    padding-top: 6px;
+  }
+  
+  .token-timer-widget .expanded-stats {
+    gap: 3px;
+  }
+  
+  .token-timer-widget .expanded-stat .stat-label,
+  .token-timer-widget .expanded-stat .stat-value {
+    font-size: 9px;
+  }
+  
+  .token-timer-widget .expanded-hint {
+    font-size: 9px;
+    padding: 4px 6px;
+    margin-top: 6px;
+  }
+  
+  /* Animacje ostrzeżeń - jeszcze spokojniejsze w landscape */
+  .token-timer-widget.expiring-soon,
+  .token-timer-widget.expiring {
+    animation-duration: 4s;
+  }
+}
+
+/* Bardzo małe ekrany w landscape (np. iPhone SE) */
+@media (max-height: 400px) and (orientation: landscape) {
+  .token-timer-widget {
+    padding: 3px 6px 4px 6px;
+    bottom: 8px;
+    left: 8px !important;
+  }
+  
+  .token-timer-widget .timer-icon {
+    font-size: 10px;
+  }
+  
+  .token-timer-widget .timer-text {
+    font-size: 10px;
+    min-width: 30px;
+  }
+  
+  .token-timer-widget.expanded {
+    padding: 5px 8px 6px 8px;
+    min-width: 130px;
+  }
+  
+  .token-timer-widget .expanded-stat .stat-label,
+  .token-timer-widget .expanded-stat .stat-value {
+    font-size: 8px;
+  }
+  
+  .token-timer-widget .expanded-hint {
+    font-size: 8px;
+    padding: 3px 5px;
+  }
+}
+
+/* ============================================
    VERY SMALL SCREENS (< 480px)
    ============================================ */
 
