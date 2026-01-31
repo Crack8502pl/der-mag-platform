@@ -6,19 +6,21 @@ interface Props {
   secondsRemaining: number;
   onRefresh: () => void;
   onLogout: () => void;
+  isRefreshing?: boolean;
+  error?: string | null;
 }
 
 export const TokenExpirationModal: React.FC<Props> = ({ 
   secondsRemaining, 
   onRefresh, 
-  onLogout 
+  onLogout,
+  isRefreshing = false,
+  error = null
 }) => {
-  // Progress bar width (40s -> 0s = 100% -> 0%)
   const progressPercentage = Math.max(0, (secondsRemaining / 40) * 100);
 
-  // Handle Enter key press
   const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter') {
+    if (event.key === 'Enter' && !isRefreshing) {
       onRefresh();
     }
   };
@@ -26,8 +28,20 @@ export const TokenExpirationModal: React.FC<Props> = ({
   return (
     <div className="token-expiration-overlay" onKeyDown={handleKeyDown}>
       <div className="token-expiration-modal">
-        <div className="modal-icon">⏰</div>
-        <h2>Sesja wygasa za {secondsRemaining} sekund</h2>
+        <div className="modal-icon">{isRefreshing ? '⏳' : '⏰'}</div>
+        <h2>
+          {isRefreshing 
+            ? 'Odświeżanie sesji...' 
+            : `Sesja wygasa za ${secondsRemaining} sekund`
+          }
+        </h2>
+        
+        {error && (
+          <p className="modal-error" style={{ color: '#ff6b6b', marginBottom: '10px' }}>
+            ⚠️ {error}
+          </p>
+        )}
+        
         <p>Twoja sesja wkrótce wygaśnie. Czy chcesz kontynuować pracę?</p>
         
         <div className="progress-bar">
@@ -41,20 +55,27 @@ export const TokenExpirationModal: React.FC<Props> = ({
           <button 
             className="btn btn-primary" 
             onClick={onRefresh}
+            disabled={isRefreshing}
             autoFocus
           >
-            🔄 Odśwież sesję
+            {isRefreshing ? '⏳ Odświeżanie...' : '🔄 Odśwież sesję'}
           </button>
           <button 
             className="btn btn-secondary" 
             onClick={onLogout}
+            disabled={isRefreshing}
           >
             🚪 Wyloguj
           </button>
         </div>
         
         <p className="modal-hint">
-          <small>Naciśnij <kbd>Enter</kbd> aby odświeżyć sesję</small>
+          <small>
+            {isRefreshing 
+              ? 'Proszę czekać...' 
+              : 'Naciśnij Enter aby odświeżyć sesję'
+            }
+          </small>
         </p>
       </div>
     </div>

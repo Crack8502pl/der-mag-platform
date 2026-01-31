@@ -106,13 +106,45 @@ app.use(cors({
 // 🆕 Handle preflight requests
 app.options('*', cors());
 
-// Rate limiting
-const limiter = rateLimit({
+// Rate limiting dla endpointów auth (bardziej permisywny)
+const authLimiter = rateLimit({
+  windowMs: RATE_LIMIT.AUTH_WINDOW_MS,
+  max: RATE_LIMIT.AUTH_MAX_REQUESTS,
+  message: { 
+    success: false, 
+    message: 'Zbyt wiele żądań autoryzacyjnych, spróbuj ponownie za chwilę',
+    code: 'RATE_LIMIT_AUTH',
+    retryAfter: Math.ceil(RATE_LIMIT.AUTH_WINDOW_MS / 1000)
+  },
+  standardHeaders: true, // Zwraca info o rate limit w nagłówkach
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    // Klucz rate limit: IP + endpoint (bardziej granularny)
+    return `${req.ip}-auth`;
+  }
+});
+
+// Ogólny rate limiter
+const apiLimiter = rateLimit({
   windowMs: RATE_LIMIT.WINDOW_MS,
   max: RATE_LIMIT.MAX_REQUESTS,
-  message: 'Zbyt wiele żądań z tego adresu IP, spróbuj ponownie później'
+  message: { 
+    success: false, 
+    message: 'Zbyt wiele żądań z tego adresu IP, spróbuj ponownie później',
+    code: 'RATE_LIMIT_GENERAL',
+    retryAfter: Math.ceil(RATE_LIMIT.WINDOW_MS / 1000)
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Pomiń endpointy auth - mają własny limiter
+    return req.path.startsWith('/api/auth/');
+  }
 });
-app.use('/api/', limiter);
+
+// Aplikuj limitery
+app.use('/api/auth/', authLimiter);
+app.use('/api/', apiLimiter);
 
 // Rate limiting for debug endpoints (more permissive than API)
 const debugLimiter = rateLimit({

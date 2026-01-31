@@ -72,7 +72,9 @@ function App() {
   const { 
     showWarning, 
     secondsRemaining, 
-    refreshToken, 
+    refreshToken,
+    isRefreshing,
+    refreshError 
   } = useTokenExpirationWarning();
 
   return (
@@ -86,6 +88,8 @@ function App() {
           secondsRemaining={secondsRemaining}
           onRefresh={refreshToken}
           onLogout={logout}
+          isRefreshing={isRefreshing}
+          error={refreshError}
         />
       )}
       

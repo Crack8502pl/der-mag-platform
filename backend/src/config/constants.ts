@@ -74,10 +74,15 @@ export const PAGINATION = {
   MAX_LIMIT: 100
 } as const;
 
-// Konfiguracja rate limiting
+// Konfiguracja rate limiting - konfigurowalne przez env
 export const RATE_LIMIT = {
-  WINDOW_MS: 15 * 60 * 1000, // 15 minut
-  MAX_REQUESTS: 100
+  // Ogólny limit API
+  WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minut domyślnie
+  MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
+  
+  // Osobny, wyższy limit dla endpointów auth (refresh, me, login)
+  AUTH_WINDOW_MS: parseInt(process.env.RATE_LIMIT_AUTH_WINDOW_MS || '60000'), // 1 minuta
+  AUTH_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_AUTH_MAX_REQUESTS || '30'), // 30 na minutę
 } as const;
 
 // Typy i kategorie dokumentów
