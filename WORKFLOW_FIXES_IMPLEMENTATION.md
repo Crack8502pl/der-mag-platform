@@ -484,3 +484,31 @@ For questions or issues:
 **Last Updated:** 2026-01-07  
 **Version:** 1.0.0  
 **Status:** ✅ Ready for Production
+
+---
+
+## Migration: 20260131_sync_task_numbers.sql
+
+### Purpose
+Synchronizes task numbers between `subsystem_tasks` and `tasks` tables after code changes to use unified `ZXXXXMMRR` format.
+
+### Changes
+1. **Updates `contractNumber`** in `tasks` table for existing tasks that have `contractId` but missing `contractNumber`
+2. **Updates column comment** on `subsystem_tasks.task_number` to reflect new format
+3. **Logs migration** in `audit_logs` table
+
+### Execution
+```bash
+psql -U your_user -d your_database -f backend/scripts/migrations/20260131_sync_task_numbers.sql
+```
+
+### Verification
+After running migration, verify:
+```sql
+-- Should return 0
+SELECT COUNT(*) FROM tasks WHERE contract_id IS NOT NULL AND (contract_number IS NULL OR contract_number = '');
+```
+
+### Note on Historical Data
+Existing `SubsystemTask` records with old format (`P000010726-001`) are preserved.
+Only new tasks will use `ZXXXXMMRR` format.
