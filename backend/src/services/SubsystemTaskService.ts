@@ -4,6 +4,7 @@
 import { AppDataSource } from '../config/database';
 import { SubsystemTask, TaskWorkflowStatus } from '../entities/SubsystemTask';
 import { Subsystem } from '../entities/Subsystem';
+import { TaskNumberGenerator } from './TaskNumberGenerator';
 
 export class SubsystemTaskService {
   private taskRepository = AppDataSource.getRepository(SubsystemTask);
@@ -58,8 +59,8 @@ export class SubsystemTaskService {
       throw new Error('Podsystem nie znaleziony');
     }
 
-    // Wygeneruj numer zadania
-    const taskNumber = await this.generateTaskNumber(subsystem.subsystemNumber);
+    // ZMIANA: Użyj zunifikowanego generatora numerów Task (format ZXXXXMMRR)
+    const taskNumber = await TaskNumberGenerator.generate();
 
     // Utwórz zadanie
     const task = this.taskRepository.create({

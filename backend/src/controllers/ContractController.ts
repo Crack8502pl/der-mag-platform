@@ -438,7 +438,7 @@ export class ContractController {
           if (subsystemTasks && Array.isArray(subsystemTasks)) {
             for (const taskData of subsystemTasks) {
               try {
-                // 1. Create SubsystemTask (existing behavior)
+                // 1. Create SubsystemTask - teraz używa formatu ZXXXXMMRR
                 const subsystemTask = await this.taskService.createTask({
                   subsystemId: subsystem.id,
                   taskName: taskData.name || 'Zadanie',
@@ -447,11 +447,8 @@ export class ContractController {
                 });
                 createdTasks.push(subsystemTask);
                 
-                // 2. Create main Task entity
+                // 2. Create main Task entity - UŻYJ TEGO SAMEGO NUMERU
                 try {
-                  // Generate unique task number
-                  const taskNumber = await TaskNumberGenerator.generate();
-                  
                   // Find task type - match by code or use default
                   const DEFAULT_TASK_TYPE_ID = 1;
                   let taskTypeId = DEFAULT_TASK_TYPE_ID;
@@ -464,14 +461,15 @@ export class ContractController {
                     }
                   }
                   
-                  // Create empty task for later editing
+                  // Create task with same number as SubsystemTask
                   const mainTask = taskRepository.create({
-                    taskNumber,
+                    taskNumber: subsystemTask.taskNumber,  // ← ZMIANA: ten sam numer!
                     title: taskData.name || `Zadanie ${taskData.type || 'nowe'}`,
                     description: taskData.description || '',
                     taskTypeId,
                     status: 'created',
                     contractId: contract.id,
+                    contractNumber: contract.contractNumber,  // ← DODANE: numer kontraktu!
                     subsystemId: subsystem.id,
                     location: contract.customName,
                     priority: 0,
