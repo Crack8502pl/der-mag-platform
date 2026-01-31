@@ -1,4 +1,6 @@
-/* src/components/common/TokenTimerWidget.css */
+/* ============================================
+   DESKTOP - Draggable Widget
+   ============================================ */
 
 .token-timer-widget {
   position: fixed;
@@ -16,14 +18,51 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   z-index: 9999;
   user-select: none;
-  transition: all 0.3s ease;
-  cursor: pointer;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.1s ease;
   min-width: 110px;
 }
 
+/* Desktop: Dragging state */
+.token-timer-widget.dragging {
+  cursor: grabbing !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  transform: scale(1.02);
+  opacity: 0.95;
+}
+
 .token-timer-widget:hover {
-  transform: scale(1.05) translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  border-color: var(--primary-color, #4CAF50);
+}
+
+/* Reset position button */
+.reset-position-btn {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg-card, #ffffff);
+  border: 2px solid var(--border-color, #e0e0e0);
+  color: var(--text-secondary, #666);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease, background 0.2s ease;
+  z-index: 10001;
+}
+
+.token-timer-widget:hover .reset-position-btn {
+  opacity: 1;
+}
+
+.reset-position-btn:hover {
+  background: var(--primary-color, #4CAF50);
+  color: white;
   border-color: var(--primary-color, #4CAF50);
 }
 
@@ -139,7 +178,10 @@
   75% { transform: rotate(12deg) scale(1.1); }
 }
 
-/* Tooltip */
+/* ============================================
+   DESKTOP - Tooltip
+   ============================================ */
+
 .timer-tooltip {
   position: absolute;
   top: calc(100% + 12px);
@@ -269,40 +311,230 @@
   font-style: italic;
 }
 
-/* Mobile responsive */
+.tooltip-drag-hint {
+  margin: 12px 0 0 0;
+  text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.tooltip-drag-hint small {
+  font-size: 11px;
+  color: var(--primary-color, #4CAF50);
+  font-style: italic;
+}
+
+/* ============================================
+   MOBILE - Compact Collapsible Widget
+   ============================================ */
+
 @media (max-width: 768px) {
   .token-timer-widget {
-    top: 12px;
-    right: 12px;
-    padding: 8px 14px 12px 14px;
-    min-width: 95px;
+    /* Pozycja na dole ekranu */
+    top: auto !important;
+    left: auto !important;
+    bottom: 16px;
+    right: 16px;
+    
+    /* Kompaktowy rozmiar */
+    padding: 6px 10px 8px 10px;
+    min-width: auto;
+    border-radius: 20px;
+    gap: 2px;
+    
+    /* Lżejszy cień */
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    
+    /* Wyłącz kursor grab na mobile */
+    cursor: pointer;
+    
+    /* Płynne przejście przy rozwijaniu */
+    transition: all 0.3s ease;
+  }
+  
+  .token-timer-widget:hover {
+    transform: none;
+  }
+  
+  /* Ukryj przycisk reset na mobile */
+  .reset-position-btn {
+    display: none !important;
+  }
+
+  .timer-content {
+    gap: 6px;
   }
 
   .timer-icon {
-    font-size: 18px;
+    font-size: 14px;
+    /* Wyłącz animację rotacji - oszczędzaj baterię */
+    animation: none;
   }
 
   .timer-text {
-    font-size: 15px;
-    min-width: 48px;
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 38px;
+    letter-spacing: 0;
   }
 
   .timer-progress {
-    height: 3px;
+    height: 2px;
+    margin-top: 1px;
   }
 
+  /* Ukryj tooltip na mobile */
   .timer-tooltip {
-    right: -10px;
-    min-width: 260px;
-    padding: 16px;
+    display: none !important;
   }
-
-  .tooltip-time {
-    font-size: 28px;
+  
+  /* Stany ostrzeżeń - spokojniejsze animacje */
+  .token-timer-widget.expiring-soon .timer-icon,
+  .token-timer-widget.expiring .timer-icon {
+    animation: none;
+  }
+  
+  .token-timer-widget.expiring-soon,
+  .token-timer-widget.expiring {
+    animation-duration: 3s;
+  }
+  
+  /* ============================================
+     MOBILE - Expanded State
+     ============================================ */
+  
+  .token-timer-widget.expanded {
+    padding: 10px 14px 12px 14px;
+    border-radius: 16px;
+    min-width: 180px;
+  }
+  
+  .token-timer-widget.expanded .timer-content {
+    gap: 8px;
+  }
+  
+  .token-timer-widget.expanded .timer-icon {
+    font-size: 16px;
+  }
+  
+  .token-timer-widget.expanded .timer-text {
+    font-size: 14px;
+    font-weight: 700;
+  }
+  
+  .token-timer-widget.expanded .timer-progress {
+    height: 3px;
+    margin-top: 4px;
+  }
+  
+  /* Mobile expanded content */
+  .mobile-expanded-content {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color, #e0e0e0);
+    animation: fadeIn 0.2s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .expanded-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .expanded-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  
+  .expanded-stat .stat-label {
+    font-size: 11px;
+    color: var(--text-secondary, #666);
+  }
+  
+  .expanded-stat .stat-value {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+  }
+  
+  .expanded-hint {
+    margin: 8px 0 0 0;
+    padding: 6px 8px;
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--primary-color, #4CAF50);
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  
+  .token-timer-widget.expiring-soon .expanded-hint {
+    background: rgba(255, 152, 0, 0.1);
+    color: #ff9800;
+  }
+  
+  .token-timer-widget.expiring .expanded-hint {
+    background: rgba(244, 67, 54, 0.1);
+    color: #f44336;
   }
 }
 
-/* Dark mode */
+/* ============================================
+   VERY SMALL SCREENS (< 480px)
+   ============================================ */
+
+@media (max-width: 480px) {
+  .token-timer-widget {
+    bottom: 12px;
+    right: 12px;
+    padding: 5px 8px 6px 8px;
+    border-radius: 16px;
+  }
+  
+  .timer-icon {
+    font-size: 12px;
+  }
+  
+  .timer-text {
+    font-size: 11px;
+    min-width: 34px;
+  }
+  
+  .token-timer-widget.expanded {
+    padding: 8px 12px 10px 12px;
+    min-width: 160px;
+  }
+  
+  .token-timer-widget.expanded .timer-icon {
+    font-size: 14px;
+  }
+  
+  .token-timer-widget.expanded .timer-text {
+    font-size: 13px;
+  }
+  
+  .expanded-stat .stat-label,
+  .expanded-stat .stat-value {
+    font-size: 10px;
+  }
+  
+  .expanded-hint {
+    font-size: 10px;
+    padding: 5px 6px;
+  }
+}
+
+/* ============================================
+   DARK MODE
+   ============================================ */
+
 @media (prefers-color-scheme: dark) {
   .token-timer-widget {
     background: #1e1e1e;
@@ -322,17 +554,42 @@
   .tooltip-divider {
     background: #404040;
   }
+  
+  .mobile-expanded-content {
+    border-top-color: #404040;
+  }
+  
+  .reset-position-btn {
+    background: #1e1e1e;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
 }
 
-/* Accessibility */
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
 .token-timer-widget:focus {
   outline: 2px solid var(--primary-color, #4CAF50);
   outline-offset: 2px;
 }
 
-/* Prevent text selection */
 .token-timer-widget * {
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .token-timer-widget,
+  .token-timer-widget *,
+  .timer-icon,
+  .timer-progress-fill,
+  .timer-tooltip,
+  .mobile-expanded-content {
+    animation: none !important;
+    transition: none !important;
+  }
 }
