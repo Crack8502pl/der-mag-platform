@@ -10,18 +10,17 @@
 -- ============================================
 -- Fill in contractNumber for tasks that have contractId but missing contractNumber
 
-UPDATE tasks t
-SET contract_number = c.contract_number
-FROM contracts c
-WHERE t.contract_id = c.id
-  AND t.contract_id IS NOT NULL
-  AND (t.contract_number IS NULL OR t.contract_number = '');
-
--- Log how many rows were updated
 DO $$
 DECLARE
   updated_count INTEGER;
 BEGIN
+  UPDATE tasks t
+  SET contract_number = c.contract_number
+  FROM contracts c
+  WHERE t.contract_id = c.id
+    AND t.contract_id IS NOT NULL
+    AND (t.contract_number IS NULL OR t.contract_number = '');
+  
   GET DIAGNOSTICS updated_count = ROW_COUNT;
   RAISE NOTICE 'Updated contractNumber for % tasks', updated_count;
 END $$;
