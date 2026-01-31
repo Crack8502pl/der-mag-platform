@@ -11,6 +11,7 @@ export class SubsystemTaskService {
   private subsystemRepository = AppDataSource.getRepository(Subsystem);
 
   /**
+   * @deprecated This method is no longer used. SubsystemTask now uses TaskNumberGenerator.generate()
    * Generuje numer zadania w formacie {SubsystemNumber}-{SeqNo}
    * Przykład: P000010726-001, P000010726-002
    */
