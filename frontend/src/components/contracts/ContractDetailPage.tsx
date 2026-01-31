@@ -6,7 +6,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { BackButton } from '../common/BackButton';
 import { ContractStatusBadge } from './ContractStatusBadge';
 import { useAuth } from '../../hooks/useAuth';
-import type { Contract } from '../../services/contract.service';
+import type { Contract, SubsystemTask } from '../../services/contract.service';
 import axios from 'axios';
 import { getApiBaseURL } from '../../utils/api-url';
 import './ContractListPage.css';
@@ -207,7 +207,7 @@ export const ContractDetailPage: React.FC = () => {
                   <div className="subsystem-tasks-list">
                     <h4>Zadania ({subsystem.tasks.length}):</h4>
                     <ul>
-                      {subsystem.tasks.map((task: any) => (
+                      {subsystem.tasks.map((task: SubsystemTask) => (
                         <li key={task.id}>
                           <code>{task.taskNumber}</code> - {task.taskName}
                         </li>
