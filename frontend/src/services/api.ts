@@ -1,7 +1,7 @@
 // src/services/api.ts
 // Axios instance with interceptors
 
-import axios, { AxiosError, AxiosResponse } from 'axios';
+import axios, { type AxiosError, type AxiosResponse } from 'axios';
 import type { AxiosInstance } from 'axios';
 
 // Inteligentne wykrywanie API URL dla różnych środowisk
