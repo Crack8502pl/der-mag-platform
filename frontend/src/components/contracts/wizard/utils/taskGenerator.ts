@@ -185,8 +185,16 @@ const generateSmwTasks = (subsystem: SubsystemWizardData): GeneratedTask[] => {
   const tasks: GeneratedTask[] = [];
   const smwData = (subsystem.smwData || subsystem.params) as SmwWizardData;
   
+  console.log('🔍 Generating SMW tasks for:', smwData);
+  
+  if (!smwData) {
+    console.warn('⚠️ No SMW data provided');
+    return tasks;
+  }
+  
   // Tasks for each platform of each station
-  if (smwData.stations && Array.isArray(smwData.stations)) {
+  if (smwData.stations && Array.isArray(smwData.stations) && smwData.stations.length > 0) {
+    console.log(`🔍 Processing ${smwData.stations.length} stations`);
     smwData.stations.forEach((station, stationIdx: number) => {
       if (station.platformCabinets && Array.isArray(station.platformCabinets)) {
         station.platformCabinets.forEach((platform) => {
@@ -202,10 +210,13 @@ const generateSmwTasks = (subsystem: SubsystemWizardData): GeneratedTask[] => {
         });
       }
     });
+  } else {
+    console.warn('⚠️ No stations data or empty stations array');
   }
   
   // Task for SOK if enabled
   if (smwData.sokEnabled && smwData.sokConfig) {
+    console.log('🔍 Adding SOK task');
     const sokCabinets = smwData.sokConfig.cabinets || [];
     const cabinetInfo = sokCabinets.length > 0 ? ` (${sokCabinets.length} szaf)` : '';
     tasks.push({
@@ -218,6 +229,7 @@ const generateSmwTasks = (subsystem: SubsystemWizardData): GeneratedTask[] => {
   
   // Task for Extra Viewing Station if enabled
   if (smwData.extraViewingEnabled && smwData.extraViewingConfig) {
+    console.log('🔍 Adding Extra Viewing Station task');
     const extraCabinets = smwData.extraViewingConfig.cabinets || [];
     const cabinetInfo = extraCabinets.length > 0 ? ` (${extraCabinets.length} szaf)` : '';
     tasks.push({
@@ -230,6 +242,7 @@ const generateSmwTasks = (subsystem: SubsystemWizardData): GeneratedTask[] => {
   
   // Task for LCS
   if (smwData.lcsConfig) {
+    console.log('🔍 Adding LCS task');
     const lcsCabinets = smwData.lcsConfig.cabinets || [];
     const cabinetInfo = lcsCabinets.length > 0 ? ` (${lcsCabinets.length} szaf)` : '';
     tasks.push({
@@ -242,6 +255,7 @@ const generateSmwTasks = (subsystem: SubsystemWizardData): GeneratedTask[] => {
   
   // Fallback: If no smwData, generate generic tasks based on simple params
   if (tasks.length === 0 && 'iloscKontenerow' in smwData) {
+    console.log('🔍 Using fallback: generating tasks from iloscKontenerow');
     for (let i = 0; i < (smwData.iloscKontenerow || 0); i++) {
       tasks.push({
         number: '',
@@ -252,6 +266,7 @@ const generateSmwTasks = (subsystem: SubsystemWizardData): GeneratedTask[] => {
     }
   }
   
+  console.log(`✅ Generated ${tasks.length} SMW tasks`);
   return tasks;
 };
 
