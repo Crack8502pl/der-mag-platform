@@ -1,30 +1,40 @@
 // src/hooks/useTokenExpirationWarning.ts
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import authService from '../services/auth.service';
 import { jwtDecode } from 'jwt-decode';
+import { isApiRateLimited } from '../services/api';
 
 interface TokenExpirationHook {
   showWarning: boolean;
   secondsRemaining: number;
   refreshToken: () => Promise<void>;
   dismissWarning: () => void;
+  isRefreshing: boolean;
+  refreshError: string | null;
 }
 
 const WARNING_THRESHOLD = 40; // 40 sekund przed wygaśnięciem
 const CHECK_INTERVAL = 1000; // Sprawdzaj co sekundę
+const MAX_REFRESH_RETRIES = 3;
+const REFRESH_RETRY_DELAY = 5000; // 5 sekund między próbami
 
 export const useTokenExpirationWarning = (): TokenExpirationHook => {
   const [showWarning, setShowWarning] = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+  
   const audioContextRef = useRef<AudioContext | null>(null);
   const tickIntervalRef = useRef<number | null>(null);
   const checkIntervalRef = useRef<number | null>(null);
+  const refreshRetryCountRef = useRef(0);
+  const lastRefreshAttemptRef = useRef(0);
+  
   const { logout } = useAuthStore();
 
   // Funkcja generująca dźwięk "tik" zegara
-  const playTick = async () => {
-    // Lazy initialization - utwórz AudioContext przy pierwszym użyciu
+  const playTick = useCallback(async () => {
     if (!audioContextRef.current) {
       try {
         audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
@@ -36,7 +46,6 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
 
     const audioContext = audioContextRef.current;
     
-    // Resume jeśli zawieszony (Safari wymaga)
     if (audioContext.state === 'suspended') {
       await audioContext.resume();
     }
@@ -47,19 +56,19 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
     
-    oscillator.frequency.value = 800; // Częstotliwość "tik"
+    oscillator.frequency.value = 800;
     gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
     
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.1);
-  };
+  }, []);
 
   // Odtwarzaj tik co sekundę gdy pokazane ostrzeżenie
   useEffect(() => {
-    if (showWarning) {
-      void playTick(); // Pierwszy tik natychmiast (fire-and-forget)
-      tickIntervalRef.current = setInterval(() => {
+    if (showWarning && !isRefreshing) {
+      void playTick();
+      tickIntervalRef.current = window.setInterval(() => {
         void playTick();
       }, 1000);
     } else {
@@ -74,7 +83,7 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
         clearInterval(tickIntervalRef.current);
       }
     };
-  }, [showWarning]);
+  }, [showWarning, isRefreshing, playTick]);
 
   // Sprawdzanie czasu wygaśnięcia tokenu
   useEffect(() => {
@@ -88,7 +97,7 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
 
       try {
         const decoded = jwtDecode<{ exp: number }>(token);
-        const expirationTime = decoded.exp * 1000; // Konwersja na milisekundy
+        const expirationTime = decoded.exp * 1000;
         const currentTime = Date.now();
         const timeRemaining = expirationTime - currentTime;
         const secondsLeft = Math.floor(timeRemaining / 1000);
@@ -99,24 +108,36 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
         if (secondsLeft <= WARNING_THRESHOLD && secondsLeft > 0) {
           if (!showWarning) {
             setShowWarning(true);
+            setRefreshError(null);
+            refreshRetryCountRef.current = 0;
           }
         } else if (secondsLeft <= 0) {
-          // Token wygasł - wyloguj
+          // Token wygasł
           setShowWarning(false);
+          
+          // Jeśli rate limited - nie wylogowuj od razu, spróbuj poczekać
+          if (isApiRateLimited()) {
+            console.warn('⚠️ Token expired but rate limited - waiting...');
+            setRefreshError('Sesja wygasła. Serwer jest przeciążony, proszę poczekać...');
+            return;
+          }
+          
           logout();
         } else {
           if (showWarning) {
             setShowWarning(false);
+            setRefreshError(null);
           }
         }
       } catch (error) {
         console.error('Błąd dekodowania tokenu:', error);
+        // Token jest uszkodzony - wyloguj
+        logout();
       }
     };
 
-    // Sprawdzaj co sekundę
-    checkIntervalRef.current = setInterval(checkTokenExpiration, CHECK_INTERVAL);
-    checkTokenExpiration(); // Sprawdź natychmiast
+    checkIntervalRef.current = window.setInterval(checkTokenExpiration, CHECK_INTERVAL);
+    checkTokenExpiration();
 
     return () => {
       if (checkIntervalRef.current) {
@@ -125,8 +146,25 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
     };
   }, [logout, showWarning]);
 
-  // Funkcja odświeżania tokenu
-  const refreshToken = async () => {
+  // Funkcja odświeżania tokenu z obsługą błędów
+  const refreshToken = useCallback(async () => {
+    // Zapobiegaj wielokrotnym równoczesnym próbom
+    const now = Date.now();
+    if (isRefreshing || (now - lastRefreshAttemptRef.current < 2000)) {
+      console.log('⏳ Refresh already in progress or too soon');
+      return;
+    }
+    
+    // Sprawdź rate limit
+    if (isApiRateLimited()) {
+      setRefreshError('Serwer jest przeciążony. Proszę poczekać chwilę...');
+      return;
+    }
+    
+    setIsRefreshing(true);
+    setRefreshError(null);
+    lastRefreshAttemptRef.current = now;
+    
     try {
       const refreshTokenValue = authService.getRefreshToken();
       if (!refreshTokenValue) {
@@ -137,23 +175,61 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
       authService.saveTokens(response.data.accessToken, response.data.refreshToken);
       
       setShowWarning(false);
+      setRefreshError(null);
+      refreshRetryCountRef.current = 0;
       console.log('✅ Token odświeżony pomyślnie');
-    } catch (error) {
+      
+    } catch (error: any) {
       console.error('❌ Błąd odświeżania tokenu:', error);
-      logout();
+      
+      // Obsługa rate limit
+      if (error.response?.status === 429) {
+        refreshRetryCountRef.current++;
+        
+        if (refreshRetryCountRef.current < MAX_REFRESH_RETRIES) {
+          setRefreshError(`Serwer przeciążony. Ponowna próba za ${REFRESH_RETRY_DELAY / 1000}s... (${refreshRetryCountRef.current}/${MAX_REFRESH_RETRIES})`);
+          
+          // Automatyczna ponowna próba
+          setTimeout(() => {
+            setIsRefreshing(false);
+            void refreshToken();
+          }, REFRESH_RETRY_DELAY);
+          return;
+        } else {
+          setRefreshError('Nie udało się odświeżyć sesji. Proszę wylogować się i zalogować ponownie.');
+        }
+      } else {
+        // Inne błędy - wyloguj
+        setRefreshError('Błąd odświeżania sesji');
+        setTimeout(() => logout(), 2000);
+      }
+    } finally {
+      setIsRefreshing(false);
     }
-  };
+  }, [logout, isRefreshing]);
 
-  const dismissWarning = () => {
+  const dismissWarning = useCallback(() => {
     setShowWarning(false);
-  };
+  }, []);
 
   // Cleanup AudioContext przy unmount
   useEffect(() => {
     return () => {
       if (audioContextRef.current) {
-        audioContextRef.current.close();
+        void audioContextRef.current.close();
       }
+    };
+  }, []);
+
+  // Nasłuchuj na event rate limit
+  useEffect(() => {
+    const handleRateLimit = (event: CustomEvent) => {
+      setRefreshError(`Serwer przeciążony. Spróbuj za ${Math.ceil(event.detail.retryAfter / 1000)}s`);
+    };
+    
+    window.addEventListener('rateLimitExceeded', handleRateLimit as EventListener);
+    return () => {
+      window.removeEventListener('rateLimitExceeded', handleRateLimit as EventListener);
     };
   }, []);
 
@@ -162,5 +238,7 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
     secondsRemaining,
     refreshToken,
     dismissWarning,
+    isRefreshing,
+    refreshError,
   };
 };

@@ -64,7 +64,11 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor - handle token refresh
+// Stan rate limitingu (singleton)
+let isRateLimited = false;
+let rateLimitResetTime = 0;
+
+// Response interceptor - handle token refresh AND rate limiting
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -77,8 +81,58 @@ api.interceptors.response.use(
     
     const originalRequest = error.config as any;
 
-    // If 401 and not already retried
+    // 🆕 OBSŁUGA 429 - Rate Limit Exceeded
+    if (error.response?.status === 429) {
+      const retryAfter = error.response.headers['retry-after'];
+      const retryMs = retryAfter ? parseInt(retryAfter) * 1000 : 60000; // domyślnie 60s
+      
+      console.warn(`⚠️ Rate limit exceeded. Retry after ${retryMs / 1000}s`);
+      
+      // Ustaw flagę rate limiting
+      isRateLimited = true;
+      rateLimitResetTime = Date.now() + retryMs;
+      
+      // Emituj event dla UI (opcjonalnie pokaż komunikat użytkownikowi)
+      window.dispatchEvent(new CustomEvent('rateLimitExceeded', { 
+        detail: { retryAfter: retryMs } 
+      }));
+      
+      // Jeśli to nie jest retry i mamy retry count < 3
+      if (!originalRequest._retryCount) {
+        originalRequest._retryCount = 0;
+      }
+      
+      if (originalRequest._retryCount < 2) {
+        originalRequest._retryCount++;
+        
+        // Exponential backoff: 5s, 15s, 45s
+        const backoffDelay = Math.min(5000 * Math.pow(3, originalRequest._retryCount - 1), 45000);
+        
+        console.log(`🔄 Retry ${originalRequest._retryCount}/2 after ${backoffDelay}ms`);
+        
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+        
+        // Sprawdź czy rate limit się zresetował
+        if (Date.now() >= rateLimitResetTime) {
+          isRateLimited = false;
+        }
+        
+        return api(originalRequest);
+      }
+      
+      // Po 2 próbach - zwróć błąd, nie wylogowuj
+      console.error('❌ Rate limit: max retries exceeded');
+      return Promise.reject(error);
+    }
+
+    // Obsługa 401 - token expired
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Nie próbuj refresh jeśli rate limited
+      if (isRateLimited && Date.now() < rateLimitResetTime) {
+        console.warn('⚠️ Skipping token refresh - rate limited');
+        return Promise.reject(error);
+      }
+      
       originalRequest._retry = true;
 
       try {
@@ -87,23 +141,27 @@ api.interceptors.response.use(
           throw new Error('No refresh token');
         }
 
-        // Try to refresh token
         const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
           refreshToken,
         });
 
         const { accessToken, refreshToken: newRefreshToken } = response.data.data;
 
-        // Save new tokens
         localStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', newRefreshToken);
 
-        // Retry original request with new token
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
-      } catch (refreshError) {
+      } catch (refreshError: any) {
         console.error('❌ Token refresh failed:', refreshError);
-        // Refresh failed - clear tokens and redirect to login
+        
+        // Jeśli refresh failed z powodu 429 - nie wylogowuj od razu
+        if (refreshError.response?.status === 429) {
+          console.warn('⚠️ Token refresh rate limited - keeping session');
+          return Promise.reject(refreshError);
+        }
+        
+        // Inne błędy - wyloguj
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         window.location.href = '/login';
@@ -114,5 +172,15 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Eksportuj funkcję pomocniczą do sprawdzenia stanu rate limit
+export const isApiRateLimited = (): boolean => {
+  if (isRateLimited && Date.now() >= rateLimitResetTime) {
+    isRateLimited = false;
+  }
+  return isRateLimited;
+};
+
+export const getRateLimitResetTime = (): number => rateLimitResetTime;
 
 export default api;
