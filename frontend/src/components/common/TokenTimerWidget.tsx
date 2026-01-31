@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import authService from '../../services/auth.service';
-import { getCorrectedTime, getServerTimeOffset } from '../../services/api';
+import { getCorrectedTime, getServerTimeOffset, CLOCK_SKEW_WARNING_THRESHOLD } from '../../services/api';
 import './TokenTimerWidget.css';
 
 // localStorage key for widget position
@@ -99,7 +99,7 @@ export const TokenTimerWidget: React.FC = () => {
         
         // Show clock skew warning if significant (> 30s)
         const offset = getServerTimeOffset();
-        if (Math.abs(offset) > 30000) {
+        if (Math.abs(offset) > CLOCK_SKEW_WARNING_THRESHOLD) {
           setClockSkewWarning(`⚠️ Różnica czasu: ${Math.round(Math.abs(offset) / 1000)}s`);
         } else {
           setClockSkewWarning(null);

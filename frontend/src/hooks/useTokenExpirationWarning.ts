@@ -3,7 +3,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import authService from '../services/auth.service';
 import { jwtDecode } from 'jwt-decode';
-import { isApiRateLimited, getCorrectedTime, getServerTimeOffset } from '../services/api';
+import { isApiRateLimited, getCorrectedTime, getServerTimeOffset, CLOCK_SKEW_WARNING_THRESHOLD } from '../services/api';
 
 interface TokenExpirationHook {
   showWarning: boolean;
@@ -108,7 +108,7 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
 
         // Debug log for significant clock skew
         const offset = getServerTimeOffset();
-        if (Math.abs(offset) > 30000) {
+        if (Math.abs(offset) > CLOCK_SKEW_WARNING_THRESHOLD) {
           console.log(`🕐 Clock skew: ${Math.round(offset / 1000)}s, Token expires in: ${secondsLeft}s`);
         }
 

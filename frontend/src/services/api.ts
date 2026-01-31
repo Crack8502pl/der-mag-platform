@@ -54,6 +54,7 @@ export const api: AxiosInstance = axios.create({
 let serverTimeOffset = 0;
 let lastServerTimeUpdate = 0;
 const SERVER_TIME_UPDATE_INTERVAL = 30000; // Update every 30s
+export const CLOCK_SKEW_WARNING_THRESHOLD = 30000; // 30 seconds - show warning if skew exceeds this
 
 /**
  * Calculate offset from server response Date header
@@ -77,7 +78,7 @@ const calculateServerTimeOffset = (response: AxiosResponse) => {
       lastServerTimeUpdate = now;
       
       // Log if significant difference (> 30 seconds)
-      if (Math.abs(serverTimeOffset) > 30000) {
+      if (Math.abs(serverTimeOffset) > CLOCK_SKEW_WARNING_THRESHOLD) {
         console.warn(`⚠️ Clock skew detected: ${Math.round(serverTimeOffset / 1000)}s difference with server`);
       }
     }
@@ -105,7 +106,7 @@ const AUTH_ME_MIN_INTERVAL = 5000; // Minimum 5s between /auth/me requests
 api.interceptors.request.use(
   (config) => {
     // Throttle /auth/me requests to prevent flooding
-    if (config.url?.includes('/auth/me')) {
+    if (config.url && (config.url.endsWith('/auth/me') || config.url.includes('/auth/me?'))) {
       const now = Date.now();
       if (now - lastAuthMeRequest < AUTH_ME_MIN_INTERVAL) {
         console.warn('⏸️ Throttling /auth/me - too frequent');
