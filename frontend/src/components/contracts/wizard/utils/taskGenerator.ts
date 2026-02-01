@@ -2,7 +2,7 @@
 // Task generation logic for contract wizard
 
 import { SUBSYSTEM_WIZARD_CONFIG, type SmwWizardData } from '../../../../config/subsystemWizardConfig';
-import type { SubsystemWizardData, GeneratedTask } from '../types/wizard.types';
+import type { SubsystemWizardData, GeneratedTask, TaskDetail } from '../types/wizard.types';
 
 /**
  * Helper to get numeric value from params
@@ -21,50 +21,57 @@ const getBooleanValue = (params: Record<string, number | boolean>, key: string):
 };
 
 /**
+ * Build task name from task details
+ * This function is used both in task generation and when adding tasks to existing subsystems
+ */
+export const buildTaskNameFromDetails = (
+  taskType: string,
+  detail: TaskDetail,
+  liniaKolejowa?: string
+): string => {
+  const lk = liniaKolejowa || '';
+  const prefix = lk ? `${lk} | ` : '';
+  
+  if (taskType === 'PRZEJAZD_KAT_A' && detail.kilometraz && detail.kategoria) {
+    return `${prefix}${detail.kilometraz} | ${detail.kategoria}`;
+  } else if (taskType === 'PRZEJAZD_KAT_B' && detail.kilometraz && detail.kategoria) {
+    return `${prefix}${detail.kilometraz} | ${detail.kategoria}`;
+  } else if (taskType === 'SKP' && detail.kilometraz) {
+    return `${prefix}${detail.kilometraz} | SKP`;
+  } else if (taskType === 'NASTAWNIA') {
+    const ndPart = [];
+    if (detail.nazwa) ndPart.push(detail.nazwa);
+    if (detail.miejscowosc) ndPart.push(detail.miejscowosc);
+    const ndLabel = ndPart.length > 0 ? `ND - ${ndPart.join(' - ')}` : 'ND';
+    return `${prefix}${detail.kilometraz || ''} | ${ndLabel}`;
+  } else if (taskType === 'LCS') {
+    const lcsPart = [];
+    if (detail.nazwa) lcsPart.push(detail.nazwa);
+    if (detail.miejscowosc) lcsPart.push(detail.miejscowosc);
+    const lcsLabel = lcsPart.length > 0 ? `LCS - ${lcsPart.join(' - ')}` : 'LCS';
+    return `${prefix}${detail.kilometraz || ''} | ${lcsLabel}`;
+  } else if (taskType === 'CUID') {
+    const cuidPart = [];
+    if (detail.nazwa) cuidPart.push(detail.nazwa);
+    if (detail.miejscowosc) cuidPart.push(detail.miejscowosc);
+    const cuidLabel = cuidPart.length > 0 ? `CUID - ${cuidPart.join(' - ')}` : 'CUID';
+    return lk ? `${lk} | | ${cuidLabel}` : cuidLabel;
+  } else {
+    // Fallback - use nazwa or taskType
+    return detail.nazwa || taskType;
+  }
+};
+
+/**
  * Generate tasks for SMOKIP_A subsystem
  */
 const generateSmokipATasks = (subsystem: SubsystemWizardData, liniaKolejowa?: string): GeneratedTask[] => {
   const tasks: GeneratedTask[] = [];
-  const lk = liniaKolejowa || '';
   
   // Use task details if available
   if (subsystem.taskDetails && subsystem.taskDetails.length > 0) {
     subsystem.taskDetails.forEach((detail) => {
-      let name = '';
-      if (detail.taskType === 'PRZEJAZD_KAT_A' && detail.kilometraz && detail.kategoria) {
-        // Format: LK-221 | 123,456 | KAT A
-        const prefix = lk ? `${lk} | ` : '';
-        name = `${prefix}${detail.kilometraz} | ${detail.kategoria}`;
-      } else if (detail.taskType === 'SKP' && detail.kilometraz) {
-        // Format: LK-221 | 123,456 | SKP
-        const prefix = lk ? `${lk} | ` : '';
-        name = `${prefix}${detail.kilometraz} | SKP`;
-      } else if (detail.taskType === 'NASTAWNIA') {
-        // Format: LK-221 | 123,456 | ND - Nazwa - Miejscowość
-        const ndPart = [];
-        if (detail.nazwa) ndPart.push(detail.nazwa);
-        if (detail.miejscowosc) ndPart.push(detail.miejscowosc);
-        const ndLabel = ndPart.length > 0 ? `ND - ${ndPart.join(' - ')}` : 'ND';
-        const prefix = lk ? `${lk} | ` : '';
-        name = `${prefix}${detail.kilometraz || ''} | ${ndLabel}`;
-      } else if (detail.taskType === 'LCS') {
-        // Format: E-20 | 045,678 | LCS - Nazwa - Miejscowość
-        const lcsPart = [];
-        if (detail.nazwa) lcsPart.push(detail.nazwa);
-        if (detail.miejscowosc) lcsPart.push(detail.miejscowosc);
-        const lcsLabel = lcsPart.length > 0 ? `LCS - ${lcsPart.join(' - ')}` : 'LCS';
-        const prefix = lk ? `${lk} | ` : '';
-        name = `${prefix}${detail.kilometraz || ''} | ${lcsLabel}`;
-      } else if (detail.taskType === 'CUID') {
-        // Format: LK-221 | | CUID - Nazwa - Miejscowość
-        const cuidPart = [];
-        if (detail.nazwa) cuidPart.push(detail.nazwa);
-        if (detail.miejscowosc) cuidPart.push(detail.miejscowosc);
-        const cuidLabel = cuidPart.length > 0 ? `CUID - ${cuidPart.join(' - ')}` : 'CUID';
-        name = lk ? `${lk} | | ${cuidLabel}` : cuidLabel;
-      } else {
-        name = detail.taskType;
-      }
+      const name = buildTaskNameFromDetails(detail.taskType, detail, liniaKolejowa);
       
       tasks.push({
         number: '',
@@ -127,41 +134,10 @@ const generateSmokipATasks = (subsystem: SubsystemWizardData, liniaKolejowa?: st
  */
 const generateSmokipBTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: string): GeneratedTask[] => {
   const tasks: GeneratedTask[] = [];
-  const lk = liniaKolejowa || '';
   
   if (subsystem.taskDetails && subsystem.taskDetails.length > 0) {
     subsystem.taskDetails.forEach((detail) => {
-      let name = '';
-      if (detail.taskType === 'PRZEJAZD_KAT_B' && detail.kilometraz && detail.kategoria) {
-        // Format: LK-221 | 123,456 | KAT B
-        const prefix = lk ? `${lk} | ` : '';
-        name = `${prefix}${detail.kilometraz} | ${detail.kategoria}`;
-      } else if (detail.taskType === 'NASTAWNIA') {
-        // Format: LK-221 | 123,456 | ND - Nazwa - Miejscowość
-        const ndPart = [];
-        if (detail.nazwa) ndPart.push(detail.nazwa);
-        if (detail.miejscowosc) ndPart.push(detail.miejscowosc);
-        const ndLabel = ndPart.length > 0 ? `ND - ${ndPart.join(' - ')}` : 'ND';
-        const prefix = lk ? `${lk} | ` : '';
-        name = `${prefix}${detail.kilometraz || ''} | ${ndLabel}`;
-      } else if (detail.taskType === 'LCS') {
-        // Format: E-20 | 045,678 | LCS - Nazwa - Miejscowość
-        const lcsPart = [];
-        if (detail.nazwa) lcsPart.push(detail.nazwa);
-        if (detail.miejscowosc) lcsPart.push(detail.miejscowosc);
-        const lcsLabel = lcsPart.length > 0 ? `LCS - ${lcsPart.join(' - ')}` : 'LCS';
-        const prefix = lk ? `${lk} | ` : '';
-        name = `${prefix}${detail.kilometraz || ''} | ${lcsLabel}`;
-      } else if (detail.taskType === 'CUID') {
-        // Format: LK-221 | | CUID - Nazwa - Miejscowość
-        const cuidPart = [];
-        if (detail.nazwa) cuidPart.push(detail.nazwa);
-        if (detail.miejscowosc) cuidPart.push(detail.miejscowosc);
-        const cuidLabel = cuidPart.length > 0 ? `CUID - ${cuidPart.join(' - ')}` : 'CUID';
-        name = lk ? `${lk} | | ${cuidLabel}` : cuidLabel;
-      } else {
-        name = detail.taskType;
-      }
+      const name = buildTaskNameFromDetails(detail.taskType, detail, liniaKolejowa);
       
       tasks.push({
         number: '',
