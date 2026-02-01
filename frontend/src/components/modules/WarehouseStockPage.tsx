@@ -6,6 +6,8 @@ import { BackButton } from '../common/BackButton';
 import { useAuth } from '../../hooks/useAuth';
 import { warehouseStockService } from '../../services/warehouseStock.service';
 import { WarehouseStockImportModal } from './WarehouseStockImportModal';
+import { WarehouseStockEditModal } from './WarehouseStockEditModal';
+import { WarehouseStockDetailModal } from './WarehouseStockDetailModal';
 import type { WarehouseStock, StockFilters, StockStatus, MaterialType } from '../../types/warehouseStock.types';
 import './WarehouseStockPage.css';
 
@@ -481,12 +483,17 @@ export const WarehouseStockPage: React.FC = () => {
         </div>
       )}
 
-      {/* Modals - placeholders for now */}
+      {/* Modals */}
       {showCreateModal && (
-        <div className="modal-placeholder">
-          <p>Modal tworzenia materiału (do zaimplementowania)</p>
-          <button onClick={() => setShowCreateModal(false)}>Zamknij</button>
-        </div>
+        <WarehouseStockEditModal
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => {
+            setShowCreateModal(false);
+            loadItems();
+            setSuccess('Materiał dodany pomyślnie');
+            setTimeout(() => setSuccess(''), 5000);
+          }}
+        />
       )}
       
       {showImportModal && (
@@ -502,17 +509,23 @@ export const WarehouseStockPage: React.FC = () => {
       )}
       
       {editingItem && (
-        <div className="modal-placeholder">
-          <p>Modal edycji materiału (do zaimplementowania)</p>
-          <button onClick={() => setEditingItem(null)}>Zamknij</button>
-        </div>
+        <WarehouseStockEditModal
+          item={editingItem}
+          onClose={() => setEditingItem(null)}
+          onSuccess={() => {
+            setEditingItem(null);
+            loadItems();
+            setSuccess('Materiał zaktualizowany pomyślnie');
+            setTimeout(() => setSuccess(''), 5000);
+          }}
+        />
       )}
       
       {detailItem && (
-        <div className="modal-placeholder">
-          <p>Modal szczegółów materiału (do zaimplementowania)</p>
-          <button onClick={() => setDetailItem(null)}>Zamknij</button>
-        </div>
+        <WarehouseStockDetailModal
+          item={detailItem}
+          onClose={() => setDetailItem(null)}
+        />
       )}
     </div>
   );

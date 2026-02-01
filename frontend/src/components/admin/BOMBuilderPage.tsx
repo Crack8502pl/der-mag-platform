@@ -5,12 +5,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import bomTemplateService from '../../services/bom-template.service';
+import { warehouseStockService } from '../../services/warehouseStock.service';
 import type { 
   BomTemplate, 
   BomDependencyRule,
   CreateTemplateDto,
   CreateRuleDto 
 } from '../../services/bom-template.service';
+import type { WarehouseStock } from '../../types/warehouseStock.types';
 import '../../styles/grover-theme.css';
 
 type Tab = 'materials' | 'templates' | 'dependencies';
@@ -128,12 +130,7 @@ const MaterialsTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
   const [editingMaterial, setEditingMaterial] = useState<BomTemplate | null>(null);
   const [showCsvModal, setShowCsvModal] = useState(false);
 
-  useEffect(() => {
-    loadMaterials();
-    loadCategories();
-  }, [selectedCategory, searchTerm]);
-
-  const loadMaterials = async () => {
+  const loadMaterials = React.useCallback(async () => {
     try {
       setLoading(true);
       const result = await bomTemplateService.getTemplates({
@@ -147,16 +144,21 @@ const MaterialsTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory, searchTerm]);
 
-  const loadCategories = async () => {
+  const loadCategories = React.useCallback(async () => {
     try {
       const cats = await bomTemplateService.getCategories();
       setCategories(cats);
     } catch (err) {
       console.error('Error loading categories:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadMaterials();
+    loadCategories();
+  }, [loadMaterials, loadCategories]);
 
   const handleDelete = async (id: number) => {
     if (!confirm('Czy na pewno chcesz usunąć ten materiał?')) return;
@@ -538,6 +540,57 @@ const MaterialFormModal: React.FC<{
     sortOrder: material?.sortOrder || 0,
   });
   const [saving, setSaving] = useState(false);
+  
+  // Warehouse search state
+  const [warehouseResults, setWarehouseResults] = useState<WarehouseStock[]>([]);
+  const [showWarehouseDropdown, setShowWarehouseDropdown] = useState(false);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  // Search warehouse stock with debounce
+  const searchWarehouse = async (term: string) => {
+    if (term.length < 2) {
+      setWarehouseResults([]);
+      setShowWarehouseDropdown(false);
+      return;
+    }
+    try {
+      const response = await warehouseStockService.getAll({ search: term }, 1, 10);
+      setWarehouseResults(response.data);
+      setShowWarehouseDropdown(true);
+    } catch (err) {
+      console.error('Błąd wyszukiwania:', err);
+    }
+  };
+
+  // Handle material name change with warehouse search
+  const handleMaterialNameChange = (value: string) => {
+    setFormData({ ...formData, materialName: value });
+    
+    // Clear existing timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    // Set new timeout for debounced search (300ms)
+    const timeout = setTimeout(() => {
+      searchWarehouse(value);
+    }, 300);
+    
+    setSearchTimeout(timeout);
+  };
+
+  // Handle warehouse item selection
+  const handleWarehouseItemSelect = (item: WarehouseStock) => {
+    setFormData({
+      ...formData,
+      materialName: item.materialName,
+      catalogNumber: item.catalogNumber,
+      unit: item.unit,
+      category: item.category || formData.category,
+    });
+    setShowWarehouseDropdown(false);
+    setWarehouseResults([]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -550,8 +603,8 @@ const MaterialFormModal: React.FC<{
         await bomTemplateService.createTemplate(formData as CreateTemplateDto);
       }
       onSuccess();
-    } catch (err: any) {
-      alert('Błąd: ' + err.message);
+    } catch (err) {
+      alert('Błąd: ' + (err as Error).message);
     } finally {
       setSaving(false);
     }
@@ -584,15 +637,78 @@ const MaterialFormModal: React.FC<{
         </h2>
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '15px' }}>
-          <div>
+          <div style={{ position: 'relative' }}>
             <label className="label">Nazwa materiału *</label>
             <input
               type="text"
               value={formData.materialName}
-              onChange={(e) => setFormData({ ...formData, materialName: e.target.value })}
+              onChange={(e) => handleMaterialNameChange(e.target.value)}
               className="input"
               required
+              placeholder="Wpisz nazwę lub wyszukaj w magazynie..."
+              autoComplete="off"
             />
+            
+            {/* Warehouse search dropdown */}
+            {showWarehouseDropdown && warehouseResults.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)',
+                marginTop: '4px',
+                maxHeight: '300px',
+                overflowY: 'auto',
+                zIndex: 1001,
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
+              }}>
+                <div style={{
+                  padding: '8px 12px',
+                  fontSize: '12px',
+                  color: 'var(--text-muted)',
+                  borderBottom: '1px solid var(--border-color)',
+                  background: 'var(--bg-secondary)'
+                }}>
+                  🔍 Materiały z magazynu ({warehouseResults.length})
+                </div>
+                {warehouseResults.map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleWarehouseItemSelect(item)}
+                    style={{
+                      padding: '12px',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid var(--border-color)',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{ 
+                      color: 'var(--text-primary)', 
+                      fontSize: '14px', 
+                      fontWeight: '500',
+                      marginBottom: '4px'
+                    }}>
+                      {item.materialName}
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '12px',
+                      fontSize: '12px',
+                      color: 'var(--text-secondary)'
+                    }}>
+                      <span>📦 {item.catalogNumber}</span>
+                      <span>📊 Stan: {item.quantityInStock} {item.unit}</span>
+                      {item.category && <span>🏷️ {item.category}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
