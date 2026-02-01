@@ -4,7 +4,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import bomTemplateService, { 
+import bomTemplateService from '../../services/bom-template.service';
+import type { 
   BomTemplate, 
   BomDependencyRule,
   CreateTemplateDto,
@@ -19,7 +20,6 @@ export const BOMBuilderPage: React.FC = () => {
   const { hasPermission } = useAuth();
   
   const [activeTab, setActiveTab] = useState<Tab>('materials');
-  const [loading, setLoading] = useState(false);
   
   // Permissions
   const canCreate = hasPermission('bom', 'create');

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BackButton } from '../common/BackButton';
-import bomTemplateService, { BomTemplate, PaginatedResponse } from '../../services/bom-template.service';
+import bomTemplateService from '../../services/bom-template.service';
+import type { BomTemplate } from '../../services/bom-template.service';
 import '../../styles/grover-theme.css';
 
 export const BOMPage: React.FC = () => {
