@@ -1,7 +1,7 @@
 // src/components/modules/WarehouseStockDetailModal.tsx
 // Modal for displaying warehouse stock material details (read-only)
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { warehouseStockService } from '../../services/warehouseStock.service';
 import type { WarehouseStock, WarehouseStockHistory, StockOperationType } from '../../types/warehouseStock.types';
 import './WarehouseStockPage.css';
@@ -15,12 +15,7 @@ export const WarehouseStockDetailModal: React.FC<Props> = ({ item, onClose }) =>
   const [history, setHistory] = useState<WarehouseStockHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
 
-  useEffect(() => {
-    loadHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item.id]);
-
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     try {
       setLoadingHistory(true);
       const response = await warehouseStockService.getHistory(item.id, 50);
@@ -30,7 +25,11 @@ export const WarehouseStockDetailModal: React.FC<Props> = ({ item, onClose }) =>
     } finally {
       setLoadingHistory(false);
     }
-  };
+  }, [item.id]);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
 
   const getOperationTypeLabel = (type: StockOperationType): string => {
     const labels: Record<StockOperationType, string> = {

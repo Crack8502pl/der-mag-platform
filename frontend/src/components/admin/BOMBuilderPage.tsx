@@ -130,13 +130,7 @@ const MaterialsTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
   const [editingMaterial, setEditingMaterial] = useState<BomTemplate | null>(null);
   const [showCsvModal, setShowCsvModal] = useState(false);
 
-  useEffect(() => {
-    loadMaterials();
-    loadCategories();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategory, searchTerm]);
-
-  const loadMaterials = async () => {
+  const loadMaterials = React.useCallback(async () => {
     try {
       setLoading(true);
       const result = await bomTemplateService.getTemplates({
@@ -150,16 +144,21 @@ const MaterialsTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory, searchTerm]);
 
-  const loadCategories = async () => {
+  const loadCategories = React.useCallback(async () => {
     try {
       const cats = await bomTemplateService.getCategories();
       setCategories(cats);
     } catch (err) {
       console.error('Error loading categories:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadMaterials();
+    loadCategories();
+  }, [loadMaterials, loadCategories]);
 
   const handleDelete = async (id: number) => {
     if (!confirm('Czy na pewno chcesz usunąć ten materiał?')) return;
