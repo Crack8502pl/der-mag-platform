@@ -33,6 +33,7 @@ export class TaskController {
       const queryBuilder = taskRepository
         .createQueryBuilder('task')
         .leftJoinAndSelect('task.taskType', 'taskType')
+        .leftJoinAndSelect('task.contract', 'contract')
         .where('task.deleted_at IS NULL');
 
       if (status) {
@@ -55,23 +56,39 @@ export class TaskController {
 
       queryBuilder.take(take).skip(skip);
 
-      // Dynamiczne sortowanie z whitelistą dozwolonych pól
-      const allowedSortFields = ['taskNumber', 'title', 'status', 'priority', 'createdAt', 'updatedAt'];
+      // POPRAWIONE: Dynamiczne sortowanie z prawidłowym mapowaniem
+      // Używamy nazw z ENCJI (camelCase), NIE nazw kolumn bazy danych (snake_case)
+      const allowedSortFields = ['taskNumber', 'title', 'status', 'priority', 'createdAt', 'updatedAt', 'taskType', 'contractNumber'];
       const sortField = allowedSortFields.includes(sortBy as string) ? sortBy as string : 'createdAt';
       const order = (sortOrder as string)?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
       
-      // Mapowanie nazw pól na kolumny bazy danych
-      const fieldMap: Record<string, string> = {
-        taskNumber: 'task.task_number',
-        title: 'task.title',
-        status: 'task.status',
-        priority: 'task.priority',
-        createdAt: 'task.created_at',
-        updatedAt: 'task.updated_at'
-      };
-      
-      const sortColumn = fieldMap[sortField] || 'task.created_at';
-      queryBuilder.orderBy(sortColumn, order);
+      switch (sortField) {
+        case 'taskNumber':
+          queryBuilder.orderBy('task.taskNumber', order);
+          break;
+        case 'title':
+          queryBuilder.orderBy('task.title', order);
+          break;
+        case 'status':
+          queryBuilder.orderBy('task.status', order);
+          break;
+        case 'priority':
+          queryBuilder.orderBy('task.priority', order);
+          break;
+        case 'taskType':
+          queryBuilder.orderBy('taskType.name', order);
+          break;
+        case 'contractNumber':
+          queryBuilder.orderBy('task.contractNumber', order);
+          break;
+        case 'updatedAt':
+          queryBuilder.orderBy('task.updatedAt', order);
+          break;
+        case 'createdAt':
+        default:
+          queryBuilder.orderBy('task.createdAt', order);
+          break;
+      }
 
       const [tasks, total] = await queryBuilder.getManyAndCount();
 
