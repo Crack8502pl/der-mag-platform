@@ -202,22 +202,22 @@ export const SubsystemListPage: React.FC = () => {
               <table className="subsystems-table">
                 <thead>
                   <tr>
-                    <th onClick={() => handleSort('subsystemNumber')}>
+                    <th className="sortable" onClick={() => handleSort('subsystemNumber')}>
                       Numer{getSortIndicator('subsystemNumber')}
                     </th>
-                    <th onClick={() => handleSort('systemType')}>
+                    <th className="sortable" onClick={() => handleSort('systemType')}>
                       Typ systemu{getSortIndicator('systemType')}
                     </th>
-                    <th onClick={() => handleSort('quantity')}>
+                    <th className="sortable" onClick={() => handleSort('quantity')}>
                       Ilość{getSortIndicator('quantity')}
                     </th>
-                    <th onClick={() => handleSort('status')}>
+                    <th className="sortable" onClick={() => handleSort('status')}>
                       Status{getSortIndicator('status')}
                     </th>
-                    <th onClick={() => handleSort('contractNumber')}>
+                    <th className="sortable" onClick={() => handleSort('contractNumber')}>
                       Kontrakt{getSortIndicator('contractNumber')}
                     </th>
-                    <th onClick={() => handleSort('projectManager')}>
+                    <th className="sortable" onClick={() => handleSort('projectManager')}>
                       Menedżer{getSortIndicator('projectManager')}
                     </th>
                     <th>Dokumentacja</th>
@@ -230,12 +230,14 @@ export const SubsystemListPage: React.FC = () => {
                         {subsystem.subsystemNumber}
                       </td>
                       <td className="system-type">
-                        <span className="system-icon">
-                          {SYSTEM_ICONS[subsystem.systemType] || '❓'}
-                        </span>
-                        <span className="system-name">
-                          {SYSTEM_NAMES[subsystem.systemType] || subsystem.systemType}
-                        </span>
+                        <div className="system-type-content">
+                          <span className="system-icon">
+                            {SYSTEM_ICONS[subsystem.systemType] || '❓'}
+                          </span>
+                          <span className="system-name">
+                            {SYSTEM_NAMES[subsystem.systemType] || subsystem.systemType}
+                          </span>
+                        </div>
                       </td>
                       <td className="quantity">{subsystem.quantity}</td>
                       <td className="status">

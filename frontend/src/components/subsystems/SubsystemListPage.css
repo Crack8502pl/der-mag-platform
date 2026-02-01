@@ -1,4 +1,5 @@
 /* SubsystemListPage.css */
+/* Updated to use Grover theme colors */
 
 .subsystem-list-page {
   padding: 2rem;
@@ -31,6 +32,7 @@
   gap: 1rem;
   flex-wrap: wrap;
   align-items: flex-end;
+  background: var(--bg-card);
 }
 
 .filter-group {
@@ -65,6 +67,7 @@
 /* Results Section */
 .results-section {
   padding: 1.5rem;
+  background: var(--bg-card);
 }
 
 .loading,
@@ -76,8 +79,9 @@
 }
 
 .error-message {
-  color: var(--danger);
-  background-color: var(--danger-light);
+  color: var(--error);
+  background-color: rgba(245, 101, 101, 0.1);
+  border: 1px solid var(--error);
   border-radius: 4px;
 }
 
@@ -94,10 +98,11 @@
 }
 
 .subsystems-table thead {
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-dark);
   position: sticky;
   top: 0;
   z-index: 10;
+  border-bottom: 2px solid var(--primary-color);
 }
 
 .subsystems-table th {
@@ -105,21 +110,25 @@
   text-align: left;
   font-weight: 600;
   color: var(--text-primary);
-  border-bottom: 2px solid var(--border-color);
-  cursor: pointer;
-  user-select: none;
   white-space: nowrap;
   vertical-align: middle;
 }
 
-.subsystems-table th:hover {
+.subsystems-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s;
+}
+
+.subsystems-table th.sortable:hover {
   background-color: var(--bg-hover);
+  color: var(--primary-color);
 }
 
 .subsystems-table td {
   padding: 0.75rem;
   border-bottom: 1px solid var(--border-color);
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .subsystems-table tbody tr:hover {
@@ -130,10 +139,14 @@
 .subsystem-number {
   font-family: monospace;
   font-weight: 600;
-  color: #1976d2;
+  color: var(--primary-color);
 }
 
 .system-type {
+  /* Remove flex from td, apply to inner div instead */
+}
+
+.system-type-content {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -152,6 +165,7 @@
   font-weight: 600;
 }
 
+/* Status Badges - Grover Theme */
 .status-badge {
   display: inline-block;
   padding: 0.25rem 0.75rem;
@@ -162,28 +176,33 @@
 }
 
 .status-badge.status-created {
-  background-color: #e3f2fd;
-  color: #1976d2;
+  background-color: rgba(66, 153, 225, 0.2);
+  color: var(--info);
+  border: 1px solid var(--info);
 }
 
 .status-badge.status-bom_generated {
-  background-color: #f3e5f5;
-  color: #7b1fa2;
+  background-color: rgba(237, 137, 54, 0.2);
+  color: var(--warning);
+  border: 1px solid var(--warning);
 }
 
 .status-badge.status-ip_allocated {
-  background-color: #e8f5e9;
-  color: #388e3c;
+  background-color: rgba(72, 187, 120, 0.2);
+  color: var(--success);
+  border: 1px solid var(--success);
 }
 
 .status-badge.status-in_completion {
-  background-color: #fff3e0;
-  color: #f57c00;
+  background-color: rgba(255, 107, 53, 0.2);
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
 }
 
 .status-badge.status-deployed {
-  background-color: #c8e6c9;
-  color: #2e7d32;
+  background-color: rgba(72, 187, 120, 0.2);
+  color: var(--success);
+  border: 1px solid var(--success);
 }
 
 .contract-number {
@@ -201,7 +220,7 @@
 }
 
 .btn-documents {
-  background-color: var(--success);
+  background-color: var(--primary-color);
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -212,8 +231,7 @@
 }
 
 .btn-documents:hover {
-  background-color: var(--success);
-  opacity: 0.9;
+  background-color: var(--primary-hover);
 }
 
 /* Pagination */
@@ -242,23 +260,22 @@
 }
 
 .btn-primary {
-  background-color: var(--success);
+  background-color: var(--primary-color);
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: var(--success);
-  opacity: 0.9;
+  background-color: var(--primary-hover);
 }
 
 .btn-secondary {
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-hover);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover {
-  background-color: var(--bg-hover);
+  background-color: var(--border-light);
 }
 
 .btn-secondary:disabled {
@@ -270,7 +287,7 @@
 .card {
   background-color: var(--bg-card);
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Responsive */
