@@ -615,7 +615,7 @@ export class SubsystemController {
               location: subsystem.contract.customName,
               priority: 0,
               metadata: {
-                createdFromWizard: false,
+                createdFromContractEdit: true,
                 wizardData: taskData,
                 subsystemType: subsystem.systemType
               }
