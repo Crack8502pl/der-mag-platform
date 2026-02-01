@@ -6,6 +6,9 @@ import { SubsystemService } from '../services/SubsystemService';
 import { SubsystemDocumentService } from '../services/SubsystemDocumentService';
 import { SystemType, SubsystemStatus } from '../entities/Subsystem';
 import { SubsystemTaskService } from '../services/SubsystemTaskService';
+import { AppDataSource } from '../config/database';
+import { Task } from '../entities/Task';
+import { TaskType } from '../entities/TaskType';
 import * as fs from 'fs';
 
 // Interfejs dla żądań uwierzytelnionych
@@ -548,9 +551,37 @@ export class SubsystemController {
         return;
       }
 
+      // Pobierz podsystem wraz z kontraktem
+      const subsystem = await this.subsystemService.getSubsystemById(parseInt(id));
+      
+      if (!subsystem) {
+        res.status(404).json({
+          success: false,
+          message: 'Podsystem nie został znaleziony'
+        });
+        return;
+      }
+
+      if (!subsystem.contract) {
+        res.status(400).json({
+          success: false,
+          message: 'Podsystem nie jest powiązany z kontraktem'
+        });
+        return;
+      }
+
+      // Get repositories needed for Task creation
+      const taskRepository = AppDataSource.getRepository(Task);
+      const taskTypeRepository = AppDataSource.getRepository(TaskType);
+      const DEFAULT_TASK_TYPE_ID = 1;
+
       const createdTasks = [];
+      const createdMainTasks = [];
+      const failedMainTasks = [];
+      
       for (const taskData of tasks) {
         try {
+          // 1. Create SubsystemTask
           const subsystemTask = await this.taskService.createTask({
             subsystemId: parseInt(id),
             taskName: taskData.name || 'Zadanie',
@@ -558,6 +589,47 @@ export class SubsystemController {
             metadata: taskData.metadata || {}
           });
           createdTasks.push(subsystemTask);
+
+          // 2. Create main Task entity - UŻYJ TEGO SAMEGO NUMERU
+          try {
+            // Find task type - match by code or use default
+            let taskTypeId = DEFAULT_TASK_TYPE_ID;
+            if (taskData.type) {
+              const taskType = await taskTypeRepository.findOne({
+                where: { code: taskData.type }
+              });
+              if (taskType) {
+                taskTypeId = taskType.id;
+              }
+            }
+
+            // Create task with same number as SubsystemTask
+            const mainTask = taskRepository.create({
+              taskNumber: subsystemTask.taskNumber,
+              title: taskData.name || `Zadanie ${taskData.type || 'nowe'}`,
+              description: taskData.description || '',
+              taskTypeId,
+              status: 'created',
+              contractId: subsystem.contract.id,
+              contractNumber: subsystem.contract.contractNumber,
+              subsystemId: subsystem.id,
+              location: subsystem.contract.customName,
+              priority: 0,
+              metadata: {
+                createdFromContractEdit: true,
+                wizardData: taskData,
+                subsystemType: subsystem.systemType
+              }
+            });
+
+            const savedMainTask = await taskRepository.save(mainTask);
+            createdMainTasks.push(savedMainTask);
+
+          } catch (taskError) {
+            console.error(`Failed to create main task for ${taskData.name}:`, taskError);
+            failedMainTasks.push(taskData.name || 'Unknown task');
+            // Continue with next task - don't break entire process
+          }
         } catch (error) {
           console.error(`Failed to create task for subsystem ${id}:`, error);
         }
@@ -567,7 +639,12 @@ export class SubsystemController {
         success: true,
         message: `Utworzono ${createdTasks.length} zadań pomyślnie`,
         data: createdTasks,
-        count: createdTasks.length
+        count: createdTasks.length,
+        mainTasksCreated: createdMainTasks.length,
+        ...(failedMainTasks.length > 0 && { 
+          warning: `Nie udało się utworzyć głównych zadań dla: ${failedMainTasks.join(', ')}`,
+          failedMainTasks 
+        })
       });
     } catch (error: any) {
       res.status(400).json({

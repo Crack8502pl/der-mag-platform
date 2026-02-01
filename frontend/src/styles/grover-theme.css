@@ -1,6 +1,9 @@
 /* src/styles/grover-theme.css */
 /* Grover Platform - Dark theme with orange accents */
 
+/* Import table styles */
+@import './grover-tables.css';
+
 :root {
   /* Primary Colors */
   --primary-color: #ff6b35;
