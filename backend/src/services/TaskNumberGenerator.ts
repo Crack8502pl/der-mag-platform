@@ -3,6 +3,7 @@
 
 import { AppDataSource } from '../config/database';
 import { Task } from '../entities/Task';
+import { SubsystemTask } from '../entities/SubsystemTask';
 
 export class TaskNumberGenerator {
   /**
@@ -11,16 +12,20 @@ export class TaskNumberGenerator {
    * XXXX - kolejny numer w obrębie miesiąca (0001-9999)
    * MM - miesiąc stworzenia (01-12)
    * RR - rok stworzenia (ostatnie 2 cyfry)
+   * 
+   * Note: Sprawdza zarówno tabelę 'tasks' jak i 'subsystem_tasks' 
+   * aby uniknąć duplikatów numerów zadań.
    */
   static async generate(): Promise<string> {
     const taskRepository = AppDataSource.getRepository(Task);
+    const subsystemTaskRepository = AppDataSource.getRepository(SubsystemTask);
     
     const now = new Date();
     const month = String(now.getMonth() + 1).padStart(2, '0'); // 01-12
     const year = String(now.getFullYear()).slice(-2); // Ostatnie 2 cyfry
     const monthYearSuffix = `${month}${year}`; // np. "0126"
     
-    // Znajdź ostatnie zadanie w tym miesiącu
+    // Znajdź ostatnie zadanie w tabeli 'tasks'
     // Note: LIKE query uses existing index on taskNumber column defined in Task entity
     const lastTask = await taskRepository
       .createQueryBuilder('task')
@@ -30,16 +35,37 @@ export class TaskNumberGenerator {
       .orderBy('task.taskNumber', 'DESC')
       .getOne();
     
-    let nextSequence = 1;
+    // Znajdź ostatnie zadanie w tabeli 'subsystem_tasks'
+    // Note: LIKE query uses existing index on taskNumber column defined in SubsystemTask entity
+    const lastSubsystemTask = await subsystemTaskRepository
+      .createQueryBuilder('subsystem_task')
+      .where('subsystem_task.taskNumber LIKE :pattern', { 
+        pattern: `Z%${monthYearSuffix}` 
+      })
+      .orderBy('subsystem_task.taskNumber', 'DESC')
+      .getOne();
+    
+    // Wyciągnij sekwencję z obu tabel i użyj większej wartości
+    let maxSequenceFromTasks = 0;
+    let maxSequenceFromSubsystemTasks = 0;
     
     if (lastTask && lastTask.taskNumber) {
-      // Wyciągnij sekwencję: Z00150126 -> 0015
       const match = lastTask.taskNumber.match(/^Z(\d{4})/);
       if (match) {
-        const currentSeq = parseInt(match[1], 10);
-        nextSequence = currentSeq + 1;
+        maxSequenceFromTasks = parseInt(match[1], 10);
       }
     }
+    
+    if (lastSubsystemTask && lastSubsystemTask.taskNumber) {
+      const match = lastSubsystemTask.taskNumber.match(/^Z(\d{4})/);
+      if (match) {
+        maxSequenceFromSubsystemTasks = parseInt(match[1], 10);
+      }
+    }
+    
+    // Użyj większego numeru sekwencyjnego z obu tabel
+    const maxSequence = Math.max(maxSequenceFromTasks, maxSequenceFromSubsystemTasks);
+    const nextSequence = maxSequence + 1;
     
     if (nextSequence > 9999) {
       throw new Error(`Maksymalna liczba zadań (9999) osiągnięta dla miesiąca ${month}/${year}`);

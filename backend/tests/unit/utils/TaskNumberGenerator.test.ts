@@ -2,6 +2,7 @@
 import { TaskNumberGenerator } from '../../../src/services/TaskNumberGenerator';
 import { AppDataSource } from '../../../src/config/database';
 import { Task } from '../../../src/entities/Task';
+import { SubsystemTask } from '../../../src/entities/SubsystemTask';
 import { createMockRepository } from '../../mocks/database.mock';
 
 // Mock the database module
@@ -13,10 +14,21 @@ jest.mock('../../../src/config/database', () => ({
 
 describe('TaskNumberGenerator', () => {
   let mockTaskRepository: any;
+  let mockSubsystemTaskRepository: any;
 
   beforeEach(() => {
     mockTaskRepository = createMockRepository<Task>();
-    (AppDataSource.getRepository as jest.Mock).mockReturnValue(mockTaskRepository);
+    mockSubsystemTaskRepository = createMockRepository<SubsystemTask>();
+    
+    // Mock getRepository to return appropriate repository based on entity type
+    (AppDataSource.getRepository as jest.Mock).mockImplementation((entity) => {
+      if (entity === Task) {
+        return mockTaskRepository;
+      } else if (entity === SubsystemTask) {
+        return mockSubsystemTaskRepository;
+      }
+      return mockTaskRepository;
+    });
   });
 
   afterEach(() => {
@@ -24,7 +36,7 @@ describe('TaskNumberGenerator', () => {
   });
 
   describe('generate', () => {
-    it('should generate task number in ZXXXXMMRR format', async () => {
+    it('should generate task number in ZXXXXMMRR format when no tasks exist', async () => {
       const mockQueryBuilder = {
         where: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
@@ -32,6 +44,7 @@ describe('TaskNumberGenerator', () => {
       };
       
       mockTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder);
+      mockSubsystemTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder);
       
       const taskNumber = await TaskNumberGenerator.generate();
       
@@ -41,12 +54,12 @@ describe('TaskNumberGenerator', () => {
       expect(/^Z\d{4}(0[1-9]|1[0-2])\d{2}$/.test(taskNumber)).toBe(true);
     });
 
-    it('should increment sequence number when tasks exist for current month', async () => {
+    it('should increment sequence number when tasks exist in tasks table', async () => {
       const now = new Date();
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const year = String(now.getFullYear()).slice(-2);
       
-      const mockQueryBuilder = {
+      const mockTaskQueryBuilder = {
         where: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue({
@@ -54,19 +67,113 @@ describe('TaskNumberGenerator', () => {
         }),
       };
       
-      mockTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder);
+      const mockSubsystemTaskQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(null),
+      };
+      
+      mockTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockTaskQueryBuilder);
+      mockSubsystemTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockSubsystemTaskQueryBuilder);
       
       const taskNumber = await TaskNumberGenerator.generate();
       
       expect(taskNumber).toBe(`Z0006${month}${year}`);
     });
 
-    it('should throw error when max sequence reached', async () => {
+    it('should increment sequence number when tasks exist in subsystem_tasks table', async () => {
       const now = new Date();
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const year = String(now.getFullYear()).slice(-2);
       
-      const mockQueryBuilder = {
+      const mockTaskQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(null),
+      };
+      
+      const mockSubsystemTaskQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue({
+          taskNumber: `Z0010${month}${year}`
+        }),
+      };
+      
+      mockTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockTaskQueryBuilder);
+      mockSubsystemTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockSubsystemTaskQueryBuilder);
+      
+      const taskNumber = await TaskNumberGenerator.generate();
+      
+      expect(taskNumber).toBe(`Z0011${month}${year}`);
+    });
+
+    it('should use the maximum sequence number from both tables', async () => {
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const year = String(now.getFullYear()).slice(-2);
+      
+      const mockTaskQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue({
+          taskNumber: `Z0005${month}${year}` // Lower number in tasks table
+        }),
+      };
+      
+      const mockSubsystemTaskQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue({
+          taskNumber: `Z0010${month}${year}` // Higher number in subsystem_tasks table
+        }),
+      };
+      
+      mockTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockTaskQueryBuilder);
+      mockSubsystemTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockSubsystemTaskQueryBuilder);
+      
+      const taskNumber = await TaskNumberGenerator.generate();
+      
+      // Should use the higher number from subsystem_tasks and increment it
+      expect(taskNumber).toBe(`Z0011${month}${year}`);
+    });
+
+    it('should use the maximum sequence number when subsystem_tasks has lower number', async () => {
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const year = String(now.getFullYear()).slice(-2);
+      
+      const mockTaskQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue({
+          taskNumber: `Z0020${month}${year}` // Higher number in tasks table
+        }),
+      };
+      
+      const mockSubsystemTaskQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue({
+          taskNumber: `Z0005${month}${year}` // Lower number in subsystem_tasks table
+        }),
+      };
+      
+      mockTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockTaskQueryBuilder);
+      mockSubsystemTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockSubsystemTaskQueryBuilder);
+      
+      const taskNumber = await TaskNumberGenerator.generate();
+      
+      // Should use the higher number from tasks and increment it
+      expect(taskNumber).toBe(`Z0021${month}${year}`);
+    });
+
+    it('should throw error when max sequence reached in tasks table', async () => {
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const year = String(now.getFullYear()).slice(-2);
+      
+      const mockTaskQueryBuilder = {
         where: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue({
@@ -74,7 +181,41 @@ describe('TaskNumberGenerator', () => {
         }),
       };
       
-      mockTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder);
+      const mockSubsystemTaskQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(null),
+      };
+      
+      mockTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockTaskQueryBuilder);
+      mockSubsystemTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockSubsystemTaskQueryBuilder);
+      
+      await expect(TaskNumberGenerator.generate()).rejects.toThrow(
+        `Maksymalna liczba zadań (9999) osiągnięta dla miesiąca ${month}/${year}`
+      );
+    });
+
+    it('should throw error when max sequence reached in subsystem_tasks table', async () => {
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const year = String(now.getFullYear()).slice(-2);
+      
+      const mockTaskQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(null),
+      };
+      
+      const mockSubsystemTaskQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue({
+          taskNumber: `Z9999${month}${year}`
+        }),
+      };
+      
+      mockTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockTaskQueryBuilder);
+      mockSubsystemTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockSubsystemTaskQueryBuilder);
       
       await expect(TaskNumberGenerator.generate()).rejects.toThrow(
         `Maksymalna liczba zadań (9999) osiągnięta dla miesiąca ${month}/${year}`
