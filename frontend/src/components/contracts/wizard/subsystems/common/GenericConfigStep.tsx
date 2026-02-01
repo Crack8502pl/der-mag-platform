@@ -76,14 +76,15 @@ export const GenericConfigStep: React.FC<SubsystemConfigStepProps> = ({
             )}
             
             {field.type === 'checkbox' && (
-              <div className="checkbox-inline-group">
+              <label className="checkbox-inline-group" htmlFor={`checkbox-${field.name}`}>
                 <input
                   type="checkbox"
+                  id={`checkbox-${field.name}`}
                   checked={typeof paramValue === 'boolean' ? paramValue : false}
                   onChange={(e) => updateParams(field.name, e.target.checked)}
                 />
-                <label>{field.label}</label>
-              </div>
+                <span>{field.label}</span>
+              </label>
             )}
             
             {field.type === 'text' && (
