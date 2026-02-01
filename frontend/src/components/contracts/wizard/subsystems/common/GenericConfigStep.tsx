@@ -76,7 +76,7 @@ export const GenericConfigStep: React.FC<SubsystemConfigStepProps> = ({
             )}
             
             {field.type === 'checkbox' && (
-              <label className="checkbox-inline-group">
+              <label className="checkbox-inline-group" htmlFor={`checkbox-${field.name}`}>
                 <input
                   type="checkbox"
                   id={`checkbox-${field.name}`}
