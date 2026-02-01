@@ -33,31 +33,35 @@ const generateSmokipATasks = (subsystem: SubsystemWizardData, liniaKolejowa?: st
       let name = '';
       if (detail.taskType === 'PRZEJAZD_KAT_A' && detail.kilometraz && detail.kategoria) {
         // Format: LK-221 | 123,456 | KAT A
-        name = `${lk} | ${detail.kilometraz} | ${detail.kategoria}`;
+        const prefix = lk ? `${lk} | ` : '';
+        name = `${prefix}${detail.kilometraz} | ${detail.kategoria}`;
       } else if (detail.taskType === 'SKP' && detail.kilometraz) {
         // Format: LK-221 | 123,456 | SKP
-        name = `${lk} | ${detail.kilometraz} | SKP`;
+        const prefix = lk ? `${lk} | ` : '';
+        name = `${prefix}${detail.kilometraz} | SKP`;
       } else if (detail.taskType === 'NASTAWNIA') {
         // Format: LK-221 | 123,456 | ND - Nazwa - Miejscowość
         const ndPart = [];
         if (detail.nazwa) ndPart.push(detail.nazwa);
         if (detail.miejscowosc) ndPart.push(detail.miejscowosc);
         const ndLabel = ndPart.length > 0 ? `ND - ${ndPart.join(' - ')}` : 'ND';
-        name = `${lk} | ${detail.kilometraz || ''} | ${ndLabel}`;
+        const prefix = lk ? `${lk} | ` : '';
+        name = `${prefix}${detail.kilometraz || ''} | ${ndLabel}`;
       } else if (detail.taskType === 'LCS') {
         // Format: E-20 | 045,678 | LCS - Nazwa - Miejscowość
         const lcsPart = [];
         if (detail.nazwa) lcsPart.push(detail.nazwa);
         if (detail.miejscowosc) lcsPart.push(detail.miejscowosc);
         const lcsLabel = lcsPart.length > 0 ? `LCS - ${lcsPart.join(' - ')}` : 'LCS';
-        name = `${lk} | ${detail.kilometraz || ''} | ${lcsLabel}`;
+        const prefix = lk ? `${lk} | ` : '';
+        name = `${prefix}${detail.kilometraz || ''} | ${lcsLabel}`;
       } else if (detail.taskType === 'CUID') {
         // Format: LK-221 | | CUID - Nazwa - Miejscowość
         const cuidPart = [];
         if (detail.nazwa) cuidPart.push(detail.nazwa);
         if (detail.miejscowosc) cuidPart.push(detail.miejscowosc);
         const cuidLabel = cuidPart.length > 0 ? `CUID - ${cuidPart.join(' - ')}` : 'CUID';
-        name = `${lk} | | ${cuidLabel}`;
+        name = lk ? `${lk} | | ${cuidLabel}` : cuidLabel;
       } else {
         name = detail.taskType;
       }
@@ -130,28 +134,31 @@ const generateSmokipBTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: st
       let name = '';
       if (detail.taskType === 'PRZEJAZD_KAT_B' && detail.kilometraz && detail.kategoria) {
         // Format: LK-221 | 123,456 | KAT B
-        name = `${lk} | ${detail.kilometraz} | ${detail.kategoria}`;
+        const prefix = lk ? `${lk} | ` : '';
+        name = `${prefix}${detail.kilometraz} | ${detail.kategoria}`;
       } else if (detail.taskType === 'NASTAWNIA') {
         // Format: LK-221 | 123,456 | ND - Nazwa - Miejscowość
         const ndPart = [];
         if (detail.nazwa) ndPart.push(detail.nazwa);
         if (detail.miejscowosc) ndPart.push(detail.miejscowosc);
         const ndLabel = ndPart.length > 0 ? `ND - ${ndPart.join(' - ')}` : 'ND';
-        name = `${lk} | ${detail.kilometraz || ''} | ${ndLabel}`;
+        const prefix = lk ? `${lk} | ` : '';
+        name = `${prefix}${detail.kilometraz || ''} | ${ndLabel}`;
       } else if (detail.taskType === 'LCS') {
         // Format: E-20 | 045,678 | LCS - Nazwa - Miejscowość
         const lcsPart = [];
         if (detail.nazwa) lcsPart.push(detail.nazwa);
         if (detail.miejscowosc) lcsPart.push(detail.miejscowosc);
         const lcsLabel = lcsPart.length > 0 ? `LCS - ${lcsPart.join(' - ')}` : 'LCS';
-        name = `${lk} | ${detail.kilometraz || ''} | ${lcsLabel}`;
+        const prefix = lk ? `${lk} | ` : '';
+        name = `${prefix}${detail.kilometraz || ''} | ${lcsLabel}`;
       } else if (detail.taskType === 'CUID') {
         // Format: LK-221 | | CUID - Nazwa - Miejscowość
         const cuidPart = [];
         if (detail.nazwa) cuidPart.push(detail.nazwa);
         if (detail.miejscowosc) cuidPart.push(detail.miejscowosc);
         const cuidLabel = cuidPart.length > 0 ? `CUID - ${cuidPart.join(' - ')}` : 'CUID';
-        name = `${lk} | | ${cuidLabel}`;
+        name = lk ? `${lk} | | ${cuidLabel}` : cuidLabel;
       } else {
         name = detail.taskType;
       }
