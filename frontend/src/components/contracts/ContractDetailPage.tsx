@@ -222,8 +222,8 @@ export const ContractDetailPage: React.FC = () => {
                             <li key={task.id}>
                               <code className="task-number">{task.taskNumber}</code>
                               <span className="task-name">{task.taskName}</span>
-                              <span className={`task-status task-status--${task.status.toLowerCase()}`}>
-                                {task.status}
+                              <span className={`task-status task-status--${(task.status || 'created').toLowerCase()}`}>
+                                {task.status || 'CREATED'}
                               </span>
                             </li>
                           ))}

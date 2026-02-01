@@ -1211,6 +1211,14 @@
     flex-wrap: wrap;
   }
   
+  .task-number {
+    order: 1;
+  }
+  
+  .task-status {
+    order: 2;
+  }
+  
   .task-name {
     width: 100%;
     order: 3;
