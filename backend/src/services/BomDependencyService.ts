@@ -263,11 +263,18 @@ export class BomDependencyService {
       });
 
       // Safe evaluation (only allow numbers and basic math operators)
+      // This is a simplified evaluator - for production, use a proper math parser library
+      // like mathjs or create a custom AST-based parser
       if (!/^[\d\s+\-*/().Math]+$/.test(evalFormula)) {
         console.warn('Invalid formula:', formula);
         return 0;
       }
 
+      // TODO: Replace with mathjs or custom parser for production
+      // For now, using eval with strict validation
+      // Example: npm install mathjs, then: import { evaluate } from 'mathjs';
+      // return Math.round(evaluate(evalFormula));
+      
       // eslint-disable-next-line no-eval
       return eval(evalFormula);
     } catch (error) {

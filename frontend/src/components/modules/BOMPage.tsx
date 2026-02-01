@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BackButton } from '../common/BackButton';
 import bomTemplateService from '../../services/bom-template.service';
 import type { BomTemplate } from '../../services/bom-template.service';
+import { pluralizeTemplates } from '../../utils/pluralization';
 import '../../styles/grover-theme.css';
 
 export const BOMPage: React.FC = () => {
@@ -172,7 +173,7 @@ export const BOMPage: React.FC = () => {
       ) : (
         <>
           <div style={{ marginBottom: '15px', color: 'var(--text-secondary)', fontSize: '14px' }}>
-            Znaleziono {total} {total === 1 ? 'szablon' : total < 5 ? 'szablony' : 'szablonów'}
+            Znaleziono {total} {pluralizeTemplates(total)}
           </div>
 
           <div className="table-container">

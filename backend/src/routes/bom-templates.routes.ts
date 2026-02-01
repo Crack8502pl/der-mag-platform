@@ -6,9 +6,14 @@ import { BOMTemplateController } from '../controllers/BOMTemplateController';
 import { authenticate } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import multer from 'multer';
+import os from 'os';
+import path from 'path';
 
 const router = Router();
-const upload = multer({ dest: '/tmp/uploads/' });
+
+// Use OS temp directory for cross-platform compatibility
+const uploadDir = path.join(os.tmpdir(), 'bom-uploads');
+const upload = multer({ dest: uploadDir });
 
 // All routes require authentication
 router.use(authenticate);
