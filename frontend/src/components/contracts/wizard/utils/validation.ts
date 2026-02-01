@@ -8,6 +8,25 @@ import type { SubsystemWizardData } from '../types/wizard.types';
 export const OPTIONAL_KILOMETRAZ_HELP = 'Pole opcjonalne - wpisz w formacie XXX,XXX';
 
 /**
+ * Format Linia Kolejowa to normalized format (e.g., "lk-221" → "LK-221")
+ * Accepts formats like: lk-221, LK 221, LK221, lk221, e-20, E 20, E20
+ * Always returns format: XX-XXX (uppercase letters, dash, numbers)
+ */
+export const formatLiniaKolejowa = (value: string): string => {
+  if (!value) return '';
+  
+  // Remove all spaces and dashes
+  const cleaned = value.replace(/[\s-]/g, '').toUpperCase();
+  
+  // Split letters from numbers
+  const match = cleaned.match(/^([A-Z]{1,2})(\d{1,4})$/);
+  if (!match) return value.toUpperCase();
+  
+  const [, letters, numbers] = match;
+  return `${letters}-${numbers}`; // Always format: XX-XXX
+};
+
+/**
  * Validate contract number format (R0000001_A)
  */
 export const validateContractNumber = (value: string): boolean => {

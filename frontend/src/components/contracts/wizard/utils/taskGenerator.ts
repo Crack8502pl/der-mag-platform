@@ -23,28 +23,41 @@ const getBooleanValue = (params: Record<string, number | boolean>, key: string):
 /**
  * Generate tasks for SMOKIP_A subsystem
  */
-const generateSmokipATasks = (subsystem: SubsystemWizardData): GeneratedTask[] => {
+const generateSmokipATasks = (subsystem: SubsystemWizardData, liniaKolejowa?: string): GeneratedTask[] => {
   const tasks: GeneratedTask[] = [];
+  const lk = liniaKolejowa || '';
   
   // Use task details if available
   if (subsystem.taskDetails && subsystem.taskDetails.length > 0) {
     subsystem.taskDetails.forEach((detail) => {
       let name = '';
       if (detail.taskType === 'PRZEJAZD_KAT_A' && detail.kilometraz && detail.kategoria) {
-        name = `${detail.kilometraz} Km ${detail.kategoria}`;
+        // Format: LK-221 | 123,456 | KAT A
+        name = `${lk} | ${detail.kilometraz} | ${detail.kategoria}`;
       } else if (detail.taskType === 'SKP' && detail.kilometraz) {
-        name = `${detail.kilometraz} Km SKP`;
+        // Format: LK-221 | 123,456 | SKP
+        name = `${lk} | ${detail.kilometraz} | SKP`;
       } else if (detail.taskType === 'NASTAWNIA') {
-        name = detail.nazwa || 'Nastawnia';
-        if (detail.miejscowosc) name = `Nastawnia ${detail.miejscowosc}`;
-        if (detail.kilometraz) name += ` ${detail.kilometraz} Km`;
+        // Format: LK-221 | 123,456 | ND - Nazwa - Miejscowość
+        const ndPart = [];
+        if (detail.nazwa) ndPart.push(detail.nazwa);
+        if (detail.miejscowosc) ndPart.push(detail.miejscowosc);
+        const ndLabel = ndPart.length > 0 ? `ND - ${ndPart.join(' - ')}` : 'ND';
+        name = `${lk} | ${detail.kilometraz || ''} | ${ndLabel}`;
       } else if (detail.taskType === 'LCS') {
-        name = detail.nazwa || 'LCS';
-        if (detail.miejscowosc) name = `LCS ${detail.miejscowosc}`;
-        if (detail.kilometraz) name += ` ${detail.kilometraz} Km`;
+        // Format: E-20 | 045,678 | LCS - Nazwa - Miejscowość
+        const lcsPart = [];
+        if (detail.nazwa) lcsPart.push(detail.nazwa);
+        if (detail.miejscowosc) lcsPart.push(detail.miejscowosc);
+        const lcsLabel = lcsPart.length > 0 ? `LCS - ${lcsPart.join(' - ')}` : 'LCS';
+        name = `${lk} | ${detail.kilometraz || ''} | ${lcsLabel}`;
       } else if (detail.taskType === 'CUID') {
-        name = detail.nazwa || 'CUID';
-        if (detail.miejscowosc) name = `CUID ${detail.miejscowosc}`;
+        // Format: LK-221 | | CUID - Nazwa - Miejscowość
+        const cuidPart = [];
+        if (detail.nazwa) cuidPart.push(detail.nazwa);
+        if (detail.miejscowosc) cuidPart.push(detail.miejscowosc);
+        const cuidLabel = cuidPart.length > 0 ? `CUID - ${cuidPart.join(' - ')}` : 'CUID';
+        name = `${lk} | | ${cuidLabel}`;
       } else {
         name = detail.taskType;
       }
@@ -108,25 +121,37 @@ const generateSmokipATasks = (subsystem: SubsystemWizardData): GeneratedTask[] =
 /**
  * Generate tasks for SMOKIP_B subsystem
  */
-const generateSmokipBTasks = (subsystem: SubsystemWizardData): GeneratedTask[] => {
+const generateSmokipBTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: string): GeneratedTask[] => {
   const tasks: GeneratedTask[] = [];
+  const lk = liniaKolejowa || '';
   
   if (subsystem.taskDetails && subsystem.taskDetails.length > 0) {
     subsystem.taskDetails.forEach((detail) => {
       let name = '';
       if (detail.taskType === 'PRZEJAZD_KAT_B' && detail.kilometraz && detail.kategoria) {
-        name = `${detail.kilometraz} Km ${detail.kategoria}`;
+        // Format: LK-221 | 123,456 | KAT B
+        name = `${lk} | ${detail.kilometraz} | ${detail.kategoria}`;
       } else if (detail.taskType === 'NASTAWNIA') {
-        name = detail.nazwa || 'Nastawnia';
-        if (detail.miejscowosc) name = `Nastawnia ${detail.miejscowosc}`;
-        if (detail.kilometraz) name += ` ${detail.kilometraz} Km`;
+        // Format: LK-221 | 123,456 | ND - Nazwa - Miejscowość
+        const ndPart = [];
+        if (detail.nazwa) ndPart.push(detail.nazwa);
+        if (detail.miejscowosc) ndPart.push(detail.miejscowosc);
+        const ndLabel = ndPart.length > 0 ? `ND - ${ndPart.join(' - ')}` : 'ND';
+        name = `${lk} | ${detail.kilometraz || ''} | ${ndLabel}`;
       } else if (detail.taskType === 'LCS') {
-        name = detail.nazwa || 'LCS';
-        if (detail.miejscowosc) name = `LCS ${detail.miejscowosc}`;
-        if (detail.kilometraz) name += ` ${detail.kilometraz} Km`;
+        // Format: E-20 | 045,678 | LCS - Nazwa - Miejscowość
+        const lcsPart = [];
+        if (detail.nazwa) lcsPart.push(detail.nazwa);
+        if (detail.miejscowosc) lcsPart.push(detail.miejscowosc);
+        const lcsLabel = lcsPart.length > 0 ? `LCS - ${lcsPart.join(' - ')}` : 'LCS';
+        name = `${lk} | ${detail.kilometraz || ''} | ${lcsLabel}`;
       } else if (detail.taskType === 'CUID') {
-        name = detail.nazwa || 'CUID';
-        if (detail.miejscowosc) name = `CUID ${detail.miejscowosc}`;
+        // Format: LK-221 | | CUID - Nazwa - Miejscowość
+        const cuidPart = [];
+        if (detail.nazwa) cuidPart.push(detail.nazwa);
+        if (detail.miejscowosc) cuidPart.push(detail.miejscowosc);
+        const cuidLabel = cuidPart.length > 0 ? `CUID - ${cuidPart.join(' - ')}` : 'CUID';
+        name = `${lk} | | ${cuidLabel}`;
       } else {
         name = detail.taskType;
       }
@@ -181,9 +206,10 @@ const generateSmokipBTasks = (subsystem: SubsystemWizardData): GeneratedTask[] =
 /**
  * Generate tasks for SMW subsystem
  */
-const generateSmwTasks = (subsystem: SubsystemWizardData): GeneratedTask[] => {
+const generateSmwTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: string): GeneratedTask[] => {
   const tasks: GeneratedTask[] = [];
   const smwData = (subsystem.smwData || subsystem.params) as SmwWizardData;
+  const lk = liniaKolejowa || '';
   
   console.log('🔍 Generating SMW tasks for:', smwData);
   
@@ -201,6 +227,7 @@ const generateSmwTasks = (subsystem: SubsystemWizardData): GeneratedTask[] => {
           const cabinetInfo = platform.cabinets && platform.cabinets.length > 0
             ? ` (${platform.cabinets.length} szaf)`
             : '';
+          // SMW tasks don't use the new format with pipes
           tasks.push({
             number: '',
             name: `${station.name || `Stacja ${stationIdx + 1}`} - Peron ${platform.platformNumber}${cabinetInfo}`,
@@ -273,10 +300,11 @@ const generateSmwTasks = (subsystem: SubsystemWizardData): GeneratedTask[] => {
 /**
  * Generate tasks for SKD subsystem
  */
-const generateSkdTasks = (subsystem: SubsystemWizardData): GeneratedTask[] => {
+const generateSkdTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: string): GeneratedTask[] => {
   const tasks: GeneratedTask[] = [];
   const params = subsystem.params as Record<string, number | boolean>;
   
+  // SKD tasks don't use the new format with pipes - keep original format
   for (let i = 0; i < getNumericValue(params, 'iloscBudynkow'); i++) {
     tasks.push({
       number: '',
@@ -308,12 +336,13 @@ const generateSkdTasks = (subsystem: SubsystemWizardData): GeneratedTask[] => {
 /**
  * Generate tasks for generic subsystems (SSWiN, CCTV, SDIP, SUG, SSP, LAN, OTK, ZASILANIE)
  */
-const generateGenericTasks = (subsystem: SubsystemWizardData): GeneratedTask[] => {
+const generateGenericTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: string): GeneratedTask[] => {
   const tasks: GeneratedTask[] = [];
   const params = subsystem.params as Record<string, number | boolean>;
   const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
   const subsystemLabel = config?.label || 'Zadanie';
   
+  // Generic tasks don't use the new format with pipes - keep original format
   for (let i = 0; i < getNumericValue(params, 'iloscBudynkow'); i++) {
     tasks.push({
       number: '',
@@ -345,29 +374,29 @@ const generateGenericTasks = (subsystem: SubsystemWizardData): GeneratedTask[] =
 /**
  * Generate tasks for a single subsystem
  */
-export const generateTasksForSubsystem = (subsystem: SubsystemWizardData): GeneratedTask[] => {
+export const generateTasksForSubsystem = (subsystem: SubsystemWizardData, liniaKolejowa?: string): GeneratedTask[] => {
   switch (subsystem.type) {
     case 'SMOKIP_A':
-      return generateSmokipATasks(subsystem);
+      return generateSmokipATasks(subsystem, liniaKolejowa);
     case 'SMOKIP_B':
-      return generateSmokipBTasks(subsystem);
+      return generateSmokipBTasks(subsystem, liniaKolejowa);
     case 'SMW':
-      return generateSmwTasks(subsystem);
+      return generateSmwTasks(subsystem, liniaKolejowa);
     case 'SKD':
-      return generateSkdTasks(subsystem);
+      return generateSkdTasks(subsystem, liniaKolejowa);
     default:
-      return generateGenericTasks(subsystem);
+      return generateGenericTasks(subsystem, liniaKolejowa);
   }
 };
 
 /**
  * Generate all tasks from all subsystems
  */
-export const generateAllTasks = (subsystems: SubsystemWizardData[]): GeneratedTask[] => {
+export const generateAllTasks = (subsystems: SubsystemWizardData[], liniaKolejowa?: string): GeneratedTask[] => {
   const allTasks: GeneratedTask[] = [];
   
   subsystems.forEach((subsystem) => {
-    const tasks = generateTasksForSubsystem(subsystem);
+    const tasks = generateTasksForSubsystem(subsystem, liniaKolejowa);
     allTasks.push(...tasks);
   });
   

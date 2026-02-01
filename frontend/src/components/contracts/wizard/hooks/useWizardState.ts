@@ -51,6 +51,7 @@ export const useWizardState = ({
     orderDate: '',
     projectManagerId: initialUserId,
     managerCode: initialEmployeeCode,
+    liniaKolejowa: '', // Initialize railway line field
     subsystems: []
   });
 
@@ -340,7 +341,8 @@ export const useWizardState = ({
         customName: contract.customName || '',
         orderDate: contract.orderDate?.split('T')[0] || '',
         projectManagerId: contract.projectManagerId?.toString() || '',
-        managerCode: contract.managerCode || ''
+        managerCode: contract.managerCode || '',
+        liniaKolejowa: (contract as any).liniaKolejowa || '' // Load liniaKolejowa if present
       }));
       
       // 2. Fetch subsystems from backend

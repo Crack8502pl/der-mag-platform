@@ -103,7 +103,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         setError(validation.error!);
         return;
       }
-      setGeneratedTasks(generateAllTasks(wizardData.subsystems));
+      setGeneratedTasks(generateAllTasks(wizardData.subsystems, wizardData.liniaKolejowa));
     }
     
     // Initialize taskDetails for SMOKIP when leaving config step

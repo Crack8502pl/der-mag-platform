@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../config/subsystemWizardConfig';
-import { validateContractNumber } from '../utils/validation';
+import { validateContractNumber, formatLiniaKolejowa } from '../utils/validation';
 import type { WizardData } from '../types/wizard.types';
 import type { User as AdminUser, Role } from '../../../../types/admin.types';
 import { api } from '../../../../services/api';
@@ -121,6 +121,13 @@ export const BasicDataStep: React.FC<Props> = ({
     });
   };
 
+  const handleLiniaKolejowaBlur = (value: string) => {
+    if (value.trim()) {
+      const formatted = formatLiniaKolejowa(value);
+      onUpdate({ liniaKolejowa: formatted });
+    }
+  };
+
   return (
     <div className="wizard-step-content">
       <h3>Krok 1: Dane podstawowe</h3>
@@ -155,6 +162,22 @@ export const BasicDataStep: React.FC<Props> = ({
             }).join(', ')}
           </div>
         )}
+      </div>
+      
+      <div className="form-group">
+        <label>
+          Linia kolejowa <span className="text-muted">(opcjonalne)</span>
+        </label>
+        <input
+          type="text"
+          value={wizardData.liniaKolejowa || ''}
+          onChange={(e) => onUpdate({ liniaKolejowa: e.target.value })}
+          onBlur={(e) => handleLiniaKolejowaBlur(e.target.value)}
+          placeholder="np. LK-221, E-20"
+        />
+        <small className="form-help">
+          Format zostanie automatycznie znormalizowany (np. "lk 221" → "LK-221")
+        </small>
       </div>
       
       <div className="form-group">

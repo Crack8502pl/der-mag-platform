@@ -112,9 +112,10 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
                   <label>Kilometraż (opcjonalnie)</label>
                   <input
                     type="text"
-                    placeholder="np. 123,456"
+                    placeholder="123456"
                     value={detail.kilometraz || ''}
-                    onChange={(e) => onUpdateTask(subsystemIndex, idx, { kilometraz: e.target.value })}
+                    onChange={(e) => handleKilometrazInput(subsystemIndex, idx, e.target.value)}
+                    onBlur={(e) => handleKilometrazBlur(subsystemIndex, idx, e.target.value)}
                   />
                   <small className="form-help">{OPTIONAL_KILOMETRAZ_HELP}</small>
                 </div>
@@ -145,9 +146,10 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
                   <label>Kilometraż (opcjonalnie)</label>
                   <input
                     type="text"
-                    placeholder="np. 123,456"
+                    placeholder="123456"
                     value={detail.kilometraz || ''}
-                    onChange={(e) => onUpdateTask(subsystemIndex, idx, { kilometraz: e.target.value })}
+                    onChange={(e) => handleKilometrazInput(subsystemIndex, idx, e.target.value)}
+                    onBlur={(e) => handleKilometrazBlur(subsystemIndex, idx, e.target.value)}
                   />
                   <small className="form-help">{OPTIONAL_KILOMETRAZ_HELP}</small>
                 </div>
