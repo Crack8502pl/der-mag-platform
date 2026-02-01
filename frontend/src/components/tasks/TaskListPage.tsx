@@ -239,7 +239,9 @@ export const TaskListPage: React.FC = () => {
               <th onClick={() => handleSort('priority')} className="sortable">
                 Priorytet {getSortIcon('priority')}
               </th>
-              <th>Kontrakt</th>
+              <th onClick={() => handleSort('contractNumber')} className="sortable">
+                Kontrakt {getSortIcon('contractNumber')}
+              </th>
               <th onClick={() => handleSort('createdAt')} className="sortable">
                 Data utworzenia {getSortIcon('createdAt')}
               </th>
