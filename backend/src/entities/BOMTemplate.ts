@@ -37,6 +37,9 @@ export class BOMTemplate {
   @Column({ type: 'varchar', length: 100, nullable: true })
   category: string;
 
+  @Column({ name: 'system_type', type: 'varchar', length: 50, nullable: true })
+  systemType?: string;
+
   @Column({ name: 'part_number', type: 'varchar', length: 100, nullable: true })
   partNumber: string;
 
