@@ -544,7 +544,7 @@ const MaterialFormModal: React.FC<{
   // Warehouse search state
   const [warehouseResults, setWarehouseResults] = useState<WarehouseStock[]>([]);
   const [showWarehouseDropdown, setShowWarehouseDropdown] = useState(false);
-  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   // Search warehouse stock with debounce
   const searchWarehouse = async (term: string) => {
