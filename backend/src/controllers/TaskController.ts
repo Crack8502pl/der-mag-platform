@@ -33,7 +33,6 @@ export class TaskController {
       const queryBuilder = taskRepository
         .createQueryBuilder('task')
         .leftJoinAndSelect('task.taskType', 'taskType')
-        .leftJoinAndSelect('task.contract', 'contract')
         .where('task.deleted_at IS NULL');
 
       if (status) {
@@ -56,11 +55,16 @@ export class TaskController {
 
       queryBuilder.take(take).skip(skip);
 
-      // POPRAWIONE: Dynamiczne sortowanie z prawidłowym mapowaniem
-      // Używamy nazw z ENCJI (camelCase), NIE nazw kolumn bazy danych (snake_case)
+      // FIXED: Dynamic sorting with proper field mapping
+      // Use ENTITY property names (camelCase), NOT database column names (snake_case)
       const allowedSortFields = ['taskNumber', 'title', 'status', 'priority', 'createdAt', 'updatedAt', 'taskType', 'contractNumber'];
       const sortField = allowedSortFields.includes(sortBy as string) ? sortBy as string : 'createdAt';
       const order = (sortOrder as string)?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+      
+      // Add contract join only when sorting by contractNumber
+      if (sortField === 'contractNumber') {
+        queryBuilder.leftJoinAndSelect('task.contract', 'contract');
+      }
       
       switch (sortField) {
         case 'taskNumber':
