@@ -152,7 +152,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           customName: wizardData.customName,
           orderDate: wizardData.orderDate,
           projectManagerId: parseInt(wizardData.projectManagerId),
-          managerCode: wizardData.managerCode
+          managerCode: wizardData.managerCode,
+          liniaKolejowa: wizardData.liniaKolejowa || undefined
         });
         
         // 2. Add only NEW subsystems (without isExisting flag)
@@ -233,6 +234,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           orderDate: wizardData.orderDate,
           projectManagerId: parseInt(wizardData.projectManagerId),
           managerCode: wizardData.managerCode,
+          liniaKolejowa: wizardData.liniaKolejowa || undefined,
           subsystems: subsystemsData
         });
         
