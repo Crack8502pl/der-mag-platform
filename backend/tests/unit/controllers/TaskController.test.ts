@@ -112,6 +112,54 @@ describe('TaskController', () => {
       );
     });
 
+    it('should sort tasks by specified field in ascending order', async () => {
+      const mockQueryBuilder = createMockQueryBuilder<Task>();
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+      mockTaskRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
+      req.query = { sortBy: 'title', sortOrder: 'ASC' };
+
+      await TaskController.list(req as Request, res as Response);
+
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('task.title', 'ASC');
+    });
+
+    it('should sort tasks by specified field in descending order', async () => {
+      const mockQueryBuilder = createMockQueryBuilder<Task>();
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+      mockTaskRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
+      req.query = { sortBy: 'status', sortOrder: 'DESC' };
+
+      await TaskController.list(req as Request, res as Response);
+
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('task.status', 'DESC');
+    });
+
+    it('should default to createdAt DESC when no sort parameters provided', async () => {
+      const mockQueryBuilder = createMockQueryBuilder<Task>();
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+      mockTaskRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
+      req.query = {};
+
+      await TaskController.list(req as Request, res as Response);
+
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('task.created_at', 'DESC');
+    });
+
+    it('should reject invalid sort field and default to createdAt', async () => {
+      const mockQueryBuilder = createMockQueryBuilder<Task>();
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+      mockTaskRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
+      req.query = { sortBy: 'invalidField', sortOrder: 'ASC' };
+
+      await TaskController.list(req as Request, res as Response);
+
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('task.created_at', 'ASC');
+    });
+
     it('should return 500 on error', async () => {
       mockTaskRepository.createQueryBuilder.mockImplementation(() => {
         throw new Error('Database error');
