@@ -145,7 +145,7 @@ describe('TaskController', () => {
 
       await TaskController.list(req as Request, res as Response);
 
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('task.created_at', 'DESC');
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('task.createdAt', 'DESC');
     });
 
     it('should reject invalid sort field and default to createdAt', async () => {
@@ -157,7 +157,67 @@ describe('TaskController', () => {
 
       await TaskController.list(req as Request, res as Response);
 
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('task.created_at', 'ASC');
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('task.createdAt', 'ASC');
+    });
+
+    it('should sort tasks by taskNumber', async () => {
+      const mockQueryBuilder = createMockQueryBuilder<Task>();
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+      mockTaskRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
+      req.query = { sortBy: 'taskNumber', sortOrder: 'ASC' };
+
+      await TaskController.list(req as Request, res as Response);
+
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('task.taskNumber', 'ASC');
+    });
+
+    it('should sort tasks by createdAt', async () => {
+      const mockQueryBuilder = createMockQueryBuilder<Task>();
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+      mockTaskRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
+      req.query = { sortBy: 'createdAt', sortOrder: 'DESC' };
+
+      await TaskController.list(req as Request, res as Response);
+
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('task.createdAt', 'DESC');
+    });
+
+    it('should sort tasks by updatedAt', async () => {
+      const mockQueryBuilder = createMockQueryBuilder<Task>();
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+      mockTaskRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
+      req.query = { sortBy: 'updatedAt', sortOrder: 'ASC' };
+
+      await TaskController.list(req as Request, res as Response);
+
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('task.updatedAt', 'ASC');
+    });
+
+    it('should sort tasks by taskType', async () => {
+      const mockQueryBuilder = createMockQueryBuilder<Task>();
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+      mockTaskRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
+      req.query = { sortBy: 'taskType', sortOrder: 'ASC' };
+
+      await TaskController.list(req as Request, res as Response);
+
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('taskType.name', 'ASC');
+    });
+
+    it('should sort tasks by contractNumber', async () => {
+      const mockQueryBuilder = createMockQueryBuilder<Task>();
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+      mockTaskRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
+      req.query = { sortBy: 'contractNumber', sortOrder: 'DESC' };
+
+      await TaskController.list(req as Request, res as Response);
+
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('task.contractNumber', 'DESC');
     });
 
     it('should return 500 on error', async () => {
