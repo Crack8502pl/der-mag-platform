@@ -24,7 +24,9 @@ export class TaskController {
         limit = PAGINATION.DEFAULT_LIMIT,
         status,
         taskTypeId,
-        search
+        search,
+        sortBy = 'createdAt',
+        sortOrder = 'DESC'
       } = req.query;
 
       const taskRepository = AppDataSource.getRepository(Task);
@@ -52,7 +54,24 @@ export class TaskController {
       const skip = (Number(page) - 1) * take;
 
       queryBuilder.take(take).skip(skip);
-      queryBuilder.orderBy('task.createdAt', 'DESC');
+
+      // Dynamiczne sortowanie z whitelistą dozwolonych pól
+      const allowedSortFields = ['taskNumber', 'title', 'status', 'priority', 'createdAt', 'updatedAt'];
+      const sortField = allowedSortFields.includes(sortBy as string) ? sortBy as string : 'createdAt';
+      const order = (sortOrder as string)?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+      
+      // Mapowanie nazw pól na kolumny bazy danych
+      const fieldMap: Record<string, string> = {
+        taskNumber: 'task.task_number',
+        title: 'task.title',
+        status: 'task.status',
+        priority: 'task.priority',
+        createdAt: 'task.created_at',
+        updatedAt: 'task.updated_at'
+      };
+      
+      const sortColumn = fieldMap[sortField] || 'task.created_at';
+      queryBuilder.orderBy(sortColumn, order);
 
       const [tasks, total] = await queryBuilder.getManyAndCount();
 
