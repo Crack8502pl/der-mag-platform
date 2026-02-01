@@ -124,7 +124,27 @@ const authLimiter = rateLimit({
   }
 });
 
-// Ogólny rate limiter
+// Rate limiter dla operacji read-only (GET) - wyższy limit per IP
+const readLimiter = rateLimit({
+  windowMs: RATE_LIMIT.READ_WINDOW_MS,
+  max: RATE_LIMIT.READ_MAX_REQUESTS,
+  message: { 
+    success: false, 
+    message: 'Zbyt wiele żądań odczytu, spróbuj ponownie za chwilę',
+    code: 'RATE_LIMIT_READ',
+    retryAfter: Math.ceil(RATE_LIMIT.READ_WINDOW_MS / 1000)
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    // Per IP + endpoint dla lepszej granularności
+    return `${req.ip}-read`;
+  },
+  // Zastosuj TYLKO dla GET requests
+  skip: (req) => req.method !== 'GET'
+});
+
+// Ogólny rate limiter - pomiń GET requests (mają własny limiter)
 const apiLimiter = rateLimit({
   windowMs: RATE_LIMIT.WINDOW_MS,
   max: RATE_LIMIT.MAX_REQUESTS,
@@ -138,13 +158,15 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
   skip: (req) => {
     // Pomiń endpointy auth - mają własny limiter
-    return req.path.startsWith('/api/auth/');
+    // Pomiń GET requests - mają własny limiter (readLimiter)
+    return req.path.startsWith('/api/auth/') || req.method === 'GET';
   }
 });
 
-// Aplikuj limitery
+// Aplikuj limitery w odpowiedniej kolejności
 app.use('/api/auth/', authLimiter);
-app.use('/api/', apiLimiter);
+app.use('/api/', readLimiter);   // dla GET requests
+app.use('/api/', apiLimiter);    // dla POST/PUT/DELETE
 
 // Rate limiting for debug endpoints (more permissive than API)
 const debugLimiter = rateLimit({

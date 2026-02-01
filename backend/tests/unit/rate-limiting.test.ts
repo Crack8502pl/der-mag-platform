@@ -22,6 +22,15 @@ describe('Rate Limiting Configuration', () => {
       expect(RATE_LIMIT.AUTH_MAX_REQUESTS).toBeGreaterThan(0);
     });
 
+    it('should have correct default values for read-only (GET) endpoints', () => {
+      expect(typeof RATE_LIMIT.READ_WINDOW_MS).toBe('number');
+      expect(typeof RATE_LIMIT.READ_MAX_REQUESTS).toBe('number');
+      
+      // Check they are positive
+      expect(RATE_LIMIT.READ_WINDOW_MS).toBeGreaterThan(0);
+      expect(RATE_LIMIT.READ_MAX_REQUESTS).toBeGreaterThan(0);
+    });
+
     it('should have auth limits more permissive than general API (when measured per same time window)', () => {
       // Auth: 30 requests per minute = 30/60000ms = 0.0005 req/ms
       // General: 100 requests per 15 min = 100/900000ms = 0.00011 req/ms
@@ -33,9 +42,25 @@ describe('Rate Limiting Configuration', () => {
       expect(authRatePerMs).toBeGreaterThan(generalRatePerMs);
     });
 
+    it('should have read limits more permissive than general API (when measured per same time window)', () => {
+      // Read: 200 requests per minute = 200/60000ms = 0.00333 req/ms
+      // General: 100 requests per 15 min = 100/900000ms = 0.00011 req/ms
+      // So read should be roughly 30x more permissive
+      
+      const readRatePerMs = RATE_LIMIT.READ_MAX_REQUESTS / RATE_LIMIT.READ_WINDOW_MS;
+      const generalRatePerMs = RATE_LIMIT.MAX_REQUESTS / RATE_LIMIT.WINDOW_MS;
+      
+      expect(readRatePerMs).toBeGreaterThan(generalRatePerMs);
+    });
+
     it('should have auth window shorter than general API window', () => {
       // Auth endpoints should reset faster
       expect(RATE_LIMIT.AUTH_WINDOW_MS).toBeLessThan(RATE_LIMIT.WINDOW_MS);
+    });
+
+    it('should have read window shorter than general API window', () => {
+      // Read endpoints should reset faster
+      expect(RATE_LIMIT.READ_WINDOW_MS).toBeLessThan(RATE_LIMIT.WINDOW_MS);
     });
   });
 
@@ -46,6 +71,8 @@ describe('Rate Limiting Configuration', () => {
       expect(Number.isInteger(RATE_LIMIT.MAX_REQUESTS)).toBe(true);
       expect(Number.isInteger(RATE_LIMIT.AUTH_WINDOW_MS)).toBe(true);
       expect(Number.isInteger(RATE_LIMIT.AUTH_MAX_REQUESTS)).toBe(true);
+      expect(Number.isInteger(RATE_LIMIT.READ_WINDOW_MS)).toBe(true);
+      expect(Number.isInteger(RATE_LIMIT.READ_MAX_REQUESTS)).toBe(true);
     });
   });
 });

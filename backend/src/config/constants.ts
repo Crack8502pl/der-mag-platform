@@ -83,6 +83,10 @@ export const RATE_LIMIT = {
   // Osobny, wyższy limit dla endpointów auth (refresh, me, login)
   AUTH_WINDOW_MS: parseInt(process.env.RATE_LIMIT_AUTH_WINDOW_MS || '60000'), // 1 minuta
   AUTH_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_AUTH_MAX_REQUESTS || '30'), // 30 na minutę
+  
+  // Higher limit for read-only operations (GET requests)
+  READ_WINDOW_MS: parseInt(process.env.RATE_LIMIT_READ_WINDOW_MS || '60000'), // 1 minuta
+  READ_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_READ_MAX_REQUESTS || '200'), // 200 req/min per user
 } as const;
 
 // Typy i kategorie dokumentów
