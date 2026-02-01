@@ -275,3 +275,10 @@ a:hover {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-color);
 }
+
+/* Checkbox inline group for wizard forms */
+.checkbox-inline-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

@@ -39,6 +39,7 @@ export interface WizardData {
   orderDate: string;
   projectManagerId: string;
   managerCode: string;
+  liniaKolejowa?: string; // Optional railway line field
   subsystems: SubsystemWizardData[];
 }
 
