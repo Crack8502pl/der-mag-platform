@@ -17,6 +17,7 @@ export const WarehouseStockDetailModal: React.FC<Props> = ({ item, onClose }) =>
 
   useEffect(() => {
     loadHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item.id]);
 
   const loadHistory = async () => {
@@ -64,7 +65,7 @@ export const WarehouseStockDetailModal: React.FC<Props> = ({ item, onClose }) =>
     });
   };
 
-  const InfoRow: React.FC<{ label: string; value: any }> = ({ label, value }) => (
+  const InfoRow: React.FC<{ label: string; value: string | number | null | undefined }> = ({ label, value }) => (
     <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: '12px', padding: '8px 0', borderBottom: '1px solid var(--border-color)' }}>
       <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>{label}:</span>
       <span style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: '500' }}>

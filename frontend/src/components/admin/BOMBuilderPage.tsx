@@ -133,6 +133,7 @@ const MaterialsTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
   useEffect(() => {
     loadMaterials();
     loadCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory, searchTerm]);
 
   const loadMaterials = async () => {
@@ -542,7 +543,6 @@ const MaterialFormModal: React.FC<{
   const [saving, setSaving] = useState(false);
   
   // Warehouse search state
-  const [warehouseSearchTerm, setWarehouseSearchTerm] = useState('');
   const [warehouseResults, setWarehouseResults] = useState<WarehouseStock[]>([]);
   const [showWarehouseDropdown, setShowWarehouseDropdown] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -566,7 +566,6 @@ const MaterialFormModal: React.FC<{
   // Handle material name change with warehouse search
   const handleMaterialNameChange = (value: string) => {
     setFormData({ ...formData, materialName: value });
-    setWarehouseSearchTerm(value);
     
     // Clear existing timeout
     if (searchTimeout) {
@@ -590,7 +589,6 @@ const MaterialFormModal: React.FC<{
       unit: item.unit,
       category: item.category || formData.category,
     });
-    setWarehouseSearchTerm('');
     setShowWarehouseDropdown(false);
     setWarehouseResults([]);
   };
@@ -606,8 +604,8 @@ const MaterialFormModal: React.FC<{
         await bomTemplateService.createTemplate(formData as CreateTemplateDto);
       }
       onSuccess();
-    } catch (err: any) {
-      alert('Błąd: ' + err.message);
+    } catch (err) {
+      alert('Błąd: ' + (err as Error).message);
     } finally {
       setSaving(false);
     }

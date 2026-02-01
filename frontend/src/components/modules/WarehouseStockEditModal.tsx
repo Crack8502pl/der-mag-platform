@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { warehouseStockService } from '../../services/warehouseStock.service';
-import type { WarehouseStock, MaterialType, StockStatus } from '../../types/warehouseStock.types';
+import type { WarehouseStock, MaterialType } from '../../types/warehouseStock.types';
 import './WarehouseStockPage.css';
 
 interface Props {
@@ -81,7 +81,7 @@ export const WarehouseStockEditModal: React.FC<Props> = ({ item, onClose, onSucc
       setError('');
       
       // Przygotuj dane - usuń puste wartości opcjonalne
-      const dataToSend: any = { ...formData };
+      const dataToSend: Partial<WarehouseStock> = { ...formData };
       if (!dataToSend.minStockLevel) delete dataToSend.minStockLevel;
       if (!dataToSend.maxStockLevel) delete dataToSend.maxStockLevel;
       if (!dataToSend.reorderPoint) delete dataToSend.reorderPoint;
@@ -95,14 +95,14 @@ export const WarehouseStockEditModal: React.FC<Props> = ({ item, onClose, onSucc
       }
       
       onSuccess();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Błąd podczas zapisywania materiału');
+    } catch (err) {
+      setError((err as Error & { response?: { data?: { message?: string } } })?.response?.data?.message || 'Błąd podczas zapisywania materiału');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleChange = (field: string, value: any) => {
+  const handleChange = (field: string, value: string | number | boolean | undefined) => {
     setFormData({ ...formData, [field]: value });
   };
 
