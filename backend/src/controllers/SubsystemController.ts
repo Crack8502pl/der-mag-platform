@@ -577,6 +577,7 @@ export class SubsystemController {
 
       const createdTasks = [];
       const createdMainTasks = [];
+      const failedMainTasks = [];
       
       for (const taskData of tasks) {
         try {
@@ -626,6 +627,7 @@ export class SubsystemController {
 
           } catch (taskError) {
             console.error(`Failed to create main task for ${taskData.name}:`, taskError);
+            failedMainTasks.push(taskData.name || 'Unknown task');
             // Continue with next task - don't break entire process
           }
         } catch (error) {
@@ -638,7 +640,11 @@ export class SubsystemController {
         message: `Utworzono ${createdTasks.length} zadań pomyślnie`,
         data: createdTasks,
         count: createdTasks.length,
-        mainTasksCreated: createdMainTasks.length
+        mainTasksCreated: createdMainTasks.length,
+        ...(failedMainTasks.length > 0 && { 
+          warning: `Nie udało się utworzyć głównych zadań dla: ${failedMainTasks.join(', ')}`,
+          failedMainTasks 
+        })
       });
     } catch (error: any) {
       res.status(400).json({
