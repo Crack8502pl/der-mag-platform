@@ -38,6 +38,7 @@ export interface Contract {
   customName: string;
   orderDate: string;
   managerCode: string;
+  liniaKolejowa?: string;
   status: string;
   projectManagerId?: number;
   projectManager?: {
@@ -60,6 +61,7 @@ export interface CreateContractDto {
   managerCode: string;
   projectManagerId: number;
   jowiszRef?: string;
+  liniaKolejowa?: string;
 }
 
 class ContractService {
@@ -120,6 +122,7 @@ class ContractService {
     orderDate: string;
     projectManagerId: number;
     managerCode: string;
+    liniaKolejowa?: string;
     subsystems?: Array<{
       type: string;
       params: Record<string, number | boolean | any>;  // Allow complex objects like SmwWizardData

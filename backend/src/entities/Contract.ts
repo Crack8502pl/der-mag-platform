@@ -34,6 +34,9 @@ export class Contract {
   @Column({ name: 'jowisz_ref', type: 'varchar', length: 100, nullable: true })
   jowiszRef: string; // Referencja API Jowisz
 
+  @Column({ name: 'linia_kolejowa', type: 'varchar', length: 20, nullable: true })
+  liniaKolejowa: string; // Format: LK-221, E-20 (opcjonalne)
+
   @ManyToOne(() => User)
   @JoinColumn({ name: 'project_manager_id' })
   projectManager: User;

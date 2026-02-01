@@ -132,7 +132,8 @@ export class ContractController {
         orderDate,
         managerCode,
         projectManagerId,
-        jowiszRef
+        jowiszRef,
+        liniaKolejowa
       } = req.body;
 
       // Walidacja wymaganych pól
@@ -160,7 +161,8 @@ export class ContractController {
         orderDate: new Date(orderDate),
         managerCode,
         projectManagerId,
-        jowiszRef
+        jowiszRef,
+        liniaKolejowa
       }, (req as any).userId);
 
       res.status(201).json({
@@ -364,7 +366,8 @@ export class ContractController {
         customName,
         orderDate: new Date(orderDate),
         managerCode,
-        projectManagerId: parseInt(projectManagerId)
+        projectManagerId: parseInt(projectManagerId),
+        liniaKolejowa: req.body.liniaKolejowa
       });
 
       // 2. Utwórz podsystemy

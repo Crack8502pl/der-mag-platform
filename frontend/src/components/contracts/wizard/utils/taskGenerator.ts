@@ -227,10 +227,11 @@ const generateSmwTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: string
           const cabinetInfo = platform.cabinets && platform.cabinets.length > 0
             ? ` (${platform.cabinets.length} szaf)`
             : '';
-          // SMW tasks don't use the new format with pipes
           tasks.push({
             number: '',
-            name: `${station.name || `Stacja ${stationIdx + 1}`} - Peron ${platform.platformNumber}${cabinetInfo}`,
+            name: lk 
+              ? `${lk} | ${station.name || `Stacja ${stationIdx + 1}`} - Peron ${platform.platformNumber}${cabinetInfo}`
+              : `${station.name || `Stacja ${stationIdx + 1}`} - Peron ${platform.platformNumber}${cabinetInfo}`,
             type: 'SMW_PLATFORM',
             subsystemType: subsystem.type
           });
@@ -248,7 +249,9 @@ const generateSmwTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: string
     const cabinetInfo = sokCabinets.length > 0 ? ` (${sokCabinets.length} szaf)` : '';
     tasks.push({
       number: '',
-      name: `SOK${smwData.sokConfig.nameAddress ? ` - ${smwData.sokConfig.nameAddress}` : ''}${cabinetInfo}`,
+      name: lk 
+        ? `${lk} | SOK${smwData.sokConfig.nameAddress ? ` - ${smwData.sokConfig.nameAddress}` : ''}${cabinetInfo}`
+        : `SOK${smwData.sokConfig.nameAddress ? ` - ${smwData.sokConfig.nameAddress}` : ''}${cabinetInfo}`,
       type: 'SMW_SOK',
       subsystemType: subsystem.type
     });
@@ -261,7 +264,9 @@ const generateSmwTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: string
     const cabinetInfo = extraCabinets.length > 0 ? ` (${extraCabinets.length} szaf)` : '';
     tasks.push({
       number: '',
-      name: `Stanowisko Oglądowe${smwData.extraViewingConfig.nameAddress ? ` - ${smwData.extraViewingConfig.nameAddress}` : ''}${cabinetInfo}`,
+      name: lk 
+        ? `${lk} | Stanowisko Oglądowe${smwData.extraViewingConfig.nameAddress ? ` - ${smwData.extraViewingConfig.nameAddress}` : ''}${cabinetInfo}`
+        : `Stanowisko Oglądowe${smwData.extraViewingConfig.nameAddress ? ` - ${smwData.extraViewingConfig.nameAddress}` : ''}${cabinetInfo}`,
       type: 'SMW_EXTRA_VIEWING',
       subsystemType: subsystem.type
     });
@@ -274,7 +279,7 @@ const generateSmwTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: string
     const cabinetInfo = lcsCabinets.length > 0 ? ` (${lcsCabinets.length} szaf)` : '';
     tasks.push({
       number: '',
-      name: `LCS${cabinetInfo}`,
+      name: lk ? `${lk} | LCS${cabinetInfo}` : `LCS${cabinetInfo}`,
       type: 'SMW_LCS',
       subsystemType: subsystem.type
     });
@@ -303,12 +308,13 @@ const generateSmwTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: string
 const generateSkdTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: string): GeneratedTask[] => {
   const tasks: GeneratedTask[] = [];
   const params = subsystem.params as Record<string, number | boolean>;
+  const lk = liniaKolejowa || '';
   
-  // SKD tasks don't use the new format with pipes - keep original format
+  // SKD tasks with optional linia kolejowa prefix
   for (let i = 0; i < getNumericValue(params, 'iloscBudynkow'); i++) {
     tasks.push({
       number: '',
-      name: `Budynek SKD #${i + 1}`,
+      name: lk ? `${lk} | Budynek SKD #${i + 1}` : `Budynek SKD #${i + 1}`,
       type: 'BUDYNEK',
       subsystemType: subsystem.type
     });
@@ -316,7 +322,7 @@ const generateSkdTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: string
   for (let i = 0; i < getNumericValue(params, 'iloscKontenerow'); i++) {
     tasks.push({
       number: '',
-      name: `Kontener SKD #${i + 1}`,
+      name: lk ? `${lk} | Kontener SKD #${i + 1}` : `Kontener SKD #${i + 1}`,
       type: 'KONTENER',
       subsystemType: subsystem.type
     });
@@ -324,7 +330,7 @@ const generateSkdTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: string
   for (let i = 0; i < getNumericValue(params, 'iloscPrzejsc'); i++) {
     tasks.push({
       number: '',
-      name: `Przejście #${i + 1}`,
+      name: lk ? `${lk} | Przejście #${i + 1}` : `Przejście #${i + 1}`,
       type: 'PRZEJSCIE',
       subsystemType: subsystem.type
     });
@@ -341,12 +347,13 @@ const generateGenericTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: st
   const params = subsystem.params as Record<string, number | boolean>;
   const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
   const subsystemLabel = config?.label || 'Zadanie';
+  const lk = liniaKolejowa || '';
   
-  // Generic tasks don't use the new format with pipes - keep original format
+  // Generic tasks with optional linia kolejowa prefix
   for (let i = 0; i < getNumericValue(params, 'iloscBudynkow'); i++) {
     tasks.push({
       number: '',
-      name: `${subsystemLabel} - Budynek #${i + 1}`,
+      name: lk ? `${lk} | ${subsystemLabel} - Budynek #${i + 1}` : `${subsystemLabel} - Budynek #${i + 1}`,
       type: 'BUDYNEK',
       subsystemType: subsystem.type
     });
@@ -354,7 +361,7 @@ const generateGenericTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: st
   for (let i = 0; i < getNumericValue(params, 'iloscPomieszczen'); i++) {
     tasks.push({
       number: '',
-      name: `${subsystemLabel} - Pomieszczenie #${i + 1}`,
+      name: lk ? `${lk} | ${subsystemLabel} - Pomieszczenie #${i + 1}` : `${subsystemLabel} - Pomieszczenie #${i + 1}`,
       type: 'POMIESZCZENIE',
       subsystemType: subsystem.type
     });
@@ -362,7 +369,7 @@ const generateGenericTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: st
   for (let i = 0; i < getNumericValue(params, 'iloscKontenerow'); i++) {
     tasks.push({
       number: '',
-      name: `${subsystemLabel} - Kontener #${i + 1}`,
+      name: lk ? `${lk} | ${subsystemLabel} - Kontener #${i + 1}` : `${subsystemLabel} - Kontener #${i + 1}`,
       type: 'KONTENER',
       subsystemType: subsystem.type
     });
