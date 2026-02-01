@@ -176,10 +176,10 @@ export const ContractDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Subsystems Card */}
+      {/* Subsystems Table - Nowy układ zgodny z grover-theme */}
       <div className="subsystems-card card">
         <div className="card-header">
-          <h2>Podsystemy</h2>
+          <h2>Podsystemy i Zadania</h2>
           <div className="subsystems-count">
             {contract.subsystems?.length || 0} podsystemów
           </div>
@@ -190,35 +190,52 @@ export const ContractDetailPage: React.FC = () => {
             <p>Brak podsystemów dla tego kontraktu</p>
           </div>
         ) : (
-          <div className="subsystems-list">
-            {contract.subsystems.map((subsystem) => (
-              <div key={subsystem.id} className="subsystem-item">
-                <div className="subsystem-header">
-                  <div className="subsystem-name">
-                    <strong>{subsystem.subsystemNumber}</strong>
-                  </div>
-                  <div className="subsystem-meta">
-                    {subsystem.systemType}
-                  </div>
-                </div>
-                
-                {/* Lista zadań */}
-                {subsystem.tasks && subsystem.tasks.length > 0 ? (
-                  <div className="subsystem-tasks-list">
-                    <h4>Zadania ({subsystem.tasks.length}):</h4>
-                    <ul>
-                      {subsystem.tasks.map((task: SubsystemTask) => (
-                        <li key={task.id}>
-                          <code>{task.taskNumber}</code> - {task.taskName}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : (
-                  <div className="no-tasks">Brak zadań</div>
-                )}
-              </div>
-            ))}
+          <div className="subsystems-table-wrapper">
+            <table className="subsystems-table">
+              <thead>
+                <tr>
+                  <th colSpan={2} className="table-title">
+                    {contract.customName} - Struktura podsystemów
+                  </th>
+                </tr>
+                <tr>
+                  <th>Podsystem</th>
+                  <th>Zadania</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contract.subsystems.map((subsystem) => (
+                  <tr key={subsystem.id}>
+                    <td className="subsystem-cell">
+                      <div className="subsystem-info">
+                        <code className="subsystem-number">{subsystem.subsystemNumber}</code>
+                        <span className="subsystem-type">{subsystem.systemType}</span>
+                        {subsystem.ipPool && (
+                          <span className="ip-pool-tag">🌐 {subsystem.ipPool}</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="tasks-cell">
+                      {subsystem.tasks && subsystem.tasks.length > 0 ? (
+                        <ul className="tasks-list">
+                          {subsystem.tasks.map((task: SubsystemTask) => (
+                            <li key={task.id}>
+                              <code className="task-number">{task.taskNumber}</code>
+                              <span className="task-name">{task.taskName}</span>
+                              <span className={`task-status task-status--${(task.status || 'created').toLowerCase()}`}>
+                                {task.status || 'CREATED'}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span className="no-tasks-text">Brak zadań</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
