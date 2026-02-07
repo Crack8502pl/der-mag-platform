@@ -83,14 +83,17 @@ describe('BomSubsystemTemplateService', () => {
         }
       });
       
-      // Second call: fallback to general
-      expect(mockTemplateRepository.findOne).toHaveBeenNthCalledWith(2, expect.objectContaining({
-        relations: ['items', 'items.warehouseStock', 'items.dependsOnItem'],
-        order: {
-          version: 'DESC',
-          items: { sortOrder: 'ASC' }
-        }
-      }));
+      // Second call: fallback to general - verify the where clause explicitly
+      const secondCall = mockTemplateRepository.findOne.mock.calls[1][0];
+      expect(secondCall.where.subsystemType).toBe('PRZEJAZD');
+      expect(secondCall.where.isActive).toBe(true);
+      // taskVariant should be In([null, '_GENERAL'])
+      expect(secondCall.where.taskVariant).toBeDefined();
+      expect(secondCall.relations).toEqual(['items', 'items.warehouseStock', 'items.dependsOnItem']);
+      expect(secondCall.order).toEqual({
+        version: 'DESC',
+        items: { sortOrder: 'ASC' }
+      });
     });
 
     it('should return general template when no taskVariant specified', async () => {
@@ -121,7 +124,7 @@ describe('BomSubsystemTemplateService', () => {
       expect(mockTemplateRepository.findOne).toHaveBeenCalledTimes(2);
     });
 
-    it('should handle taskVariant as empty string', async () => {
+    it('should handle taskVariant as null', async () => {
       const mockGeneralTemplate: Partial<BomSubsystemTemplate> = {
         id: 4,
         subsystemType: 'PRZEJAZD' as any,
