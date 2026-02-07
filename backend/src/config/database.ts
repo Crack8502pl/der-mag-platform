@@ -48,6 +48,17 @@ import { WarehouseLocation } from '../entities/WarehouseLocation';
 import { BomSubsystemTemplate } from '../entities/BomSubsystemTemplate';
 import { BomSubsystemTemplateItem } from '../entities/BomSubsystemTemplateItem';
 import { BomGroup } from '../entities/BomGroup';
+// Missing entities
+import { BomDependencyRule } from '../entities/BomDependencyRule';
+import { Document } from '../entities/Document';
+import { DocumentTemplate } from '../entities/DocumentTemplate';
+import { MaterialImport } from '../entities/MaterialImport';
+import { SystemConfig } from '../entities/SystemConfig';
+import { NotificationSchedule } from '../entities/NotificationSchedule';
+import { ServiceTask } from '../entities/ServiceTask';
+import { ServiceTaskActivity } from '../entities/ServiceTaskActivity';
+import { Brigade } from '../entities/Brigade';
+import { BrigadeMember } from '../entities/BrigadeMember';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -106,7 +117,24 @@ export const AppDataSource = new DataSource({
     BomSubsystemTemplate,
     BomSubsystemTemplateItem,
     // BOM Groups
-    BomGroup
+    BomGroup,
+    // BOM Dependency Rules
+    BomDependencyRule,
+    // Document Management
+    Document,
+    DocumentTemplate,
+    // Material Import
+    MaterialImport,
+    // System Config
+    SystemConfig,
+    // Notification Schedules
+    NotificationSchedule,
+    // Service Tasks
+    ServiceTask,
+    ServiceTaskActivity,
+    // Brigades
+    Brigade,
+    BrigadeMember,
   ],
   subscribers: [],
   migrations: [],
