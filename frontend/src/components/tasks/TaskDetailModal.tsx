@@ -165,6 +165,48 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
                 </div>
               </div>
             )}
+
+            {/* BOM Materials Section */}
+            {task.metadata?.bomMaterials && task.metadata.bomMaterials.length > 0 && (
+              <div className="form-group" style={{ marginTop: '20px' }}>
+                <label>📦 Materiały BOM</label>
+                <div style={{ marginTop: '10px' }}>
+                  <div className="table-container">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Materiał</th>
+                          <th>Ilość</th>
+                          <th>Jednostka</th>
+                          <th>Kategoria</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {task.metadata.bomMaterials.map((material: any, idx: number) => (
+                          <tr key={idx}>
+                            <td>
+                              <div style={{ fontWeight: 500 }}>{material.materialName}</div>
+                              {material.catalogNumber && (
+                                <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                  {material.catalogNumber}
+                                </div>
+                              )}
+                            </td>
+                            <td>
+                              <strong style={{ color: 'var(--primary-color)' }}>
+                                {material.plannedQuantity || material.quantity}
+                              </strong>
+                            </td>
+                            <td>{material.unit}</td>
+                            <td>{material.category || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
