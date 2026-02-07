@@ -45,6 +45,8 @@ import { WarehouseStockWorkflowBomMapping } from '../entities/WarehouseStockWork
 import { SubsystemWarehouseStock } from '../entities/SubsystemWarehouseStock';
 import { TaskWarehouseStock } from '../entities/TaskWarehouseStock';
 import { WarehouseLocation } from '../entities/WarehouseLocation';
+import { BomSubsystemTemplate } from '../entities/BomSubsystemTemplate';
+import { BomSubsystemTemplateItem } from '../entities/BomSubsystemTemplateItem';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -98,7 +100,10 @@ export const AppDataSource = new DataSource({
     WarehouseStockWorkflowBomMapping,
     SubsystemWarehouseStock,
     TaskWarehouseStock,
-    WarehouseLocation
+    WarehouseLocation,
+    // BOM Subsystem Templates
+    BomSubsystemTemplate,
+    BomSubsystemTemplateItem
   ],
   subscribers: [],
   migrations: [],

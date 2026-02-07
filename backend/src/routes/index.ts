@@ -32,6 +32,8 @@ import serviceTaskRoutes from './serviceTask.routes';
 import brigadeRoutes from './brigade.routes';
 // Warehouse stock routes
 import warehouseStockRoutes from './warehouseStock.routes';
+// BOM subsystem template routes
+import bomSubsystemTemplateRoutes from './bomSubsystemTemplate.routes';
 
 const router = Router();
 
@@ -71,6 +73,9 @@ router.use('/brigades', brigadeRoutes);
 
 // Warehouse stock routes
 router.use('/warehouse-stock', warehouseStockRoutes);
+
+// BOM subsystem template routes
+router.use('/bom-subsystem-templates', bomSubsystemTemplateRoutes);
 
 // Admin routes
 router.use('/admin', adminRoutes);
