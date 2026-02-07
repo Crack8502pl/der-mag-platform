@@ -7,6 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import bomTemplateService from '../../services/bom-template.service';
 import { warehouseStockService } from '../../services/warehouseStock.service';
 import bomSubsystemTemplateService from '../../services/bomSubsystemTemplate.service';
+import bomGroupService from '../../services/bomGroup.service';
 import type { 
   BomTemplate, 
   BomDependencyRule,
@@ -18,6 +19,8 @@ import type {
   BomSubsystemTemplate,
   BomSubsystemTemplateItem
 } from '../../services/bomSubsystemTemplate.service';
+import type { BomGroup } from '../../services/bomGroup.service';
+import { BomGroupsManageModal } from './BomGroupsManageModal';
 import '../../styles/grover-theme.css';
 
 type Tab = 'materials' | 'templates' | 'dependencies';
@@ -720,8 +723,21 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
     dependent: selectedTemplate.items.filter(i => i.quantitySource === 'DEPENDENT').length,
   } : null;
 
+  const [showManageGroupsModal, setShowManageGroupsModal] = useState(false);
+
   return (
     <>
+      {/* Manage Groups Button */}
+      <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+        <button
+          className="btn btn-secondary"
+          onClick={() => setShowManageGroupsModal(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
+          ⚙️ Zarządzaj grupami
+        </button>
+      </div>
+
       <div style={{ display: 'flex', gap: '20px', height: 'calc(100vh - 250px)' }}>
         {/* Left Panel - Subsystem Tree */}
         <div className="card" style={{ width: '280px', padding: '15px', overflowY: 'auto' }}>
@@ -1044,6 +1060,18 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
           }}
         />
       )}
+
+      {/* Manage Groups Modal */}
+      {showManageGroupsModal && (
+        <BomGroupsManageModal
+          onClose={() => setShowManageGroupsModal(false)}
+          onGroupsChanged={() => {
+            // Trigger a re-render to refresh groups in AddTemplateItemModal
+            // The groups will be reloaded when AddTemplateItemModal is opened again
+            setShowManageGroupsModal(false);
+          }}
+        />
+      )}
     </>
   );
 };
@@ -1071,6 +1099,29 @@ const AddTemplateItemModal: React.FC<{
   const [warehouseResults, setWarehouseResults] = useState<WarehouseStock[]>([]);
   const [showWarehouseDropdown, setShowWarehouseDropdown] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [bomGroups, setBomGroups] = useState<BomGroup[]>([]);
+
+  useEffect(() => {
+    const loadGroups = async () => {
+      try {
+        const groups = await bomGroupService.getAll();
+        setBomGroups(groups);
+      } catch (err) {
+        console.error('Błąd ładowania grup:', err);
+        // Fallback to default groups if API fails
+        setBomGroups([
+          { id: 1, name: 'Szafa sterownicza', icon: '🗄️', color: '#3b82f6', sortOrder: 10, isActive: true, createdAt: '', updatedAt: '' },
+          { id: 2, name: 'Okablowanie', icon: '🔌', color: '#10b981', sortOrder: 20, isActive: true, createdAt: '', updatedAt: '' },
+          { id: 3, name: 'Urządzenia aktywne', icon: '📡', color: '#8b5cf6', sortOrder: 30, isActive: true, createdAt: '', updatedAt: '' },
+          { id: 4, name: 'Zasilanie', icon: '⚡', color: '#f59e0b', sortOrder: 40, isActive: true, createdAt: '', updatedAt: '' },
+          { id: 5, name: 'Czujniki/detektory', icon: '🔍', color: '#ef4444', sortOrder: 50, isActive: true, createdAt: '', updatedAt: '' },
+          { id: 6, name: 'Osprzęt montażowy', icon: '🔧', color: '#6b7280', sortOrder: 60, isActive: true, createdAt: '', updatedAt: '' },
+          { id: 7, name: 'Inne', icon: '📦', color: '#9ca3af', sortOrder: 70, isActive: true, createdAt: '', updatedAt: '' },
+        ]);
+      }
+    };
+    loadGroups();
+  }, []);
 
   const configParams = [
     'przejazdyKatA',
@@ -1085,16 +1136,6 @@ const AddTemplateItemModal: React.FC<{
     'iloscKontenerow',
     'iloscKamer',
     'iloscPrzejsc'
-  ];
-
-  const groupNames = [
-    'Szafa sterownicza',
-    'Okablowanie',
-    'Urządzenia aktywne',
-    'Zasilanie',
-    'Czujniki/detektory',
-    'Osprzęt montażowy',
-    'Inne'
   ];
 
   const searchWarehouse = async (term: string) => {
@@ -1336,8 +1377,10 @@ const AddTemplateItemModal: React.FC<{
               className="input"
               required
             >
-              {groupNames.map(group => (
-                <option key={group} value={group}>{group}</option>
+              {bomGroups.map(group => (
+                <option key={group.id} value={group.name}>
+                  {group.icon ? `${group.icon} ` : ''}{group.name}
+                </option>
               ))}
             </select>
           </div>
