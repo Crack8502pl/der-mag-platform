@@ -141,4 +141,174 @@ describe('BomSubsystemTemplateService', () => {
       expect(mockTemplateRepository.findOne).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('updateTemplate', () => {
+    let mockItemRepository: any;
+
+    beforeEach(() => {
+      mockItemRepository = createMockRepository();
+      
+      (AppDataSource.getRepository as jest.Mock).mockImplementation((entity: any) => {
+        if (entity === BomSubsystemTemplate || entity?.name === 'BomSubsystemTemplate') {
+          return mockTemplateRepository;
+        }
+        return mockItemRepository;
+      });
+    });
+
+    it('should update template fields without touching items', async () => {
+      const existingTemplate = {
+        id: 1,
+        templateName: 'Old Name',
+        description: 'Old Description',
+        isActive: true,
+        items: []
+      };
+
+      mockTemplateRepository.findOne.mockResolvedValueOnce(existingTemplate);
+      mockTemplateRepository.save.mockResolvedValueOnce({
+        ...existingTemplate,
+        templateName: 'New Name',
+        description: 'New Description'
+      });
+
+      const result = await BomSubsystemTemplateService.updateTemplate(1, {
+        templateName: 'New Name',
+        description: 'New Description'
+      });
+
+      expect(result.templateName).toBe('New Name');
+      expect(result.description).toBe('New Description');
+      expect(mockItemRepository.remove).not.toHaveBeenCalled();
+      expect(mockTemplateRepository.save).toHaveBeenCalled();
+    });
+
+    it('should preserve existing item IDs when updating items', async () => {
+      const existingItem1 = { id: 10, materialName: 'Item 1', defaultQuantity: 5 };
+      const existingItem2 = { id: 20, materialName: 'Item 2', defaultQuantity: 10 };
+      
+      const existingTemplate = {
+        id: 1,
+        templateName: 'Test Template',
+        items: [existingItem1, existingItem2]
+      };
+
+      mockTemplateRepository.findOne.mockResolvedValueOnce(existingTemplate);
+      mockItemRepository.findOne
+        .mockResolvedValueOnce(existingItem1)
+        .mockResolvedValueOnce(existingItem2);
+      mockTemplateRepository.save.mockResolvedValueOnce(existingTemplate);
+
+      const updatedItem1 = { id: 10, materialName: 'Updated Item 1', defaultQuantity: 7 };
+      const updatedItem2 = { id: 20, materialName: 'Updated Item 2', defaultQuantity: 12 };
+
+      await BomSubsystemTemplateService.updateTemplate(1, {
+        items: [updatedItem1, updatedItem2]
+      });
+
+      // Should fetch existing items to update them
+      expect(mockItemRepository.findOne).toHaveBeenCalledWith({ where: { id: 10 } });
+      expect(mockItemRepository.findOne).toHaveBeenCalledWith({ where: { id: 20 } });
+      
+      // Should not remove any items
+      expect(mockItemRepository.remove).not.toHaveBeenCalled();
+    });
+
+    it('should create new items without IDs', async () => {
+      const existingTemplate = {
+        id: 1,
+        templateName: 'Test Template',
+        items: []
+      };
+
+      mockTemplateRepository.findOne.mockResolvedValueOnce(existingTemplate);
+      mockItemRepository.create.mockImplementation((data: any) => data);
+      mockTemplateRepository.save.mockResolvedValueOnce(existingTemplate);
+
+      const newItem = { materialName: 'New Item', defaultQuantity: 5 };
+
+      await BomSubsystemTemplateService.updateTemplate(1, {
+        items: [newItem]
+      });
+
+      // Should create new item
+      expect(mockItemRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateId: 1,
+          materialName: 'New Item',
+          defaultQuantity: 5
+        })
+      );
+    });
+
+    it('should delete removed items', async () => {
+      const existingItem1 = { id: 10, materialName: 'Item 1' };
+      const existingItem2 = { id: 20, materialName: 'Item 2' };
+      const existingItem3 = { id: 30, materialName: 'Item 3' };
+      
+      const existingTemplate = {
+        id: 1,
+        templateName: 'Test Template',
+        items: [existingItem1, existingItem2, existingItem3]
+      };
+
+      mockTemplateRepository.findOne.mockResolvedValueOnce(existingTemplate);
+      mockItemRepository.findOne
+        .mockResolvedValueOnce(existingItem1)
+        .mockResolvedValueOnce(existingItem2);
+      mockTemplateRepository.save.mockResolvedValueOnce(existingTemplate);
+
+      // Only keep items 1 and 2, remove item 3
+      await BomSubsystemTemplateService.updateTemplate(1, {
+        items: [
+          { id: 10, materialName: 'Item 1', defaultQuantity: 5 },
+          { id: 20, materialName: 'Item 2', defaultQuantity: 10 }
+        ]
+      });
+
+      // Should remove item 3
+      expect(mockItemRepository.remove).toHaveBeenCalledWith([existingItem3]);
+    });
+
+    it('should handle mix of new and existing items', async () => {
+      const existingItem = { id: 10, materialName: 'Existing Item' };
+      
+      const existingTemplate = {
+        id: 1,
+        templateName: 'Test Template',
+        items: [existingItem]
+      };
+
+      mockTemplateRepository.findOne.mockResolvedValueOnce(existingTemplate);
+      mockItemRepository.findOne.mockResolvedValueOnce(existingItem);
+      mockItemRepository.create.mockImplementation((data: any) => data);
+      mockTemplateRepository.save.mockResolvedValueOnce(existingTemplate);
+
+      await BomSubsystemTemplateService.updateTemplate(1, {
+        items: [
+          { id: 10, materialName: 'Updated Existing Item', defaultQuantity: 7 },
+          { materialName: 'New Item', defaultQuantity: 5 }
+        ]
+      });
+
+      // Should update existing item
+      expect(mockItemRepository.findOne).toHaveBeenCalledWith({ where: { id: 10 } });
+      
+      // Should create new item
+      expect(mockItemRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          materialName: 'New Item',
+          defaultQuantity: 5
+        })
+      );
+    });
+
+    it('should throw error when template not found', async () => {
+      mockTemplateRepository.findOne.mockResolvedValueOnce(null);
+
+      await expect(
+        BomSubsystemTemplateService.updateTemplate(999, { templateName: 'Test' })
+      ).rejects.toThrow('Template not found');
+    });
+  });
 });

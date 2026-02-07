@@ -219,19 +219,19 @@ export class BomSubsystemTemplateService {
           if (item) {
             // Update fields
             item.materialName = itemData.materialName;
-            item.catalogNumber = itemData.catalogNumber;
+            item.catalogNumber = itemData.catalogNumber || '';
             item.unit = itemData.unit || 'szt';
             item.defaultQuantity = itemData.defaultQuantity;
             item.quantitySource = itemData.quantitySource || QuantitySource.FIXED;
-            item.configParamName = itemData.configParamName;
-            item.warehouseStockId = itemData.warehouseStockId;
-            item.dependsOnItemId = itemData.dependsOnItemId;
-            item.dependencyFormula = itemData.dependencyFormula;
+            item.configParamName = itemData.configParamName || null;
+            item.warehouseStockId = itemData.warehouseStockId || null;
+            item.dependsOnItemId = itemData.dependsOnItemId || null;
+            item.dependencyFormula = itemData.dependencyFormula || null;
             item.requiresIp = itemData.requiresIp || false;
             item.isRequired = itemData.isRequired !== false;
-            item.groupName = itemData.groupName;
+            item.groupName = itemData.groupName || '';
             item.sortOrder = itemData.sortOrder || 0;
-            item.notes = itemData.notes;
+            item.notes = itemData.notes || '';
           }
         } else {
           // Create new item
