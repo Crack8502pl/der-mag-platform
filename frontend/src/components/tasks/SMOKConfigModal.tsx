@@ -9,6 +9,17 @@ import type { BomSubsystemTemplate } from '../../services/bomSubsystemTemplate.s
 import type { Task } from '../../types/task.types';
 import type { WarehouseStock } from '../../types/warehouseStock.types';
 
+// Constants
+const GROUP_NAMES = {
+  CAMERA_GENERAL: 'Kamera Ogólna',
+  CAMERA_LPR: 'Kamera LPR',
+  POLES: 'Słupy',
+  BATTERY: 'Akumulator',
+  OTHER: 'Inne'
+} as const;
+
+const WAREHOUSE_STOCK_PAGE_SIZE = 50;
+
 interface Props {
   task: Task;
   onClose: () => void;
@@ -44,6 +55,7 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
 
   useEffect(() => {
     loadConfiguration();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadConfiguration = async () => {
@@ -97,7 +109,7 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
 
   const loadCameraOptions = async () => {
     try {
-      const response = await warehouseStockService.getAll({ search: 'kamera' }, 1, 50);
+      const response = await warehouseStockService.getAll({ search: 'kamera' }, 1, WAREHOUSE_STOCK_PAGE_SIZE);
       setCameraOptions(response.data || []);
     } catch (err) {
       console.error('Error loading camera options:', err);
@@ -106,7 +118,7 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
 
   const loadCameraLPROptions = async () => {
     try {
-      const response = await warehouseStockService.getAll({ search: 'kamera LPR' }, 1, 50);
+      const response = await warehouseStockService.getAll({ search: 'kamera LPR' }, 1, WAREHOUSE_STOCK_PAGE_SIZE);
       setCameraLPROptions(response.data || []);
     } catch (err) {
       console.error('Error loading camera LPR options:', err);
@@ -115,7 +127,7 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
 
   const loadPoleOptions = async () => {
     try {
-      const response = await warehouseStockService.getAll({ search: 'słup' }, 1, 50);
+      const response = await warehouseStockService.getAll({ search: 'słup' }, 1, WAREHOUSE_STOCK_PAGE_SIZE);
       setPoleOptions(response.data || []);
     } catch (err) {
       console.error('Error loading pole options:', err);
@@ -136,7 +148,7 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
     
     // Collect all unique configParamNames grouped by groupName
     for (const item of tmpl.items) {
-      const groupName = item.groupName || 'Inne';
+      const groupName = item.groupName || GROUP_NAMES.OTHER;
       
       if (!groupsMap.has(groupName)) {
         groupsMap.set(groupName, []);
@@ -173,7 +185,7 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
     
     // Add model/type selection fields based on group
     groupsMap.forEach((fields, groupName) => {
-      if (groupName === 'Kamera Ogólna') {
+      if (groupName === GROUP_NAMES.CAMERA_GENERAL) {
         fields.push({
           paramName: 'modelKameryOgolnej',
           label: 'Model kamery',
@@ -183,7 +195,7 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
             label: `${cam.materialName} (${cam.catalogNumber})`
           }))
         });
-      } else if (groupName === 'Kamera LPR') {
+      } else if (groupName === GROUP_NAMES.CAMERA_LPR) {
         fields.push({
           paramName: 'modelKameryLPR',
           label: 'Model Kamery LPR',
@@ -193,7 +205,7 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
             label: `${cam.materialName} (${cam.catalogNumber})`
           }))
         });
-      } else if (groupName === 'Słupy') {
+      } else if (groupName === GROUP_NAMES.POLES) {
         fields.push({
           paramName: 'typSlupu',
           label: 'Typ słupa',
@@ -203,7 +215,7 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
             label: pole.materialName
           }))
         });
-      } else if (groupName === 'Akumulator') {
+      } else if (groupName === GROUP_NAMES.BATTERY) {
         fields.push({
           paramName: 'pojemnoscAkumulatora',
           label: 'Pojemność akumulatora',
@@ -237,11 +249,11 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
 
   const getGroupIcon = (groupName: string): string => {
     const icons: Record<string, string> = {
-      'Kamera Ogólna': '📹',
-      'Kamera LPR': '🚗',
-      'Słupy': '🏗️',
-      'Akumulator': '🔋',
-      'Inne': '📦'
+      [GROUP_NAMES.CAMERA_GENERAL]: '📹',
+      [GROUP_NAMES.CAMERA_LPR]: '🚗',
+      [GROUP_NAMES.POLES]: '🏗️',
+      [GROUP_NAMES.BATTERY]: '🔋',
+      [GROUP_NAMES.OTHER]: '📦'
     };
     return icons[groupName] || '📦';
   };
@@ -357,7 +369,7 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
                         {field.type === 'number' && (
                           <input
                             type="number"
-                            value={configValues[field.paramName] ?? field.defaultValue ?? ''}
+                            value={configValues[field.paramName] ?? field.defaultValue ?? 0}
                             onChange={(e) => handleChange(field.paramName, Number(e.target.value))}
                             placeholder="0"
                             min="0"
