@@ -18,6 +18,7 @@ export interface CreateTemplateDto {
 }
 
 export interface CreateTemplateItemDto {
+  id?: number; // Optional ID for updates
   warehouseStockId?: number;
   materialName: string;
   catalogNumber?: string;
@@ -198,31 +199,63 @@ export class BomSubsystemTemplateService {
 
     // Update items if provided
     if (data.items) {
-      // Remove old items
-      if (template.items && template.items.length > 0) {
-        await itemRepository.remove(template.items);
+      const existingItemIds = new Set(template.items.map(item => item.id));
+      const updatedItemIds = new Set(data.items.filter(item => item.id).map(item => item.id));
+      
+      // Delete items that were removed (exist in DB but not in update data)
+      const itemsToRemove = template.items.filter(item => !updatedItemIds.has(item.id));
+      if (itemsToRemove.length > 0) {
+        await itemRepository.remove(itemsToRemove);
       }
 
-      // Create new items
-      template.items = data.items.map(item => 
-        itemRepository.create({
-          templateId: id,
-          materialName: item.materialName,
-          catalogNumber: item.catalogNumber,
-          unit: item.unit || 'szt',
-          defaultQuantity: item.defaultQuantity,
-          quantitySource: item.quantitySource || QuantitySource.FIXED,
-          configParamName: item.configParamName,
-          warehouseStockId: item.warehouseStockId,
-          dependsOnItemId: item.dependsOnItemId,
-          dependencyFormula: item.dependencyFormula,
-          requiresIp: item.requiresIp || false,
-          isRequired: item.isRequired !== false,
-          groupName: item.groupName,
-          sortOrder: item.sortOrder || 0,
-          notes: item.notes
-        })
-      );
+      // Process each item: update existing or create new
+      template.items = [];
+      for (const itemData of data.items) {
+        let item: BomSubsystemTemplateItem;
+        
+        if (itemData.id && existingItemIds.has(itemData.id)) {
+          // Update existing item
+          item = await itemRepository.findOne({ where: { id: itemData.id } }) as BomSubsystemTemplateItem;
+          if (item) {
+            // Update fields
+            item.materialName = itemData.materialName;
+            item.catalogNumber = itemData.catalogNumber;
+            item.unit = itemData.unit || 'szt';
+            item.defaultQuantity = itemData.defaultQuantity;
+            item.quantitySource = itemData.quantitySource || QuantitySource.FIXED;
+            item.configParamName = itemData.configParamName;
+            item.warehouseStockId = itemData.warehouseStockId;
+            item.dependsOnItemId = itemData.dependsOnItemId;
+            item.dependencyFormula = itemData.dependencyFormula;
+            item.requiresIp = itemData.requiresIp || false;
+            item.isRequired = itemData.isRequired !== false;
+            item.groupName = itemData.groupName;
+            item.sortOrder = itemData.sortOrder || 0;
+            item.notes = itemData.notes;
+          }
+        } else {
+          // Create new item
+          item = itemRepository.create({
+            templateId: id,
+            materialName: itemData.materialName,
+            catalogNumber: itemData.catalogNumber,
+            unit: itemData.unit || 'szt',
+            defaultQuantity: itemData.defaultQuantity,
+            quantitySource: itemData.quantitySource || QuantitySource.FIXED,
+            configParamName: itemData.configParamName,
+            warehouseStockId: itemData.warehouseStockId,
+            dependsOnItemId: itemData.dependsOnItemId,
+            dependencyFormula: itemData.dependencyFormula,
+            requiresIp: itemData.requiresIp || false,
+            isRequired: itemData.isRequired !== false,
+            groupName: itemData.groupName,
+            sortOrder: itemData.sortOrder || 0,
+            notes: itemData.notes
+          });
+        }
+        
+        template.items.push(item);
+      }
     }
 
     return await templateRepository.save(template);

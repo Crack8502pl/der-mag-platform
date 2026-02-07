@@ -43,11 +43,12 @@ export interface CreateTemplateDto {
   subsystemType: string;
   taskVariant?: string | null;
   description?: string;
-  items: Omit<BomSubsystemTemplateItem, 'id' | 'templateId'>[];
+  items: Omit<BomSubsystemTemplateItem, 'templateId'>[];
 }
 
 export interface UpdateTemplateDto extends Partial<CreateTemplateDto> {
   isActive?: boolean;
+  items?: BomSubsystemTemplateItem[]; // Allow items with IDs for updates
 }
 
 export interface ApplyTemplateDto {
