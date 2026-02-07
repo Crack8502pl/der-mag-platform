@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import taskService from '../../services/task.service';
+import { BOMConfigModal } from './BOMConfigModal';
 import type { Task, TaskType, UpdateTaskDto } from '../../types/task.types';
 
 interface Props {
@@ -26,6 +27,7 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
   const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showBOMConfig, setShowBOMConfig] = useState(false);
 
   useEffect(() => {
     loadTaskTypes();
@@ -191,6 +193,19 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
           <div className="modal-footer">
             <button 
               type="button" 
+              className="btn"
+              onClick={() => setShowBOMConfig(true)}
+              disabled={loading}
+              style={{
+                backgroundColor: '#f59e0b',
+                color: 'white',
+                marginRight: 'auto'
+              }}
+            >
+              🔧 Konfig. BOM
+            </button>
+            <button 
+              type="button" 
               className="btn btn-secondary" 
               onClick={onClose}
               disabled={loading}
@@ -206,6 +221,18 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
             </button>
           </div>
         </form>
+        
+        {/* BOM Config Modal */}
+        {showBOMConfig && (
+          <BOMConfigModal
+            task={task}
+            onClose={() => setShowBOMConfig(false)}
+            onSuccess={() => {
+              setShowBOMConfig(false);
+              onSuccess();
+            }}
+          />
+        )}
       </div>
     </div>
   );
