@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import taskService from '../../services/task.service';
 import { BOMConfigModal } from './BOMConfigModal';
+import { SMOKConfigModal } from './SMOKConfigModal';
 import type { Task, TaskType, UpdateTaskDto } from '../../types/task.types';
 
 interface Props {
@@ -28,6 +29,7 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showBOMConfig, setShowBOMConfig] = useState(false);
+  const [showSMOKConfig, setShowSMOKConfig] = useState(false);
 
   useEffect(() => {
     loadTaskTypes();
@@ -197,12 +199,25 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
               onClick={() => setShowBOMConfig(true)}
               disabled={loading}
               style={{
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                marginRight: '8px'
+              }}
+            >
+              👁️ Podgląd
+            </button>
+            <button 
+              type="button" 
+              className="btn"
+              onClick={() => setShowSMOKConfig(true)}
+              disabled={loading}
+              style={{
                 backgroundColor: '#f59e0b',
                 color: 'white',
                 marginRight: 'auto'
               }}
             >
-              🔧 Konfig. BOM
+              ⚙️ Konfiguruj
             </button>
             <button 
               type="button" 
@@ -222,13 +237,26 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
           </div>
         </form>
         
-        {/* BOM Config Modal */}
+        {/* BOM Config Modal - Read Only Preview */}
         {showBOMConfig && (
           <BOMConfigModal
             task={task}
             onClose={() => setShowBOMConfig(false)}
             onSuccess={() => {
               setShowBOMConfig(false);
+              onSuccess();
+            }}
+            readOnly={true}
+          />
+        )}
+
+        {/* SMOK Config Modal */}
+        {showSMOKConfig && (
+          <SMOKConfigModal
+            task={task}
+            onClose={() => setShowSMOKConfig(false)}
+            onSuccess={() => {
+              setShowSMOKConfig(false);
               onSuccess();
             }}
           />
