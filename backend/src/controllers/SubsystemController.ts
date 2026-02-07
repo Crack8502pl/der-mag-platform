@@ -579,6 +579,15 @@ export class SubsystemController {
       const createdMainTasks = [];
       const failedMainTasks = [];
       
+      // Find task type for this subsystem - once before the loop
+      let taskTypeId = DEFAULT_TASK_TYPE_ID;
+      const taskType = await taskTypeRepository.findOne({
+        where: { code: subsystem.systemType }
+      });
+      if (taskType) {
+        taskTypeId = taskType.id;
+      }
+      
       for (const taskData of tasks) {
         try {
           // 1. Create SubsystemTask
@@ -592,16 +601,6 @@ export class SubsystemController {
 
           // 2. Create main Task entity - UŻYJ TEGO SAMEGO NUMERU
           try {
-            // Find task type - match by code or use default
-            let taskTypeId = DEFAULT_TASK_TYPE_ID;
-            if (taskData.type) {
-              const taskType = await taskTypeRepository.findOne({
-                where: { code: taskData.type }
-              });
-              if (taskType) {
-                taskTypeId = taskType.id;
-              }
-            }
 
             // Create task with same number as SubsystemTask
             const mainTask = taskRepository.create({
