@@ -10,13 +10,14 @@ interface Props {
   task: Task;
   onClose: () => void;
   onSuccess: () => void;
+  readOnly?: boolean;
 }
 
 interface ResolvedItem extends BomSubsystemTemplateItem {
   resolvedQuantity: number;
 }
 
-export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) => {
+export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess, readOnly = false }) => {
   const [template, setTemplate] = useState<BomSubsystemTemplate | null>(null);
   const [resolvedItems, setResolvedItems] = useState<ResolvedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -197,7 +198,7 @@ export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =>
         style={{ maxWidth: '1000px', maxHeight: '90vh', overflow: 'auto' }}
       >
         <div className="modal-header">
-          <h2>🔧 Konfiguracja BOM</h2>
+          <h2>{readOnly ? '👁️ Podgląd BOM' : '🔧 Konfiguracja BOM'}</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
@@ -352,16 +353,18 @@ export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =>
                 onClick={onClose}
                 disabled={applying}
               >
-                Anuluj
+                {readOnly ? 'Zamknij' : 'Anuluj'}
               </button>
-              <button 
-                type="button" 
-                className="btn btn-primary"
-                onClick={handleApply}
-                disabled={applying}
-              >
-                {applying ? 'Stosowanie...' : '✅ Zastosuj do zadania'}
-              </button>
+              {!readOnly && (
+                <button 
+                  type="button" 
+                  className="btn btn-primary"
+                  onClick={handleApply}
+                  disabled={applying}
+                >
+                  {applying ? 'Stosowanie...' : '✅ Zastosuj do zadania'}
+                </button>
+              )}
             </div>
           </>
         )}
