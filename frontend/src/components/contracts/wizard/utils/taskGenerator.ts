@@ -26,12 +26,9 @@ const getBooleanValue = (params: Record<string, number | boolean>, key: string):
  * rather than just the taskType.
  */
 export const resolveTaskVariant = (taskType: string, detail: TaskDetail): string => {
-  if (taskType === 'PRZEJAZD_KAT_A' && detail.kategoria) {
+  // Handle both PRZEJAZD_KAT_A and PRZEJAZD_KAT_B tasks
+  if ((taskType === 'PRZEJAZD_KAT_A' || taskType === 'PRZEJAZD_KAT_B') && detail.kategoria) {
     // Map 'KAT A' -> 'PRZEJAZD_KAT_A', 'KAT E' -> 'PRZEJAZD_KAT_E', etc.
-    const katSuffix = detail.kategoria.replace('KAT ', '');
-    return `PRZEJAZD_KAT_${katSuffix}`;
-  }
-  if (taskType === 'PRZEJAZD_KAT_B' && detail.kategoria) {
     const katSuffix = detail.kategoria.replace('KAT ', '');
     return `PRZEJAZD_KAT_${katSuffix}`;
   }
