@@ -29,24 +29,24 @@ router.get(
   BomSubsystemTemplateController.getTemplateById
 );
 
-// Create new template (requires admin or bom_editor role)
+// Create new template (requires admin or manager role)
 router.post(
   '/',
-  authorize('admin', 'manager'),
+  authorize('admin', 'manager', 'bom_editor'),
   BomSubsystemTemplateController.createTemplate
 );
 
-// Update template (requires admin or bom_editor role)
+// Update template (requires admin, manager, or bom_editor role)
 router.put(
   '/:id',
-  authorize('admin', 'manager'),
+  authorize('admin', 'manager', 'bom_editor'),
   BomSubsystemTemplateController.updateTemplate
 );
 
-// Delete template (requires admin or bom_editor role)
+// Delete template (requires admin, manager, or bom_editor role)
 router.delete(
   '/:id',
-  authorize('admin', 'manager'),
+  authorize('admin', 'manager', 'bom_editor'),
   BomSubsystemTemplateController.deleteTemplate
 );
 
