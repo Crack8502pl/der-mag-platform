@@ -29,7 +29,7 @@ export const BomGroupsManageModal: React.FC<BomGroupsManageModalProps> = ({ onCl
       setGroups(data);
     } catch (err) {
       console.error('Błąd ładowania grup:', err);
-      alert('Błąd ładowania grup');
+      alert('Błąd ładowania grup. Sprawdź połączenie sieciowe lub skontaktuj się z administratorem.');
     } finally {
       setLoading(false);
     }

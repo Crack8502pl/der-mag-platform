@@ -23,7 +23,7 @@ export class BomGroup {
   @Column({ type: 'varchar', length: 10, nullable: true })
   icon: string | null;
 
-  @Column({ type: 'varchar', length: 7, nullable: true })
+  @Column({ type: 'varchar', length: 7, nullable: true }) // Hex color format: #RRGGBB
   color: string | null;
 
   @Column({ name: 'sort_order', type: 'integer', default: 0 })

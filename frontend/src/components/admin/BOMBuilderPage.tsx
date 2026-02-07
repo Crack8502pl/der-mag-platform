@@ -1066,8 +1066,9 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
         <BomGroupsManageModal
           onClose={() => setShowManageGroupsModal(false)}
           onGroupsChanged={() => {
-            // Optionally refresh something when groups change
-            console.log('Groups changed');
+            // Trigger a re-render to refresh groups in AddTemplateItemModal
+            // The groups will be reloaded when AddTemplateItemModal is opened again
+            setShowManageGroupsModal(false);
           }}
         />
       )}
