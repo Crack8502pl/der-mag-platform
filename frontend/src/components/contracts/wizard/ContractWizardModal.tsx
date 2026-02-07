@@ -6,7 +6,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import contractService from '../../../services/contract.service';
 // SUBSYSTEM_WIZARD_CONFIG imported in child components
 import { useWizardState } from './hooks/useWizardState';
-import { generateAllTasks, buildTaskNameFromDetails } from './utils/taskGenerator';
+import { generateAllTasks, buildTaskNameFromDetails, resolveTaskVariant } from './utils/taskGenerator';
 import { validateUniqueIPPools } from './utils/validation';
 import type { WizardProps, GeneratedTask } from './types/wizard.types';
 
@@ -187,7 +187,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
             await contractService.addTasksToSubsystem(subsystem.id, {
               tasks: newTasks.map(t => ({
                 name: buildTaskNameFromDetails(t.taskType, t, wizardData.liniaKolejowa),
-                type: t.taskType,
+                type: resolveTaskVariant(t.taskType, t),
                 metadata: {
                   kilometraz: t.kilometraz,
                   kategoria: t.kategoria,

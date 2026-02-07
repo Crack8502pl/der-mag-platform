@@ -21,6 +21,24 @@ const getBooleanValue = (params: Record<string, number | boolean>, key: string):
 };
 
 /**
+ * Resolve task variant including category information.
+ * For PRZEJAZD tasks, the variant depends on the category (KAT A, KAT E, KAT F etc.)
+ * rather than just the taskType.
+ */
+export const resolveTaskVariant = (taskType: string, detail: TaskDetail): string => {
+  // Handle both PRZEJAZD_KAT_A and PRZEJAZD_KAT_B tasks
+  if ((taskType === 'PRZEJAZD_KAT_A' || taskType === 'PRZEJAZD_KAT_B') && detail.kategoria) {
+    // Validate that kategoria matches expected format 'KAT X' where X is A, B, C, E, or F
+    const match = detail.kategoria.match(/^KAT\s+([ABCEF])$/);
+    if (match) {
+      const katSuffix = match[1]; // Extract the letter (A, B, C, E, or F)
+      return `PRZEJAZD_KAT_${katSuffix}`;
+    }
+  }
+  return taskType;
+};
+
+/**
  * Build task name from task details
  * This function is used both in task generation and when adding tasks to existing subsystems
  */
@@ -76,7 +94,7 @@ const generateSmokipATasks = (subsystem: SubsystemWizardData, liniaKolejowa?: st
       tasks.push({
         number: '',
         name,
-        type: detail.taskType,
+        type: resolveTaskVariant(detail.taskType, detail),
         subsystemType: subsystem.type
       });
     });
@@ -142,7 +160,7 @@ const generateSmokipBTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: st
       tasks.push({
         number: '',
         name,
-        type: detail.taskType,
+        type: resolveTaskVariant(detail.taskType, detail),
         subsystemType: subsystem.type
       });
     });
