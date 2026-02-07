@@ -670,12 +670,23 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
     if (!confirm('Czy na pewno chcesz zapisać zmiany w szablonie?')) return;
     
     try {
+      // Update the template with item IDs preserved
       await bomSubsystemTemplateService.update(selectedTemplate.id, {
         items: selectedTemplate.items
       });
-      alert('Szablon zapisany pomyślnie');
+      
+      // Refresh the template from server to get updated data
+      const refreshedTemplate = await bomSubsystemTemplateService.getById(selectedTemplate.id);
+      setSelectedTemplate(refreshedTemplate);
+      
+      // Show success notification
+      const successMsg = document.createElement('div');
+      successMsg.textContent = '✅ Szablon zapisany pomyślnie';
+      successMsg.style.cssText = 'position:fixed;top:20px;right:20px;background:var(--success);color:white;padding:12px 20px;border-radius:8px;z-index:9999;';
+      document.body.appendChild(successMsg);
+      setTimeout(() => successMsg.remove(), 3000);
     } catch (err: any) {
-      alert('Błąd podczas zapisywania: ' + err.message);
+      alert('Błąd podczas zapisywania: ' + (err.response?.data?.message || err.message));
     }
   };
 

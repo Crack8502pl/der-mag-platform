@@ -3,7 +3,9 @@
 
 import React, { useState, useEffect } from 'react';
 import bomSubsystemTemplateService from '../../services/bomSubsystemTemplate.service';
+import bomGroupService from '../../services/bomGroup.service';
 import type { BomSubsystemTemplate, BomSubsystemTemplateItem } from '../../services/bomSubsystemTemplate.service';
+import type { BomGroup } from '../../services/bomGroup.service';
 import type { Task } from '../../types/task.types';
 
 interface Props {
@@ -20,6 +22,7 @@ interface ResolvedItem extends BomSubsystemTemplateItem {
 export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess, readOnly = false }) => {
   const [template, setTemplate] = useState<BomSubsystemTemplate | null>(null);
   const [resolvedItems, setResolvedItems] = useState<ResolvedItem[]>([]);
+  const [bomGroups, setBomGroups] = useState<BomGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState('');
@@ -27,7 +30,18 @@ export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess, read
 
   useEffect(() => {
     loadTemplate();
+    loadBomGroups();
   }, []);
+
+  const loadBomGroups = async () => {
+    try {
+      const groups = await bomGroupService.getAll();
+      setBomGroups(groups);
+    } catch (err) {
+      console.error('Error loading BOM groups:', err);
+      // Don't fail the modal if groups can't be loaded
+    }
+  };
 
   const loadTemplate = async () => {
     try {
@@ -183,6 +197,16 @@ export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess, read
     );
   };
 
+  const getGroupStyle = (groupName: string) => {
+    const group = bomGroups.find(g => g.name === groupName);
+    return {
+      color: group?.color || 'var(--text-primary)',
+      icon: group?.icon || '📦',
+      backgroundColor: group?.color ? `${group.color}15` : 'var(--bg-secondary)',
+      borderColor: group?.color || 'var(--border-color)'
+    };
+  };
+
   const groupedItems = resolvedItems.reduce((groups, item) => {
     const group = item.groupName || 'Inne';
     if (!groups[group]) groups[group] = [];
@@ -255,17 +279,27 @@ export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess, read
               </div>
 
               {/* Material Groups */}
-              {Object.entries(groupedItems).map(([groupName, items]) => (
-                <div key={groupName} style={{ marginBottom: '20px' }}>
-                  <h4 style={{ 
-                    color: 'var(--text-primary)', 
-                    marginBottom: '10px',
-                    fontSize: '16px',
-                    fontWeight: 600
-                  }}>
-                    {groupName} ({items.length})
-                  </h4>
-                  <div className="table-container">
+              {Object.entries(groupedItems).map(([groupName, items]) => {
+                const groupStyle = getGroupStyle(groupName);
+                return (
+                  <div key={groupName} style={{ marginBottom: '20px' }}>
+                    <h4 style={{ 
+                      color: groupStyle.color, 
+                      marginBottom: '10px',
+                      fontSize: '16px',
+                      fontWeight: 600,
+                      padding: '10px 15px',
+                      backgroundColor: groupStyle.backgroundColor,
+                      borderRadius: '8px',
+                      border: `2px solid ${groupStyle.borderColor}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <span style={{ fontSize: '20px' }}>{groupStyle.icon}</span>
+                      {groupName} ({items.length})
+                    </h4>
+                    <div className="table-container">
                     <table className="table">
                       <thead>
                         <tr>
@@ -307,7 +341,8 @@ export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess, read
                     </table>
                   </div>
                 </div>
-              ))}
+              );
+              })}
 
               {/* Summary */}
               <div style={{ 
