@@ -618,7 +618,9 @@ export class SubsystemController {
               metadata: {
                 createdFromContractEdit: true,
                 wizardData: taskData,
-                subsystemType: subsystem.systemType
+                subsystemType: subsystem.systemType,
+                taskVariant: taskData.type || null,
+                configParams: taskData.metadata || {}
               }
             });
 

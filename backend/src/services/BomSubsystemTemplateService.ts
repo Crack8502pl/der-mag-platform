@@ -104,26 +104,36 @@ export class BomSubsystemTemplateService {
   ): Promise<BomSubsystemTemplate | null> {
     const templateRepository = AppDataSource.getRepository(BomSubsystemTemplate);
     
-    const where: any = {
-      subsystemType,
-      isActive: true
-    };
-
-    if (taskVariant) {
-      where.taskVariant = taskVariant;
-    } else {
-      where.taskVariant = In([null, '_GENERAL']);
-    }
-
-    return await templateRepository.findOne({
-      where,
+    const findOptions = {
       relations: ['items', 'items.warehouseStock', 'items.dependsOnItem'],
       order: {
-        version: 'DESC',
+        version: 'DESC' as const,
         items: {
-          sortOrder: 'ASC'
+          sortOrder: 'ASC' as const
         }
       }
+    };
+
+    // First try exact variant match
+    if (taskVariant) {
+      const exactMatch = await templateRepository.findOne({
+        where: { subsystemType, taskVariant, isActive: true },
+        ...findOptions
+      });
+      if (exactMatch) return exactMatch;
+      
+      // Fallback: try general template
+      const fallback = await templateRepository.findOne({
+        where: { subsystemType, taskVariant: In([null, '_GENERAL']), isActive: true },
+        ...findOptions
+      });
+      return fallback;
+    }
+    
+    // No variant specified - look for general template
+    return await templateRepository.findOne({
+      where: { subsystemType, taskVariant: In([null, '_GENERAL']), isActive: true },
+      ...findOptions
     });
   }
 
