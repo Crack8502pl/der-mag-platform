@@ -48,7 +48,7 @@ export class BomSubsystemTemplateItem {
   materialName: string;
 
   @Column({ name: 'catalog_number', type: 'varchar', length: 100, nullable: true })
-  catalogNumber: string;
+  catalogNumber: string | undefined;
 
   @Column({ type: 'varchar', length: 50, default: 'szt' })
   unit: string;
@@ -65,17 +65,17 @@ export class BomSubsystemTemplateItem {
   quantitySource: QuantitySource;
 
   @Column({ name: 'config_param_name', type: 'varchar', length: 100, nullable: true })
-  configParamName: string | null;
+  configParamName: string | null | undefined;
 
   @ManyToOne(() => BomSubsystemTemplateItem, { nullable: true })
   @JoinColumn({ name: 'depends_on_item_id' })
   dependsOnItem: BomSubsystemTemplateItem;
 
   @Column({ name: 'depends_on_item_id', nullable: true })
-  dependsOnItemId: number | null;
+  dependsOnItemId: number | null | undefined;
 
   @Column({ name: 'dependency_formula', type: 'varchar', length: 200, nullable: true })
-  dependencyFormula: string | null;
+  dependencyFormula: string | null | undefined;
 
   @Column({ name: 'requires_ip', type: 'boolean', default: false })
   requiresIp: boolean;
@@ -84,13 +84,13 @@ export class BomSubsystemTemplateItem {
   isRequired: boolean;
 
   @Column({ name: 'group_name', type: 'varchar', length: 100, nullable: true })
-  groupName: string;
+  groupName: string | undefined;
 
   @Column({ name: 'sort_order', type: 'integer', default: 0 })
   sortOrder: number;
 
   @Column({ type: 'text', nullable: true })
-  notes: string;
+  notes: string | undefined;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

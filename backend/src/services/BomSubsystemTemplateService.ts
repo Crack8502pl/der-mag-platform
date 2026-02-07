@@ -217,21 +217,21 @@ export class BomSubsystemTemplateService {
           // Update existing item
           item = await itemRepository.findOne({ where: { id: itemData.id } }) as BomSubsystemTemplateItem;
           if (item) {
-            // Update fields
+            // Update fields - maintain consistency with create path
             item.materialName = itemData.materialName;
-            item.catalogNumber = itemData.catalogNumber || '';
+            item.catalogNumber = itemData.catalogNumber;
             item.unit = itemData.unit || 'szt';
             item.defaultQuantity = itemData.defaultQuantity;
             item.quantitySource = itemData.quantitySource || QuantitySource.FIXED;
-            item.configParamName = itemData.configParamName || null;
-            item.warehouseStockId = itemData.warehouseStockId || null;
-            item.dependsOnItemId = itemData.dependsOnItemId || null;
-            item.dependencyFormula = itemData.dependencyFormula || null;
+            item.configParamName = itemData.configParamName ?? null;
+            item.warehouseStockId = itemData.warehouseStockId ?? null;
+            item.dependsOnItemId = itemData.dependsOnItemId ?? null;
+            item.dependencyFormula = itemData.dependencyFormula ?? null;
             item.requiresIp = itemData.requiresIp || false;
             item.isRequired = itemData.isRequired !== false;
-            item.groupName = itemData.groupName || '';
+            item.groupName = itemData.groupName;
             item.sortOrder = itemData.sortOrder || 0;
-            item.notes = itemData.notes || '';
+            item.notes = itemData.notes;
           }
         } else {
           // Create new item
