@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import bomTemplateService from '../../services/bom-template.service';
 import { warehouseStockService } from '../../services/warehouseStock.service';
+import bomSubsystemTemplateService from '../../services/bomSubsystemTemplate.service';
 import type { 
   BomTemplate, 
   BomDependencyRule,
@@ -13,6 +14,11 @@ import type {
   CreateRuleDto 
 } from '../../services/bom-template.service';
 import type { WarehouseStock } from '../../types/warehouseStock.types';
+import type {
+  BomSubsystemTemplate,
+  BomSubsystemTemplateItem,
+  CreateTemplateDto as CreateSubsystemTemplateDto
+} from '../../services/bomSubsystemTemplate.service';
 import '../../styles/grover-theme.css';
 
 type Tab = 'materials' | 'templates' | 'dependencies';
@@ -324,17 +330,780 @@ const MaterialsTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
 };
 
 // ========== TEMPLATES TAB ==========
-const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete: boolean }> = () => {
+const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete: boolean }> = ({ canCreate, canUpdate, canDelete }) => {
+  const [templates, setTemplates] = useState<BomSubsystemTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedSubsystem, setSelectedSubsystem] = useState<{ type: string; variant: string | null } | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<BomSubsystemTemplate | null>(null);
+  const [showAddItemModal, setShowAddItemModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<BomSubsystemTemplateItem | null>(null);
+
+  // Define subsystem structure
+  const subsystemStructure = [
+    { type: 'SMOKIP_A', icon: '🔵', variants: ['PRZEJAZD_KAT_A', 'SKP', 'NASTAWNIA', 'LCS', 'CUID'] },
+    { type: 'SMOKIP_B', icon: '🟢', variants: ['PRZEJAZD_KAT_B', 'NASTAWNIA', 'LCS', 'CUID'] },
+    { type: 'SKD', icon: '🔐', variants: ['_GENERAL'] },
+    { type: 'SSWIN', icon: '🏠', variants: ['_GENERAL'] },
+    { type: 'CCTV', icon: '📹', variants: ['_GENERAL'] },
+    { type: 'SMW', icon: '📺', variants: ['_GENERAL'] },
+    { type: 'SDIP', icon: '📡', variants: ['_GENERAL'] },
+    { type: 'SUG', icon: '🧯', variants: ['_GENERAL'] },
+    { type: 'SSP', icon: '🔥', variants: ['_GENERAL'] },
+    { type: 'LAN', icon: '🌐', variants: ['_GENERAL'] },
+    { type: 'OTK', icon: '🔧', variants: ['_GENERAL'] },
+    { type: 'ZASILANIE', icon: '⚡', variants: ['_GENERAL'] },
+  ];
+
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  const loadTemplates = async () => {
+    try {
+      setLoading(true);
+      const data = await bomSubsystemTemplateService.getAll();
+      setTemplates(data);
+    } catch (err) {
+      console.error('Error loading templates:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectSubsystem = async (type: string, variant: string) => {
+    const variantValue = variant === '_GENERAL' ? null : variant;
+    setSelectedSubsystem({ type, variant: variantValue });
+    
+    try {
+      const template = await bomSubsystemTemplateService.getTemplateFor(type, variantValue);
+      setSelectedTemplate(template);
+    } catch (err) {
+      console.error('Error loading template:', err);
+      setSelectedTemplate(null);
+    }
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!selectedTemplate || !selectedSubsystem) return;
+    
+    if (!confirm('Czy na pewno chcesz zapisać zmiany w szablonie?')) return;
+    
+    try {
+      await bomSubsystemTemplateService.update(selectedTemplate.id, {
+        items: selectedTemplate.items
+      });
+      alert('Szablon zapisany pomyślnie');
+      loadTemplates();
+    } catch (err: any) {
+      alert('Błąd podczas zapisywania: ' + err.message);
+    }
+  };
+
+  const handleDeleteItem = async (itemId: number) => {
+    if (!selectedTemplate) return;
+    if (!confirm('Czy na pewno chcesz usunąć ten element?')) return;
+    
+    const updatedItems = selectedTemplate.items.filter(item => item.id !== itemId);
+    setSelectedTemplate({ ...selectedTemplate, items: updatedItems });
+  };
+
+  const handleAddItem = (item: BomSubsystemTemplateItem) => {
+    if (!selectedTemplate) return;
+    
+    const newItem = { ...item, sortOrder: selectedTemplate.items.length };
+    setSelectedTemplate({
+      ...selectedTemplate,
+      items: [...selectedTemplate.items, newItem]
+    });
+  };
+
+  const handleUpdateItem = (updatedItem: BomSubsystemTemplateItem) => {
+    if (!selectedTemplate) return;
+    
+    const updatedItems = selectedTemplate.items.map(item =>
+      item.id === updatedItem.id ? updatedItem : item
+    );
+    setSelectedTemplate({ ...selectedTemplate, items: updatedItems });
+  };
+
+  // Group items by groupName
+  const groupedItems = selectedTemplate?.items.reduce((acc, item) => {
+    const group = item.groupName || 'Inne';
+    if (!acc[group]) acc[group] = [];
+    acc[group].push(item);
+    return acc;
+  }, {} as Record<string, BomSubsystemTemplateItem[]>) || {};
+
+  // Calculate summary
+  const summary = selectedTemplate ? {
+    total: selectedTemplate.items.length,
+    fixed: selectedTemplate.items.filter(i => i.quantitySource === 'FIXED').length,
+    fromConfig: selectedTemplate.items.filter(i => i.quantitySource === 'FROM_CONFIG').length,
+    perUnit: selectedTemplate.items.filter(i => i.quantitySource === 'PER_UNIT').length,
+    dependent: selectedTemplate.items.filter(i => i.quantitySource === 'DEPENDENT').length,
+  } : null;
+
   return (
-    <div className="card" style={{ padding: '60px', textAlign: 'center' }}>
-      <div style={{ fontSize: '48px', marginBottom: '20px' }}>📄</div>
-      <h3 style={{ color: 'var(--text-primary)', marginBottom: '10px' }}>
-        Szablony BOM według kategorii
-      </h3>
-      <p style={{ color: 'var(--text-secondary)' }}>
-        Ta zakładka pozwoli zarządzać przypisaniami materiałów do kategorii i typów zadań.
-        Funkcja dostępna wkrótce.
-      </p>
+    <>
+      <div style={{ display: 'flex', gap: '20px', height: 'calc(100vh - 250px)' }}>
+        {/* Left Panel - Subsystem Tree */}
+        <div className="card" style={{ width: '280px', padding: '15px', overflowY: 'auto' }}>
+          <h3 style={{ color: 'var(--text-primary)', marginBottom: '15px', fontSize: '16px' }}>
+            Podsystemy
+          </h3>
+          
+          {subsystemStructure.map(subsystem => (
+            <div key={subsystem.type} style={{ marginBottom: '15px' }}>
+              <div style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                marginBottom: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span>{subsystem.icon}</span>
+                <span>{subsystem.type}</span>
+              </div>
+              
+              <div style={{ marginLeft: '24px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {subsystem.variants.map(variant => {
+                  const isActive = selectedSubsystem?.type === subsystem.type && 
+                    (variant === '_GENERAL' ? selectedSubsystem.variant === null : selectedSubsystem.variant === variant);
+                  
+                  return (
+                    <button
+                      key={variant}
+                      onClick={() => handleSelectSubsystem(subsystem.type, variant)}
+                      style={{
+                        padding: '6px 10px',
+                        fontSize: '13px',
+                        textAlign: 'left',
+                        background: isActive ? 'var(--primary-color)' : 'transparent',
+                        color: isActive ? '#fff' : 'var(--text-secondary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-sm)',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      {variant === '_GENERAL' ? 'Ogólny' : variant}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Right Panel - Template Editor */}
+        <div className="card" style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
+          {!selectedSubsystem ? (
+            <div style={{ padding: '60px', textAlign: 'center' }}>
+              <div style={{ fontSize: '48px', marginBottom: '20px' }}>📄</div>
+              <h3 style={{ color: 'var(--text-primary)', marginBottom: '10px' }}>
+                Wybierz podsystem
+              </h3>
+              <p style={{ color: 'var(--text-secondary)' }}>
+                Wybierz podsystem z listy po lewej, aby edytować szablon BOM
+              </p>
+            </div>
+          ) : !selectedTemplate ? (
+            <div style={{ padding: '60px', textAlign: 'center' }}>
+              <div style={{ fontSize: '48px', marginBottom: '20px' }}>📝</div>
+              <h3 style={{ color: 'var(--text-primary)', marginBottom: '10px' }}>
+                Brak szablonu
+              </h3>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
+                Nie znaleziono aktywnego szablonu dla {selectedSubsystem.type}
+                {selectedSubsystem.variant && ` - ${selectedSubsystem.variant}`}
+              </p>
+              {canCreate && (
+                <button className="btn btn-primary" onClick={() => {
+                  // TODO: Implement create template
+                  alert('Funkcja tworzenia nowego szablonu będzie wkrótce dostępna');
+                }}>
+                  ➕ Utwórz szablon
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Header */}
+              <div style={{ marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                  <div>
+                    <h2 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '20px' }}>
+                      {selectedTemplate.templateName}
+                    </h2>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '8px', alignItems: 'center' }}>
+                      <span style={{
+                        padding: '2px 8px',
+                        fontSize: '11px',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-sm)',
+                        color: 'var(--text-secondary)'
+                      }}>
+                        v{selectedTemplate.version}
+                      </span>
+                      <span style={{
+                        padding: '2px 8px',
+                        fontSize: '11px',
+                        background: selectedTemplate.isActive ? '#10b981' : '#6b7280',
+                        color: '#fff',
+                        borderRadius: 'var(--radius-sm)'
+                      }}>
+                        {selectedTemplate.isActive ? 'Aktywny' : 'Nieaktywny'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    {canCreate && (
+                      <button 
+                        className="btn btn-primary" 
+                        onClick={() => setShowAddItemModal(true)}
+                        style={{ fontSize: '14px' }}
+                      >
+                        ➕ Dodaj urządzenie
+                      </button>
+                    )}
+                    {canUpdate && (
+                      <button 
+                        className="btn btn-success" 
+                        onClick={handleSaveTemplate}
+                        style={{ fontSize: '14px' }}
+                      >
+                        💾 Zapisz szablon
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Items grouped by groupName */}
+              {Object.entries(groupedItems).map(([groupName, items]) => (
+                <div key={groupName} style={{ marginBottom: '25px' }}>
+                  <h3 style={{
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    color: 'var(--text-primary)',
+                    marginBottom: '12px',
+                    padding: '8px 12px',
+                    background: 'var(--bg-secondary)',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-color)'
+                  }}>
+                    {groupName}
+                  </h3>
+                  
+                  <div className="table-container">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '50px' }}>Nr</th>
+                          <th>Materiał</th>
+                          <th style={{ width: '100px' }}>Ilość</th>
+                          <th style={{ width: '80px' }}>Jednostka</th>
+                          <th style={{ width: '140px' }}>Źródło</th>
+                          <th style={{ width: '50px' }}>IP</th>
+                          <th style={{ width: '150px' }}>Akcje</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items.map((item, idx) => (
+                          <tr key={item.id || idx}>
+                            <td>{idx + 1}</td>
+                            <td>
+                              <div>
+                                <div style={{ fontWeight: '500', color: 'var(--text-primary)' }}>
+                                  {item.materialName}
+                                </div>
+                                {item.catalogNumber && (
+                                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                    📦 {item.catalogNumber}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td>{item.defaultQuantity}</td>
+                            <td>{item.unit}</td>
+                            <td>
+                              <span style={{
+                                padding: '3px 8px',
+                                fontSize: '11px',
+                                borderRadius: 'var(--radius-sm)',
+                                background: 
+                                  item.quantitySource === 'FIXED' ? '#3b82f6' :
+                                  item.quantitySource === 'FROM_CONFIG' ? '#8b5cf6' :
+                                  item.quantitySource === 'PER_UNIT' ? '#10b981' :
+                                  '#f59e0b',
+                                color: '#fff'
+                              }}>
+                                {item.quantitySource === 'FIXED' ? 'Stała' :
+                                 item.quantitySource === 'FROM_CONFIG' ? 'Config' :
+                                 item.quantitySource === 'PER_UNIT' ? 'Per Unit' :
+                                 'Zależna'}
+                              </span>
+                              {item.configParamName && (
+                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                  {item.configParamName}
+                                </div>
+                              )}
+                            </td>
+                            <td>
+                              {item.requiresIp && (
+                                <span style={{ fontSize: '16px' }}>🌐</span>
+                              )}
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', gap: '5px' }}>
+                                {canUpdate && (
+                                  <button
+                                    className="btn btn-secondary"
+                                    onClick={() => setEditingItem(item)}
+                                    style={{ padding: '4px 8px', fontSize: '12px' }}
+                                  >
+                                    ✏️
+                                  </button>
+                                )}
+                                {canDelete && (
+                                  <button
+                                    className="btn btn-danger"
+                                    onClick={() => item.id && handleDeleteItem(item.id)}
+                                    style={{ padding: '4px 8px', fontSize: '12px' }}
+                                  >
+                                    🗑️
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+
+              {/* Summary Bar */}
+              {summary && (
+                <div style={{
+                  marginTop: '20px',
+                  padding: '15px',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  display: 'flex',
+                  justifyContent: 'space-around',
+                  flexWrap: 'wrap',
+                  gap: '15px'
+                }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '24px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                      {summary.total}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Razem</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '20px', fontWeight: '600', color: '#3b82f6' }}>
+                      {summary.fixed}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Stała</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '20px', fontWeight: '600', color: '#8b5cf6' }}>
+                      {summary.fromConfig}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Config</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '20px', fontWeight: '600', color: '#10b981' }}>
+                      {summary.perUnit}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Per Unit</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '20px', fontWeight: '600', color: '#f59e0b' }}>
+                      {summary.dependent}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Zależna</div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Add Item Modal */}
+      {showAddItemModal && selectedTemplate && (
+        <AddTemplateItemModal
+          onClose={() => setShowAddItemModal(false)}
+          onSuccess={(item) => {
+            handleAddItem(item);
+            setShowAddItemModal(false);
+          }}
+        />
+      )}
+      
+      {/* Edit Item Modal */}
+      {editingItem && (
+        <AddTemplateItemModal
+          item={editingItem}
+          onClose={() => setEditingItem(null)}
+          onSuccess={(item) => {
+            handleUpdateItem(item);
+            setEditingItem(null);
+          }}
+        />
+      )}
+    </>
+  );
+};
+
+// ========== ADD TEMPLATE ITEM MODAL ==========
+const AddTemplateItemModal: React.FC<{
+  item?: BomSubsystemTemplateItem;
+  onClose: () => void;
+  onSuccess: (item: BomSubsystemTemplateItem) => void;
+}> = ({ item, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState<BomSubsystemTemplateItem>({
+    materialName: item?.materialName || '',
+    catalogNumber: item?.catalogNumber || '',
+    unit: item?.unit || 'szt',
+    defaultQuantity: item?.defaultQuantity || 1,
+    quantitySource: item?.quantitySource || 'FIXED',
+    configParamName: item?.configParamName || '',
+    requiresIp: item?.requiresIp || false,
+    isRequired: item?.isRequired || true,
+    groupName: item?.groupName || 'Inne',
+    sortOrder: item?.sortOrder || 0,
+    notes: item?.notes || '',
+  });
+  
+  const [warehouseResults, setWarehouseResults] = useState<WarehouseStock[]>([]);
+  const [showWarehouseDropdown, setShowWarehouseDropdown] = useState(false);
+  const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  const configParams = [
+    'przejazdyKatA',
+    'przejazdyKatB',
+    'iloscSKP',
+    'iloscNastawni',
+    'lcsMonitory',
+    'lcsStanowiska',
+    'iloscBudynkow',
+    'iloscDrzwi',
+    'iloscPomieszczen',
+    'iloscKontenerow',
+    'iloscKamer',
+    'iloscPrzejsc'
+  ];
+
+  const groupNames = [
+    'Szafa sterownicza',
+    'Okablowanie',
+    'Urządzenia aktywne',
+    'Zasilanie',
+    'Czujniki/detektory',
+    'Osprzęt montażowy',
+    'Inne'
+  ];
+
+  const searchWarehouse = async (term: string) => {
+    if (term.length < 2) {
+      setWarehouseResults([]);
+      setShowWarehouseDropdown(false);
+      return;
+    }
+    try {
+      const response = await warehouseStockService.getAll({ search: term }, 1, 10);
+      setWarehouseResults(response.data);
+      setShowWarehouseDropdown(true);
+    } catch (err) {
+      console.error('Błąd wyszukiwania:', err);
+    }
+  };
+
+  const handleMaterialNameChange = (value: string) => {
+    setFormData({ ...formData, materialName: value });
+    
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    const timeout = setTimeout(() => {
+      searchWarehouse(value);
+    }, 300);
+    
+    setSearchTimeout(timeout);
+  };
+
+  const handleWarehouseItemSelect = (warehouseItem: WarehouseStock) => {
+    setFormData({
+      ...formData,
+      materialName: warehouseItem.materialName,
+      catalogNumber: warehouseItem.catalogNumber,
+      unit: warehouseItem.unit,
+      warehouseStockId: warehouseItem.id,
+    });
+    setShowWarehouseDropdown(false);
+    setWarehouseResults([]);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSuccess(formData);
+  };
+
+  return (
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.7)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: '20px'
+      }}
+      onClick={onClose}
+    >
+      <div 
+        className="card"
+        style={{ maxWidth: '700px', width: '100%', maxHeight: '90vh', overflow: 'auto', padding: '30px' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 style={{ color: 'var(--text-primary)', marginBottom: '20px' }}>
+          {item ? 'Edytuj element' : 'Dodaj element'}
+        </h2>
+
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '15px' }}>
+          <div style={{ position: 'relative' }}>
+            <label className="label">Nazwa materiału *</label>
+            <input
+              type="text"
+              value={formData.materialName}
+              onChange={(e) => handleMaterialNameChange(e.target.value)}
+              className="input"
+              required
+              placeholder="Wpisz nazwę lub wyszukaj w magazynie..."
+              autoComplete="off"
+            />
+            
+            {showWarehouseDropdown && warehouseResults.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)',
+                marginTop: '4px',
+                maxHeight: '300px',
+                overflowY: 'auto',
+                zIndex: 1001,
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
+              }}>
+                <div style={{
+                  padding: '8px 12px',
+                  fontSize: '12px',
+                  color: 'var(--text-muted)',
+                  borderBottom: '1px solid var(--border-color)',
+                  background: 'var(--bg-secondary)'
+                }}>
+                  🔍 Materiały z magazynu ({warehouseResults.length})
+                </div>
+                {warehouseResults.map((warehouseItem) => (
+                  <div
+                    key={warehouseItem.id}
+                    onClick={() => handleWarehouseItemSelect(warehouseItem)}
+                    style={{
+                      padding: '12px',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid var(--border-color)',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{ 
+                      color: 'var(--text-primary)', 
+                      fontSize: '14px', 
+                      fontWeight: '500',
+                      marginBottom: '4px'
+                    }}>
+                      {warehouseItem.materialName}
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '12px',
+                      fontSize: '12px',
+                      color: 'var(--text-secondary)'
+                    }}>
+                      <span>📦 {warehouseItem.catalogNumber}</span>
+                      <span>📊 Stan: {warehouseItem.quantityInStock} {warehouseItem.unit}</span>
+                      {warehouseItem.category && <span>🏷️ {warehouseItem.category}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="label">Numer katalogowy</label>
+            <input
+              type="text"
+              value={formData.catalogNumber}
+              onChange={(e) => setFormData({ ...formData, catalogNumber: e.target.value })}
+              className="input"
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+            <div>
+              <label className="label">Ilość domyślna *</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.defaultQuantity}
+                onChange={(e) => setFormData({ ...formData, defaultQuantity: parseFloat(e.target.value) })}
+                className="input"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="label">Jednostka *</label>
+              <input
+                type="text"
+                value={formData.unit}
+                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                className="input"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="label">Źródło ilości *</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '8px' }}>
+              {(['FIXED', 'FROM_CONFIG', 'PER_UNIT', 'DEPENDENT'] as const).map(source => (
+                <label key={source} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 12px',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                  background: formData.quantitySource === source ? 'var(--primary-color)' : 'transparent',
+                  color: formData.quantitySource === source ? '#fff' : 'var(--text-secondary)'
+                }}>
+                  <input
+                    type="radio"
+                    name="quantitySource"
+                    value={source}
+                    checked={formData.quantitySource === source}
+                    onChange={(e) => setFormData({ ...formData, quantitySource: e.target.value as any })}
+                  />
+                  <span style={{ fontSize: '13px' }}>
+                    {source === 'FIXED' ? 'Stała' :
+                     source === 'FROM_CONFIG' ? 'Z konfiguracji' :
+                     source === 'PER_UNIT' ? 'Na jednostkę' :
+                     'Zależna'}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {formData.quantitySource === 'FROM_CONFIG' && (
+            <div>
+              <label className="label">Parametr konfiguracji *</label>
+              <select
+                value={formData.configParamName}
+                onChange={(e) => setFormData({ ...formData, configParamName: e.target.value })}
+                className="input"
+                required
+              >
+                <option value="">-- Wybierz parametr --</option>
+                {configParams.map(param => (
+                  <option key={param} value={param}>{param}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="label">Grupa *</label>
+            <select
+              value={formData.groupName}
+              onChange={(e) => setFormData({ ...formData, groupName: e.target.value })}
+              className="input"
+              required
+            >
+              {groupNames.map(group => (
+                <option key={group} value={group}>{group}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="label">Notatki</label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              className="input"
+              rows={2}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '15px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={formData.isRequired}
+                onChange={(e) => setFormData({ ...formData, isRequired: e.target.checked })}
+              />
+              <span style={{ color: 'var(--text-secondary)' }}>Materiał wymagany</span>
+            </label>
+            
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={formData.requiresIp}
+                onChange={(e) => setFormData({ ...formData, requiresIp: e.target.checked })}
+              />
+              <span style={{ color: 'var(--text-secondary)' }}>🌐 Wymaga IP</span>
+            </label>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
+              Anuluj
+            </button>
+            <button type="submit" className="btn btn-primary">
+              {item ? 'Zapisz zmiany' : 'Dodaj element'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
