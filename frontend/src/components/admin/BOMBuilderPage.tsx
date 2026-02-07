@@ -573,7 +573,7 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                         onClick={() => setShowAddItemModal(true)}
                         style={{ fontSize: '14px' }}
                       >
-                        ➕ Dodaj urządzenie
+                        ➕ Dodaj materiał
                       </button>
                     )}
                     {canUpdate && (
