@@ -47,6 +47,7 @@ import { TaskWarehouseStock } from '../entities/TaskWarehouseStock';
 import { WarehouseLocation } from '../entities/WarehouseLocation';
 import { BomSubsystemTemplate } from '../entities/BomSubsystemTemplate';
 import { BomSubsystemTemplateItem } from '../entities/BomSubsystemTemplateItem';
+import { BomGroup } from '../entities/BomGroup';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -103,7 +104,9 @@ export const AppDataSource = new DataSource({
     WarehouseLocation,
     // BOM Subsystem Templates
     BomSubsystemTemplate,
-    BomSubsystemTemplateItem
+    BomSubsystemTemplateItem,
+    // BOM Groups
+    BomGroup
   ],
   subscribers: [],
   migrations: [],
