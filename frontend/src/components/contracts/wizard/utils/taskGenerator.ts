@@ -28,9 +28,12 @@ const getBooleanValue = (params: Record<string, number | boolean>, key: string):
 export const resolveTaskVariant = (taskType: string, detail: TaskDetail): string => {
   // Handle both PRZEJAZD_KAT_A and PRZEJAZD_KAT_B tasks
   if ((taskType === 'PRZEJAZD_KAT_A' || taskType === 'PRZEJAZD_KAT_B') && detail.kategoria) {
-    // Map 'KAT A' -> 'PRZEJAZD_KAT_A', 'KAT E' -> 'PRZEJAZD_KAT_E', etc.
-    const katSuffix = detail.kategoria.replace('KAT ', '');
-    return `PRZEJAZD_KAT_${katSuffix}`;
+    // Validate that kategoria matches expected format 'KAT X'
+    const match = detail.kategoria.match(/^KAT\s+([A-F])$/);
+    if (match) {
+      const katSuffix = match[1]; // Extract the letter (A, B, C, E, F)
+      return `PRZEJAZD_KAT_${katSuffix}`;
+    }
   }
   return taskType;
 };
