@@ -3,9 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import bomSubsystemTemplateService from '../../services/bomSubsystemTemplate.service';
-import { warehouseStockService } from '../../services/warehouseStock.service';
 import type { BomSubsystemTemplate, BomSubsystemTemplateItem } from '../../services/bomSubsystemTemplate.service';
-import type { WarehouseStock } from '../../types/warehouseStock.types';
 import type { Task } from '../../types/task.types';
 
 interface Props {
@@ -25,8 +23,6 @@ export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =>
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState('');
   const [configParams, setConfigParams] = useState<Record<string, any>>({});
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [additionalItems, setAdditionalItems] = useState<ResolvedItem[]>([]);
 
   useEffect(() => {
     loadTemplate();
