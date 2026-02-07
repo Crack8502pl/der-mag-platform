@@ -16,8 +16,7 @@ import type {
 import type { WarehouseStock } from '../../types/warehouseStock.types';
 import type {
   BomSubsystemTemplate,
-  BomSubsystemTemplateItem,
-  CreateTemplateDto as CreateSubsystemTemplateDto
+  BomSubsystemTemplateItem
 } from '../../services/bomSubsystemTemplate.service';
 import '../../styles/grover-theme.css';
 
@@ -331,8 +330,6 @@ const MaterialsTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
 
 // ========== TEMPLATES TAB ==========
 const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete: boolean }> = ({ canCreate, canUpdate, canDelete }) => {
-  const [templates, setTemplates] = useState<BomSubsystemTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedSubsystem, setSelectedSubsystem] = useState<{ type: string; variant: string | null } | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<BomSubsystemTemplate | null>(null);
   const [showAddItemModal, setShowAddItemModal] = useState(false);
@@ -354,21 +351,7 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
     { type: 'ZASILANIE', icon: '⚡', variants: ['_GENERAL'] },
   ];
 
-  useEffect(() => {
-    loadTemplates();
-  }, []);
 
-  const loadTemplates = async () => {
-    try {
-      setLoading(true);
-      const data = await bomSubsystemTemplateService.getAll();
-      setTemplates(data);
-    } catch (err) {
-      console.error('Error loading templates:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSelectSubsystem = async (type: string, variant: string) => {
     const variantValue = variant === '_GENERAL' ? null : variant;
@@ -393,7 +376,6 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
         items: selectedTemplate.items
       });
       alert('Szablon zapisany pomyślnie');
-      loadTemplates();
     } catch (err: any) {
       alert('Błąd podczas zapisywania: ' + err.message);
     }
