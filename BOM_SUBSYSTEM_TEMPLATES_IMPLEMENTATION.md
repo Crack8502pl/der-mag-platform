@@ -175,10 +175,10 @@ Apply template to task
 The system supports 12 subsystem types:
 
 1. **SMOKIP_A** 🔵 - SMOK/CMOKIP-A
-   - Variants: PRZEJAZD_KAT_A, SKP, NASTAWNIA, LCS, CUID
+   - Variants: PRZEJAZD_KAT_A, PRZEJAZD_KAT_E, PRZEJAZD_KAT_F, SKP, NASTAWNIA, LCS, CUID
 
 2. **SMOKIP_B** 🟢 - SMOK/CMOKIP-B
-   - Variants: PRZEJAZD_KAT_B, NASTAWNIA, LCS, CUID
+   - Variants: PRZEJAZD_KAT_B, PRZEJAZD_KAT_C, PRZEJAZD_KAT_E, PRZEJAZD_KAT_F, NASTAWNIA, LCS, CUID
 
 3. **SKD** 🔐 - System Kontroli Dostępu
    - Variant: _GENERAL

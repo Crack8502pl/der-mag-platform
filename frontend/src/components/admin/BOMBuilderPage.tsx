@@ -334,11 +334,12 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
   const [selectedTemplate, setSelectedTemplate] = useState<BomSubsystemTemplate | null>(null);
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [editingItem, setEditingItem] = useState<BomSubsystemTemplateItem | null>(null);
+  const [creatingTemplate, setCreatingTemplate] = useState(false);
 
   // Define subsystem structure
   const subsystemStructure = [
-    { type: 'SMOKIP_A', icon: '🔵', variants: ['PRZEJAZD_KAT_A', 'SKP', 'NASTAWNIA', 'LCS', 'CUID'] },
-    { type: 'SMOKIP_B', icon: '🟢', variants: ['PRZEJAZD_KAT_B', 'NASTAWNIA', 'LCS', 'CUID'] },
+    { type: 'SMOKIP_A', icon: '🔵', variants: ['PRZEJAZD_KAT_A', 'PRZEJAZD_KAT_E', 'PRZEJAZD_KAT_F', 'SKP', 'NASTAWNIA', 'LCS', 'CUID'] },
+    { type: 'SMOKIP_B', icon: '🟢', variants: ['PRZEJAZD_KAT_B', 'PRZEJAZD_KAT_C', 'PRZEJAZD_KAT_E', 'PRZEJAZD_KAT_F', 'NASTAWNIA', 'LCS', 'CUID'] },
     { type: 'SKD', icon: '🔐', variants: ['_GENERAL'] },
     { type: 'SSWIN', icon: '🏠', variants: ['_GENERAL'] },
     { type: 'CCTV', icon: '📹', variants: ['_GENERAL'] },
@@ -363,6 +364,36 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
     } catch (err) {
       console.error('Error loading template:', err);
       setSelectedTemplate(null);
+    }
+  };
+
+  const handleCreateTemplate = async () => {
+    if (!selectedSubsystem) return;
+    
+    setCreatingTemplate(true);
+    try {
+      const variantText = selectedSubsystem.variant || 'Ogólny';
+      const templateName = `BOM ${selectedSubsystem.type} - ${variantText}`;
+      
+      const newTemplate = await bomSubsystemTemplateService.create({
+        templateName,
+        subsystemType: selectedSubsystem.type,
+        taskVariant: selectedSubsystem.variant,
+        items: []
+      });
+      
+      setSelectedTemplate(newTemplate);
+      
+      // Show brief success indication
+      const successMsg = document.createElement('div');
+      successMsg.textContent = '✅ Szablon utworzony pomyślnie';
+      successMsg.style.cssText = 'position:fixed;top:20px;right:20px;background:var(--success);color:white;padding:12px 20px;border-radius:8px;z-index:9999;';
+      document.body.appendChild(successMsg);
+      setTimeout(() => successMsg.remove(), 3000);
+    } catch (err: any) {
+      alert('Błąd podczas tworzenia szablonu: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setCreatingTemplate(false);
     }
   };
 
@@ -508,11 +539,12 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                 {selectedSubsystem.variant && ` - ${selectedSubsystem.variant}`}
               </p>
               {canCreate && (
-                <button className="btn btn-primary" onClick={() => {
-                  // TODO: Implement create template
-                  alert('Funkcja tworzenia nowego szablonu będzie wkrótce dostępna');
-                }}>
-                  ➕ Utwórz szablon
+                <button 
+                  className="btn btn-primary" 
+                  onClick={handleCreateTemplate}
+                  disabled={creatingTemplate}
+                >
+                  {creatingTemplate ? '⏳ Tworzenie...' : '➕ Utwórz szablon'}
                 </button>
               )}
             </div>
