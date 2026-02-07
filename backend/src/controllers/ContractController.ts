@@ -438,6 +438,16 @@ export class ContractController {
           const createdTasks = [];
           const createdMainTasks = [];
           
+          // Find task type for this subsystem type - once per subsystem
+          const DEFAULT_TASK_TYPE_ID = 1;
+          let taskTypeId = DEFAULT_TASK_TYPE_ID;
+          const taskType = await taskTypeRepository.findOne({
+            where: { code: type }  // type = subsystem type (SMOKIP_A, SMW, etc.)
+          });
+          if (taskType) {
+            taskTypeId = taskType.id;
+          }
+          
           if (subsystemTasks && Array.isArray(subsystemTasks)) {
             for (const taskData of subsystemTasks) {
               try {
@@ -452,17 +462,6 @@ export class ContractController {
                 
                 // 2. Create main Task entity - UŻYJ TEGO SAMEGO NUMERU
                 try {
-                  // Find task type - match by code or use default
-                  const DEFAULT_TASK_TYPE_ID = 1;
-                  let taskTypeId = DEFAULT_TASK_TYPE_ID;
-                  if (taskData.type) {
-                    const taskType = await taskTypeRepository.findOne({
-                      where: { code: taskData.type }
-                    });
-                    if (taskType) {
-                      taskTypeId = taskType.id;
-                    }
-                  }
                   
                   // Create task with same number as SubsystemTask
                   const mainTask = taskRepository.create({
