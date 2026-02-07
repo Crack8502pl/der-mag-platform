@@ -479,7 +479,9 @@ export class ContractController {
                     metadata: {
                       createdFromWizard: true,
                       wizardData: taskData,
-                      subsystemType: type
+                      subsystemType: type,
+                      taskVariant: taskData.type || null,
+                      configParams: subsystemParams || {}
                     }
                   });
                   
