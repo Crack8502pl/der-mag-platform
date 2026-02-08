@@ -9,6 +9,7 @@ import taskService from '../../services/task.service';
 import type { BomSubsystemTemplate, BomSubsystemTemplateItem } from '../../services/bomSubsystemTemplate.service';
 import type { Task } from '../../types/task.types';
 import type { WarehouseStock } from '../../types/warehouseStock.types';
+import '../../styles/grover-theme.css';
 
 // Constants
 const WAREHOUSE_STOCK_PAGE_SIZE = 50;
@@ -26,6 +27,7 @@ interface ConfigField {
   options?: Array<{ value: string; label: string }>;
   defaultValue?: any;
   materialItems?: BomSubsystemTemplateItem[]; // For model_picker type
+  limitParamName?: string; // Reference to the associated number field for validation
 }
 
 interface ConfigGroup {
@@ -38,7 +40,7 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
   const [bomGroups, setBomGroups] = useState<BomGroup[]>([]);
   const [configGroups, setConfigGroups] = useState<ConfigGroup[]>([]);
   const [configValues, setConfigValues] = useState<Record<string, any>>({});
-  const [selectedModels, setSelectedModels] = useState<Record<string, boolean>>({});
+  const [selectedModels, setSelectedModels] = useState<Record<string, { checked: boolean; quantity: number }>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -63,7 +65,20 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
       
       // Initialize selectedModels from saved config
       if (existingConfig.selectedModels) {
-        setSelectedModels(existingConfig.selectedModels);
+        // Handle backward compatibility: migrate boolean to new format
+        const migrated: Record<string, { checked: boolean; quantity: number }> = {};
+        for (const [key, val] of Object.entries(existingConfig.selectedModels)) {
+          if (typeof val === 'boolean') {
+            // Old format: migrate boolean to new format
+            migrated[key] = { checked: val, quantity: 1 };
+          } else if (typeof val === 'object' && val !== null && 'checked' in val && 'quantity' in val) {
+            migrated[key] = val as { checked: boolean; quantity: number };
+          } else {
+            // Fallback for unexpected format
+            migrated[key] = { checked: !!val, quantity: 1 };
+          }
+        }
+        setSelectedModels(migrated);
       }
 
       // Extract subsystem type and task variant from task metadata
@@ -185,11 +200,21 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
         // Get all material items from this group in the template
         const groupItems = tmpl.items.filter(i => (i.groupName || 'Inne') === groupName);
         if (groupItems.length > 0) {
+          // Find the associated number field for validation (e.g., iloscKamerOgolnych)
+          let limitParamName: string | undefined;
+          
+          // Look for a number field in this group that represents the total count
+          const numberField = fields.find(f => f.type === 'number');
+          if (numberField) {
+            limitParamName = numberField.paramName;
+          }
+          
           fields.push({
             paramName: `${groupName}_selectedModels`,
             label: 'Wybierz modele',
             type: 'model_picker',
-            materialItems: groupItems
+            materialItems: groupItems,
+            limitParamName
           });
         }
       } else if (groupName.toLowerCase().includes('słup')) {
@@ -262,6 +287,34 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
     try {
       setSaving(true);
       setError('');
+
+      // Validate all groups before saving
+      let hasErrors = false;
+      const errorMessages: string[] = [];
+      
+      for (const group of configGroups) {
+        for (const field of group.fields) {
+          if (field.type === 'model_picker' && field.limitParamName && field.materialItems) {
+            const limit = configValues[field.limitParamName] ?? 0;
+            const sum = field.materialItems.reduce((acc, matItem, matIdx) => {
+              const key = `${field.paramName}_${matItem.id || matIdx}`;
+              const state = selectedModels[key];
+              return acc + (state?.checked ? (state.quantity || 0) : 0);
+            }, 0);
+            
+            if (sum > limit) {
+              hasErrors = true;
+              errorMessages.push(`${group.groupName}: suma zaznaczonych (${sum}) przekracza limit (${limit})`);
+            }
+          }
+        }
+      }
+      
+      if (hasErrors) {
+        setError(`Błędy walidacji:\n${errorMessages.join('\n')}`);
+        setSaving(false);
+        return;
+      }
 
       // Update task metadata with new config params
       await taskService.update(task.taskNumber, {
@@ -388,50 +441,106 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
                           </select>
                         )}
                         {field.type === 'model_picker' && field.materialItems && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
-                            {field.materialItems.map((matItem, matIdx) => {
-                              const modelKey = `${field.paramName}_${matItem.id || matIdx}`;
-                              const isChecked = selectedModels[modelKey] === true;
-                              return (
-                                <label key={matIdx} style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '10px',
-                                  padding: '8px 12px',
-                                  border: '1px solid var(--border-color)',
-                                  borderRadius: '6px',
-                                  cursor: 'pointer',
-                                  background: isChecked ? 'var(--primary-color)10' : 'transparent',
-                                  transition: 'all 0.2s'
-                                }}>
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={(e) => {
-                                      const newVal = e.target.checked;
-                                      setSelectedModels(prev => ({ ...prev, [modelKey]: newVal }));
-                                    }}
-                                  />
-                                  <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
-                                      {matItem.materialName}
-                                    </div>
-                                    {matItem.catalogNumber && (
-                                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                        {matItem.catalogNumber}
-                                      </div>
-                                    )}
-                                  </div>
-                                  <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
-                                    Domyślna ilość: {matItem.defaultQuantity} {matItem.unit}
-                                  </span>
-                                </label>
-                              );
-                            })}
-                            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                              ☑️ Zaznacz wybrane modele kamer. Odznaczone nie będą uwzględnione.
+                          <>
+                            <div className="data-table-container" style={{ marginTop: '8px' }}>
+                              <table className="data-table data-table--compact">
+                                <thead>
+                                  <tr>
+                                    <th className="table-cell-center" style={{ width: '50px' }}>✅</th>
+                                    <th>Materiał</th>
+                                    <th style={{ width: '140px' }}>Nr katalogowy</th>
+                                    <th className="table-cell-center" style={{ width: '100px' }}>Ilość</th>
+                                    <th className="table-cell-center" style={{ width: '80px' }}>Jedn.</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {field.materialItems.map((matItem, matIdx) => {
+                                    const modelKey = `${field.paramName}_${matItem.id || matIdx}`;
+                                    const modelState = selectedModels[modelKey] || { checked: false, quantity: matItem.defaultQuantity };
+                                    const step = matItem.unit === 'szt' ? '1' : '0.01';
+                                    return (
+                                      <tr key={matIdx} style={{
+                                        background: modelState.checked ? 'rgba(255, 107, 53, 0.08)' : 'transparent'
+                                      }}>
+                                        <td className="table-cell-center">
+                                          <input 
+                                            type="checkbox" 
+                                            checked={modelState.checked}
+                                            onChange={(e) => {
+                                              setSelectedModels(prev => ({
+                                                ...prev,
+                                                [modelKey]: {
+                                                  checked: e.target.checked,
+                                                  quantity: modelState.quantity
+                                                }
+                                              }));
+                                            }}
+                                          />
+                                        </td>
+                                        <td style={{ fontWeight: 500 }}>{matItem.materialName}</td>
+                                        <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+                                          {matItem.catalogNumber || '-'}
+                                        </td>
+                                        <td className="table-cell-center">
+                                          <input 
+                                            type="number" 
+                                            value={modelState.quantity} 
+                                            disabled={!modelState.checked}
+                                            min="0" 
+                                            step={step}
+                                            style={{ 
+                                              width: '70px', 
+                                              textAlign: 'center',
+                                              padding: '4px',
+                                              backgroundColor: modelState.checked ? 'var(--bg-input)' : 'var(--bg-hover)',
+                                              color: modelState.checked ? 'var(--text-primary)' : 'var(--text-muted)',
+                                              border: '1px solid var(--border-color)',
+                                              borderRadius: '4px'
+                                            }}
+                                            onChange={(e) => {
+                                              const newQuantity = Number(e.target.value);
+                                              setSelectedModels(prev => ({
+                                                ...prev,
+                                                [modelKey]: {
+                                                  checked: modelState.checked,
+                                                  quantity: newQuantity
+                                                }
+                                              }));
+                                            }}
+                                          />
+                                        </td>
+                                        <td className="table-cell-center">{matItem.unit}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
                             </div>
-                          </div>
+                            {/* Validation summary */}
+                            {field.limitParamName && (() => {
+                              const limit = configValues[field.limitParamName] ?? 0;
+                              const sum = field.materialItems.reduce((acc, matItem, matIdx) => {
+                                const key = `${field.paramName}_${matItem.id || matIdx}`;
+                                const state = selectedModels[key];
+                                return acc + (state?.checked ? (state.quantity || 0) : 0);
+                              }, 0);
+                              const isOver = sum > limit;
+                              return (
+                                <div style={{ 
+                                  marginTop: '8px', 
+                                  fontSize: '13px', 
+                                  color: isOver ? 'var(--error)' : 'var(--text-secondary)',
+                                  padding: '8px 12px',
+                                  backgroundColor: isOver ? 'rgba(245, 101, 101, 0.1)' : 'rgba(72, 187, 120, 0.1)',
+                                  borderRadius: '6px',
+                                  border: `1px solid ${isOver ? 'var(--error)' : 'var(--success)'}`
+                                }}>
+                                  {isOver ? '⚠️' : '✅'} Suma zaznaczonych: <strong>{sum}</strong> / {limit}
+                                  {isOver && <span style={{ marginLeft: '8px' }}> — przekroczono limit!</span>}
+                                </div>
+                              );
+                            })()}
+                          </>
                         )}
                       </div>
                     ))}
@@ -453,7 +562,23 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
                 type="button" 
                 className="btn btn-primary"
                 onClick={handleSave}
-                disabled={saving}
+                disabled={saving || (() => {
+                  // Check for validation errors in real-time
+                  for (const group of configGroups) {
+                    for (const field of group.fields) {
+                      if (field.type === 'model_picker' && field.limitParamName && field.materialItems) {
+                        const limit = configValues[field.limitParamName] ?? 0;
+                        const sum = field.materialItems.reduce((acc, matItem, matIdx) => {
+                          const key = `${field.paramName}_${matItem.id || matIdx}`;
+                          const state = selectedModels[key];
+                          return acc + (state?.checked ? (state.quantity || 0) : 0);
+                        }, 0);
+                        if (sum > limit) return true;
+                      }
+                    }
+                  }
+                  return false;
+                })()}
                 style={{ backgroundColor: '#10b981' }}
               >
                 {saving ? 'Zapisywanie...' : '💾 Zapisz konfigurację'}

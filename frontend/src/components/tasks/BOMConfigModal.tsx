@@ -137,8 +137,24 @@ export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess, read
         const selectedModels = params.selectedModels;
         if (selectedModels && typeof selectedModels === 'object') {
           const modelKey = `${item.groupName}_selectedModels_${item.id}`;
-          if (selectedModels[modelKey] !== true) {
-            continue; // Skip unselected camera models in preview
+          const modelState = selectedModels[modelKey];
+          
+          // Handle both old boolean format and new object format
+          if (typeof modelState === 'boolean') {
+            if (!modelState) {
+              continue; // Skip unselected camera models in preview
+            }
+          } else if (typeof modelState === 'object' && modelState !== null) {
+            if (!modelState.checked) {
+              continue; // Skip unselected camera models in preview
+            }
+            // Use the per-item quantity if available
+            if (modelState.quantity !== undefined) {
+              quantity = modelState.quantity;
+            }
+          } else {
+            // If no state exists for this model, skip it
+            continue;
           }
         }
       }
