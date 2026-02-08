@@ -131,6 +131,18 @@ export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess, read
           break;
       }
 
+      // Check if item is from a camera group and was not selected
+      const groupNameLower = (item.groupName || '').toLowerCase();
+      if (groupNameLower.includes('kamera') || groupNameLower.includes('lpr')) {
+        const selectedModels = params.selectedModels;
+        if (selectedModels && typeof selectedModels === 'object') {
+          const modelKey = `${item.groupName}_selectedModels_${item.id}`;
+          if (selectedModels[modelKey] !== true) {
+            continue; // Skip unselected camera models in preview
+          }
+        }
+      }
+
       if (item.id) {
         itemQuantities.set(item.id, quantity);
       }

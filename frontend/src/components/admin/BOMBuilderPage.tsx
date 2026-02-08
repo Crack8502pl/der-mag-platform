@@ -1117,6 +1117,11 @@ const AddTemplateItemModal: React.FC<{
   onSuccess: (item: BomSubsystemTemplateItem) => void;
 }> = ({ item, onClose, onSuccess }) => {
   const [formData, setFormData] = useState<BomSubsystemTemplateItem>({
+    id: item?.id,
+    templateId: item?.templateId,
+    warehouseStockId: item?.warehouseStockId,
+    dependsOnItemId: item?.dependsOnItemId,
+    dependencyFormula: item?.dependencyFormula || '',
     materialName: item?.materialName || '',
     catalogNumber: item?.catalogNumber || '',
     unit: item?.unit || 'szt',

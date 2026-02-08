@@ -447,6 +447,20 @@ export class BomSubsystemTemplateService {
           break;
       }
 
+      // Check if this item belongs to a camera/model-picker group
+      // and was deselected by the user
+      const groupNameLower = (item.groupName || '').toLowerCase();
+      if (groupNameLower.includes('kamera') || groupNameLower.includes('lpr')) {
+        const selectedModels = configParams.selectedModels;
+        if (selectedModels && typeof selectedModels === 'object') {
+          const modelKey = `${item.groupName}_selectedModels_${item.id}`;
+          if (selectedModels[modelKey] !== true) {
+            // This camera model was NOT selected — skip it
+            continue;
+          }
+        }
+      }
+
       // Store calculated quantity for dependent items
       itemQuantities.set(item.id, quantity);
 

@@ -311,4 +311,137 @@ describe('BomSubsystemTemplateService', () => {
       ).rejects.toThrow('Template not found');
     });
   });
+
+  describe('applyTemplateToTask', () => {
+    let mockTaskRepository: any;
+    let mockTaskMaterialRepository: any;
+
+    beforeEach(() => {
+      mockTaskRepository = createMockRepository();
+      mockTaskMaterialRepository = createMockRepository();
+      
+      (AppDataSource.getRepository as jest.Mock).mockImplementation((entity: any) => {
+        if (entity === BomSubsystemTemplate || entity?.name === 'BomSubsystemTemplate') {
+          return mockTemplateRepository;
+        }
+        if (entity?.name === 'Task') {
+          return mockTaskRepository;
+        }
+        if (entity?.name === 'TaskMaterial') {
+          return mockTaskMaterialRepository;
+        }
+        return createMockRepository();
+      });
+    });
+
+    it('should filter out unselected camera models', async () => {
+      const mockTask = {
+        id: 1,
+        taskNumber: 'TEST-001'
+      };
+
+      const mockTemplate = {
+        id: 1,
+        items: [
+          {
+            id: 1,
+            materialName: 'Camera Model A',
+            groupName: 'Kamery LPR',
+            defaultQuantity: 1,
+            quantitySource: 'FIXED',
+            unit: 'szt',
+            sortOrder: 1
+          },
+          {
+            id: 2,
+            materialName: 'Camera Model B',
+            groupName: 'Kamery LPR',
+            defaultQuantity: 1,
+            quantitySource: 'FIXED',
+            unit: 'szt',
+            sortOrder: 2
+          },
+          {
+            id: 3,
+            materialName: 'Regular Item',
+            groupName: 'Inne',
+            defaultQuantity: 1,
+            quantitySource: 'FIXED',
+            unit: 'szt',
+            sortOrder: 3
+          }
+        ]
+      };
+
+      const configParams = {
+        selectedModels: {
+          'Kamery LPR_selectedModels_1': true,  // Camera Model A selected
+          'Kamery LPR_selectedModels_2': false  // Camera Model B NOT selected
+        }
+      };
+
+      mockTaskRepository.findOne.mockResolvedValueOnce(mockTask);
+      mockTemplateRepository.findOne.mockResolvedValueOnce(mockTemplate);
+      mockTaskMaterialRepository.create.mockImplementation((data: any) => data);
+      mockTaskMaterialRepository.save.mockResolvedValueOnce([]);
+
+      await BomSubsystemTemplateService.applyTemplateToTask(1, 1, configParams);
+
+      // Should only create materials for Camera Model A and Regular Item, NOT Camera Model B
+      expect(mockTaskMaterialRepository.create).toHaveBeenCalledTimes(2);
+      expect(mockTaskMaterialRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          materialName: 'Camera Model A'
+        })
+      );
+      expect(mockTaskMaterialRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          materialName: 'Regular Item'
+        })
+      );
+    });
+
+    it('should include all camera models when no selectedModels provided', async () => {
+      const mockTask = {
+        id: 1,
+        taskNumber: 'TEST-001'
+      };
+
+      const mockTemplate = {
+        id: 1,
+        items: [
+          {
+            id: 1,
+            materialName: 'Camera Model A',
+            groupName: 'Kamery LPR',
+            defaultQuantity: 1,
+            quantitySource: 'FIXED',
+            unit: 'szt',
+            sortOrder: 1
+          },
+          {
+            id: 2,
+            materialName: 'Camera Model B',
+            groupName: 'Kamery LPR',
+            defaultQuantity: 1,
+            quantitySource: 'FIXED',
+            unit: 'szt',
+            sortOrder: 2
+          }
+        ]
+      };
+
+      const configParams = {}; // No selectedModels
+
+      mockTaskRepository.findOne.mockResolvedValueOnce(mockTask);
+      mockTemplateRepository.findOne.mockResolvedValueOnce(mockTemplate);
+      mockTaskMaterialRepository.create.mockImplementation((data: any) => data);
+      mockTaskMaterialRepository.save.mockResolvedValueOnce([]);
+
+      await BomSubsystemTemplateService.applyTemplateToTask(1, 1, configParams);
+
+      // Should include both camera models when selectedModels is not specified
+      expect(mockTaskMaterialRepository.create).toHaveBeenCalledTimes(2);
+    });
+  });
 });
