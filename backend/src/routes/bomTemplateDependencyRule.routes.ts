@@ -3,8 +3,7 @@
 
 import { Router } from 'express';
 import { BomTemplateDependencyRuleController } from '../controllers/BomTemplateDependencyRuleController';
-import { authenticate } from '../middleware/auth';
-import { authorize } from '../middleware/authorize';
+import { authenticate, authorize } from '../middleware/auth';
 
 const router = Router();
 

@@ -4,13 +4,11 @@
 
 import type {
   BomTemplateDependencyRule,
-  BomTemplateDependencyRuleInput,
   BomTemplateDependencyRuleCondition
 } from '../services/bomTemplateDependencyRule.service';
 
 type AggregationType = 'SUM' | 'COUNT' | 'MIN' | 'MAX' | 'PRODUCT' | 'FIRST';
 type MathOperation = 'NONE' | 'FLOOR_DIV' | 'MODULO' | 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'CEIL_DIV' | 'ROUND_DIV';
-type ComparisonOperator = '>' | '<' | '>=' | '<=' | '==' | '!=' | 'BETWEEN';
 
 export class DependencyRuleEngine {
   /**
@@ -121,7 +119,7 @@ export class DependencyRuleEngine {
    * Check if an item is selected (simplified)
    */
   private static isItemSelected(
-    itemId: number,
+    _itemId: number,
     selectedModels: Record<string, { checked: boolean; quantity?: number }>
   ): boolean {
     // For now, consider all items selected unless explicitly unchecked
