@@ -138,6 +138,9 @@ api.interceptors.request.use(
 let isRateLimited = false;
 let rateLimitResetTime = 0;
 
+// Refresh token mutex - prevents concurrent refresh calls
+let refreshPromise: Promise<string> | null = null;
+
 // Response interceptor - handle token refresh AND rate limiting
 api.interceptors.response.use(
   (response) => {
@@ -215,41 +218,61 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // Get CSRF token from cookie
-        const csrfTokenMatch = document.cookie.match(/csrf-token=([^;]+)/);
-        const csrfToken = csrfTokenMatch ? csrfTokenMatch[1] : null;
+        // Use singleton refresh promise to prevent concurrent refresh calls
+        if (!refreshPromise) {
+          console.log('🔄 Starting token refresh (singleton)');
+          refreshPromise = (async () => {
+            try {
+              // Get CSRF token from cookie
+              const csrfTokenMatch = document.cookie.match(/csrf-token=([^;]+)/);
+              const csrfToken = csrfTokenMatch ? csrfTokenMatch[1] : null;
 
-        if (!csrfToken) {
-          throw new Error('No CSRF token');
+              if (!csrfToken) {
+                throw new Error('No CSRF token');
+              }
+
+              const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, {
+                withCredentials: true,
+                headers: {
+                  'X-CSRF-Token': csrfToken
+                }
+              });
+
+              const { accessToken } = response.data.data;
+
+              // Store new access token in Zustand
+              useAuthStore.getState().setAccessToken(accessToken);
+              
+              console.log('✅ Token refresh completed successfully');
+              return accessToken;
+            } catch (refreshError: any) {
+              console.error('❌ Token refresh failed:', refreshError);
+              
+              // Jeśli refresh failed z powodu 429 - nie wylogowuj od razu
+              if (refreshError.response?.status === 429) {
+                console.warn('⚠️ Token refresh rate limited - keeping session');
+                throw refreshError;
+              }
+              
+              // Inne błędy - wyloguj
+              useAuthStore.getState().setAccessToken(null);
+              useAuthStore.getState().logout();
+              window.location.href = '/login';
+              throw refreshError;
+            } finally {
+              // Clear the promise so next refresh cycle can start
+              refreshPromise = null;
+            }
+          })();
+        } else {
+          console.log('⏳ Refresh already in progress, waiting for existing promise...');
         }
 
-        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, {
-          withCredentials: true,
-          headers: {
-            'X-CSRF-Token': csrfToken
-          }
-        });
-
-        const { accessToken } = response.data.data;
-
-        // Store new access token in Zustand
-        useAuthStore.getState().setAccessToken(accessToken);
-
+        // Wait for the refresh to complete
+        const accessToken = await refreshPromise;
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (refreshError: any) {
-        console.error('❌ Token refresh failed:', refreshError);
-        
-        // Jeśli refresh failed z powodu 429 - nie wylogowuj od razu
-        if (refreshError.response?.status === 429) {
-          console.warn('⚠️ Token refresh rate limited - keeping session');
-          return Promise.reject(refreshError);
-        }
-        
-        // Inne błędy - wyloguj
-        useAuthStore.getState().setAccessToken(null);
-        useAuthStore.getState().logout();
-        window.location.href = '/login';
         return Promise.reject(refreshError);
       }
     }
@@ -267,5 +290,8 @@ export const isApiRateLimited = (): boolean => {
 };
 
 export const getRateLimitResetTime = (): number => rateLimitResetTime;
+
+// Export function to check if refresh is in progress
+export const isRefreshInProgress = (): boolean => refreshPromise !== null;
 
 export default api;
