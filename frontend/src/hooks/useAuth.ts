@@ -5,40 +5,68 @@ import { useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import authService from '../services/auth.service';
 
+// Module-level promise to ensure only one initialization runs at a time
+let initPromise: Promise<void> | null = null;
+
 export const useAuth = () => {
-  const { user, isAuthenticated, requirePasswordChange, accessToken, setUser, setRequirePasswordChange, logout: storeLogout } = useAuthStore();
+  const { user, isAuthenticated, requirePasswordChange, setUser, setRequirePasswordChange, logout: storeLogout } = useAuthStore();
 
   // Initialize user from token on mount or try silent refresh
   useEffect(() => {
     const initializeAuth = async () => {
-      // If we have an access token in Zustand, fetch user info
-      if (accessToken && !user) {
-        try {
-          const response = await authService.me();
-          setUser(response.data);
-        } catch (error) {
-          console.error('Failed to fetch user:', error);
-          storeLogout();
-        }
-      } 
-      // If no access token but might have httpOnly cookie, try silent refresh
-      else if (!accessToken && !user) {
-        try {
-          const response = await authService.refresh();
-          authService.saveTokens(response.data.accessToken);
-          
-          // Fetch user info after successful refresh
-          const meResponse = await authService.me();
-          setUser(meResponse.data);
-        } catch (error) {
-          // Silent refresh failed - user needs to login
-          console.log('Silent refresh failed - user not authenticated');
-        }
+      // If initialization is already in progress, wait for it
+      if (initPromise) {
+        await initPromise.catch(() => {});
+        return;
       }
+
+      // Check if another hook already initialized the state
+      const state = useAuthStore.getState();
+      if (state.accessToken || state.user) {
+        return;
+      }
+
+      // Start initialization
+      initPromise = (async () => {
+        try {
+          // If we have an access token in Zustand, fetch user info
+          const currentState = useAuthStore.getState();
+          if (currentState.accessToken && !currentState.user) {
+            try {
+              const response = await authService.me();
+              setUser(response.data);
+            } catch (error: unknown) {
+              // Skip logging for throttled requests (not real errors)
+              const isThrottled = typeof error === 'object' && error !== null && '__THROTTLED__' in error;
+              if (!isThrottled) {
+                console.error('Failed to fetch user:', error);
+              }
+              storeLogout();
+            }
+          } 
+          // If no access token but might have httpOnly cookie, try silent refresh
+          else if (!currentState.accessToken && !currentState.user) {
+            try {
+              const response = await authService.refresh();
+              authService.saveTokens(response.data.accessToken);
+              
+              // Fetch user info after successful refresh
+              const meResponse = await authService.me();
+              setUser(meResponse.data);
+            } catch {
+              // Silent refresh failed - user needs to login (expected on login page)
+            }
+          }
+        } finally {
+          initPromise = null;
+        }
+      })();
+
+      await initPromise;
     };
 
     initializeAuth();
-  }, []);
+  }, [setUser, storeLogout]);
 
   const login = async (username: string, password: string) => {
     const response = await authService.login({ username, password });
