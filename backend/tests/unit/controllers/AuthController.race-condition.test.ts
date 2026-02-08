@@ -3,6 +3,11 @@
  * 
  * These tests verify that the grace period mechanism correctly handles
  * concurrent refresh requests that arrive within the 10-second grace period.
+ * 
+ * Note: These are unit tests that verify the logic of the grace period mechanism.
+ * Integration tests with actual AuthController behavior would require setting up
+ * a test database and mocking the RefreshToken repository, which is beyond the
+ * scope of this minimal fix. The core logic is validated here.
  */
 
 import { Request, Response } from 'express';
