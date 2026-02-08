@@ -272,6 +272,41 @@ export class AuthController {
 
         // TOKEN REUSE DETECTION
         if (!tokenRecord || tokenRecord.revoked) {
+          // Check for race condition grace period (defense-in-depth)
+          const GRACE_PERIOD_MS = 10000; // 10 seconds
+          
+          if (tokenRecord && tokenRecord.revoked && tokenRecord.revokedAt && tokenRecord.revokedByTokenId) {
+            const timeSinceRevocation = Date.now() - tokenRecord.revokedAt.getTime();
+            
+            if (timeSinceRevocation < GRACE_PERIOD_MS) {
+              // This is likely a race condition from concurrent refresh requests
+              // Find the new token that replaced this one and return it
+              const replacementToken = await refreshTokenRepo.findOne({
+                where: { tokenId: tokenRecord.revokedByTokenId, revoked: false }
+              });
+              
+              if (replacementToken) {
+                // Log as race condition, not attack
+                console.warn(`[REFRESH RACE CONDITION] Token ${decoded.jti} was revoked ${timeSinceRevocation}ms ago by rotation. Returning existing session.`);
+                
+                // Generate new access token for the replacement token's session
+                const payload = {
+                  userId: decoded.userId,
+                  username: decoded.username,
+                  role: decoded.role
+                };
+                const newAccessToken = generateAccessToken(payload, replacementToken.tokenId);
+                
+                res.json({
+                  success: true,
+                  data: { accessToken: newAccessToken }
+                });
+                return;
+              }
+            }
+          }
+          
+          // If not within grace period or no replacement found, treat as real attack
           // Token reuse detected! Revoke all user's tokens
           await refreshTokenRepo.update(
             { userId: decoded.userId, revoked: false },

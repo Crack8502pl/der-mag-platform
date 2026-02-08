@@ -3,7 +3,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import authService from '../services/auth.service';
 import { jwtDecode } from 'jwt-decode';
-import { isApiRateLimited, getCorrectedTime, getServerTimeOffset, CLOCK_SKEW_WARNING_THRESHOLD } from '../services/api';
+import { isApiRateLimited, getCorrectedTime, getServerTimeOffset, CLOCK_SKEW_WARNING_THRESHOLD, isRefreshInProgress } from '../services/api';
 
 interface TokenExpirationHook {
   showWarning: boolean;
@@ -177,6 +177,12 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
 
   // Funkcja odświeżania tokenu z obsługą błędów
   const refreshToken = useCallback(async () => {
+    // Check if interceptor already started a refresh
+    if (isRefreshInProgress()) {
+      console.log('⏳ Refresh already in progress via interceptor, skipping');
+      return;
+    }
+    
     // Zapobiegaj wielokrotnym równoczesnym próbom
     const now = Date.now();
     if (isRefreshing || (now - lastRefreshAttemptRef.current < 2000)) {
