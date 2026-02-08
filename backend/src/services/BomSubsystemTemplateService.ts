@@ -6,6 +6,7 @@ import { BomSubsystemTemplate, SubsystemType } from '../entities/BomSubsystemTem
 import { BomSubsystemTemplateItem, QuantitySource } from '../entities/BomSubsystemTemplateItem';
 import { TaskMaterial } from '../entities/TaskMaterial';
 import { Task } from '../entities/Task';
+import { BomGroup } from '../entities/BomGroup';
 import { In } from 'typeorm';
 
 export interface CreateTemplateDto {
@@ -50,6 +51,7 @@ export class BomSubsystemTemplateService {
     isActive?: boolean;
   }): Promise<BomSubsystemTemplate[]> {
     const templateRepository = AppDataSource.getRepository(BomSubsystemTemplate);
+    const bomGroupRepository = AppDataSource.getRepository(BomGroup);
     
     const queryBuilder = templateRepository
       .createQueryBuilder('template')
@@ -81,7 +83,33 @@ export class BomSubsystemTemplateService {
       });
     }
 
-    return await queryBuilder.getMany();
+    const templates = await queryBuilder.getMany();
+    
+    // Load BomGroups to get sortOrder
+    const bomGroups = await bomGroupRepository.find({ where: { isActive: true } });
+    const groupSortMap = new Map<string, number>();
+    bomGroups.forEach(group => {
+      groupSortMap.set(group.name, group.sortOrder);
+    });
+    
+    // Sort items by group sortOrder (primary) then item sortOrder (secondary)
+    templates.forEach(template => {
+      if (template.items) {
+        template.items.sort((a, b) => {
+          const groupA = a.groupName || 'Inne';
+          const groupB = b.groupName || 'Inne';
+          const sortOrderA = groupSortMap.get(groupA) ?? 999;
+          const sortOrderB = groupSortMap.get(groupB) ?? 999;
+          
+          if (sortOrderA !== sortOrderB) {
+            return sortOrderA - sortOrderB;
+          }
+          return a.sortOrder - b.sortOrder;
+        });
+      }
+    });
+    
+    return templates;
   }
 
   /**
@@ -89,11 +117,36 @@ export class BomSubsystemTemplateService {
    */
   static async getTemplateById(id: number): Promise<BomSubsystemTemplate | null> {
     const templateRepository = AppDataSource.getRepository(BomSubsystemTemplate);
+    const bomGroupRepository = AppDataSource.getRepository(BomGroup);
     
-    return await templateRepository.findOne({
+    const template = await templateRepository.findOne({
       where: { id },
       relations: ['items', 'items.warehouseStock', 'items.dependsOnItem']
     });
+    
+    if (template && template.items) {
+      // Load BomGroups to get sortOrder
+      const bomGroups = await bomGroupRepository.find({ where: { isActive: true } });
+      const groupSortMap = new Map<string, number>();
+      bomGroups.forEach(group => {
+        groupSortMap.set(group.name, group.sortOrder);
+      });
+      
+      // Sort items by group sortOrder (primary) then item sortOrder (secondary)
+      template.items.sort((a, b) => {
+        const groupA = a.groupName || 'Inne';
+        const groupB = b.groupName || 'Inne';
+        const sortOrderA = groupSortMap.get(groupA) ?? 999;
+        const sortOrderB = groupSortMap.get(groupB) ?? 999;
+        
+        if (sortOrderA !== sortOrderB) {
+          return sortOrderA - sortOrderB;
+        }
+        return a.sortOrder - b.sortOrder;
+      });
+    }
+    
+    return template;
   }
 
   /**
@@ -155,7 +208,10 @@ export class BomSubsystemTemplateService {
         materialName: item.materialName,
         catalogNumber: item.catalogNumber,
         unit: item.unit || 'szt',
-        defaultQuantity: item.defaultQuantity,
+        // Round to integer if unit is 'szt' (pieces)
+        defaultQuantity: (item.unit === 'szt' || (!item.unit && 'szt' === 'szt')) 
+          ? Math.round(item.defaultQuantity) 
+          : item.defaultQuantity,
         quantitySource: item.quantitySource || QuantitySource.FIXED,
         configParamName: item.configParamName,
         warehouseStockId: item.warehouseStockId,
@@ -202,6 +258,10 @@ export class BomSubsystemTemplateService {
       const existingItemIds = new Set(template.items.map(item => item.id));
       const updatedItemIds = new Set(data.items.filter(item => item.id).map(item => item.id));
       
+      // Count new items for versioning
+      const newItems = data.items.filter(item => !item.id || !existingItemIds.has(item.id));
+      const newItemCount = newItems.length;
+      
       // Delete items that were removed (exist in DB but not in update data)
       const itemsToRemove = template.items.filter(item => !updatedItemIds.has(item.id));
       if (itemsToRemove.length > 0) {
@@ -221,7 +281,10 @@ export class BomSubsystemTemplateService {
             item.materialName = itemData.materialName;
             item.catalogNumber = itemData.catalogNumber;
             item.unit = itemData.unit || 'szt';
-            item.defaultQuantity = itemData.defaultQuantity;
+            // Round to integer if unit is 'szt' (pieces)
+            item.defaultQuantity = (item.unit === 'szt') 
+              ? Math.round(itemData.defaultQuantity) 
+              : itemData.defaultQuantity;
             item.quantitySource = itemData.quantitySource || QuantitySource.FIXED;
             item.configParamName = itemData.configParamName ?? null;
             item.warehouseStockId = itemData.warehouseStockId ?? null;
@@ -238,12 +301,16 @@ export class BomSubsystemTemplateService {
           }
         } else {
           // Create new item
+          const unit = itemData.unit || 'szt';
           item = itemRepository.create({
             templateId: id,
             materialName: itemData.materialName,
             catalogNumber: itemData.catalogNumber,
-            unit: itemData.unit || 'szt',
-            defaultQuantity: itemData.defaultQuantity,
+            unit: unit,
+            // Round to integer if unit is 'szt' (pieces)
+            defaultQuantity: (unit === 'szt') 
+              ? Math.round(itemData.defaultQuantity) 
+              : itemData.defaultQuantity,
             quantitySource: itemData.quantitySource || QuantitySource.FIXED,
             configParamName: itemData.configParamName,
             warehouseStockId: itemData.warehouseStockId,
@@ -259,6 +326,21 @@ export class BomSubsystemTemplateService {
         
         template.items.push(item);
       }
+      
+      // Update version based on changes
+      if (newItemCount === 0) {
+        // Edit only (no new materials added): version += 0.01
+        template.version = Number(template.version) + 0.01;
+      } else if (newItemCount < 11) {
+        // Added < 11 new materials: version += 0.1
+        template.version = Number(template.version) + 0.1;
+      } else {
+        // Added >= 11 new materials: version += 1
+        template.version = Number(template.version) + 1;
+      }
+      
+      // Round to 2 decimal places
+      template.version = Math.round(template.version * 100) / 100;
     }
 
     return await templateRepository.save(template);
@@ -328,14 +410,24 @@ export class BomSubsystemTemplateService {
       // Resolve quantity based on source
       switch (item.quantitySource) {
         case QuantitySource.FROM_CONFIG:
-          if (item.configParamName && configParams[item.configParamName] !== undefined) {
-            quantity = Number(configParams[item.configParamName]) || item.defaultQuantity;
+          if (item.configParamName) {
+            // Try both prefixed and unprefixed param names
+            const prefixedName = `${item.groupName || 'Inne'}_${item.configParamName}`;
+            const value = configParams[prefixedName] ?? configParams[item.configParamName];
+            if (value !== undefined) {
+              quantity = Number(value) || item.defaultQuantity;
+            }
           }
           break;
 
         case QuantitySource.PER_UNIT:
-          if (item.configParamName && configParams[item.configParamName] !== undefined) {
-            quantity = item.defaultQuantity * Number(configParams[item.configParamName]);
+          if (item.configParamName) {
+            // Try both prefixed and unprefixed param names
+            const prefixedName = `${item.groupName || 'Inne'}_${item.configParamName}`;
+            const value = configParams[prefixedName] ?? configParams[item.configParamName];
+            if (value !== undefined) {
+              quantity = item.defaultQuantity * Number(value);
+            }
           }
           break;
 
