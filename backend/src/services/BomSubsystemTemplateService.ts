@@ -494,6 +494,32 @@ export class BomSubsystemTemplateService {
       taskMaterials.push(taskMaterial);
     }
 
+    // Apply template dependency rules if any exist
+    const { BomTemplateDependencyRuleService } = await import('./BomTemplateDependencyRuleService');
+    const { DependencyRuleEngine } = await import('./DependencyRuleEngine');
+    
+    const depRules = await BomTemplateDependencyRuleService.getRulesForTemplate(templateId);
+    if (depRules.length > 0) {
+      // Evaluate rules and get updated quantities
+      const updatedQuantities = DependencyRuleEngine.evaluate(
+        depRules,
+        itemQuantities,
+        configParams.selectedModels
+      );
+      
+      // Update task materials with rule-computed quantities
+      for (const taskMaterial of taskMaterials) {
+        // Find the corresponding template item
+        const templateItem = sortedItems.find(item => item.materialName === taskMaterial.materialName);
+        if (templateItem) {
+          const ruleQuantity = updatedQuantities.get(templateItem.id);
+          if (ruleQuantity !== undefined) {
+            taskMaterial.plannedQuantity = ruleQuantity;
+          }
+        }
+      }
+    }
+
     // Save all task materials
     return await taskMaterialRepository.save(taskMaterials);
   }
