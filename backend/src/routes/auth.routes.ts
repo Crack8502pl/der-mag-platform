@@ -5,8 +5,30 @@ import { authenticate } from '../middleware/auth';
 import { validateDto } from '../middleware/validator';
 import { LoginDto } from '../dto/LoginDto';
 import { ChangePasswordDto } from '../dto/ChangePasswordDto';
+import { generateCsrfToken } from '../middleware/csrf';
 
 const router = Router();
+
+// CSRF token endpoint for SPA bootstrap
+router.get('/csrf-token', (req, res) => {
+  const csrfToken = generateCsrfToken();
+  
+  // Set CSRF token cookie
+  res.cookie('csrf-token', csrfToken, {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: '/'
+  });
+  
+  res.json({
+    success: true,
+    data: {
+      csrfToken
+    }
+  });
+});
 
 router.post('/login', validateDto(LoginDto), AuthController.login);
 router.post('/refresh', AuthController.refresh);

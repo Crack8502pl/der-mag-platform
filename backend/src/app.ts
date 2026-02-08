@@ -7,6 +7,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 import path from 'path';
 import fs from 'fs';
 import routes from './routes';
@@ -105,6 +106,9 @@ app.use(cors({
 
 // 🆕 Handle preflight requests
 app.options('*', cors());
+
+// Cookie parser middleware
+app.use(cookieParser());
 
 // Rate limiting dla endpointów auth (bardziej permisywny)
 const authLimiter = rateLimit({

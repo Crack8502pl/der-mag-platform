@@ -10,6 +10,7 @@ import type {
   MeResponse,
   RefreshResponse,
 } from '../types/auth.types';
+import { useAuthStore } from '../stores/authStore';
 
 class AuthService {
   /**
@@ -40,52 +41,70 @@ class AuthService {
    * Logout
    */
   async logout(): Promise<void> {
-    const refreshToken = localStorage.getItem('refreshToken');
     try {
-      await api.post('/auth/logout', { refreshToken });
+      await api.post('/auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      // Clear access token from Zustand store
+      useAuthStore.getState().setAccessToken(null);
+      useAuthStore.getState().logout();
     }
   }
 
   /**
-   * Save tokens to localStorage
+   * Save access token to Zustand store (refresh token is in httpOnly cookie)
    */
-  saveTokens(accessToken: string, refreshToken: string): void {
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
+  saveTokens(accessToken: string): void {
+    useAuthStore.getState().setAccessToken(accessToken);
   }
 
   /**
    * Check if user is authenticated
    */
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('accessToken');
+    return !!useAuthStore.getState().accessToken;
   }
 
   /**
-   * Get access token
+   * Get access token from Zustand store
    */
   getAccessToken(): string | null {
-    return localStorage.getItem('accessToken');
+    return useAuthStore.getState().accessToken;
   }
 
   /**
-   * Get refresh token from localStorage
+   * Refresh access token using httpOnly cookie
    */
-  getRefreshToken(): string | null {
-    return localStorage.getItem('refreshToken');
-  }
-
-  /**
-   * Refresh access token using refresh token
-   */
-  async refresh(refreshToken: string): Promise<RefreshResponse> {
-    const response = await api.post('/auth/refresh', { refreshToken });
+  async refresh(): Promise<RefreshResponse> {
+    // Get CSRF token from cookie
+    const csrfToken = this.getCsrfTokenFromCookie();
+    
+    const response = await api.post('/auth/refresh', {}, {
+      headers: {
+        'X-CSRF-Token': csrfToken
+      }
+    });
     return response.data;
+  }
+
+  /**
+   * Get CSRF token from cookie
+   */
+  getCsrfTokenFromCookie(): string | null {
+    const match = document.cookie.match(/csrf-token=([^;]+)/);
+    return match ? match[1] : null;
+  }
+
+  /**
+   * Fetch CSRF token from server (for SPA bootstrap)
+   */
+  async fetchCsrfToken(): Promise<void> {
+    try {
+      await api.get('/auth/csrf-token');
+    } catch (error) {
+      console.error('Failed to fetch CSRF token:', error);
+    }
   }
 }
 
