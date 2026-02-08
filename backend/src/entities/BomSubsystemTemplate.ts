@@ -51,7 +51,7 @@ export class BomSubsystemTemplate {
   @Column({ name: 'task_variant', type: 'varchar', length: 50, nullable: true })
   taskVariant: string | null;
 
-  @Column({ type: 'integer', default: 1 })
+  @Column({ type: 'decimal', precision: 5, scale: 2, default: 1 })
   version: number;
 
   @Column({ name: 'is_active', type: 'boolean', default: true })
