@@ -8,6 +8,7 @@ import bomTemplateService from '../../services/bom-template.service';
 import { warehouseStockService } from '../../services/warehouseStock.service';
 import bomSubsystemTemplateService from '../../services/bomSubsystemTemplate.service';
 import bomGroupService from '../../services/bomGroup.service';
+import bomTemplateDependencyRuleService from '../../services/bomTemplateDependencyRule.service';
 import type { 
   BomTemplate, 
   BomDependencyRule,
@@ -20,7 +21,9 @@ import type {
   BomSubsystemTemplateItem
 } from '../../services/bomSubsystemTemplate.service';
 import type { BomGroup } from '../../services/bomGroup.service';
+import type { BomTemplateDependencyRule } from '../../services/bomTemplateDependencyRule.service';
 import { BomGroupsManageModal } from './BomGroupsManageModal';
+import { TemplateDependencyRuleModal } from './TemplateDependencyRuleModal';
 import '../../styles/grover-theme.css';
 
 type Tab = 'materials' | 'templates' | 'dependencies';
@@ -603,6 +606,12 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
   const [editingItem, setEditingItem] = useState<BomSubsystemTemplateItem | null>(null);
   const [creatingTemplate, setCreatingTemplate] = useState(false);
   const [bomGroups, setBomGroups] = useState<BomGroup[]>([]);
+  
+  // Dependency rules state
+  const [dependencyRules, setDependencyRules] = useState<BomTemplateDependencyRule[]>([]);
+  const [loadingRules, setLoadingRules] = useState(false);
+  const [showRuleModal, setShowRuleModal] = useState(false);
+  const [editingRule, setEditingRule] = useState<BomTemplateDependencyRule | null>(null);
 
   // Load BOM groups for sorting
   useEffect(() => {
@@ -642,9 +651,50 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
     try {
       const template = await bomSubsystemTemplateService.getTemplateFor(type, variantValue);
       setSelectedTemplate(template);
+      
+      // Load dependency rules for this template
+      if (template) {
+        loadDependencyRules(template.id);
+      }
     } catch (err) {
       console.error('Error loading template:', err);
       setSelectedTemplate(null);
+      setDependencyRules([]);
+    }
+  };
+
+  const loadDependencyRules = async (templateId: number) => {
+    setLoadingRules(true);
+    try {
+      const rules = await bomTemplateDependencyRuleService.getRulesForTemplate(templateId);
+      setDependencyRules(rules);
+    } catch (err) {
+      console.error('Error loading dependency rules:', err);
+      setDependencyRules([]);
+    } finally {
+      setLoadingRules(false);
+    }
+  };
+
+  const handleDeleteRule = async (ruleId: number, ruleName: string) => {
+    if (!confirm(`Czy na pewno chcesz usunąć regułę "${ruleName}"?`)) return;
+    
+    try {
+      await bomTemplateDependencyRuleService.deleteRule(ruleId);
+      
+      // Reload rules
+      if (selectedTemplate) {
+        await loadDependencyRules(selectedTemplate.id);
+      }
+      
+      // Show success notification
+      const successMsg = document.createElement('div');
+      successMsg.textContent = '✅ Reguła usunięta pomyślnie';
+      successMsg.style.cssText = 'position:fixed;top:20px;right:20px;background:var(--success);color:white;padding:12px 20px;border-radius:8px;z-index:9999;';
+      document.body.appendChild(successMsg);
+      setTimeout(() => successMsg.remove(), 3000);
+    } catch (err: any) {
+      alert('Błąd podczas usuwania reguły: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -1067,6 +1117,327 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                   </div>
                 </div>
               )}
+
+              {/* Dependency Rules Section */}
+              <div style={{ marginTop: '40px', paddingTop: '30px', borderTop: '2px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <div>
+                    <h3 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '18px' }}>
+                      🔗 Reguły zależności
+                    </h3>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '5px 0 0 0' }}>
+                      Zaawansowane reguły obliczania ilości materiałów
+                    </p>
+                  </div>
+                  {canCreate && (
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => {
+                        setEditingRule(null);
+                        setShowRuleModal(true);
+                      }}
+                      style={{ fontSize: '14px' }}
+                    >
+                      ➕ Dodaj regułę zależności
+                    </button>
+                  )}
+                </div>
+
+                {loadingRules ? (
+                  <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '36px', marginBottom: '10px' }}>⏳</div>
+                    <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Ładowanie reguł...</p>
+                  </div>
+                ) : dependencyRules.length === 0 ? (
+                  <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '36px', marginBottom: '10px' }}>📋</div>
+                    <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                      Brak reguł zależności. Kliknij "Dodaj regułę" aby utworzyć pierwszą regułę.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                    {dependencyRules
+                      .sort((a, b) => a.evaluationOrder - b.evaluationOrder)
+                      .map((rule) => {
+                        const targetItem = selectedTemplate?.items.find(item => item.id === rule.targetItemId);
+                        
+                        return (
+                          <div
+                            key={rule.id}
+                            className="card"
+                            style={{
+                              padding: '20px',
+                              border: rule.isActive ? '1px solid var(--border-color)' : '1px solid #d1d5db',
+                              opacity: rule.isActive ? 1 : 0.6
+                            }}
+                          >
+                            {/* Rule Header */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                                  <h4 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '16px' }}>
+                                    {rule.ruleName}
+                                  </h4>
+                                  {rule.ruleCode && (
+                                    <span style={{
+                                      padding: '2px 8px',
+                                      fontSize: '11px',
+                                      background: 'var(--bg-secondary)',
+                                      border: '1px solid var(--border-color)',
+                                      borderRadius: 'var(--radius-sm)',
+                                      color: 'var(--text-secondary)',
+                                      fontFamily: 'monospace'
+                                    }}>
+                                      {rule.ruleCode}
+                                    </span>
+                                  )}
+                                  <span style={{
+                                    padding: '2px 8px',
+                                    fontSize: '11px',
+                                    background: rule.isActive ? '#10b981' : '#6b7280',
+                                    color: '#fff',
+                                    borderRadius: 'var(--radius-sm)'
+                                  }}>
+                                    {rule.isActive ? 'Aktywna' : 'Nieaktywna'}
+                                  </span>
+                                  <span style={{
+                                    padding: '2px 8px',
+                                    fontSize: '11px',
+                                    background: 'var(--primary-color)',
+                                    color: '#fff',
+                                    borderRadius: 'var(--radius-sm)'
+                                  }}>
+                                    Kolejność: {rule.evaluationOrder}
+                                  </span>
+                                </div>
+                                {rule.description && (
+                                  <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '5px 0 0 0' }}>
+                                    {rule.description}
+                                  </p>
+                                )}
+                              </div>
+                              
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                {canUpdate && (
+                                  <button
+                                    className="btn btn-secondary"
+                                    onClick={() => {
+                                      setEditingRule(rule);
+                                      setShowRuleModal(true);
+                                    }}
+                                    style={{ padding: '6px 12px', fontSize: '13px' }}
+                                  >
+                                    ✏️ Edytuj
+                                  </button>
+                                )}
+                                {canDelete && (
+                                  <button
+                                    className="btn btn-danger"
+                                    onClick={() => handleDeleteRule(rule.id, rule.ruleName)}
+                                    style={{ padding: '6px 12px', fontSize: '13px' }}
+                                  >
+                                    🗑️ Usuń
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Rule Content Grid */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                              {/* Left Column */}
+                              <div>
+                                {/* Inputs */}
+                                <div style={{ marginBottom: '15px' }}>
+                                  <h5 style={{ color: 'var(--text-primary)', fontSize: '13px', marginBottom: '8px', fontWeight: '600' }}>
+                                    📥 Wejścia ({rule.inputs?.length || 0})
+                                  </h5>
+                                  {rule.inputs && rule.inputs.length > 0 ? (
+                                    <div className="table-container">
+                                      <table className="table" style={{ fontSize: '12px' }}>
+                                        <thead>
+                                          <tr>
+                                            <th style={{ width: '80px' }}>Typ</th>
+                                            <th>Źródło</th>
+                                            <th style={{ width: '70px' }}>Mnożnik</th>
+                                            <th style={{ width: '80px' }}>Tylko wybr.</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {rule.inputs.map((input, idx) => {
+                                            const sourceItem = input.inputType === 'ITEM' 
+                                              ? selectedTemplate?.items.find(item => item.id === input.sourceItemId)
+                                              : null;
+                                            const sourceRule = input.inputType === 'RULE_RESULT'
+                                              ? dependencyRules.find(r => r.id === input.sourceRuleId)
+                                              : null;
+                                            
+                                            return (
+                                              <tr key={idx}>
+                                                <td>
+                                                  <span style={{
+                                                    padding: '2px 6px',
+                                                    fontSize: '10px',
+                                                    borderRadius: 'var(--radius-sm)',
+                                                    background: input.inputType === 'ITEM' ? '#3b82f6' : '#8b5cf6',
+                                                    color: '#fff'
+                                                  }}>
+                                                    {input.inputType === 'ITEM' ? 'Pozycja' : 'Reguła'}
+                                                  </span>
+                                                </td>
+                                                <td style={{ fontSize: '11px' }}>
+                                                  {sourceItem ? (
+                                                    <span title={sourceItem.materialName}>
+                                                      [{sourceItem.sortOrder}] {sourceItem.materialName.length > 30 
+                                                        ? sourceItem.materialName.substring(0, 30) + '...' 
+                                                        : sourceItem.materialName}
+                                                    </span>
+                                                  ) : sourceRule ? (
+                                                    <span>{sourceRule.ruleName}</span>
+                                                  ) : (
+                                                    <span style={{ color: 'var(--text-secondary)' }}>N/A</span>
+                                                  )}
+                                                </td>
+                                                <td>{input.inputMultiplier}</td>
+                                                <td style={{ textAlign: 'center' }}>
+                                                  {input.onlyIfSelected ? '✓' : '—'}
+                                                </td>
+                                              </tr>
+                                            );
+                                          })}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  ) : (
+                                    <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: 0 }}>Brak wejść</p>
+                                  )}
+                                </div>
+
+                                {/* Aggregation & Math */}
+                                <div>
+                                  <h5 style={{ color: 'var(--text-primary)', fontSize: '13px', marginBottom: '8px', fontWeight: '600' }}>
+                                    🧮 Agregacja i obliczenia
+                                  </h5>
+                                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                    <div style={{ marginBottom: '5px' }}>
+                                      <strong>Agregacja:</strong>{' '}
+                                      <span style={{
+                                        padding: '2px 6px',
+                                        background: 'var(--bg-secondary)',
+                                        borderRadius: 'var(--radius-sm)'
+                                      }}>
+                                        {rule.aggregationType}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <strong>Operacja:</strong>{' '}
+                                      <span style={{
+                                        padding: '2px 6px',
+                                        background: 'var(--bg-secondary)',
+                                        borderRadius: 'var(--radius-sm)'
+                                      }}>
+                                        {rule.mathOperation}
+                                      </span>
+                                      {rule.mathOperand != null && rule.mathOperation !== 'NONE' && (
+                                        <span style={{ marginLeft: '5px' }}>
+                                          (operand: <strong>{rule.mathOperand}</strong>)
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Right Column */}
+                              <div>
+                                {/* Conditions */}
+                                <div style={{ marginBottom: '15px' }}>
+                                  <h5 style={{ color: 'var(--text-primary)', fontSize: '13px', marginBottom: '8px', fontWeight: '600' }}>
+                                    ⚖️ Warunki ({rule.conditions?.length || 0})
+                                  </h5>
+                                  {rule.conditions && rule.conditions.length > 0 ? (
+                                    <div className="table-container">
+                                      <table className="table" style={{ fontSize: '12px' }}>
+                                        <thead>
+                                          <tr>
+                                            <th style={{ width: '70px' }}>Operator</th>
+                                            <th style={{ width: '70px' }}>Wartość</th>
+                                            <th style={{ width: '70px' }}>Wynik</th>
+                                            <th>Opis</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {rule.conditions.map((condition, idx) => (
+                                            <tr key={idx}>
+                                              <td>
+                                                <span style={{
+                                                  padding: '2px 6px',
+                                                  fontSize: '10px',
+                                                  background: 'var(--bg-secondary)',
+                                                  borderRadius: 'var(--radius-sm)',
+                                                  fontFamily: 'monospace'
+                                                }}>
+                                                  {condition.comparisonOperator}
+                                                </span>
+                                              </td>
+                                              <td>
+                                                {condition.compareValue}
+                                                {condition.comparisonOperator === 'BETWEEN' && condition.compareValueMax != null && (
+                                                  <span> - {condition.compareValueMax}</span>
+                                                )}
+                                              </td>
+                                              <td><strong>{condition.resultValue}</strong></td>
+                                              <td style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                                {condition.description || '—'}
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  ) : (
+                                    <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: 0 }}>
+                                      Brak warunków (wynik agregacji używany bezpośrednio)
+                                    </p>
+                                  )}
+                                </div>
+
+                                {/* Target Item */}
+                                <div>
+                                  <h5 style={{ color: 'var(--text-primary)', fontSize: '13px', marginBottom: '8px', fontWeight: '600' }}>
+                                    🎯 Pozycja docelowa
+                                  </h5>
+                                  {targetItem ? (
+                                    <div
+                                      style={{
+                                        padding: '10px',
+                                        background: 'var(--bg-secondary)',
+                                        border: '1px solid var(--border-color)',
+                                        borderRadius: 'var(--radius-sm)',
+                                        fontSize: '12px'
+                                      }}
+                                    >
+                                      <div style={{ fontWeight: '600', color: 'var(--text-primary)', marginBottom: '3px' }}>
+                                        [{targetItem.sortOrder}] {targetItem.materialName}
+                                      </div>
+                                      <div style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>
+                                        {targetItem.groupName} • {targetItem.unit}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: 0 }}>
+                                      Pozycja niedostępna
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
@@ -1103,6 +1474,27 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
             // Trigger a re-render to refresh groups in AddTemplateItemModal
             // The groups will be reloaded when AddTemplateItemModal is opened again
             setShowManageGroupsModal(false);
+          }}
+        />
+      )}
+
+      {/* Dependency Rule Modal */}
+      {showRuleModal && selectedTemplate && (
+        <TemplateDependencyRuleModal
+          templateId={selectedTemplate.id}
+          templateItems={selectedTemplate.items}
+          existingRules={dependencyRules}
+          rule={editingRule || undefined}
+          onClose={() => {
+            setShowRuleModal(false);
+            setEditingRule(null);
+          }}
+          onSuccess={() => {
+            setShowRuleModal(false);
+            setEditingRule(null);
+            if (selectedTemplate) {
+              loadDependencyRules(selectedTemplate.id);
+            }
           }}
         />
       )}
