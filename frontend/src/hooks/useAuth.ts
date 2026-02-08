@@ -6,18 +6,33 @@ import { useAuthStore } from '../stores/authStore';
 import authService from '../services/auth.service';
 
 export const useAuth = () => {
-  const { user, isAuthenticated, requirePasswordChange, setUser, setRequirePasswordChange, logout: storeLogout } = useAuthStore();
+  const { user, isAuthenticated, requirePasswordChange, accessToken, setUser, setRequirePasswordChange, logout: storeLogout } = useAuthStore();
 
-  // Initialize user from token on mount
+  // Initialize user from token on mount or try silent refresh
   useEffect(() => {
     const initializeAuth = async () => {
-      if (authService.isAuthenticated() && !user) {
+      // If we have an access token in Zustand, fetch user info
+      if (accessToken && !user) {
         try {
           const response = await authService.me();
           setUser(response.data);
         } catch (error) {
           console.error('Failed to fetch user:', error);
           storeLogout();
+        }
+      } 
+      // If no access token but might have httpOnly cookie, try silent refresh
+      else if (!accessToken && !user) {
+        try {
+          const response = await authService.refresh();
+          authService.saveTokens(response.data.accessToken);
+          
+          // Fetch user info after successful refresh
+          const meResponse = await authService.me();
+          setUser(meResponse.data);
+        } catch (error) {
+          // Silent refresh failed - user needs to login
+          console.log('Silent refresh failed - user not authenticated');
         }
       }
     };
@@ -28,8 +43,8 @@ export const useAuth = () => {
   const login = async (username: string, password: string) => {
     const response = await authService.login({ username, password });
     
-    // Save tokens
-    authService.saveTokens(response.data.accessToken, response.data.refreshToken);
+    // Save access token to Zustand (refresh token is in httpOnly cookie)
+    authService.saveTokens(response.data.accessToken);
     
     // Fetch full user data including permissions
     const meResponse = await authService.me();

@@ -8,8 +8,10 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   requirePasswordChange: boolean;
+  accessToken: string | null;
   setUser: (user: User | null) => void;
   setRequirePasswordChange: (value: boolean) => void;
+  setAccessToken: (token: string | null) => void;
   logout: () => void;
 }
 
@@ -17,7 +19,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
   requirePasswordChange: false,
+  accessToken: null,
   setUser: (user) => set({ user, isAuthenticated: !!user }),
   setRequirePasswordChange: (value) => set({ requirePasswordChange: value }),
-  logout: () => set({ user: null, isAuthenticated: false, requirePasswordChange: false }),
+  setAccessToken: (token) => set({ accessToken: token, isAuthenticated: !!token }),
+  logout: () => set({ user: null, isAuthenticated: false, requirePasswordChange: false, accessToken: null }),
 }));

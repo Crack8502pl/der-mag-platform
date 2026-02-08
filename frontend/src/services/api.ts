@@ -3,6 +3,7 @@
 
 import axios, { type AxiosError, type AxiosResponse } from 'axios';
 import type { AxiosInstance } from 'axios';
+import { useAuthStore } from '../stores/authStore';
 
 // Inteligentne wykrywanie API URL dla różnych środowisk
 const getApiBaseURL = (): string => {
@@ -47,6 +48,7 @@ export const api: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 15000, // 🆕 15s timeout dla slow mobile networks
+  withCredentials: true, // 🆕 Enable cookies for CSRF and refresh token
 });
 
 // ====== CLOCK SKEW COMPENSATION ======
@@ -118,7 +120,9 @@ api.interceptors.request.use(
       lastAuthMeRequest = now;
     }
     
-    const accessToken = localStorage.getItem('accessToken');
+    // Get access token from Zustand store instead of localStorage
+    const accessToken = useAuthStore.getState().accessToken;
+    
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
@@ -211,19 +215,25 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) {
-          throw new Error('No refresh token');
+        // Get CSRF token from cookie
+        const csrfTokenMatch = document.cookie.match(/csrf-token=([^;]+)/);
+        const csrfToken = csrfTokenMatch ? csrfTokenMatch[1] : null;
+
+        if (!csrfToken) {
+          throw new Error('No CSRF token');
         }
 
-        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-          refreshToken,
+        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, {
+          withCredentials: true,
+          headers: {
+            'X-CSRF-Token': csrfToken
+          }
         });
 
-        const { accessToken, refreshToken: newRefreshToken } = response.data.data;
+        const { accessToken } = response.data.data;
 
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', newRefreshToken);
+        // Store new access token in Zustand
+        useAuthStore.getState().setAccessToken(accessToken);
 
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
@@ -237,8 +247,8 @@ api.interceptors.response.use(
         }
         
         // Inne błędy - wyloguj
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        useAuthStore.getState().setAccessToken(null);
+        useAuthStore.getState().logout();
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }

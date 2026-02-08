@@ -11,6 +11,7 @@ import EmailService from '../services/EmailService';
 import { PasswordChangedEmailContext } from '../types/EmailTypes';
 import { generateRandomPassword } from '../utils/password';
 import { NotificationService } from '../services/NotificationService';
+import { generateCsrfToken } from '../middleware/csrf';
 
 // Helper function to log security events
 const logSecurityEvent = async (
@@ -158,12 +159,33 @@ export class AuthController {
       user.lastLogin = new Date();
       await userRepository.save(user);
 
+      // Generate CSRF token
+      const csrfToken = generateCsrfToken();
+
+      // Set refresh token as httpOnly cookie
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        path: '/api/auth'
+      });
+
+      // Set CSRF token cookie (non-httpOnly so JS can read it)
+      res.cookie('csrf-token', csrfToken, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        path: '/'
+      });
+
       res.json({
         success: true,
         message: 'Zalogowano pomyślnie',
         data: {
           accessToken,
-          refreshToken,
+          // refreshToken is now in httpOnly cookie, not in response body
           requirePasswordChange: user.forcePasswordChange,
           user: {
             id: user.id,
@@ -190,12 +212,26 @@ export class AuthController {
    */
   static async refresh(req: Request, res: Response): Promise<void> {
     try {
-      const { refreshToken } = req.body;
+      // Read refresh token from httpOnly cookie
+      const refreshToken = req.cookies.refreshToken;
 
       if (!refreshToken) {
         res.status(400).json({
           success: false,
           message: 'Brak refresh token'
+        });
+        return;
+      }
+
+      // Validate CSRF token
+      const csrfTokenFromHeader = req.headers['x-csrf-token'] as string;
+      const csrfTokenFromCookie = req.cookies['csrf-token'];
+
+      if (!csrfTokenFromCookie || !csrfTokenFromHeader || csrfTokenFromHeader !== csrfTokenFromCookie) {
+        res.status(403).json({
+          success: false,
+          message: 'Invalid CSRF token',
+          code: 'CSRF_TOKEN_INVALID'
         });
         return;
       }
@@ -319,11 +355,32 @@ export class AuthController {
         });
         await refreshTokenRepo.save(newTokenRecord);
 
+        // Generate new CSRF token
+        const newCsrfToken = generateCsrfToken();
+
+        // Set new refresh token cookie
+        res.cookie('refreshToken', newRefreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+          path: '/api/auth'
+        });
+
+        // Set new CSRF token cookie
+        res.cookie('csrf-token', newCsrfToken, {
+          httpOnly: false,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+          path: '/'
+        });
+
         res.json({
           success: true,
           data: {
-            accessToken: newAccessToken,
-            refreshToken: newRefreshToken
+            accessToken: newAccessToken
+            // refreshToken is now in httpOnly cookie, not in response body
           }
         });
       } catch (error: any) {
@@ -351,7 +408,8 @@ export class AuthController {
    */
   static async logout(req: Request, res: Response): Promise<void> {
     try {
-      const { refreshToken } = req.body;
+      // Read refresh token from cookie
+      const refreshToken = req.cookies.refreshToken;
       const authHeader = req.headers.authorization;
 
       let tokenId: string | undefined;
@@ -373,6 +431,10 @@ export class AuthController {
           { revoked: true, revokedAt: new Date() }
         );
       }
+
+      // Clear cookies
+      res.clearCookie('refreshToken', { path: '/api/auth' });
+      res.clearCookie('csrf-token', { path: '/' });
 
       res.json({
         success: true,

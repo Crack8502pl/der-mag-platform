@@ -1,7 +1,7 @@
 // src/components/common/TokenTimerWidget.tsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import authService from '../../services/auth.service';
+import { useAuthStore } from '../../stores/authStore';
 import { getCorrectedTime, getServerTimeOffset, CLOCK_SKEW_WARNING_THRESHOLD } from '../../services/api';
 import './TokenTimerWidget.css';
 
@@ -77,7 +77,8 @@ export const TokenTimerWidget: React.FC = () => {
   // Timer update effect
   useEffect(() => {
     const updateTimer = () => {
-      const token = authService.getAccessToken();
+      // Get token from Zustand store instead of localStorage
+      const token = useAuthStore.getState().accessToken;
       
       if (!token) {
         setTimeRemaining(null);

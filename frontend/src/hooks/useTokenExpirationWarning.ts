@@ -90,7 +90,8 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
   // Sprawdzanie czasu wygaśnięcia tokenu
   useEffect(() => {
     const checkTokenExpiration = () => {
-      const token = authService.getAccessToken();
+      // Get token from Zustand store instead of localStorage
+      const token = useAuthStore.getState().accessToken;
       
       if (!token) {
         setShowWarning(false);
@@ -194,13 +195,8 @@ export const useTokenExpirationWarning = (): TokenExpirationHook => {
     lastRefreshAttemptRef.current = now;
     
     try {
-      const refreshTokenValue = authService.getRefreshToken();
-      if (!refreshTokenValue) {
-        throw new Error('Brak refresh token');
-      }
-
-      const response = await authService.refresh(refreshTokenValue);
-      authService.saveTokens(response.data.accessToken, response.data.refreshToken);
+      const response = await authService.refresh();
+      authService.saveTokens(response.data.accessToken);
       
       setShowWarning(false);
       setRefreshError(null);
