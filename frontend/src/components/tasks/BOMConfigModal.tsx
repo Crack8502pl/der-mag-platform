@@ -97,14 +97,24 @@ export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess, read
 
       switch (item.quantitySource) {
         case 'FROM_CONFIG':
-          if (item.configParamName && params[item.configParamName] !== undefined) {
-            quantity = Number(params[item.configParamName]) || item.defaultQuantity;
+          if (item.configParamName) {
+            // Try both prefixed and unprefixed param names
+            const prefixedName = `${item.groupName || 'Inne'}_${item.configParamName}`;
+            const value = params[prefixedName] ?? params[item.configParamName];
+            if (value !== undefined) {
+              quantity = Number(value) || item.defaultQuantity;
+            }
           }
           break;
 
         case 'PER_UNIT':
-          if (item.configParamName && params[item.configParamName] !== undefined) {
-            quantity = item.defaultQuantity * Number(params[item.configParamName]);
+          if (item.configParamName) {
+            // Try both prefixed and unprefixed param names
+            const prefixedName = `${item.groupName || 'Inne'}_${item.configParamName}`;
+            const value = params[prefixedName] ?? params[item.configParamName];
+            if (value !== undefined) {
+              quantity = item.defaultQuantity * Number(value);
+            }
           }
           break;
 
@@ -273,7 +283,7 @@ export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess, read
                     backgroundColor: 'var(--primary-color)20',
                     color: 'var(--primary-color)'
                   }}>
-                    v{template.version}
+                    v{Number(template.version).toFixed(2)}
                   </span>
                 </div>
               </div>

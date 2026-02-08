@@ -6,7 +6,7 @@ import bomSubsystemTemplateService from '../../services/bomSubsystemTemplate.ser
 import bomGroupService, { type BomGroup } from '../../services/bomGroup.service';
 import { warehouseStockService } from '../../services/warehouseStock.service';
 import taskService from '../../services/task.service';
-import type { BomSubsystemTemplate } from '../../services/bomSubsystemTemplate.service';
+import type { BomSubsystemTemplate, BomSubsystemTemplateItem } from '../../services/bomSubsystemTemplate.service';
 import type { Task } from '../../types/task.types';
 import type { WarehouseStock } from '../../types/warehouseStock.types';
 
@@ -22,9 +22,10 @@ interface Props {
 interface ConfigField {
   paramName: string;
   label: string;
-  type: 'number' | 'select';
+  type: 'number' | 'select' | 'model_picker';
   options?: Array<{ value: string; label: string }>;
   defaultValue?: any;
+  materialItems?: BomSubsystemTemplateItem[]; // For model_picker type
 }
 
 interface ConfigGroup {
@@ -37,13 +38,12 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
   const [bomGroups, setBomGroups] = useState<BomGroup[]>([]);
   const [configGroups, setConfigGroups] = useState<ConfigGroup[]>([]);
   const [configValues, setConfigValues] = useState<Record<string, any>>({});
+  const [selectedModels, setSelectedModels] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   
-  // Warehouse stock options
-  const [cameraOptions, setCameraOptions] = useState<WarehouseStock[]>([]);
-  const [cameraLPROptions, setCameraLPROptions] = useState<WarehouseStock[]>([]);
+  // Warehouse stock options (keep pole and battery options)
   const [poleOptions, setPoleOptions] = useState<WarehouseStock[]>([]);
   const [batteryOptions, setBatteryOptions] = useState<BomSubsystemTemplate[]>([]);
 
@@ -60,6 +60,11 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
       // Load existing config from task metadata
       const existingConfig = task.metadata?.configParams || {};
       setConfigValues(existingConfig);
+      
+      // Initialize selectedModels from saved config
+      if (existingConfig.selectedModels) {
+        setSelectedModels(existingConfig.selectedModels);
+      }
 
       // Extract subsystem type and task variant from task metadata
       const subsystemType = task.metadata?.subsystemType || task.taskType?.code;
@@ -85,10 +90,8 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
 
       setTemplate(tmpl);
 
-      // Load warehouse stock options in parallel
+      // Load warehouse stock options in parallel (only pole and battery, not cameras)
       await Promise.all([
-        loadCameraOptions(),
-        loadCameraLPROptions(),
         loadPoleOptions(),
         loadBatteryOptions()
       ]);
@@ -110,24 +113,6 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
       setBomGroups(groups);
     } catch (err) {
       console.error('Error loading BOM groups:', err);
-    }
-  };
-
-  const loadCameraOptions = async () => {
-    try {
-      const response = await warehouseStockService.getAll({ search: 'kamera' }, 1, WAREHOUSE_STOCK_PAGE_SIZE);
-      setCameraOptions(response.data || []);
-    } catch (err) {
-      console.error('Error loading camera options:', err);
-    }
-  };
-
-  const loadCameraLPROptions = async () => {
-    try {
-      const response = await warehouseStockService.getAll({ search: 'kamera LPR' }, 1, WAREHOUSE_STOCK_PAGE_SIZE);
-      setCameraLPROptions(response.data || []);
-    } catch (err) {
-      console.error('Error loading camera LPR options:', err);
     }
   };
 
@@ -194,29 +179,19 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
     }
     
     // Add model/type selection fields based on group
-    // Note: Keep these as-is since they're already unique
     groupsMap.forEach((fields, groupName) => {
       // Match groups dynamically based on group name patterns
-      if (groupName.toLowerCase().includes('kamera') && !groupName.toLowerCase().includes('lpr')) {
-        fields.push({
-          paramName: 'modelKameryOgolnej',
-          label: 'Model kamery',
-          type: 'select',
-          options: cameraOptions.map(cam => ({
-            value: String(cam.id),
-            label: `${cam.materialName} (${cam.catalogNumber})`
-          }))
-        });
-      } else if (groupName.toLowerCase().includes('lpr')) {
-        fields.push({
-          paramName: 'modelKameryLPR',
-          label: 'Model Kamery LPR',
-          type: 'select',
-          options: cameraLPROptions.map(cam => ({
-            value: String(cam.id),
-            label: `${cam.materialName} (${cam.catalogNumber})`
-          }))
-        });
+      if (groupName.toLowerCase().includes('kamera') || groupName.toLowerCase().includes('lpr')) {
+        // Get all material items from this group in the template
+        const groupItems = tmpl.items.filter(i => (i.groupName || 'Inne') === groupName);
+        if (groupItems.length > 0) {
+          fields.push({
+            paramName: `${groupName}_selectedModels`,
+            label: 'Wybierz modele',
+            type: 'model_picker',
+            materialItems: groupItems
+          });
+        }
       } else if (groupName.toLowerCase().includes('słup')) {
         fields.push({
           paramName: 'typSlupu',
@@ -292,7 +267,10 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
       await taskService.update(task.taskNumber, {
         metadata: {
           ...task.metadata,
-          configParams: configValues
+          configParams: {
+            ...configValues,
+            selectedModels
+          }
         }
       });
 
@@ -408,6 +386,53 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
                               </option>
                             ))}
                           </select>
+                        )}
+                        {field.type === 'model_picker' && field.materialItems && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                            {field.materialItems.map((matItem, matIdx) => {
+                              const modelKey = `${field.paramName}_${matItem.id || matIdx}`;
+                              const isChecked = configValues[modelKey] === true || selectedModels[modelKey] === true;
+                              return (
+                                <label key={matIdx} style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '10px',
+                                  padding: '8px 12px',
+                                  border: '1px solid var(--border-color)',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  background: isChecked ? 'var(--primary-color)10' : 'transparent',
+                                  transition: 'all 0.2s'
+                                }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      const newVal = e.target.checked;
+                                      setSelectedModels(prev => ({ ...prev, [modelKey]: newVal }));
+                                      handleChange(modelKey, newVal);
+                                    }}
+                                  />
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
+                                      {matItem.materialName}
+                                    </div>
+                                    {matItem.catalogNumber && (
+                                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                        {matItem.catalogNumber}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
+                                    Domyślna ilość: {matItem.defaultQuantity} {matItem.unit}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                              ☑️ Zaznacz wybrane modele kamer. Odznaczone nie będą uwzględnione.
+                            </div>
+                          </div>
                         )}
                       </div>
                     ))}

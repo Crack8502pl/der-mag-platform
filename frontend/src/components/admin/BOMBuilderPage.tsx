@@ -602,6 +602,20 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [editingItem, setEditingItem] = useState<BomSubsystemTemplateItem | null>(null);
   const [creatingTemplate, setCreatingTemplate] = useState(false);
+  const [bomGroups, setBomGroups] = useState<BomGroup[]>([]);
+
+  // Load BOM groups for sorting
+  useEffect(() => {
+    const loadGroups = async () => {
+      try {
+        const groups = await bomGroupService.getAll();
+        setBomGroups(groups);
+      } catch (err) {
+        console.error('Error loading BOM groups:', err);
+      }
+    };
+    loadGroups();
+  }, []);
 
   // Define subsystem structure
   const subsystemStructure = [
@@ -857,7 +871,7 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                         borderRadius: 'var(--radius-sm)',
                         color: 'var(--text-secondary)'
                       }}>
-                        v{selectedTemplate.version}
+                        v{Number(selectedTemplate.version).toFixed(2)}
                       </span>
                       <span style={{
                         padding: '2px 8px',
@@ -895,7 +909,16 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
               </div>
 
               {/* Items grouped by groupName */}
-              {Object.entries(groupedItems).map(([groupName, items]) => (
+              {Object.entries(groupedItems)
+                .sort(([groupNameA], [groupNameB]) => {
+                  // Find the sortOrder for each group
+                  const groupA = bomGroups.find(g => g.name === groupNameA);
+                  const groupB = bomGroups.find(g => g.name === groupNameB);
+                  const sortOrderA = groupA?.sortOrder ?? 999;
+                  const sortOrderB = groupB?.sortOrder ?? 999;
+                  return sortOrderA - sortOrderB;
+                })
+                .map(([groupName, items]) => (
                 <div key={groupName} style={{ marginBottom: '25px' }}>
                   <h3 style={{
                     fontSize: '15px',
@@ -1192,6 +1215,13 @@ const AddTemplateItemModal: React.FC<{
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate quantity for 'szt' unit
+    if (formData.unit === 'szt' && !Number.isInteger(formData.defaultQuantity)) {
+      alert('Dla jednostki "szt" (sztuki) ilość musi być liczbą całkowitą.');
+      return;
+    }
+    
     onSuccess(formData);
   };
 
@@ -1310,9 +1340,16 @@ const AddTemplateItemModal: React.FC<{
               <label className="label">Ilość domyślna *</label>
               <input
                 type="number"
-                step="0.01"
+                step={formData.unit === 'szt' ? '1' : '0.01'}
                 value={formData.defaultQuantity}
-                onChange={(e) => setFormData({ ...formData, defaultQuantity: parseFloat(e.target.value) })}
+                onChange={(e) => {
+                  let value = parseFloat(e.target.value);
+                  // Round to integer if unit is 'szt' (pieces)
+                  if (formData.unit === 'szt') {
+                    value = Math.round(value);
+                  }
+                  setFormData({ ...formData, defaultQuantity: value });
+                }}
                 className="input"
                 required
               />
@@ -1323,7 +1360,15 @@ const AddTemplateItemModal: React.FC<{
               <input
                 type="text"
                 value={formData.unit}
-                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                onChange={(e) => {
+                  const newUnit = e.target.value;
+                  let quantity = formData.defaultQuantity;
+                  // Round to integer if changing to 'szt'
+                  if (newUnit === 'szt') {
+                    quantity = Math.round(quantity);
+                  }
+                  setFormData({ ...formData, unit: newUnit, defaultQuantity: quantity });
+                }}
                 className="input"
                 required
               />
