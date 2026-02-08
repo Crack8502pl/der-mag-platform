@@ -12,6 +12,9 @@ import type {
 } from '../types/auth.types';
 import { useAuthStore } from '../stores/authStore';
 
+// Singleton promise for refresh to prevent concurrent requests
+let refreshPromise: Promise<RefreshResponse> | null = null;
+
 class AuthService {
   /**
    * Login user
@@ -77,15 +80,31 @@ class AuthService {
    * Refresh access token using httpOnly cookie
    */
   async refresh(): Promise<RefreshResponse> {
-    // Get CSRF token from cookie
-    const csrfToken = this.getCsrfTokenFromCookie();
-    
-    const response = await api.post('/auth/refresh', {}, {
-      headers: {
-        'X-CSRF-Token': csrfToken
+    // If a refresh is already in progress, reuse it
+    if (refreshPromise) {
+      console.log('[AUTH] Reusing existing refresh promise');
+      return refreshPromise;
+    }
+
+    // Create new refresh promise
+    refreshPromise = (async () => {
+      try {
+        // Get CSRF token from cookie
+        const csrfToken = this.getCsrfTokenFromCookie();
+        
+        const response = await api.post('/auth/refresh', {}, {
+          headers: {
+            'X-CSRF-Token': csrfToken
+          }
+        });
+        return response.data;
+      } finally {
+        // Clear the promise after completion (success or failure)
+        refreshPromise = null;
       }
-    });
-    return response.data;
+    })();
+
+    return refreshPromise;
   }
 
   /**
