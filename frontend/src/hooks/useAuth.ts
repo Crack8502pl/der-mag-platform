@@ -37,9 +37,8 @@ export const useAuth = () => {
               setUser(response.data);
             } catch (error: unknown) {
               // Skip logging for throttled requests (not real errors)
-              if (typeof error === 'object' && error !== null && '__THROTTLED__' in error) {
-                // Throttled request - skip logging
-              } else {
+              const isThrottled = typeof error === 'object' && error !== null && '__THROTTLED__' in error;
+              if (!isThrottled) {
                 console.error('Failed to fetch user:', error);
               }
               storeLogout();
