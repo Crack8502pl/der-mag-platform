@@ -391,7 +391,7 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
                             {field.materialItems.map((matItem, matIdx) => {
                               const modelKey = `${field.paramName}_${matItem.id || matIdx}`;
-                              const isChecked = configValues[modelKey] === true || selectedModels[modelKey] === true;
+                              const isChecked = selectedModels[modelKey] === true;
                               return (
                                 <label key={matIdx} style={{
                                   display: 'flex',
@@ -410,7 +410,6 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
                                     onChange={(e) => {
                                       const newVal = e.target.checked;
                                       setSelectedModels(prev => ({ ...prev, [modelKey]: newVal }));
-                                      handleChange(modelKey, newVal);
                                     }}
                                   />
                                   <div style={{ flex: 1 }}>

@@ -209,7 +209,7 @@ export class BomSubsystemTemplateService {
         catalogNumber: item.catalogNumber,
         unit: item.unit || 'szt',
         // Round to integer if unit is 'szt' (pieces)
-        defaultQuantity: (item.unit === 'szt' || (!item.unit && 'szt' === 'szt')) 
+        defaultQuantity: (item.unit === 'szt' || !item.unit) 
           ? Math.round(item.defaultQuantity) 
           : item.defaultQuantity,
         quantitySource: item.quantitySource || QuantitySource.FIXED,
@@ -339,8 +339,8 @@ export class BomSubsystemTemplateService {
         template.version = Number(template.version) + 1;
       }
       
-      // Round to 2 decimal places
-      template.version = Math.round(template.version * 100) / 100;
+      // Round to 2 decimal places using toFixed for reliable precision
+      template.version = Number(template.version.toFixed(2));
     }
 
     return await templateRepository.save(template);

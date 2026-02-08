@@ -1134,6 +1134,7 @@ const AddTemplateItemModal: React.FC<{
   const [showWarehouseDropdown, setShowWarehouseDropdown] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [bomGroups, setBomGroups] = useState<BomGroup[]>([]);
+  const [validationError, setValidationError] = useState<string>('');
 
   useEffect(() => {
     const loadGroups = async () => {
@@ -1218,10 +1219,11 @@ const AddTemplateItemModal: React.FC<{
     
     // Validate quantity for 'szt' unit
     if (formData.unit === 'szt' && !Number.isInteger(formData.defaultQuantity)) {
-      alert('Dla jednostki "szt" (sztuki) ilość musi być liczbą całkowitą.');
+      setValidationError('Dla jednostki "szt" (sztuki) ilość musi być liczbą całkowitą.');
       return;
     }
     
+    setValidationError('');
     onSuccess(formData);
   };
 
@@ -1250,6 +1252,19 @@ const AddTemplateItemModal: React.FC<{
         <h2 style={{ color: 'var(--text-primary)', marginBottom: '20px' }}>
           {item ? 'Edytuj element' : 'Dodaj element'}
         </h2>
+        
+        {validationError && (
+          <div style={{
+            padding: '12px',
+            background: '#fee2e2',
+            border: '1px solid #ef4444',
+            borderRadius: '6px',
+            color: '#dc2626',
+            marginBottom: '15px'
+          }}>
+            ⚠️ {validationError}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '15px' }}>
           <div style={{ position: 'relative' }}>
