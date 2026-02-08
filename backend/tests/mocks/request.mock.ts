@@ -11,12 +11,14 @@ export const createMockRequest = (options: {
   headers?: any;
   user?: any;
   userId?: number;
+  cookies?: any;
 } = {}): Partial<Request> => {
   return {
     body: options.body || {},
     params: options.params || {},
     query: options.query || {},
     headers: options.headers || {},
+    cookies: options.cookies || {},
     user: options.user,
     userId: options.userId,
     socket: {

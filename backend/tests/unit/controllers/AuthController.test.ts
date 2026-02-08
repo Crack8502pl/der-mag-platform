@@ -16,7 +16,9 @@ jest.mock('../../../src/config/database', () => ({
 }));
 
 jest.mock('../../../src/config/jwt');
-jest.mock('uuid', () => ({ v4: () => 'test-uuid-1234' }));
+jest.mock('uuid', () => ({
+  v4: jest.fn(() => 'test-uuid-1234')
+}));
 
 describe('AuthController', () => {
   let mockUserRepository: any;
@@ -78,16 +80,33 @@ describe('AuthController', () => {
       expect(jwt.generateAccessToken).toHaveBeenCalled();
       expect(jwt.generateRefreshToken).toHaveBeenCalled();
       expect(mockRefreshTokenRepository.save).toHaveBeenCalled();
+      
+      // Verify cookies are set
+      expect(res.cookie).toHaveBeenCalledWith('refreshToken', 'refresh-token-456', expect.objectContaining({
+        httpOnly: true,
+        sameSite: 'strict',
+        path: '/api/auth',
+      }));
+      expect(res.cookie).toHaveBeenCalledWith('csrf-token', expect.any(String), expect.objectContaining({
+        httpOnly: false,
+        sameSite: 'strict',
+        path: '/',
+      }));
+      
+      // Verify response contains access token but NOT refresh token
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
           success: true,
           message: 'Zalogowano pomyślnie',
           data: expect.objectContaining({
             accessToken: 'access-token-123',
-            refreshToken: 'refresh-token-456',
           }),
         })
       );
+      
+      // Ensure refresh token is NOT in response body
+      const jsonCall = (res.json as jest.Mock).mock.calls[0][0];
+      expect(jsonCall.data.refreshToken).toBeUndefined();
     });
 
     it('should return 401 for invalid username', async () => {
@@ -102,10 +121,11 @@ describe('AuthController', () => {
 
       await AuthController.login(req as Request, res as Response);
 
-      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Nieprawidłowa nazwa użytkownika lub hasło',
+        error: 'USER_NOT_FOUND',
+        message: 'Konto nie istnieje',
       });
     });
 
@@ -133,7 +153,8 @@ describe('AuthController', () => {
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Nieprawidłowa nazwa użytkownika lub hasło',
+        error: 'INVALID_PASSWORD',
+        message: 'Błędne hasło',
       });
     });
 
@@ -168,6 +189,166 @@ describe('AuthController', () => {
           success: false,
         })
       );
+    });
+  });
+
+  describe('POST /api/auth/refresh', () => {
+    it('should refresh tokens with valid cookie and CSRF token', async () => {
+      // Mock uuid to return different values for each call
+      const { v4: uuidv4 } = require('uuid');
+      (uuidv4 as jest.Mock).mockReturnValueOnce('new-uuid-5678');
+      
+      const mockToken = {
+        tokenId: 'test-uuid-1234',
+        userId: 1,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        revoked: false,
+      } as any;
+
+      const mockQueryRunner = {
+        connect: jest.fn(),
+        hasTable: jest.fn().mockResolvedValue(true),
+        release: jest.fn(),
+      } as any;
+
+      (AppDataSource as any).createQueryRunner = jest.fn().mockReturnValue(mockQueryRunner);
+
+      mockRefreshTokenRepository.findOne.mockResolvedValue(mockToken);
+      mockRefreshTokenRepository.create.mockImplementation((data: any) => data);
+      mockRefreshTokenRepository.save.mockResolvedValue({});
+
+      (jwt.verifyRefreshToken as jest.Mock).mockReturnValue({
+        jti: 'test-uuid-1234',
+        userId: 1,
+        username: 'testuser',
+        role: 'admin',
+      });
+      (jwt.generateAccessToken as jest.Mock).mockReturnValue('new-access-token');
+      (jwt.generateRefreshToken as jest.Mock).mockReturnValue('new-refresh-token');
+
+      req.cookies = {
+        refreshToken: 'old-refresh-token',
+        'csrf-token': 'csrf-token-123',
+      };
+      req.headers = {
+        'x-csrf-token': 'csrf-token-123',
+      };
+
+      await AuthController.refresh(req as Request, res as Response);
+
+      expect(jwt.verifyRefreshToken).toHaveBeenCalledWith('old-refresh-token');
+      expect(mockRefreshTokenRepository.findOne).toHaveBeenCalledWith({
+        where: { tokenId: 'test-uuid-1234' },
+      });
+      
+      // Verify save was called twice (once for old token revocation, once for new token creation)
+      expect(mockRefreshTokenRepository.save).toHaveBeenCalledTimes(2);
+      
+      // First call should be revoking old token
+      const firstSaveCall = mockRefreshTokenRepository.save.mock.calls[0][0];
+      expect(firstSaveCall).toMatchObject({
+        revoked: true,
+        revokedByTokenId: 'new-uuid-5678',
+      });
+      
+      // Second call should be creating new token
+      const secondSaveCall = mockRefreshTokenRepository.save.mock.calls[1][0];
+      expect(secondSaveCall).toMatchObject({
+        tokenId: 'new-uuid-5678',
+        userId: 1,
+      });
+      
+      // Verify cookies are set
+      expect(res.cookie).toHaveBeenCalledWith('refreshToken', 'new-refresh-token', expect.any(Object));
+      expect(res.cookie).toHaveBeenCalledWith('csrf-token', expect.any(String), expect.any(Object));
+      
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        data: {
+          accessToken: 'new-access-token',
+        },
+      });
+    });
+
+    it('should reject refresh without CSRF token', async () => {
+      req.cookies = {
+        refreshToken: 'old-refresh-token',
+        'csrf-token': 'csrf-token-123',
+      };
+      req.headers = {}; // No CSRF token in header
+
+      await AuthController.refresh(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Invalid CSRF token',
+        code: 'CSRF_TOKEN_INVALID',
+      });
+    });
+
+    it('should reject refresh with mismatched CSRF token', async () => {
+      req.cookies = {
+        refreshToken: 'old-refresh-token',
+        'csrf-token': 'csrf-token-123',
+      };
+      req.headers = {
+        'x-csrf-token': 'csrf-token-456', // Different from cookie
+      };
+
+      await AuthController.refresh(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Invalid CSRF token',
+        code: 'CSRF_TOKEN_INVALID',
+      });
+    });
+
+    it('should reject refresh without refresh token cookie', async () => {
+      req.cookies = {}; // No refresh token
+      req.headers = {
+        'x-csrf-token': 'csrf-token-123',
+      };
+
+      await AuthController.refresh(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Brak refresh token',
+      });
+    });
+  });
+
+  describe('POST /api/auth/logout', () => {
+    it('should clear cookies on logout', async () => {
+      mockRefreshTokenRepository.update.mockResolvedValue({ affected: 1 });
+
+      (jwt.decodeToken as jest.Mock).mockReturnValue({
+        jti: 'test-uuid-1234',
+      });
+
+      req.cookies = {
+        refreshToken: 'refresh-token-to-revoke',
+      };
+
+      await AuthController.logout(req as Request, res as Response);
+
+      expect(mockRefreshTokenRepository.update).toHaveBeenCalledWith(
+        { tokenId: 'test-uuid-1234', revoked: false },
+        { revoked: true, revokedAt: expect.any(Date) }
+      );
+      
+      // Verify cookies are cleared
+      expect(res.clearCookie).toHaveBeenCalledWith('refreshToken', { path: '/api/auth' });
+      expect(res.clearCookie).toHaveBeenCalledWith('csrf-token', { path: '/' });
+      
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Wylogowano pomyślnie',
+      });
     });
   });
 
