@@ -50,6 +50,10 @@ import { BomSubsystemTemplateItem } from '../entities/BomSubsystemTemplateItem';
 import { BomGroup } from '../entities/BomGroup';
 // Missing entities
 import { BomDependencyRule } from '../entities/BomDependencyRule';
+// Template Dependency Rules
+import { BomTemplateDependencyRule } from '../entities/BomTemplateDependencyRule';
+import { BomTemplateDependencyRuleInput } from '../entities/BomTemplateDependencyRuleInput';
+import { BomTemplateDependencyRuleCondition } from '../entities/BomTemplateDependencyRuleCondition';
 import { Document } from '../entities/Document';
 import { DocumentTemplate } from '../entities/DocumentTemplate';
 import { MaterialImport } from '../entities/MaterialImport';
@@ -120,6 +124,10 @@ export const AppDataSource = new DataSource({
     BomGroup,
     // BOM Dependency Rules
     BomDependencyRule,
+    // BOM Template Dependency Rules
+    BomTemplateDependencyRule,
+    BomTemplateDependencyRuleInput,
+    BomTemplateDependencyRuleCondition,
     // Document Management
     Document,
     DocumentTemplate,

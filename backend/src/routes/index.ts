@@ -36,6 +36,8 @@ import warehouseStockRoutes from './warehouseStock.routes';
 import bomSubsystemTemplateRoutes from './bomSubsystemTemplate.routes';
 // BOM group routes
 import bomGroupRoutes from './bomGroup.routes';
+// BOM template dependency rule routes
+import bomTemplateDependencyRuleRoutes from './bomTemplateDependencyRule.routes';
 
 const router = Router();
 
@@ -81,6 +83,9 @@ router.use('/bom-subsystem-templates', bomSubsystemTemplateRoutes);
 
 // BOM group routes
 router.use('/bom-groups', bomGroupRoutes);
+
+// BOM template dependency rule routes
+router.use('/bom-template-dependency-rules', bomTemplateDependencyRuleRoutes);
 
 // Admin routes
 router.use('/admin', adminRoutes);
