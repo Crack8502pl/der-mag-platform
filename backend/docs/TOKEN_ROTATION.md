@@ -1,35 +1,58 @@
 # Token Rotation and Session Management
 
-This document explains the refresh token rotation system implemented in the Grover Platform backend.
+This document explains the refresh token rotation system and hybrid token storage strategy implemented in the Grover Platform.
 
 ## Overview
 
-The system implements secure refresh token rotation following OAuth 2.0 best practices:
-- **Short-lived access tokens** (15 minutes) for API access
-- **Long-lived refresh tokens** (7 days) stored in database
+The system implements secure refresh token rotation following OAuth 2.0 best practices with a **hybrid token storage strategy** for maximum security:
+- **Short-lived access tokens** (15 minutes) stored in JavaScript memory (Zustand store)
+- **Long-lived refresh tokens** (7 days) stored in httpOnly cookies
+- **CSRF tokens** using Double Submit Cookie pattern
 - **Automatic token rotation** on each refresh
 - **Reuse detection** to prevent token theft
 - **Session management** for users to view and revoke active sessions
 
 ## Security Features
 
-### 1. Token Rotation
+### 1. Hybrid Token Storage Strategy
+
+| Token | Storage | Rationale |
+|---|---|---|
+| **Access Token** | JavaScript memory (Zustand store) | Short-lived (15min), automatically disappears when tab closes, immune to CSRF |
+| **Refresh Token** | `httpOnly` + `Secure` + `SameSite=Strict` cookie | Long-lived (7d), invisible to JavaScript (XSS-proof), automatically sent with requests |
+| **CSRF Token** | Double Submit Cookie pattern | Protects cookie-based refresh from CSRF attacks |
+
+**Benefits:**
+- ✅ **XSS-proof refresh tokens** — httpOnly cookies can't be accessed by JavaScript
+- ✅ **CSRF-proof access tokens** — stored only in memory, never sent automatically by the browser
+- ✅ **Double Submit Cookie CSRF protection** — prevents cross-site request forgery on cookie-based endpoints
+- ✅ **Session survives page refresh** — via silent refresh using the httpOnly cookie (though access token in memory is lost)
+
+### 2. Token Rotation
 Every time a refresh token is used, it is immediately revoked and a new pair of tokens (access + refresh) is generated. This ensures that each refresh token can only be used once.
 
-### 2. Reuse Detection
+### 3. Reuse Detection
 If an already-used (revoked) refresh token is presented, the system assumes a security breach and:
 - Revokes ALL refresh tokens for that user
 - Logs a security event (`TOKEN_REUSE_ATTACK`)
 - Forces the user to re-authenticate
 
-### 3. Separate JWT Secrets
+### 4. CSRF Protection
+
+The system uses Double Submit Cookie pattern for CSRF protection:
+- On login/refresh, server generates a CSRF token
+- Token is set in both an httpOnly=false cookie (readable by JS) and validated from `X-CSRF-Token` header
+- On refresh/logout, server validates that header token matches cookie token
+- Prevents CSRF attacks on cookie-based endpoints
+
+### 5. Separate JWT Secrets
 The system uses separate secrets for access and refresh tokens:
 - `JWT_ACCESS_SECRET` - for short-lived access tokens
 - `JWT_REFRESH_SECRET` - for long-lived refresh tokens
 
 This limits the impact if one secret is compromised.
 
-### 4. Database Whitelist
+### 6. Database Whitelist
 All valid refresh tokens are stored in the database with metadata:
 - Token ID (jti claim)
 - User ID
@@ -38,7 +61,7 @@ All valid refresh tokens are stored in the database with metadata:
 - Creation and expiration timestamps
 - Revocation status
 
-### 5. Paranoid Mode (Optional)
+### 7. Paranoid Mode (Optional)
 When `PARANOID_MODE=true` is set, the system verifies on every API request that the access token's jti exists in the database and hasn't been revoked. This adds extra security at the cost of performance.
 
 ## Database Schema
@@ -94,7 +117,6 @@ Authenticate user and receive tokens.
   "message": "Zalogowano pomyślnie",
   "data": {
     "accessToken": "eyJhbGc...",
-    "refreshToken": "eyJhbGc...",
     "user": {
       "id": 1,
       "username": "user@example.com",
@@ -107,24 +129,57 @@ Authenticate user and receive tokens.
 }
 ```
 
-### POST /api/auth/refresh
-Rotate tokens using refresh token.
+**Cookies Set:**
+- `refreshToken` (httpOnly, secure, sameSite=strict, path=/api/auth) - 7 days
+- `csrf-token` (secure, sameSite=strict, path=/) - 7 days
 
-**Request:**
+### GET /api/auth/csrf-token
+Bootstrap CSRF token for SPA.
+
+**Response:**
 ```json
 {
-  "refreshToken": "eyJhbGc..."
+  "success": true,
+  "data": {
+    "csrfToken": "random-csrf-token-here"
+  }
 }
 ```
+
+**Cookies Set:**
+- `csrf-token` (secure, sameSite=strict, path=/) - 7 days
+
+### POST /api/auth/refresh
+Rotate tokens using refresh token from httpOnly cookie.
+
+**Headers:**
+```
+X-CSRF-Token: <csrf_token>
+Cookie: refreshToken=<refresh_token>; csrf-token=<csrf_token>
+```
+
+**Request:** Empty body (refresh token comes from cookie)
 
 **Response (Success):**
 ```json
 {
   "success": true,
   "data": {
-    "accessToken": "eyJhbGc...",
-    "refreshToken": "eyJhbGc..."
+    "accessToken": "eyJhbGc..."
   }
+}
+```
+
+**Cookies Set:**
+- `refreshToken` (httpOnly, secure, sameSite=strict, path=/api/auth) - new rotated token
+- `csrf-token` (secure, sameSite=strict, path=/) - new CSRF token
+
+**Response (CSRF Invalid):**
+```json
+{
+  "success": false,
+  "message": "Invalid CSRF token",
+  "code": "CSRF_TOKEN_INVALID"
 }
 ```
 
@@ -138,19 +193,15 @@ Rotate tokens using refresh token.
 ```
 
 ### POST /api/auth/logout
-Revoke current session's refresh token.
+Revoke current session's refresh token and clear cookies.
 
 **Headers:**
 ```
 Authorization: Bearer <access_token>
+Cookie: refreshToken=<refresh_token>
 ```
 
-**Request:**
-```json
-{
-  "refreshToken": "eyJhbGc..."  // Optional
-}
-```
+**Request:** Empty body (refresh token comes from cookie)
 
 **Response:**
 ```json
@@ -159,6 +210,10 @@ Authorization: Bearer <access_token>
   "message": "Wylogowano pomyślnie"
 }
 ```
+
+**Cookies Cleared:**
+- `refreshToken` (path=/api/auth)
+- `csrf-token` (path=/)
 
 ### POST /api/auth/logout/all
 Revoke all active sessions for the current user.
@@ -285,31 +340,43 @@ Set up a cron job to run daily:
 
 ### 1. Store Tokens Securely
 
+⚠️ **IMPORTANT:** With the hybrid strategy, tokens are stored differently:
+
 ```javascript
-// After login
-localStorage.setItem('accessToken', data.accessToken);
-localStorage.setItem('refreshToken', data.refreshToken);
+// After login - store only access token in memory (Zustand store)
+// Refresh token is automatically stored in httpOnly cookie by the server
+useAuthStore.getState().setAccessToken(data.accessToken);
+
+// NO MORE localStorage for refresh tokens!
+// ❌ localStorage.setItem('refreshToken', data.refreshToken); // DANGEROUS!
 ```
 
 ### 2. Use Access Token for API Calls
 
 ```javascript
+// Get access token from Zustand store
+const accessToken = useAuthStore.getState().accessToken;
+
 const response = await fetch('/api/tasks', {
   headers: {
-    'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-  }
+    'Authorization': `Bearer ${accessToken}`
+  },
+  credentials: 'include' // Required for cookies
 });
 ```
 
-### 3. Handle Token Expiration
+### 3. Handle Token Expiration with Cookie-Based Refresh
 
 ```javascript
 async function apiCall(url, options = {}) {
+  const accessToken = useAuthStore.getState().accessToken;
+  
   let response = await fetch(url, {
     ...options,
+    credentials: 'include', // Include cookies
     headers: {
       ...options.headers,
-      'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+      'Authorization': `Bearer ${accessToken}`
     }
   });
 
@@ -317,12 +384,14 @@ async function apiCall(url, options = {}) {
   if (response.status === 401) {
     const refreshed = await refreshTokens();
     if (refreshed) {
-      // Retry original request
+      // Retry original request with new token
+      const newAccessToken = useAuthStore.getState().accessToken;
       response = await fetch(url, {
         ...options,
+        credentials: 'include',
         headers: {
           ...options.headers,
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+          'Authorization': `Bearer ${newAccessToken}`
         }
       });
     }
@@ -332,43 +401,106 @@ async function apiCall(url, options = {}) {
 }
 
 async function refreshTokens() {
-  const refreshToken = localStorage.getItem('refreshToken');
-  
   try {
+    // Get CSRF token from cookie
+    const csrfToken = document.cookie.match(/csrf-token=([^;]+)/)?.[1];
+    
+    if (!csrfToken) {
+      throw new Error('No CSRF token');
+    }
+    
     const response = await fetch('/api/auth/refresh', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken })
+      credentials: 'include', // Include httpOnly refresh token cookie
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      }
     });
 
     if (response.ok) {
       const data = await response.json();
-      localStorage.setItem('accessToken', data.data.accessToken);
-      localStorage.setItem('refreshToken', data.data.refreshToken);
+      // Store new access token in Zustand
+      useAuthStore.getState().setAccessToken(data.data.accessToken);
       return true;
     }
   } catch (error) {
     console.error('Token refresh failed:', error);
   }
 
-  // Refresh failed - redirect to login
-  localStorage.clear();
+  // Refresh failed - clear store and redirect to login
+  useAuthStore.getState().logout();
   window.location.href = '/login';
   return false;
 }
 ```
 
-### 4. Handle Token Reuse Detection
+### 4. Silent Refresh on App Start
+
+```javascript
+// On app initialization, try to restore session using httpOnly cookie
+async function initializeAuth() {
+  const accessToken = useAuthStore.getState().accessToken;
+  
+  // If no access token in memory, try silent refresh
+  if (!accessToken) {
+    try {
+      const csrfToken = document.cookie.match(/csrf-token=([^;]+)/)?.[1];
+      
+      if (!csrfToken) {
+        // No CSRF token - fetch one first
+        await fetch('/api/auth/csrf-token', { credentials: 'include' });
+        const newCsrfToken = document.cookie.match(/csrf-token=([^;]+)/)?.[1];
+        
+        if (!newCsrfToken) return;
+      }
+      
+      const response = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'X-CSRF-Token': csrfToken || newCsrfToken
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        useAuthStore.getState().setAccessToken(data.data.accessToken);
+        
+        // Fetch user info
+        const meResponse = await fetch('/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${data.data.accessToken}`
+          },
+          credentials: 'include'
+        });
+        
+        if (meResponse.ok) {
+          const userData = await meResponse.json();
+          useAuthStore.getState().setUser(userData.data);
+        }
+      }
+    } catch (error) {
+      console.log('Silent refresh failed - user not authenticated');
+    }
+  }
+}
+```
+
+### 5. Handle Token Reuse Detection
 
 ```javascript
 async function refreshTokens() {
-  const refreshToken = localStorage.getItem('refreshToken');
-  
   try {
+    const csrfToken = document.cookie.match(/csrf-token=([^;]+)/)?.[1];
+    
     const response = await fetch('/api/auth/refresh', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken })
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      }
     });
 
     const data = await response.json();
@@ -376,14 +508,13 @@ async function refreshTokens() {
     if (data.code === 'TOKEN_REUSE_ATTACK') {
       // Security breach detected - force re-login
       alert('Wykryto podejrzaną aktywność. Zaloguj się ponownie.');
-      localStorage.clear();
+      useAuthStore.getState().logout();
       window.location.href = '/login';
       return false;
     }
 
     if (response.ok) {
-      localStorage.setItem('accessToken', data.data.accessToken);
-      localStorage.setItem('refreshToken', data.data.refreshToken);
+      useAuthStore.getState().setAccessToken(data.data.accessToken);
       return true;
     }
   } catch (error) {
@@ -402,8 +533,12 @@ async function refreshTokens() {
 4. **Rotate JWT secrets** periodically (every 90 days)
 5. **Run cleanup function** regularly to remove old tokens
 6. **Enable paranoid mode** for high-security environments
-7. **Store refresh tokens securely** on the client (httpOnly cookies preferred)
-8. **Never log or expose** tokens in error messages
+7. **Use httpOnly cookies** for refresh tokens (XSS-proof)
+8. **Implement CSRF protection** for cookie-based endpoints
+9. **Store access tokens in memory** (Zustand) instead of localStorage
+10. **Never log or expose** tokens in error messages
+11. **Enable SameSite=Strict** on cookies to prevent CSRF
+12. **Set appropriate cookie paths** to limit cookie scope
 
 ## Rotating JWT Secrets
 
