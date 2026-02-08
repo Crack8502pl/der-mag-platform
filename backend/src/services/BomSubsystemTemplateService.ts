@@ -232,6 +232,9 @@ export class BomSubsystemTemplateService {
             item.groupName = itemData.groupName;
             item.sortOrder = itemData.sortOrder || 0;
             item.notes = itemData.notes;
+            
+            // Save the updated item to persist changes
+            await itemRepository.save(item);
           }
         } else {
           // Create new item

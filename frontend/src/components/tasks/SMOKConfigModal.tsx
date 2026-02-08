@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import bomSubsystemTemplateService from '../../services/bomSubsystemTemplate.service';
+import bomGroupService, { type BomGroup } from '../../services/bomGroup.service';
 import { warehouseStockService } from '../../services/warehouseStock.service';
 import taskService from '../../services/task.service';
 import type { BomSubsystemTemplate } from '../../services/bomSubsystemTemplate.service';
@@ -10,14 +11,6 @@ import type { Task } from '../../types/task.types';
 import type { WarehouseStock } from '../../types/warehouseStock.types';
 
 // Constants
-const GROUP_NAMES = {
-  CAMERA_GENERAL: 'Kamera Ogólna',
-  CAMERA_LPR: 'Kamera LPR',
-  POLES: 'Słupy',
-  BATTERY: 'Akumulator',
-  OTHER: 'Inne'
-} as const;
-
 const WAREHOUSE_STOCK_PAGE_SIZE = 50;
 
 interface Props {
@@ -41,6 +34,7 @@ interface ConfigGroup {
 
 export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) => {
   const [template, setTemplate] = useState<BomSubsystemTemplate | null>(null);
+  const [bomGroups, setBomGroups] = useState<BomGroup[]>([]);
   const [configGroups, setConfigGroups] = useState<ConfigGroup[]>([]);
   const [configValues, setConfigValues] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
@@ -77,6 +71,9 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
         return;
       }
 
+      // Load BOM groups from database
+      await loadBomGroups();
+
       // Load template
       const tmpl = await bomSubsystemTemplateService.getTemplateFor(subsystemType, taskVariant);
       
@@ -104,6 +101,15 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
       setError(err.response?.data?.message || 'Błąd pobierania konfiguracji');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadBomGroups = async () => {
+    try {
+      const groups = await bomGroupService.getAll();
+      setBomGroups(groups);
+    } catch (err) {
+      console.error('Error loading BOM groups:', err);
     }
   };
 
@@ -148,7 +154,7 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
     
     // Collect all unique configParamNames grouped by groupName
     for (const item of tmpl.items) {
-      const groupName = item.groupName || GROUP_NAMES.OTHER;
+      const groupName = item.groupName || 'Inne';
       
       if (!groupsMap.has(groupName)) {
         groupsMap.set(groupName, []);
@@ -157,11 +163,13 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
       const fields = groupsMap.get(groupName)!;
       
       // Add quantity field for FROM_CONFIG items
+      // Fix Issue 3: Make paramName unique per group to avoid shared fields
       if (item.quantitySource === 'FROM_CONFIG' && item.configParamName) {
-        const existingField = fields.find(f => f.paramName === item.configParamName);
+        const uniqueParamName = `${groupName}_${item.configParamName}`;
+        const existingField = fields.find(f => f.paramName === uniqueParamName);
         if (!existingField) {
           fields.push({
-            paramName: item.configParamName,
+            paramName: uniqueParamName,
             label: getFieldLabel(item.configParamName),
             type: 'number',
             defaultValue: item.defaultQuantity
@@ -170,11 +178,13 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
       }
       
       // Add quantity field for PER_UNIT items
+      // Fix Issue 3: Make paramName unique per group to avoid shared fields
       if (item.quantitySource === 'PER_UNIT' && item.configParamName) {
-        const existingField = fields.find(f => f.paramName === item.configParamName);
+        const uniqueParamName = `${groupName}_${item.configParamName}`;
+        const existingField = fields.find(f => f.paramName === uniqueParamName);
         if (!existingField) {
           fields.push({
-            paramName: item.configParamName,
+            paramName: uniqueParamName,
             label: getFieldLabel(item.configParamName),
             type: 'number',
             defaultValue: item.defaultQuantity
@@ -184,8 +194,10 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
     }
     
     // Add model/type selection fields based on group
+    // Note: Keep these as-is since they're already unique
     groupsMap.forEach((fields, groupName) => {
-      if (groupName === GROUP_NAMES.CAMERA_GENERAL) {
+      // Match groups dynamically based on group name patterns
+      if (groupName.toLowerCase().includes('kamera') && !groupName.toLowerCase().includes('lpr')) {
         fields.push({
           paramName: 'modelKameryOgolnej',
           label: 'Model kamery',
@@ -195,7 +207,7 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
             label: `${cam.materialName} (${cam.catalogNumber})`
           }))
         });
-      } else if (groupName === GROUP_NAMES.CAMERA_LPR) {
+      } else if (groupName.toLowerCase().includes('lpr')) {
         fields.push({
           paramName: 'modelKameryLPR',
           label: 'Model Kamery LPR',
@@ -205,7 +217,7 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
             label: `${cam.materialName} (${cam.catalogNumber})`
           }))
         });
-      } else if (groupName === GROUP_NAMES.POLES) {
+      } else if (groupName.toLowerCase().includes('słup')) {
         fields.push({
           paramName: 'typSlupu',
           label: 'Typ słupa',
@@ -215,7 +227,7 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
             label: pole.materialName
           }))
         });
-      } else if (groupName === GROUP_NAMES.BATTERY) {
+      } else if (groupName.toLowerCase().includes('akumulator')) {
         fields.push({
           paramName: 'pojemnoscAkumulatora',
           label: 'Pojemność akumulatora',
@@ -248,14 +260,23 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
   };
 
   const getGroupIcon = (groupName: string): string => {
-    const icons: Record<string, string> = {
-      [GROUP_NAMES.CAMERA_GENERAL]: '📹',
-      [GROUP_NAMES.CAMERA_LPR]: '🚗',
-      [GROUP_NAMES.POLES]: '🏗️',
-      [GROUP_NAMES.BATTERY]: '🔋',
-      [GROUP_NAMES.OTHER]: '📦'
+    // Find the group in bomGroups by name
+    const group = bomGroups.find(g => g.name === groupName);
+    return group?.icon || '📦';
+  };
+
+  const getGroupStyle = (groupName: string): React.CSSProperties => {
+    // Find the group in bomGroups by name
+    const group = bomGroups.find(g => g.name === groupName);
+    if (group?.color) {
+      return {
+        borderLeft: `4px solid ${group.color}`,
+        background: 'var(--card-bg)'
+      };
+    }
+    return {
+      background: 'var(--card-bg)'
     };
-    return icons[groupName] || '📦';
   };
 
   const handleChange = (paramName: string, value: any) => {
@@ -344,9 +365,9 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
                   style={{ 
                     marginBottom: '20px',
                     padding: '15px',
-                    background: 'var(--card-bg)',
                     borderRadius: '8px',
-                    border: '1px solid var(--border-color)'
+                    border: '1px solid var(--border-color)',
+                    ...getGroupStyle(group.groupName)
                   }}
                 >
                   <h4 style={{ 
