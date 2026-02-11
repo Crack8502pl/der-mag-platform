@@ -4,6 +4,8 @@
 import React, { useState, useEffect } from 'react';
 import bomSubsystemTemplateService from '../../services/bomSubsystemTemplate.service';
 import bomGroupService from '../../services/bomGroup.service';
+import { bomTemplateDependencyRuleService } from '../../services/bomTemplateDependencyRule.service';
+import { DependencyRuleEngine } from '../../utils/dependencyRuleEngine';
 import type { BomSubsystemTemplate, BomSubsystemTemplateItem } from '../../services/bomSubsystemTemplate.service';
 import type { BomGroup } from '../../services/bomGroup.service';
 import type { Task } from '../../types/task.types';
@@ -73,15 +75,15 @@ export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess, read
       }
 
       setTemplate(tmpl);
-      resolveQuantities(tmpl, task.metadata?.configParams || {});
+      await resolveQuantities(tmpl, task.metadata?.configParams || {});
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Błąd pobierania szablonu');
+      setError(err.response?.data?.message || err.message || 'Błąd ładowania danych');
     } finally {
       setLoading(false);
     }
   };
 
-  const resolveQuantities = (tmpl: BomSubsystemTemplate, params: Record<string, any>) => {
+  const resolveQuantities = async (tmpl: BomSubsystemTemplate, params: Record<string, any>) => {
     const itemQuantities = new Map<number, number>();
     const resolved: ResolvedItem[] = [];
 
@@ -167,6 +169,32 @@ export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess, read
         ...item,
         resolvedQuantity: quantity
       });
+    }
+
+    // Apply template dependency rules if any exist
+    try {
+      const depRules = await bomTemplateDependencyRuleService.getRulesForTemplate(tmpl.id);
+      if (depRules.length > 0) {
+        // Evaluate rules and get updated quantities
+        const updatedQuantities = DependencyRuleEngine.evaluate(
+          depRules,
+          itemQuantities,
+          params.selectedModels
+        );
+        
+        // Update resolved items with rule-computed quantities
+        for (const resolvedItem of resolved) {
+          if (resolvedItem.id) {
+            const ruleQuantity = updatedQuantities.get(resolvedItem.id);
+            if (ruleQuantity !== undefined) {
+              resolvedItem.resolvedQuantity = ruleQuantity;
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error evaluating dependency rules:', err);
+      // Continue without dependency rules if there's an error
     }
 
     setResolvedItems(resolved);
