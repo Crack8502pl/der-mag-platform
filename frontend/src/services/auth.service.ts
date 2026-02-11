@@ -92,6 +92,11 @@ class AuthService {
         // Get CSRF token from cookie
         const csrfToken = this.getCsrfTokenFromCookie();
         
+        // If no CSRF token, session cookies were cleared (e.g., after logout)
+        if (!csrfToken) {
+          throw new Error('No CSRF token available - session expired or logged out');
+        }
+        
         const response = await api.post('/auth/refresh', {}, {
           headers: {
             'X-CSRF-Token': csrfToken
