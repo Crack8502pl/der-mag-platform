@@ -211,7 +211,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       // Don't try to refresh if the failing request is itself an auth endpoint
       const authEndpoints = ['/auth/refresh', '/auth/login', '/auth/logout'];
-      if (authEndpoints.some(ep => originalRequest.url?.includes(ep))) {
+      const requestPath = originalRequest.url?.split('?')[0] || ''; // Remove query params
+      if (authEndpoints.some(ep => requestPath.endsWith(ep))) {
         return Promise.reject(error);
       }
       
