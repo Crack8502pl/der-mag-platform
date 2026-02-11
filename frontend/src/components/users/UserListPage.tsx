@@ -8,12 +8,9 @@ import { UserEditModal } from './UserEditModal';
 import { ResetPasswordModal } from './ResetPasswordModal';
 import { DeactivateUserModal } from './DeactivateUserModal';
 import { UserStatusBadge } from './UserStatusBadge';
-import axios from 'axios';
+import api from '../../services/api';
 import { FALLBACK_ROLES } from '../../constants/roles';
-import { getApiBaseURL } from '../../utils/api-url';
 import './UserListPage.css';
-
-const API_BASE_URL = getApiBaseURL();
 
 interface User {
   id: number;
@@ -77,14 +74,6 @@ export const UserListPage: React.FC = () => {
       setLoading(true);
       setError('');
       
-      const token = localStorage.getItem('accessToken');
-      
-      if (!token) {
-        setError('Brak tokenu autoryzacji. Zaloguj się ponownie.');
-        setLoading(false);
-        return;
-      }
-      
       const params: any = {
         page: currentPage,
         limit: itemsPerPage,
@@ -96,10 +85,7 @@ export const UserListPage: React.FC = () => {
       if (filterRole) params.role = filterRole;
       if (filterStatus) params.status = filterStatus;
       
-      const response = await axios.get(`${API_BASE_URL}/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params
-      });
+      const response = await api.get('/users', { params });
       
       // Obsługa różnych formatów odpowiedzi (backward compatibility)
       const responseData = response.data.data || response.data;
@@ -129,10 +115,7 @@ export const UserListPage: React.FC = () => {
 
   const loadRoles = async () => {
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await axios.get(`${API_BASE_URL}/admin/roles`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get('/admin/roles');
       
       // Bezpieczne pobieranie ról z różnych formatów odpowiedzi
       // Handle different response formats for backward compatibility
@@ -181,12 +164,7 @@ export const UserListPage: React.FC = () => {
 
   const handleActivateUser = async (userId: number) => {
     try {
-      const token = localStorage.getItem('accessToken');
-      await axios.post(
-        `${API_BASE_URL}/users/${userId}/activate`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post(`/users/${userId}/activate`);
       setSuccess('Użytkownik został aktywowany');
       loadUsers();
       setTimeout(() => setSuccess(''), 5000);
@@ -202,10 +180,7 @@ export const UserListPage: React.FC = () => {
     }
 
     try {
-      const token = localStorage.getItem('accessToken');
-      await axios.delete(`${API_BASE_URL}/users/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/users/${userId}`);
       setSuccess('Użytkownik został usunięty');
       loadUsers();
       setTimeout(() => setSuccess(''), 5000);

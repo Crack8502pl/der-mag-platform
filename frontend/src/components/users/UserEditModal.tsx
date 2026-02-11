@@ -2,10 +2,7 @@
 // Modal for editing user information
 
 import React, { useState } from 'react';
-import axios from 'axios';
-import { getApiBaseURL } from '../../utils/api-url';
-
-const API_BASE_URL = getApiBaseURL();
+import api from '../../services/api';
 
 interface User {
   id: number;
@@ -66,32 +63,18 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('accessToken');
-      
       // Update basic info
-      await axios.put(
-        `${API_BASE_URL}/users/${user.id}`,
-        {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          employeeCode: formData.employeeCode || null,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      await api.put(`/users/${user.id}`, {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        employeeCode: formData.employeeCode || null,
+      });
 
       // Update role if changed
       if (formData.roleId !== user.roleId) {
-        await axios.put(
-          `${API_BASE_URL}/users/${user.id}/role`,
-          { roleId: formData.roleId },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        await api.put(`/users/${user.id}/role`, { roleId: formData.roleId });
       }
 
       onSuccess();
