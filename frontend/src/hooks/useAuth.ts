@@ -53,8 +53,7 @@ export const useAuth = () => {
             }
             
             // Skip if no csrf-token cookie (session was cleared by logout)
-            const csrfTokenMatch = document.cookie.match(/csrf-token=([^;]+)/);
-            if (!csrfTokenMatch) {
+            if (!authService.getCsrfTokenFromCookie()) {
               return;
             }
             
