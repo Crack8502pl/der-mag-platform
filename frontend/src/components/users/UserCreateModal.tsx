@@ -2,10 +2,7 @@
 // Modal for creating new users
 
 import React, { useState } from 'react';
-import axios from 'axios';
-import { getApiBaseURL } from '../../utils/api-url';
-
-const API_BASE_URL = getApiBaseURL();
+import api from '../../services/api';
 
 interface Role {
   id: number;
@@ -74,8 +71,6 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({
     }
 
     try {
-      const token = localStorage.getItem('accessToken');
-      
       // Prepare data - only include employeeCode if it's not empty
       const submitData: any = {
         username: formData.username,
@@ -91,13 +86,7 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({
         submitData.employeeCode = formData.employeeCode;
       }
       
-      await axios.post(
-        `${API_BASE_URL}/users`,
-        submitData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      await api.post('/users', submitData);
       onSuccess();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd tworzenia użytkownika');

@@ -2,10 +2,7 @@
 // Modal for resetting user password
 
 import React, { useState } from 'react';
-import axios from 'axios';
-import { getApiBaseURL } from '../../utils/api-url';
-
-const API_BASE_URL = getApiBaseURL();
+import api from '../../services/api';
 
 interface User {
   id: number;
@@ -47,14 +44,7 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('accessToken');
-      await axios.post(
-        `${API_BASE_URL}/users/${user.id}/reset-password`,
-        { password },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      await api.post(`/users/${user.id}/reset-password`, { password });
       onSuccess();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd resetowania hasła');

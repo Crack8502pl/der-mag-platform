@@ -10,11 +10,8 @@ import { ContractWizardModal } from './wizard';
 import { ContractStatusBadge } from './ContractStatusBadge';
 import { useAuth } from '../../hooks/useAuth';
 import type { Contract } from '../../services/contract.service';
-import axios from 'axios';
-import { getApiBaseURL } from '../../utils/api-url';
+import api from '../../services/api';
 import './ContractListPage.css';
-
-const API_BASE_URL = getApiBaseURL();
 
 export const ContractListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -59,8 +56,6 @@ export const ContractListPage: React.FC = () => {
       setLoading(true);
       setError('');
       
-      const token = localStorage.getItem('accessToken');
-      
       const params: any = {
         page: currentPage,
         limit: itemsPerPage,
@@ -76,10 +71,7 @@ export const ContractListPage: React.FC = () => {
         params.projectManagerId = user.id;
       }
       
-      const response = await axios.get(`${API_BASE_URL}/contracts`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params
-      });
+      const response = await api.get('/contracts', { params });
       
       const data = response.data.data || response.data;
       setContracts(Array.isArray(data) ? data : []);
@@ -97,10 +89,7 @@ export const ContractListPage: React.FC = () => {
     if (!confirm('Czy na pewno chcesz zatwierdzić ten kontrakt?')) return;
     
     try {
-      const token = localStorage.getItem('accessToken');
-      await axios.post(`${API_BASE_URL}/contracts/${contractId}/approve`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.post(`/contracts/${contractId}/approve`);
       setSuccess('Kontrakt zatwierdzony pomyślnie');
       loadContracts();
       setTimeout(() => setSuccess(''), 5000);
@@ -114,10 +103,7 @@ export const ContractListPage: React.FC = () => {
     if (!confirm(`Czy na pewno chcesz usunąć kontrakt ${contractNumber}?`)) return;
     
     try {
-      const token = localStorage.getItem('accessToken');
-      await axios.delete(`${API_BASE_URL}/contracts/${contractId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/contracts/${contractId}`);
       setSuccess('Kontrakt usunięty pomyślnie');
       loadContracts();
       setTimeout(() => setSuccess(''), 5000);

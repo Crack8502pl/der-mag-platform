@@ -2,10 +2,7 @@
 // Modal for deactivating/blocking a user
 
 import React, { useState } from 'react';
-import axios from 'axios';
-import { getApiBaseURL } from '../../utils/api-url';
-
-const API_BASE_URL = getApiBaseURL();
+import api from '../../services/api';
 
 interface User {
   id: number;
@@ -36,14 +33,7 @@ export const DeactivateUserModal: React.FC<DeactivateUserModalProps> = ({
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('accessToken');
-      await axios.post(
-        `${API_BASE_URL}/users/${user.id}/deactivate`,
-        { reason },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      await api.post(`/users/${user.id}/deactivate`, { reason });
       onSuccess();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd dezaktywacji użytkownika');
