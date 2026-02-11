@@ -209,6 +209,13 @@ api.interceptors.response.use(
 
     // Obsługa 401 - token expired
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Don't try to refresh if the failing request is itself an auth endpoint
+      const authEndpoints = ['/api/auth/refresh', '/api/auth/login', '/api/auth/logout'];
+      const requestPath = originalRequest.url?.split('?')[0] || ''; // Remove query params
+      if (authEndpoints.some(ep => requestPath.endsWith(ep) || requestPath === ep)) {
+        return Promise.reject(error);
+      }
+      
       // Nie próbuj refresh jeśli rate limited
       if (isRateLimited && Date.now() < rateLimitResetTime) {
         console.warn('⚠️ Skipping token refresh - rate limited');

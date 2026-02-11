@@ -46,6 +46,17 @@ export const useAuth = () => {
           } 
           // If no access token but might have httpOnly cookie, try silent refresh
           else if (!currentState.accessToken && !currentState.user) {
+            // Skip silent refresh on auth pages (login, forgot-password) - no session expected
+            const authPages = ['/login', '/forgot-password', '/change-password'];
+            if (authPages.some(page => window.location.pathname.startsWith(page))) {
+              return;
+            }
+            
+            // Skip if no csrf-token cookie (session was cleared by logout)
+            if (!authService.getCsrfTokenFromCookie()) {
+              return;
+            }
+            
             try {
               const response = await authService.refresh();
               authService.saveTokens(response.data.accessToken);
