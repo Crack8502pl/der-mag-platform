@@ -77,7 +77,7 @@ export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess, read
       setTemplate(tmpl);
       await resolveQuantities(tmpl, task.metadata?.configParams || {});
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Błąd pobierania szablonu');
+      setError(err.response?.data?.message || err.message || 'Błąd ładowania danych');
     } finally {
       setLoading(false);
     }
