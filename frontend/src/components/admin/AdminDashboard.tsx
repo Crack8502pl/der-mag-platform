@@ -3,7 +3,6 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
 import { usePermissions } from '../../hooks/usePermissions';
 import api from '../../services/api';
 
@@ -20,7 +19,6 @@ interface AdminCard {
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { hasPermission, isAdmin } = usePermissions();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
