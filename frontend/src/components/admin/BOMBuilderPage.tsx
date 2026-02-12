@@ -811,20 +811,20 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                     <table className="table">
                       <thead>
                         <tr>
-                          <th style={{ width: '50px' }}>Nr</th>
-                          <th>Materiał</th>
-                          <th style={{ width: '100px' }}>Ilość</th>
-                          <th style={{ width: '80px' }}>Jednostka</th>
-                          <th style={{ width: '140px' }}>Źródło</th>
-                          <th style={{ width: '50px' }}>IP</th>
-                          <th style={{ width: '150px' }}>Akcje</th>
+                          <th style={{ width: '50px', textAlign: 'center', verticalAlign: 'middle' }}>Nr</th>
+                          <th style={{ textAlign: 'center', verticalAlign: 'middle' }}>Materiał</th>
+                          <th style={{ width: '100px', textAlign: 'center', verticalAlign: 'middle' }}>Ilość</th>
+                          <th style={{ width: '80px', textAlign: 'center', verticalAlign: 'middle' }}>Jednostka</th>
+                          <th style={{ width: '140px', textAlign: 'center', verticalAlign: 'middle' }}>Źródło</th>
+                          <th style={{ width: '50px', textAlign: 'center', verticalAlign: 'middle' }}>IP</th>
+                          <th style={{ width: '150px', textAlign: 'center', verticalAlign: 'middle' }}>Akcje</th>
                         </tr>
                       </thead>
                       <tbody>
                         {items.map((item, idx) => (
                           <tr key={item.id || idx}>
-                            <td>{idx + 1}</td>
-                            <td>
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{idx + 1}</td>
+                            <td style={{ textAlign: 'left', verticalAlign: 'middle' }}>
                               <div>
                                 <div style={{ fontWeight: '500', color: 'var(--text-primary)' }}>
                                   {item.materialName}
@@ -836,9 +836,9 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                                 )}
                               </div>
                             </td>
-                            <td>{item.defaultQuantity}</td>
-                            <td>{item.unit}</td>
-                            <td>
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{item.defaultQuantity}</td>
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{item.unit}</td>
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                               <span style={{
                                 padding: '3px 8px',
                                 fontSize: '11px',
@@ -861,12 +861,12 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                                 </div>
                               )}
                             </td>
-                            <td>
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                               {item.requiresIp && (
                                 <span style={{ fontSize: '16px' }}>🌐</span>
                               )}
                             </td>
-                            <td>
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                               <div style={{ display: 'flex', gap: '5px' }}>
                                 {canUpdate && (
                                   <button

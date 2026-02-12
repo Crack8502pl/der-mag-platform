@@ -369,19 +369,19 @@ export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess, read
                     <table className="table">
                       <thead>
                         <tr>
-                          <th style={{ width: '40px' }}>Nr</th>
-                          <th>Materiał</th>
-                          <th style={{ width: '100px' }}>Ilość</th>
-                          <th style={{ width: '80px' }}>Jedn.</th>
-                          <th style={{ width: '140px' }}>Źródło</th>
-                          <th style={{ width: '60px' }}>IP</th>
+                          <th style={{ width: '40px', textAlign: 'center', verticalAlign: 'middle' }}>Nr</th>
+                          <th style={{ textAlign: 'center', verticalAlign: 'middle' }}>Materiał</th>
+                          <th style={{ width: '100px', textAlign: 'center', verticalAlign: 'middle' }}>Ilość</th>
+                          <th style={{ width: '80px', textAlign: 'center', verticalAlign: 'middle' }}>Jedn.</th>
+                          <th style={{ width: '140px', textAlign: 'center', verticalAlign: 'middle' }}>Źródło</th>
+                          <th style={{ width: '60px', textAlign: 'center', verticalAlign: 'middle' }}>IP</th>
                         </tr>
                       </thead>
                       <tbody>
                         {items.map((item, idx) => (
                           <tr key={item.id || idx}>
-                            <td>{idx + 1}</td>
-                            <td>
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{idx + 1}</td>
+                            <td style={{ textAlign: 'left', verticalAlign: 'middle' }}>
                               <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
                                 {item.materialName}
                               </div>
@@ -391,14 +391,14 @@ export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess, read
                                 </div>
                               )}
                             </td>
-                            <td>
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                               <strong style={{ color: 'var(--primary-color)' }}>
                                 {item.resolvedQuantity}
                               </strong>
                             </td>
-                            <td>{item.unit}</td>
-                            <td>{getQuantitySourceBadge(item.quantitySource)}</td>
-                            <td style={{ textAlign: 'center' }}>
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{item.unit}</td>
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{getQuantitySourceBadge(item.quantitySource)}</td>
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                               {item.requiresIp && <span style={{ fontSize: '18px' }}>🌐</span>}
                             </td>
                           </tr>
