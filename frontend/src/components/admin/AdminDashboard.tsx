@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { usePermissions } from '../../hooks/usePermissions';
 import api from '../../services/api';
 
 interface AdminCard {
@@ -11,7 +12,8 @@ interface AdminCard {
   description: string;
   icon: string;
   path: string | null;
-  roles: string[];
+  permission?: { module: string; action: string };
+  adminOnly?: boolean;
   action?: string;
   isDangerous?: boolean;
 }
@@ -19,6 +21,7 @@ interface AdminCard {
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { hasPermission, isAdmin } = usePermissions();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -29,42 +32,42 @@ export const AdminDashboard: React.FC = () => {
       description: 'Przegląd matrycy uprawnień wszystkich ról',
       icon: '🔑',
       path: '/admin/permissions',
-      roles: ['admin'],
+      adminOnly: true,
     },
     {
       title: 'Konfiguracja SMTP',
       description: 'Skonfiguruj serwer pocztowy do wysyłki emaili',
       icon: '📧',
       path: '/admin/smtp',
-      roles: ['admin'],
+      adminOnly: true,
     },
     {
       title: 'Konfiguracja portalu',
       description: 'Ustaw URL portalu używany w emailach',
       icon: '🌐',
       path: '/admin/portal',
-      roles: ['admin'],
+      adminOnly: true,
     },
     {
       title: 'Zmiana hasła',
       description: 'Zmień swoje hasło administratora',
       icon: '🔒',
       path: '/admin/password',
-      roles: ['admin'],
+      adminOnly: true,
     },
     {
       title: 'BOM Builder',
       description: 'Zarządzaj materiałami i szablonami BOM',
       icon: '📦',
       path: '/admin/bom',
-      roles: ['admin', 'bom_editor'],
+      permission: { module: 'bom', action: 'read' },
     },
     {
       title: 'Import materiałów',
       description: 'Importuj materiały z plików CSV/Excel',
       icon: '📥',
       path: '/admin/bom/import',
-      roles: ['admin', 'bom_editor'],
+      permission: { module: 'bom', action: 'create' },
     },
     {
       title: 'Seed Database 🌱',
@@ -72,7 +75,7 @@ export const AdminDashboard: React.FC = () => {
       icon: '🗄️',
       path: null,
       action: 'seed-database',
-      roles: ['admin'],
+      adminOnly: true,
       isDangerous: true,
     },
   ];
@@ -111,10 +114,11 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  const userRole = user?.role || '';
-  const filteredCards = adminCards.filter(card => 
-    card.roles.includes(userRole)
-  );
+  const filteredCards = adminCards.filter(card => {
+    if (card.adminOnly) return isAdmin();
+    if (card.permission) return hasPermission(card.permission.module as any, card.permission.action);
+    return isAdmin(); // fallback
+  });
 
   return (
     <div className="admin-dashboard">
@@ -137,19 +141,30 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      <div className="dashboard-grid">
-        {filteredCards.map((card, index) => (
-          <div
-            key={card.path || card.action || index}
-            className={`dashboard-card ${card.isDangerous ? 'dangerous' : ''}`}
-            onClick={() => handleCardClick(card)}
-          >
-            <div className="card-icon">{card.icon}</div>
-            <h3>{card.title}</h3>
-            <p>{card.description}</p>
-          </div>
-        ))}
-      </div>
+      {filteredCards.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+          <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔒</div>
+          <h2>Brak dostępu</h2>
+          <p>Nie masz uprawnień do żadnej funkcji w panelu administratora.</p>
+          <button className="btn-secondary" onClick={() => navigate('/dashboard')} style={{ marginTop: '20px' }}>
+            Powrót do Dashboard
+          </button>
+        </div>
+      ) : (
+        <div className="dashboard-grid">
+          {filteredCards.map((card, index) => (
+            <div
+              key={card.path || card.action || index}
+              className={`dashboard-card ${card.isDangerous ? 'dangerous' : ''}`}
+              onClick={() => handleCardClick(card)}
+            >
+              <div className="card-icon">{card.icon}</div>
+              <h3>{card.title}</h3>
+              <p>{card.description}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {isModalOpen && (
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>

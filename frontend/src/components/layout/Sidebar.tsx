@@ -25,7 +25,7 @@ export const Sidebar: React.FC = () => {
     { label: 'Kontrakty', path: '/contracts', icon: '📝', module: 'contracts', action: 'read' },
     { label: 'Podsystemy', path: '/subsystems', icon: '🔧', module: 'subsystems', action: 'read' },
     { label: 'Zadania', path: '/tasks', icon: '📋', module: 'tasks', action: 'read' },
-    { label: 'Brygady', path: '/brigades', icon: '👥', module: 'brigades', action: 'read' },
+    { label: 'Brygady', path: '/brigades', icon: '👥🚚', module: 'brigades', action: 'read' },
     { label: 'Kompletacja', path: '/completion', icon: '📦', module: 'completion', action: 'read' },
     { label: 'Prefabrykacja', path: '/prefabrication', icon: '🏭', module: 'prefabrication', action: 'read' },
     { label: 'Sieć/IP', path: '/network', icon: '🌐', module: 'network', action: 'read' },
