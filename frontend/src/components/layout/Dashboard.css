@@ -38,6 +38,56 @@
   border-color: var(--text-secondary);
 }
 
+/* Dashboard settings bar */
+.dashboard-settings-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  flex-wrap: wrap;
+}
+
+.dashboard-settings-bar .btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dashboard-settings-bar .btn-primary {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.dashboard-settings-bar .btn-primary:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+.dashboard-settings-bar .btn-secondary:hover {
+  background: var(--bg-hover);
+}
+
+/* Grouped view */
+.dashboard-group {
+  margin-bottom: 30px;
+}
+
+.dashboard-group-label {
+  color: var(--text-primary);
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 15px 0;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border-color);
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -52,12 +102,50 @@
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: var(--shadow-sm);
+  position: relative;
 }
 
 .dashboard-card:hover {
   transform: translateY(-5px);
   box-shadow: var(--shadow-lg);
   border-color: var(--primary-color);
+}
+
+/* Card controls for personalization mode */
+.card-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 5px;
+  z-index: 10;
+}
+
+.card-control-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.card-control-btn:hover:not(:disabled) {
+  background: var(--primary-hover);
+  transform: scale(1.1);
+}
+
+.card-control-btn:disabled {
+  background: var(--border-color);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .card-icon {
