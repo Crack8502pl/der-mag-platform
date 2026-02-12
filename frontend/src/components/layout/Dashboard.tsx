@@ -141,6 +141,37 @@ export const Dashboard: React.FC = () => {
     savePreferences({ ...preferences, cardOrder: newOrder });
   };
 
+  // Move card up within group
+  const moveCardUpInGroup = (groupKey: string, groupIndex: number) => {
+    const orderedCards = getOrderedCards();
+    const groupCards = orderedCards.filter(c => c.group === groupKey);
+    if (groupIndex <= 0 || groupIndex >= groupCards.length) return;
+    
+    // Swap in full order: find actual positions
+    const allPaths = orderedCards.map(c => c.path);
+    const cardA = groupCards[groupIndex - 1];
+    const cardB = groupCards[groupIndex];
+    const idxA = allPaths.indexOf(cardA.path);
+    const idxB = allPaths.indexOf(cardB.path);
+    [allPaths[idxA], allPaths[idxB]] = [allPaths[idxB], allPaths[idxA]];
+    savePreferences({ ...preferences, cardOrder: allPaths });
+  };
+
+  // Move card down within group
+  const moveCardDownInGroup = (groupKey: string, groupIndex: number) => {
+    const orderedCards = getOrderedCards();
+    const groupCards = orderedCards.filter(c => c.group === groupKey);
+    if (groupIndex < 0 || groupIndex >= groupCards.length - 1) return;
+    
+    const allPaths = orderedCards.map(c => c.path);
+    const cardA = groupCards[groupIndex];
+    const cardB = groupCards[groupIndex + 1];
+    const idxA = allPaths.indexOf(cardA.path);
+    const idxB = allPaths.indexOf(cardB.path);
+    [allPaths[idxA], allPaths[idxB]] = [allPaths[idxB], allPaths[idxA]];
+    savePreferences({ ...preferences, cardOrder: allPaths });
+  };
+
   // Render cards by group
   const renderGroupedCards = () => {
     const orderedCards = getOrderedCards();
@@ -161,11 +192,47 @@ export const Dashboard: React.FC = () => {
         <div key={groupKey} className="dashboard-group">
           <h2 className="dashboard-group-label">{GROUP_LABELS[groupKey]}</h2>
           <div className="dashboard-grid">
-            {cards.map((card) => renderCard(card, -1, false))}
+            {cards.map((card, groupIndex) => renderGroupCard(card, groupKey, groupIndex, cards.length, isPersonalizeMode))}
           </div>
         </div>
       );
     });
+  };
+
+  // Render a card in grouped view with group-level controls
+  const renderGroupCard = (card: ModuleCard, groupKey: string, groupIndex: number, groupSize: number, showControls: boolean) => {
+    return (
+      <div
+        key={card.path}
+        className="dashboard-card"
+        onClick={() => !isPersonalizeMode && navigate(card.path)}
+        style={{ cursor: isPersonalizeMode ? 'default' : 'pointer' }}
+      >
+        {showControls && (
+          <div className="card-controls">
+            <button
+              className="card-control-btn"
+              onClick={(e) => { e.stopPropagation(); moveCardUpInGroup(groupKey, groupIndex); }}
+              disabled={groupIndex === 0}
+              title="Przesuń w górę"
+            >
+              ▲
+            </button>
+            <button
+              className="card-control-btn"
+              onClick={(e) => { e.stopPropagation(); moveCardDownInGroup(groupKey, groupIndex); }}
+              disabled={groupIndex === groupSize - 1}
+              title="Przesuń w dół"
+            >
+              ▼
+            </button>
+          </div>
+        )}
+        <div className="card-icon">{card.icon}</div>
+        <h3>{card.title}</h3>
+        <p>{card.description}</p>
+      </div>
+    );
   };
 
   // Render a single card

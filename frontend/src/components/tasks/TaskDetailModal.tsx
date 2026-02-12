@@ -175,16 +175,16 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
                     <table className="table">
                       <thead>
                         <tr>
-                          <th>Materiał</th>
-                          <th>Ilość</th>
-                          <th>Jednostka</th>
-                          <th>Kategoria</th>
+                          <th style={{ textAlign: 'center', verticalAlign: 'middle' }}>Materiał</th>
+                          <th style={{ textAlign: 'center', verticalAlign: 'middle' }}>Ilość</th>
+                          <th style={{ textAlign: 'center', verticalAlign: 'middle' }}>Jednostka</th>
+                          <th style={{ textAlign: 'center', verticalAlign: 'middle' }}>Kategoria</th>
                         </tr>
                       </thead>
                       <tbody>
                         {task.metadata.bomMaterials.map((material: any, idx: number) => (
                           <tr key={idx}>
-                            <td>
+                            <td style={{ textAlign: 'left', verticalAlign: 'middle' }}>
                               <div style={{ fontWeight: 500 }}>{material.materialName}</div>
                               {material.catalogNumber && (
                                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
@@ -192,13 +192,13 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
                                 </div>
                               )}
                             </td>
-                            <td>
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                               <strong style={{ color: 'var(--primary-color)' }}>
                                 {material.plannedQuantity || material.quantity}
                               </strong>
                             </td>
-                            <td>{material.unit}</td>
-                            <td>{material.category || '-'}</td>
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{material.unit}</td>
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{material.category || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
