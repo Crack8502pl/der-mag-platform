@@ -128,6 +128,21 @@ export const BOMBuilderPage: React.FC = () => {
   );
 };
 
+// Shared table styles for consistent formatting
+const tableHeaderBaseStyle: React.CSSProperties = {
+  verticalAlign: 'middle',
+  padding: '10px 12px',
+  backgroundColor: 'var(--bg-secondary)',
+  fontWeight: 600,
+  borderBottom: '2px solid var(--border-color)',
+};
+
+const tableCellBaseStyle: React.CSSProperties = {
+  verticalAlign: 'middle',
+  padding: '10px 12px',
+  borderBottom: '1px solid var(--border-color)',
+};
+
 // ========== MATERIALS TAB ==========
 const MaterialsTab: React.FC = () => {
   // State for subsystem templates
@@ -135,6 +150,11 @@ const MaterialsTab: React.FC = () => {
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [expandedTemplates, setExpandedTemplates] = useState<Set<number>>(new Set());
   const [templateSearchTerm, setTemplateSearchTerm] = useState('');
+
+  const totalMaterialsCount = React.useMemo(() => 
+    subsystemTemplates.reduce((sum, t) => sum + t.items.length, 0),
+    [subsystemTemplates]
+  );
 
   const loadSubsystemTemplates = React.useCallback(async () => {
     try {
@@ -161,7 +181,7 @@ const MaterialsTab: React.FC = () => {
             📄 Materiały z szablonów BOM
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0 }}>
-            Łącznie {subsystemTemplates.reduce((sum, t) => sum + t.items.length, 0)} materiałów w {subsystemTemplates.length} szablonach
+            Łącznie {totalMaterialsCount} materiałów w {subsystemTemplates.length} szablonach
           </p>
         </div>
 
@@ -336,39 +356,39 @@ const MaterialsTab: React.FC = () => {
                           <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                               <tr>
-                                <th style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', fontWeight: 600, borderBottom: '2px solid var(--border-color)', width: '50px' }}>Nr</th>
-                                <th style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', fontWeight: 600, borderBottom: '2px solid var(--border-color)', width: '150px' }}>Numer kat.</th>
-                                <th style={{ textAlign: 'left', verticalAlign: 'middle', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', fontWeight: 600, borderBottom: '2px solid var(--border-color)' }}>Nazwa materiału</th>
-                                <th style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', fontWeight: 600, borderBottom: '2px solid var(--border-color)', width: '80px' }}>Ilość</th>
-                                <th style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', fontWeight: 600, borderBottom: '2px solid var(--border-color)', width: '80px' }}>Jednostka</th>
-                                <th style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', fontWeight: 600, borderBottom: '2px solid var(--border-color)', width: '120px' }}>Źródło ilości</th>
-                                <th style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', fontWeight: 600, borderBottom: '2px solid var(--border-color)', width: '120px' }}>Grupa</th>
-                                <th style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', fontWeight: 600, borderBottom: '2px solid var(--border-color)', width: '60px' }}>IP</th>
-                                <th style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', fontWeight: 600, borderBottom: '2px solid var(--border-color)', width: '100px' }}>Wymagane</th>
+                                <th style={{ ...tableHeaderBaseStyle, textAlign: 'center', width: '50px' }}>Nr</th>
+                                <th style={{ ...tableHeaderBaseStyle, textAlign: 'center', width: '150px' }}>Numer kat.</th>
+                                <th style={{ ...tableHeaderBaseStyle, textAlign: 'left' }}>Nazwa materiału</th>
+                                <th style={{ ...tableHeaderBaseStyle, textAlign: 'center', width: '80px' }}>Ilość</th>
+                                <th style={{ ...tableHeaderBaseStyle, textAlign: 'center', width: '80px' }}>Jednostka</th>
+                                <th style={{ ...tableHeaderBaseStyle, textAlign: 'center', width: '120px' }}>Źródło ilości</th>
+                                <th style={{ ...tableHeaderBaseStyle, textAlign: 'center', width: '120px' }}>Grupa</th>
+                                <th style={{ ...tableHeaderBaseStyle, textAlign: 'center', width: '60px' }}>IP</th>
+                                <th style={{ ...tableHeaderBaseStyle, textAlign: 'center', width: '100px' }}>Wymagane</th>
                               </tr>
                             </thead>
                             <tbody>
                               {sortedItems.map((item, idx) => (
                                 <tr key={item.id || idx}>
-                                  <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', borderBottom: '1px solid var(--border-color)' }}>{idx + 1}</td>
-                                  <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', borderBottom: '1px solid var(--border-color)', fontFamily: 'monospace', fontSize: '12px' }}>
+                                  <td style={{ ...tableCellBaseStyle, textAlign: 'center' }}>{idx + 1}</td>
+                                  <td style={{ ...tableCellBaseStyle, textAlign: 'center', fontFamily: 'monospace', fontSize: '12px' }}>
                                     {item.catalogNumber || '-'}
                                   </td>
-                                  <td style={{ textAlign: 'left', verticalAlign: 'middle', padding: '10px 12px', borderBottom: '1px solid var(--border-color)', fontWeight: 500 }}>{item.materialName}</td>
-                                  <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', borderBottom: '1px solid var(--border-color)' }}>{item.defaultQuantity}</td>
-                                  <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', borderBottom: '1px solid var(--border-color)' }}>{item.unit}</td>
-                                  <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', borderBottom: '1px solid var(--border-color)' }}>{getQuantitySourceBadge(item.quantitySource)}</td>
-                                  <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+                                  <td style={{ ...tableCellBaseStyle, textAlign: 'left', fontWeight: 500 }}>{item.materialName}</td>
+                                  <td style={{ ...tableCellBaseStyle, textAlign: 'center' }}>{item.defaultQuantity}</td>
+                                  <td style={{ ...tableCellBaseStyle, textAlign: 'center' }}>{item.unit}</td>
+                                  <td style={{ ...tableCellBaseStyle, textAlign: 'center' }}>{getQuantitySourceBadge(item.quantitySource)}</td>
+                                  <td style={{ ...tableCellBaseStyle, textAlign: 'center', color: 'var(--text-secondary)' }}>
                                     {item.groupName || '-'}
                                   </td>
-                                  <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', borderBottom: '1px solid var(--border-color)' }}>
+                                  <td style={{ ...tableCellBaseStyle, textAlign: 'center' }}>
                                     {item.requiresIp ? (
                                       <span style={{ color: 'var(--primary-color)', fontWeight: 600 }}>✓</span>
                                     ) : (
                                       <span style={{ color: 'var(--text-muted)' }}>-</span>
                                     )}
                                   </td>
-                                  <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', borderBottom: '1px solid var(--border-color)' }}>
+                                  <td style={{ ...tableCellBaseStyle, textAlign: 'center' }}>
                                     {item.isRequired ? (
                                       <span style={{ 
                                         padding: '2px 8px',
