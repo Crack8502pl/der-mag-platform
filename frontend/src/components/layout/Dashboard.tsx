@@ -56,7 +56,7 @@ export const Dashboard: React.FC = () => {
     { title: 'Kontrakty', path: '/contracts', icon: '📝', module: 'contracts', action: 'read', description: 'Zarządzanie kontraktami', group: 'planning' },
     { title: 'Podsystemy', path: '/subsystems', icon: '🔧', module: 'subsystems', action: 'read', description: 'Zarządzanie podsystemami', group: 'planning' },
     { title: 'Zadania', path: '/tasks', icon: '📋', module: 'tasks', action: 'read', description: 'Zarządzanie zadaniami', group: 'planning' },
-    { title: 'Brygady', path: '/brigades', icon: '👥🚚', module: 'brigades', action: 'read', description: 'Zarządzanie brygadami', group: 'planning' },
+    { title: 'Brygady', path: '/brigades', icon: '👥', module: 'brigades', action: 'read', description: 'Zarządzanie brygadami', group: 'planning' },
     { title: 'Kompletacja', path: '/completion', icon: '📦', module: 'completion', action: 'read', description: 'Skanowanie i kompletacja', group: 'execution' },
     { title: 'Prefabrykacja', path: '/prefabrication', icon: '🏭', module: 'prefabrication', action: 'read', description: 'Prefabrykacja urządzeń', group: 'execution' },
     { title: 'Sieć/IP', path: '/network', icon: '🌐', module: 'network', action: 'read', description: 'Zarządzanie adresacją IP', group: 'resources' },

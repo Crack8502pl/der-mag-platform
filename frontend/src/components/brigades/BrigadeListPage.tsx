@@ -9,6 +9,7 @@ import { BrigadeMembersModal } from './BrigadeMembersModal';
 import brigadeService from '../../services/brigade.service';
 import type { Brigade } from '../../types/brigade.types';
 import { useAuth } from '../../hooks/useAuth';
+import '../../styles/grover-theme.css';
 import './BrigadeListPage.css';
 
 export const BrigadeListPage: React.FC = () => {
