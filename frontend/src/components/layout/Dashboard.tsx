@@ -145,7 +145,7 @@ export const Dashboard: React.FC = () => {
   const moveCardUpInGroup = (groupKey: string, groupIndex: number) => {
     const orderedCards = getOrderedCards();
     const groupCards = orderedCards.filter(c => c.group === groupKey);
-    if (groupIndex <= 0 || groupIndex >= groupCards.length) return;
+    if (groupIndex === 0 || groupIndex >= groupCards.length) return;
     
     // Swap in full order: find actual positions
     const allPaths = orderedCards.map(c => c.path);
@@ -205,7 +205,7 @@ export const Dashboard: React.FC = () => {
       <div
         key={card.path}
         className="dashboard-card"
-        onClick={() => !isPersonalizeMode && navigate(card.path)}
+        onClick={isPersonalizeMode ? undefined : () => navigate(card.path)}
         style={{ cursor: isPersonalizeMode ? 'default' : 'pointer' }}
       >
         {showControls && (
