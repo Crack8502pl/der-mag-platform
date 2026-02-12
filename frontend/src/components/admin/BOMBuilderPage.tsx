@@ -132,45 +132,11 @@ export const BOMBuilderPage: React.FC = () => {
 
 // ========== MATERIALS TAB ==========
 const MaterialsTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete: boolean }> = ({ canCreate, canUpdate, canDelete }) => {
-  const [materials, setMaterials] = useState<BomTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [categories, setCategories] = useState<string[]>([]);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingMaterial, setEditingMaterial] = useState<BomTemplate | null>(null);
-  const [showCsvModal, setShowCsvModal] = useState(false);
-  
   // State for subsystem templates
   const [subsystemTemplates, setSubsystemTemplates] = useState<BomSubsystemTemplate[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [expandedTemplates, setExpandedTemplates] = useState<Set<number>>(new Set());
   const [templateSearchTerm, setTemplateSearchTerm] = useState('');
-
-  const loadMaterials = React.useCallback(async () => {
-    try {
-      setLoading(true);
-      const result = await bomTemplateService.getTemplates({
-        category: selectedCategory || undefined,
-        search: searchTerm || undefined,
-        limit: 100,
-      });
-      setMaterials(result.items);
-    } catch (err) {
-      console.error('Error loading materials:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedCategory, searchTerm]);
-
-  const loadCategories = React.useCallback(async () => {
-    try {
-      const cats = await bomTemplateService.getCategories();
-      setCategories(cats);
-    } catch (err) {
-      console.error('Error loading categories:', err);
-    }
-  }, []);
 
   const loadSubsystemTemplates = React.useCallback(async () => {
     try {
@@ -185,173 +151,13 @@ const MaterialsTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
   }, []);
 
   useEffect(() => {
-    loadMaterials();
-    loadCategories();
     loadSubsystemTemplates();
-  }, [loadMaterials, loadCategories, loadSubsystemTemplates]);
-
-  const handleDelete = async (id: number) => {
-    if (!confirm('Czy na pewno chcesz usunąć ten materiał?')) return;
-    
-    try {
-      await bomTemplateService.deleteTemplate(id);
-      loadMaterials();
-    } catch (err: any) {
-      alert('Błąd podczas usuwania: ' + err.message);
-    }
-  };
-
-  const handleDownloadCsvTemplate = async () => {
-    try {
-      await bomTemplateService.getCsvTemplate();
-    } catch (err: any) {
-      alert('Błąd podczas pobierania szablonu: ' + err.message);
-    }
-  };
+  }, [loadSubsystemTemplates]);
 
   return (
     <>
-      {/* Actions Bar */}
-      <div className="card" style={{ marginBottom: '20px', padding: '15px' }}>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-          {canCreate && (
-            <>
-              <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-                ➕ Dodaj materiał
-              </button>
-              <button className="btn btn-secondary" onClick={() => setShowCsvModal(true)}>
-                📥 Import CSV
-              </button>
-              <button className="btn btn-secondary" onClick={handleDownloadCsvTemplate}>
-                📤 Pobierz wzór CSV
-              </button>
-            </>
-          )}
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px' }}>
-            <input
-              type="text"
-              placeholder="Szukaj materiału..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="input"
-              style={{ width: '250px' }}
-            />
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="input"
-              style={{ width: '200px' }}
-            >
-              <option value="">Wszystkie kategorie</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Materials List */}
-      {loading ? (
-        <div className="card" style={{ padding: '60px', textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}>⏳</div>
-          <p style={{ color: 'var(--text-secondary)' }}>Ładowanie materiałów...</p>
-        </div>
-      ) : materials.length === 0 ? (
-        <div className="card" style={{ padding: '60px', textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}>📦</div>
-          <p style={{ color: 'var(--text-secondary)' }}>Brak materiałów do wyświetlenia</p>
-        </div>
-      ) : (
-        <div className="table-container">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Numer kat.</th>
-                <th>Nazwa materiału</th>
-                <th>Ilość</th>
-                <th>Kategoria</th>
-                <th>System</th>
-                <th>Wymagane</th>
-                {(canUpdate || canDelete) && <th>Akcje</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {materials.map(material => (
-                <tr key={material.id}>
-                  <td>{material.catalogNumber || '-'}</td>
-                  <td style={{ fontWeight: '500' }}>{material.materialName}</td>
-                  <td>{material.defaultQuantity} {material.unit}</td>
-                  <td>{material.category || '-'}</td>
-                  <td>{material.systemType || '-'}</td>
-                  <td>
-                    {material.isRequired ? (
-                      <span style={{ color: 'var(--success)' }}>✓</span>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)' }}>-</span>
-                    )}
-                  </td>
-                  {(canUpdate || canDelete) && (
-                    <td>
-                      <div style={{ display: 'flex', gap: '5px' }}>
-                        {canUpdate && (
-                          <button
-                            className="btn btn-secondary"
-                            onClick={() => setEditingMaterial(material)}
-                            style={{ padding: '4px 10px', fontSize: '12px' }}
-                          >
-                            ✏️ Edytuj
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            className="btn"
-                            onClick={() => handleDelete(material.id)}
-                            style={{ 
-                              padding: '4px 10px', 
-                              fontSize: '12px',
-                              background: 'var(--danger)',
-                              color: 'white'
-                            }}
-                          >
-                            🗑️ Usuń
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Modals */}
-      {showCreateModal && (
-        <MaterialFormModal
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={() => { setShowCreateModal(false); loadMaterials(); }}
-        />
-      )}
-      
-      {editingMaterial && (
-        <MaterialFormModal
-          material={editingMaterial}
-          onClose={() => setEditingMaterial(null)}
-          onSuccess={() => { setEditingMaterial(null); loadMaterials(); }}
-        />
-      )}
-      
-      {showCsvModal && (
-        <CsvImportModal
-          onClose={() => setShowCsvModal(false)}
-          onSuccess={() => { setShowCsvModal(false); loadMaterials(); }}
-        />
-      )}
-
       {/* Subsystem Templates Section */}
-      <div style={{ marginTop: '40px', paddingTop: '40px', borderTop: '2px solid var(--border-color)' }}>
+      <div>
         <div style={{ marginBottom: '20px' }}>
           <h2 style={{ color: 'var(--text-primary)', margin: 0, marginBottom: '5px' }}>
             📄 Materiały z szablonów BOM
@@ -529,42 +335,42 @@ const MaterialsTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                     {isExpanded && (
                       <div style={{ padding: '20px' }}>
                         <div className="table-container">
-                          <table className="table">
+                          <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                               <tr>
-                                <th style={{ width: '50px' }}>Nr</th>
-                                <th style={{ width: '150px' }}>Numer kat.</th>
-                                <th>Nazwa materiału</th>
-                                <th style={{ width: '80px' }}>Ilość</th>
-                                <th style={{ width: '80px' }}>Jednostka</th>
-                                <th style={{ width: '120px' }}>Źródło ilości</th>
-                                <th style={{ width: '120px' }}>Grupa</th>
-                                <th style={{ width: '60px', textAlign: 'center' }}>IP</th>
-                                <th style={{ width: '100px', textAlign: 'center' }}>Wymagane</th>
+                                <th style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', fontWeight: 600, borderBottom: '2px solid var(--border-color)', width: '50px' }}>Nr</th>
+                                <th style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', fontWeight: 600, borderBottom: '2px solid var(--border-color)', width: '150px' }}>Numer kat.</th>
+                                <th style={{ textAlign: 'left', verticalAlign: 'middle', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', fontWeight: 600, borderBottom: '2px solid var(--border-color)' }}>Nazwa materiału</th>
+                                <th style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', fontWeight: 600, borderBottom: '2px solid var(--border-color)', width: '80px' }}>Ilość</th>
+                                <th style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', fontWeight: 600, borderBottom: '2px solid var(--border-color)', width: '80px' }}>Jednostka</th>
+                                <th style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', fontWeight: 600, borderBottom: '2px solid var(--border-color)', width: '120px' }}>Źródło ilości</th>
+                                <th style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', fontWeight: 600, borderBottom: '2px solid var(--border-color)', width: '120px' }}>Grupa</th>
+                                <th style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', fontWeight: 600, borderBottom: '2px solid var(--border-color)', width: '60px' }}>IP</th>
+                                <th style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', backgroundColor: 'var(--bg-secondary)', fontWeight: 600, borderBottom: '2px solid var(--border-color)', width: '100px' }}>Wymagane</th>
                               </tr>
                             </thead>
                             <tbody>
                               {sortedItems.map((item, idx) => (
                                 <tr key={item.id || idx}>
-                                  <td>{idx + 1}</td>
-                                  <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+                                  <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', borderBottom: '1px solid var(--border-color)' }}>{idx + 1}</td>
+                                  <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', borderBottom: '1px solid var(--border-color)', fontFamily: 'monospace', fontSize: '12px' }}>
                                     {item.catalogNumber || '-'}
                                   </td>
-                                  <td style={{ fontWeight: 500 }}>{item.materialName}</td>
-                                  <td>{item.defaultQuantity}</td>
-                                  <td>{item.unit}</td>
-                                  <td>{getQuantitySourceBadge(item.quantitySource)}</td>
-                                  <td style={{ color: 'var(--text-secondary)' }}>
+                                  <td style={{ textAlign: 'left', verticalAlign: 'middle', padding: '10px 12px', borderBottom: '1px solid var(--border-color)', fontWeight: 500 }}>{item.materialName}</td>
+                                  <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', borderBottom: '1px solid var(--border-color)' }}>{item.defaultQuantity}</td>
+                                  <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', borderBottom: '1px solid var(--border-color)' }}>{item.unit}</td>
+                                  <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', borderBottom: '1px solid var(--border-color)' }}>{getQuantitySourceBadge(item.quantitySource)}</td>
+                                  <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
                                     {item.groupName || '-'}
                                   </td>
-                                  <td style={{ textAlign: 'center' }}>
+                                  <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', borderBottom: '1px solid var(--border-color)' }}>
                                     {item.requiresIp ? (
                                       <span style={{ color: 'var(--primary-color)', fontWeight: 600 }}>✓</span>
                                     ) : (
                                       <span style={{ color: 'var(--text-muted)' }}>-</span>
                                     )}
                                   </td>
-                                  <td style={{ textAlign: 'center' }}>
+                                  <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '10px 12px', borderBottom: '1px solid var(--border-color)' }}>
                                     {item.isRequired ? (
                                       <span style={{ 
                                         padding: '2px 8px',
