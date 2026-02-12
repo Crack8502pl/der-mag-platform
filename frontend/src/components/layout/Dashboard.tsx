@@ -10,7 +10,7 @@ import './Dashboard.css';
 interface ModuleCard {
   title: string;
   path: string;
-  icon: string;
+  icon: React.ReactNode;
   module?: string;
   action?: string;
   adminOnly?: boolean;
@@ -56,11 +56,11 @@ export const Dashboard: React.FC = () => {
     { title: 'Kontrakty', path: '/contracts', icon: '📝', module: 'contracts', action: 'read', description: 'Zarządzanie kontraktami', group: 'planning' },
     { title: 'Podsystemy', path: '/subsystems', icon: '🔧', module: 'subsystems', action: 'read', description: 'Zarządzanie podsystemami', group: 'planning' },
     { title: 'Zadania', path: '/tasks', icon: '📋', module: 'tasks', action: 'read', description: 'Zarządzanie zadaniami', group: 'planning' },
-    { title: 'Brygady', path: '/brigades', icon: '👥', module: 'brigades', action: 'read', description: 'Zarządzanie brygadami', group: 'planning' },
+    { title: 'Brygady', path: '/brigades', icon: <img src="/brigades.png" alt="Brygady" style={{ width: '48px', height: '48px', objectFit: 'contain' }} />, module: 'brigades', action: 'read', description: 'Zarządzanie brygadami', group: 'planning' },
     { title: 'Kompletacja', path: '/completion', icon: '📦', module: 'completion', action: 'read', description: 'Skanowanie i kompletacja', group: 'execution' },
     { title: 'Prefabrykacja', path: '/prefabrication', icon: '🏭', module: 'prefabrication', action: 'read', description: 'Prefabrykacja urządzeń', group: 'execution' },
     { title: 'Sieć/IP', path: '/network', icon: '🌐', module: 'network', action: 'read', description: 'Zarządzanie adresacją IP', group: 'resources' },
-    { title: 'Magazyn', path: '/warehouse-stock', icon: '🏭📦', module: 'warehouse_stock', action: 'read', description: 'Stany magazynowe', group: 'resources' },
+    { title: 'Magazyn', path: '/warehouse-stock', icon: <img src="/warehouse.png" alt="Magazyn" style={{ width: '48px', height: '48px', objectFit: 'contain' }} />, module: 'warehouse_stock', action: 'read', description: 'Stany magazynowe', group: 'resources' },
     { title: 'Materiały BOM', path: '/bom', icon: '🔩', module: 'bom', action: 'read', description: 'Szablony i materiały', group: 'resources' },
     { title: 'Urządzenia', path: '/devices', icon: '📱', module: 'devices', action: 'read', description: 'Rejestracja urządzeń', group: 'resources' },
     { title: 'Raporty', path: '/reports', icon: '📈', module: 'reports', action: 'read', description: 'Generowanie raportów', group: 'docs' },

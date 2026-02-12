@@ -129,7 +129,10 @@ export const BrigadeListPage: React.FC = () => {
       
       <div className="page-header">
         <div>
-          <h1 className="page-title">👥 Brygady</h1>
+          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <img src="/brigades.png" alt="Brygady" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
+            Brygady
+          </h1>
           <p className="page-subtitle">Zarządzanie brygadami i ich członkami</p>
         </div>
       </div>

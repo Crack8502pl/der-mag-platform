@@ -10,7 +10,7 @@ import './Sidebar.css';
 interface MenuItem {
   label: string;
   path: string;
-  icon: string;
+  icon: React.ReactNode;
   module?: any;
   action?: string;
 }
@@ -25,11 +25,11 @@ export const Sidebar: React.FC = () => {
     { label: 'Kontrakty', path: '/contracts', icon: '📝', module: 'contracts', action: 'read' },
     { label: 'Podsystemy', path: '/subsystems', icon: '🔧', module: 'subsystems', action: 'read' },
     { label: 'Zadania', path: '/tasks', icon: '📋', module: 'tasks', action: 'read' },
-    { label: 'Brygady', path: '/brigades', icon: '👥', module: 'brigades', action: 'read' },
+    { label: 'Brygady', path: '/brigades', icon: <img src="/brigades.png" alt="Brygady" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />, module: 'brigades', action: 'read' },
     { label: 'Kompletacja', path: '/completion', icon: '📦', module: 'completion', action: 'read' },
     { label: 'Prefabrykacja', path: '/prefabrication', icon: '🏭', module: 'prefabrication', action: 'read' },
     { label: 'Sieć/IP', path: '/network', icon: '🌐', module: 'network', action: 'read' },
-    { label: 'Magazyn', path: '/warehouse-stock', icon: '🏭📦', module: 'warehouse_stock', action: 'read' },
+    { label: 'Magazyn', path: '/warehouse-stock', icon: <img src="/warehouse.png" alt="Magazyn" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />, module: 'warehouse_stock', action: 'read' },
     { label: 'Materiały BOM', path: '/bom', icon: '🔩', module: 'bom', action: 'read' },
     { label: 'Urządzenia', path: '/devices', icon: '📱', module: 'devices', action: 'read' },
     { label: 'Użytkownicy', path: '/admin/users', icon: '👤', module: 'users', action: 'read' },
