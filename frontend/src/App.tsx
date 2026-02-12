@@ -309,14 +309,12 @@ function App() {
 
         <Route path="/forbidden" element={<ForbiddenPage />} />
 
-        {/* Admin Routes - Require admin role */}
+        {/* Admin Routes - AdminDashboard filters cards internally */}
         <Route
           path="/admin"
           element={
             <ProtectedRoute>
-              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
-                <AdminDashboard />
-              </RoleBasedRoute>
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />
@@ -364,7 +362,7 @@ function App() {
           path="/admin/bom"
           element={
             <ProtectedRoute>
-              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
+              <RoleBasedRoute requiredPermission={{ module: 'bom', action: 'read' }}>
                 <BOMBuilderPage />
               </RoleBasedRoute>
             </ProtectedRoute>
@@ -374,7 +372,7 @@ function App() {
           path="/admin/bom/import"
           element={
             <ProtectedRoute>
-              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
+              <RoleBasedRoute requiredPermission={{ module: 'bom', action: 'create' }}>
                 <MaterialImportPage />
               </RoleBasedRoute>
             </ProtectedRoute>
