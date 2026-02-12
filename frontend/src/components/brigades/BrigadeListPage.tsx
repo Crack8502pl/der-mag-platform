@@ -10,6 +10,7 @@ import brigadeService from '../../services/brigade.service';
 import type { Brigade } from '../../types/brigade.types';
 import { useAuth } from '../../hooks/useAuth';
 import '../../styles/grover-theme.css';
+import '../modules/ModulePage.css';
 import './BrigadeListPage.css';
 
 export const BrigadeListPage: React.FC = () => {
@@ -124,17 +125,12 @@ export const BrigadeListPage: React.FC = () => {
   });
 
   return (
-    <div className="page-container">
-      <BackButton />
+    <div className="module-page">
+      <BackButton to="/dashboard" />
       
-      <div className="page-header">
-        <div>
-          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <img src="/brigades.png" alt="Brygady" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
-            Brygady
-          </h1>
-          <p className="page-subtitle">Zarządzanie brygadami i ich członkami</p>
-        </div>
+      <div className="module-header">
+        <div className="module-icon">👥</div>
+        <h1>Brygady</h1>
       </div>
 
       {/* Success/Error Messages */}
@@ -151,7 +147,7 @@ export const BrigadeListPage: React.FC = () => {
       )}
 
       {/* Toolbar */}
-      <div className="brigades-toolbar">
+      <div className="brigades-toolbar card">
         <div className="toolbar-row">
           <input
             type="text"
@@ -212,7 +208,7 @@ export const BrigadeListPage: React.FC = () => {
         </div>
       ) : (
         <>
-          <div className="brigades-table-container">
+          <div className="brigades-table-container card">
             <table className="brigades-table">
               <thead>
                 <tr>

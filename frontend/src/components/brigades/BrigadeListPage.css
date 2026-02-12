@@ -1,9 +1,8 @@
 /* BrigadeListPage.css - Styles for brigades module */
 
-/* Toolbar */
+/* Toolbar - matches TaskListPage pattern with card class */
 .brigades-toolbar {
   margin-bottom: 20px;
-  padding: 20px;
 }
 
 .toolbar-row {
@@ -65,9 +64,8 @@
   font-weight: 600;
 }
 
-/* Table */
+/* Table - matches TaskListPage pattern with card class */
 .brigades-table-container {
-  overflow-x: auto;
   margin-bottom: 20px;
 }
 
