@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BackButton } from '../common/BackButton';
 import bomSubsystemTemplateService from '../../services/bomSubsystemTemplate.service';
-import type { BomSubsystemTemplate, BomSubsystemTemplateItem } from '../../services/bomSubsystemTemplate.service';
+import type { BomSubsystemTemplate } from '../../services/bomSubsystemTemplate.service';
 import '../../styles/grover-theme.css';
 
 export const BOMPage: React.FC = () => {

@@ -131,7 +131,7 @@ export const BOMBuilderPage: React.FC = () => {
 };
 
 // ========== MATERIALS TAB ==========
-const MaterialsTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete: boolean }> = ({ canCreate, canUpdate, canDelete }) => {
+const MaterialsTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete: boolean }> = () => {
   // State for subsystem templates
   const [subsystemTemplates, setSubsystemTemplates] = useState<BomSubsystemTemplate[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(true);
@@ -1886,6 +1886,7 @@ const DependenciesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDel
 };
 
 // ========== MATERIAL FORM MODAL ==========
+// @ts-ignore - Currently unused, kept for potential future use
 const MaterialFormModal: React.FC<{
   material?: BomTemplate;
   onClose: () => void;
@@ -2172,6 +2173,7 @@ const MaterialFormModal: React.FC<{
 };
 
 // ========== CSV IMPORT MODAL ==========
+// @ts-ignore - Currently unused, kept for potential future use
 const CsvImportModal: React.FC<{
   onClose: () => void;
   onSuccess: () => void;
