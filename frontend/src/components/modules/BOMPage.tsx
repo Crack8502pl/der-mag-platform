@@ -75,7 +75,7 @@ export const BOMPage: React.FC = () => {
           <input
             type="text"
             className="form-control"
-            placeholder="🔍 Szukaj materiałów po nazwie lub numerze katalogowym..."
+            placeholder=""
             value={templateSearchTerm}
             onChange={(e) => {
               setTemplateSearchTerm(e.target.value);
