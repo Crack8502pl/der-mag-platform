@@ -151,7 +151,7 @@ const MaterialsTab: React.FC = () => {
   const [expandedTemplates, setExpandedTemplates] = useState<Set<number>>(new Set());
   const [templateSearchTerm, setTemplateSearchTerm] = useState('');
 
-  const totalMaterialsCount = React.useMemo(() => 
+  const totalMaterials = React.useMemo(() => 
     subsystemTemplates.reduce((sum, t) => sum + t.items.length, 0),
     [subsystemTemplates]
   );
@@ -181,7 +181,7 @@ const MaterialsTab: React.FC = () => {
             📄 Materiały z szablonów BOM
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0 }}>
-            Łącznie {totalMaterialsCount} materiałów w {subsystemTemplates.length} szablonach
+            Łącznie {totalMaterials} materiałów w {subsystemTemplates.length} szablonach
           </p>
         </div>
 
