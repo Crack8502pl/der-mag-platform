@@ -3,6 +3,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { BackButton } from '../common/BackButton';
+import { ModuleIcon } from '../common/ModuleIcon';
+import { MODULE_ICONS } from '../../config/moduleIcons';
 import { BrigadeCreateModal } from './BrigadeCreateModal';
 import { BrigadeEditModal } from './BrigadeEditModal';
 import { BrigadeMembersModal } from './BrigadeMembersModal';
@@ -129,7 +131,9 @@ export const BrigadeListPage: React.FC = () => {
       <BackButton to="/dashboard" />
       
       <div className="module-header">
-        <div className="module-icon">👥</div>
+        <div className="module-icon">
+          <ModuleIcon name="brigades" emoji={MODULE_ICONS.brigades} size={36} />
+        </div>
         <h1>Brygady</h1>
       </div>
 

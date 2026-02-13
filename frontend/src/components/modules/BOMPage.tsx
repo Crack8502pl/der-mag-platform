@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BackButton } from '../common/BackButton';
+import { ModuleIcon } from '../common/ModuleIcon';
+import { MODULE_ICONS } from '../../config/moduleIcons';
 import bomSubsystemTemplateService from '../../services/bomSubsystemTemplate.service';
 import type { BomSubsystemTemplate } from '../../services/bomSubsystemTemplate.service';
 import '../../styles/grover-theme.css';
@@ -52,7 +54,7 @@ export const BOMPage: React.FC = () => {
       
       <div style={{ marginBottom: '30px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
-          <div style={{ fontSize: '48px' }}>🔩</div>
+          <ModuleIcon name="bom" emoji={MODULE_ICONS.bom} size={48} />
           <h1 style={{ color: 'var(--text-primary)', margin: 0 }}>Materiały BOM</h1>
         </div>
         <p style={{ color: 'var(--text-secondary)', marginLeft: '63px' }}>
