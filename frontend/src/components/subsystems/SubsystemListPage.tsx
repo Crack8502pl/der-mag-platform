@@ -3,6 +3,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { BackButton } from '../common/BackButton';
+import { ModuleIcon } from '../common/ModuleIcon';
+import { MODULE_ICONS } from '../../config/moduleIcons';
 import { subsystemService } from '../../services/subsystem.service';
 import type { Subsystem } from '../../services/subsystem.service';
 import { SubsystemDocumentationModal } from './SubsystemDocumentationModal';
@@ -121,7 +123,9 @@ export const SubsystemListPage: React.FC = () => {
       <BackButton to="/dashboard" />
       
       <div className="page-header">
-        <div className="module-icon">🔧</div>
+        <div className="module-icon">
+          <ModuleIcon name="subsystems" emoji={MODULE_ICONS.subsystems} size={36} />
+        </div>
         <h1>Podsystemy</h1>
       </div>
 

@@ -3,6 +3,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { BackButton } from '../common/BackButton';
+import { ModuleIcon } from '../common/ModuleIcon';
+import { MODULE_ICONS } from '../../config/moduleIcons';
 import { TaskCreateModal } from './TaskCreateModal';
 import { TaskEditModal } from './TaskEditModal';
 import { TaskDetailModal } from './TaskDetailModal';
@@ -147,7 +149,9 @@ export const TaskListPage: React.FC = () => {
       <BackButton to="/dashboard" />
       
       <div className="module-header">
-        <div className="module-icon">📋</div>
+        <div className="module-icon">
+          <ModuleIcon name="tasks" emoji={MODULE_ICONS.tasks} size={36} />
+        </div>
         <h1>Zadania</h1>
       </div>
 
