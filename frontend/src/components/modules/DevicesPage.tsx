@@ -1,5 +1,7 @@
 import React from 'react';
 import { BackButton } from '../common/BackButton';
+import { ModuleIcon } from '../common/ModuleIcon';
+import { MODULE_ICONS } from '../../config/moduleIcons';
 import './ModulePage.css';
 
 export const DevicesPage: React.FC = () => {
@@ -8,7 +10,9 @@ export const DevicesPage: React.FC = () => {
       <BackButton to="/dashboard" />
       
       <div className="module-header">
-        <div className="module-icon">📱</div>
+        <div className="module-icon">
+          <ModuleIcon name="devices" emoji={MODULE_ICONS.devices} size={36} />
+        </div>
         <h1>Urządzenia</h1>
       </div>
       

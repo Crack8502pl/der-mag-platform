@@ -3,6 +3,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { BackButton } from '../common/BackButton';
+import { ModuleIcon } from '../common/ModuleIcon';
+import { MODULE_ICONS } from '../../config/moduleIcons';
 import { useAuth } from '../../hooks/useAuth';
 import { warehouseStockService } from '../../services/warehouseStock.service';
 import { WarehouseStockImportModal } from './WarehouseStockImportModal';
@@ -210,7 +212,9 @@ export const WarehouseStockPage: React.FC = () => {
       <BackButton to="/dashboard" />
       
       <div className="module-header">
-        <div className="module-icon">🏭📦</div>
+        <div className="module-icon">
+          <ModuleIcon name="warehouse" emoji={MODULE_ICONS.warehouse} size={36} />
+        </div>
         <h1>Magazyn</h1>
       </div>
 
