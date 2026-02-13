@@ -5,6 +5,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { usePermissions } from '../../hooks/usePermissions';
+import { ModuleIcon } from '../common/ModuleIcon';
+import { MODULE_ICONS } from '../../config/moduleIcons';
 import './Dashboard.css';
 
 interface ModuleCard {
@@ -53,23 +55,23 @@ export const Dashboard: React.FC = () => {
   const [isPersonalizeMode, setIsPersonalizeMode] = React.useState(false);
 
   const moduleCards: ModuleCard[] = [
-    { title: 'Kontrakty', path: '/contracts', icon: '📝', module: 'contracts', action: 'read', description: 'Zarządzanie kontraktami', group: 'planning' },
-    { title: 'Podsystemy', path: '/subsystems', icon: '🔧', module: 'subsystems', action: 'read', description: 'Zarządzanie podsystemami', group: 'planning' },
-    { title: 'Zadania', path: '/tasks', icon: '📋', module: 'tasks', action: 'read', description: 'Zarządzanie zadaniami', group: 'planning' },
-    { title: 'Brygady', path: '/brigades', icon: <img src="/brigades.png" alt="Brygady" style={{ width: '48px', height: '48px', objectFit: 'contain' }} />, module: 'brigades', action: 'read', description: 'Zarządzanie brygadami', group: 'planning' },
-    { title: 'Kompletacja', path: '/completion', icon: '📦', module: 'completion', action: 'read', description: 'Skanowanie i kompletacja', group: 'execution' },
-    { title: 'Prefabrykacja', path: '/prefabrication', icon: '🏭', module: 'prefabrication', action: 'read', description: 'Prefabrykacja urządzeń', group: 'execution' },
-    { title: 'Sieć/IP', path: '/network', icon: '🌐', module: 'network', action: 'read', description: 'Zarządzanie adresacją IP', group: 'resources' },
-    { title: 'Magazyn', path: '/warehouse-stock', icon: <img src="/warehouse.png" alt="Magazyn" style={{ width: '48px', height: '48px', objectFit: 'contain' }} />, module: 'warehouse_stock', action: 'read', description: 'Stany magazynowe', group: 'resources' },
-    { title: 'Materiały BOM', path: '/bom', icon: '🔩', module: 'bom', action: 'read', description: 'Szablony i materiały', group: 'resources' },
-    { title: 'Urządzenia', path: '/devices', icon: '📱', module: 'devices', action: 'read', description: 'Rejestracja urządzeń', group: 'resources' },
-    { title: 'Raporty', path: '/reports', icon: '📈', module: 'reports', action: 'read', description: 'Generowanie raportów', group: 'docs' },
-    { title: 'Dokumenty', path: '/documents', icon: '📄', module: 'documents', action: 'read', description: 'Zarządzanie dokumentami', group: 'docs' },
-    { title: 'Zdjęcia', path: '/photos', icon: '📷', module: 'photos', action: 'read', description: 'Upload i zatwierdzanie', group: 'docs' },
-    { title: 'Użytkownicy', path: '/users', icon: '👥', module: 'users', action: 'read', description: 'Zarządzanie użytkownikami', group: 'system' },
-    { title: 'Powiadomienia', path: '/notifications', icon: '🔔', module: 'notifications', action: 'receiveAlerts', description: 'Konfiguracja alertów', group: 'system' },
-    { title: 'Ustawienia', path: '/settings', icon: '⚙️', module: 'settings', action: 'read', description: 'Ustawienia konta', group: 'system' },
-    { title: 'Panel Admin', path: '/admin', icon: '🛡️', adminOnly: true, description: 'Konfiguracja systemu', group: 'system' },
+    { title: 'Kontrakty', path: '/contracts', icon: <ModuleIcon name="contracts" emoji={MODULE_ICONS.contracts} size={48} />, module: 'contracts', action: 'read', description: 'Zarządzanie kontraktami', group: 'planning' },
+    { title: 'Podsystemy', path: '/subsystems', icon: <ModuleIcon name="subsystems" emoji={MODULE_ICONS.subsystems} size={48} />, module: 'subsystems', action: 'read', description: 'Zarządzanie podsystemami', group: 'planning' },
+    { title: 'Zadania', path: '/tasks', icon: <ModuleIcon name="tasks" emoji={MODULE_ICONS.tasks} size={48} />, module: 'tasks', action: 'read', description: 'Zarządzanie zadaniami', group: 'planning' },
+    { title: 'Brygady', path: '/brigades', icon: <ModuleIcon name="brigades" emoji={MODULE_ICONS.brigades} size={48} />, module: 'brigades', action: 'read', description: 'Zarządzanie brygadami', group: 'planning' },
+    { title: 'Kompletacja', path: '/completion', icon: <ModuleIcon name="completion" emoji={MODULE_ICONS.completion} size={48} />, module: 'completion', action: 'read', description: 'Skanowanie i kompletacja', group: 'execution' },
+    { title: 'Prefabrykacja', path: '/prefabrication', icon: <ModuleIcon name="prefabrication" emoji={MODULE_ICONS.prefabrication} size={48} />, module: 'prefabrication', action: 'read', description: 'Prefabrykacja urządzeń', group: 'execution' },
+    { title: 'Sieć/IP', path: '/network', icon: <ModuleIcon name="network" emoji={MODULE_ICONS.network} size={48} />, module: 'network', action: 'read', description: 'Zarządzanie adresacją IP', group: 'resources' },
+    { title: 'Magazyn', path: '/warehouse-stock', icon: <ModuleIcon name="warehouse" emoji={MODULE_ICONS.warehouse} size={48} />, module: 'warehouse_stock', action: 'read', description: 'Stany magazynowe', group: 'resources' },
+    { title: 'Materiały BOM', path: '/bom', icon: <ModuleIcon name="bom" emoji={MODULE_ICONS.bom} size={48} />, module: 'bom', action: 'read', description: 'Szablony i materiały', group: 'resources' },
+    { title: 'Urządzenia', path: '/devices', icon: <ModuleIcon name="devices" emoji={MODULE_ICONS.devices} size={48} />, module: 'devices', action: 'read', description: 'Rejestracja urządzeń', group: 'resources' },
+    { title: 'Raporty', path: '/reports', icon: <ModuleIcon name="reports" emoji={MODULE_ICONS.reports} size={48} />, module: 'reports', action: 'read', description: 'Generowanie raportów', group: 'docs' },
+    { title: 'Dokumenty', path: '/documents', icon: <ModuleIcon name="documents" emoji={MODULE_ICONS.documents} size={48} />, module: 'documents', action: 'read', description: 'Zarządzanie dokumentami', group: 'docs' },
+    { title: 'Zdjęcia', path: '/photos', icon: <ModuleIcon name="photos" emoji={MODULE_ICONS.photos} size={48} />, module: 'photos', action: 'read', description: 'Upload i zatwierdzanie', group: 'docs' },
+    { title: 'Użytkownicy', path: '/users', icon: <ModuleIcon name="users" emoji={MODULE_ICONS.users} size={48} />, module: 'users', action: 'read', description: 'Zarządzanie użytkownikami', group: 'system' },
+    { title: 'Powiadomienia', path: '/notifications', icon: <ModuleIcon name="notifications" emoji={MODULE_ICONS.notifications} size={48} />, module: 'notifications', action: 'receiveAlerts', description: 'Konfiguracja alertów', group: 'system' },
+    { title: 'Ustawienia', path: '/settings', icon: <ModuleIcon name="settings" emoji={MODULE_ICONS.settings} size={48} />, module: 'settings', action: 'read', description: 'Ustawienia konta', group: 'system' },
+    { title: 'Panel Admin', path: '/admin', icon: <ModuleIcon name="admin" emoji={MODULE_ICONS.admin} size={48} />, adminOnly: true, description: 'Konfiguracja systemu', group: 'system' },
   ];
 
   const filteredCards = moduleCards.filter(card => {
