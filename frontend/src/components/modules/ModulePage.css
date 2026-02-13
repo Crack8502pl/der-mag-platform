@@ -16,9 +16,6 @@
 .module-icon {
   font-size: 36px;
   line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .module-header h1 {
