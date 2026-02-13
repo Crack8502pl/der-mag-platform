@@ -5,10 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import type { Contract } from '../../services/contract.service';
 import contractService from '../../services/contract.service';
-import axios from 'axios';
-import { getApiBaseURL } from '../../utils/api-url';
-
-const API_BASE_URL = getApiBaseURL();
+import api from '../../services/api';
 
 interface Props {
   contract: Contract;
@@ -45,9 +42,7 @@ export const ContractEditModal: React.FC<Props> = ({ contract, onClose, onSucces
       if (!isAdmin) return;
       
       try {
-        const token = localStorage.getItem('accessToken');
-        const response = await axios.get(`${API_BASE_URL}/users`, {
-          headers: { Authorization: `Bearer ${token}` },
+        const response = await api.get('/users', {
           params: { role: 'manager' }
         });
         const data = response.data.data || response.data;

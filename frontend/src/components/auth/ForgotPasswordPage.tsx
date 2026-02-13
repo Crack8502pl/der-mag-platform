@@ -3,11 +3,8 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
-import { getApiBaseURL } from '../../utils/api-url';
+import api from '../../services/api';
 import './LoginPage.css';
-
-const API_BASE_URL = getApiBaseURL();
 
 export const ForgotPasswordPage: React.FC = () => {
   const [emailOrUsername, setEmailOrUsername] = useState('');
@@ -23,7 +20,7 @@ export const ForgotPasswordPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/forgot-password`, {
+      const response = await api.post('/auth/forgot-password', {
         emailOrUsername
       });
       

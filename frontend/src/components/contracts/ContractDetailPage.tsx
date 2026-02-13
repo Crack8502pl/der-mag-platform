@@ -7,11 +7,8 @@ import { BackButton } from '../common/BackButton';
 import { ContractStatusBadge } from './ContractStatusBadge';
 import { useAuth } from '../../hooks/useAuth';
 import type { Contract, SubsystemTask } from '../../services/contract.service';
-import axios from 'axios';
-import { getApiBaseURL } from '../../utils/api-url';
+import api from '../../services/api';
 import './ContractListPage.css';
-
-const API_BASE_URL = getApiBaseURL();
 
 export const ContractDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,10 +31,7 @@ export const ContractDetailPage: React.FC = () => {
       setLoading(true);
       setError('');
       
-      const token = localStorage.getItem('accessToken');
-      const response = await axios.get(`${API_BASE_URL}/contracts/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get(`/contracts/${id}`);
       
       setContract(response.data.data);
     } catch (err: any) {
@@ -51,10 +45,7 @@ export const ContractDetailPage: React.FC = () => {
     if (!contract || !confirm('Czy na pewno chcesz zatwierdzić ten kontrakt?')) return;
     
     try {
-      const token = localStorage.getItem('accessToken');
-      await axios.post(`${API_BASE_URL}/contracts/${contract.id}/approve`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.post(`/contracts/${contract.id}/approve`, {});
       loadContract();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd zatwierdzania kontraktu');
