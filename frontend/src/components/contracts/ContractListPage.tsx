@@ -8,6 +8,8 @@ import { ContractCreateModal } from './ContractCreateModal';
 import { ContractImportModal } from './ContractImportModal';
 import { ContractWizardModal } from './wizard';
 import { ContractStatusBadge } from './ContractStatusBadge';
+import { ModuleIcon } from '../common/ModuleIcon';
+import { MODULE_ICONS } from '../../config/moduleIcons';
 import { useAuth } from '../../hooks/useAuth';
 import type { Contract } from '../../services/contract.service';
 import api from '../../services/api';
@@ -162,7 +164,9 @@ export const ContractListPage: React.FC = () => {
       <BackButton to="/dashboard" />
       
       <div className="module-header">
-        <div className="module-icon">📝</div>
+        <div className="module-icon">
+          <ModuleIcon name="contracts" emoji={MODULE_ICONS.contracts} size={36} />
+        </div>
         <h1>Kontrakty</h1>
       </div>
 
