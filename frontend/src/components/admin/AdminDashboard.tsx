@@ -68,6 +68,13 @@ export const AdminDashboard: React.FC = () => {
       permission: { module: 'bom', action: 'create' },
     },
     {
+      title: 'Integracja Symfonia',
+      description: 'Eksploruj strukturę bazy MSSQL Symfonia i eksportuj do JSON',
+      icon: '🔗',
+      path: '/admin/integracjaS',
+      adminOnly: true,
+    },
+    {
       title: 'Seed Database 🌱',
       description: 'Zresetuj i zainicjalizuj bazę danych testowymi danymi',
       icon: '🗄️',
