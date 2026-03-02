@@ -59,7 +59,7 @@ export class SymfoniaMSSQLService {
         SELECT
           TABLE_SCHEMA AS [schema],
           TABLE_NAME AS [name],
-          0 AS rowCount  -- INFORMATION_SCHEMA does not expose row counts
+          0 AS [rowCount]  -- INFORMATION_SCHEMA does not expose row counts
         FROM INFORMATION_SCHEMA.TABLES
         WHERE TABLE_TYPE = 'BASE TABLE'
         ORDER BY TABLE_SCHEMA, TABLE_NAME
@@ -91,11 +91,11 @@ export class SymfoniaMSSQLService {
       request.input('tableName', sql.NVarChar, tableName);
       const result = await request.query(`
         SELECT
-          c.COLUMN_NAME AS columnName,
-          c.DATA_TYPE AS dataType,
-          c.CHARACTER_MAXIMUM_LENGTH AS maxLength,
-          CASE WHEN c.IS_NULLABLE = 'YES' THEN 1 ELSE 0 END AS isNullable,
-          CASE WHEN kcu.COLUMN_NAME IS NOT NULL THEN 1 ELSE 0 END AS isPrimaryKey
+          c.COLUMN_NAME AS [columnName],
+          c.DATA_TYPE AS [dataType],
+          c.CHARACTER_MAXIMUM_LENGTH AS [maxLength],
+          CASE WHEN c.IS_NULLABLE = 'YES' THEN 1 ELSE 0 END AS [isNullable],
+          CASE WHEN kcu.COLUMN_NAME IS NOT NULL THEN 1 ELSE 0 END AS [isPrimaryKey]
         FROM INFORMATION_SCHEMA.COLUMNS c
         LEFT JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
           ON tc.TABLE_NAME = c.TABLE_NAME AND tc.CONSTRAINT_TYPE = 'PRIMARY KEY'
@@ -156,18 +156,18 @@ export class SymfoniaMSSQLService {
       pool = await sql.connect(getConfig());
       const result = await pool.request().query(`
         SELECT
-          rc.CONSTRAINT_NAME AS fkName,
-          kcu1.TABLE_NAME AS fromTable,
-          kcu1.COLUMN_NAME AS fromColumn,
-          kcu2.TABLE_NAME AS toTable,
-          kcu2.COLUMN_NAME AS toColumn
+          rc.CONSTRAINT_NAME AS [fkName],
+          kcu1.TABLE_NAME AS [fromTable],
+          kcu1.COLUMN_NAME AS [fromColumn],
+          kcu2.TABLE_NAME AS [toTable],
+          kcu2.COLUMN_NAME AS [toColumn]
         FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
         JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu1
           ON rc.CONSTRAINT_NAME = kcu1.CONSTRAINT_NAME
         JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu2
           ON rc.UNIQUE_CONSTRAINT_NAME = kcu2.CONSTRAINT_NAME
           AND kcu1.ORDINAL_POSITION = kcu2.ORDINAL_POSITION
-        ORDER BY fromTable, fromColumn
+        ORDER BY [fromTable], [fromColumn]
       `);
       return result.recordset;
     } catch (error) {
