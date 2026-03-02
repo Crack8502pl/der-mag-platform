@@ -72,33 +72,6 @@ export const BOMPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Search Bar */}
-        <div style={{ marginBottom: '20px' }}>
-          <input
-            type="text"
-            className="form-control"
-            placeholder=""
-            value={templateSearchTerm}
-            onChange={(e) => {
-              setTemplateSearchTerm(e.target.value);
-              // Auto-expand matching templates
-              if (e.target.value) {
-                const matchingIds = new Set<number>();
-                subsystemTemplates.forEach(template => {
-                  const hasMatch = template.items.some(item => 
-                    item.materialName.toLowerCase().includes(e.target.value.toLowerCase()) ||
-                    (item.catalogNumber && item.catalogNumber.toLowerCase().includes(e.target.value.toLowerCase()))
-                  );
-                  if (hasMatch) {
-                    matchingIds.add(template.id);
-                  }
-                });
-                setExpandedTemplates(matchingIds);
-              }
-            }}
-            style={{ maxWidth: '500px' }}
-          />
-        </div>
 
         {loading ? (
           <div className="card" style={{ padding: '60px', textAlign: 'center' }}>
