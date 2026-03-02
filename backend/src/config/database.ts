@@ -1,4 +1,6 @@
 // src/config/database.ts
+import * as dotenv from 'dotenv';
+dotenv.config();
 // Konfiguracja połączenia z bazą danych PostgreSQL
 
 import { DataSource } from 'typeorm';
