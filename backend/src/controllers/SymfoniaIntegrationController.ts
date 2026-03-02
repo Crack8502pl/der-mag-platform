@@ -14,6 +14,7 @@ export class SymfoniaIntegrationController {
       const result = await SymfoniaMSSQLService.testConnection();
       res.json({ success: true, data: result });
     } catch (error) {
+      console.error('❌ SymfoniaIntegrationController ERROR:', error);
       const msg = error instanceof Error ? error.message : String(error);
       res.status(500).json({ success: false, message: msg });
     }
@@ -28,6 +29,7 @@ export class SymfoniaIntegrationController {
       const tables = await SymfoniaMSSQLService.getTables();
       res.json({ success: true, data: tables });
     } catch (error) {
+      console.error('❌ SymfoniaIntegrationController ERROR:', error);
       const msg = error instanceof Error ? error.message : String(error);
       res.status(500).json({ success: false, message: msg });
     }
@@ -43,6 +45,7 @@ export class SymfoniaIntegrationController {
       const structure = await SymfoniaMSSQLService.getTableStructure(tableName);
       res.json({ success: true, data: structure });
     } catch (error) {
+      console.error('❌ SymfoniaIntegrationController ERROR:', error);
       const msg = error instanceof Error ? error.message : String(error);
       res.status(500).json({ success: false, message: msg });
     }
@@ -59,6 +62,7 @@ export class SymfoniaIntegrationController {
       const data = await SymfoniaMSSQLService.getTableSampleData(tableName, limit);
       res.json({ success: true, data });
     } catch (error) {
+      console.error('❌ SymfoniaIntegrationController ERROR:', error);
       const msg = error instanceof Error ? error.message : String(error);
       res.status(500).json({ success: false, message: msg });
     }
@@ -73,6 +77,7 @@ export class SymfoniaIntegrationController {
       const foreignKeys = await SymfoniaMSSQLService.getForeignKeys();
       res.json({ success: true, data: foreignKeys });
     } catch (error) {
+      console.error('❌ SymfoniaIntegrationController ERROR:', error);
       const msg = error instanceof Error ? error.message : String(error);
       res.status(500).json({ success: false, message: msg });
     }
@@ -87,6 +92,7 @@ export class SymfoniaIntegrationController {
       const views = await SymfoniaMSSQLService.getViews();
       res.json({ success: true, data: views });
     } catch (error) {
+      console.error('❌ SymfoniaIntegrationController ERROR:', error);
       const msg = error instanceof Error ? error.message : String(error);
       res.status(500).json({ success: false, message: msg });
     }
@@ -104,6 +110,7 @@ export class SymfoniaIntegrationController {
       res.setHeader('Content-Disposition', 'attachment; filename="symfonia-schema-export.json"');
       res.send(json);
     } catch (error) {
+      console.error('❌ SymfoniaIntegrationController ERROR:', error);
       const msg = error instanceof Error ? error.message : String(error);
       res.status(500).json({ success: false, message: msg });
     }
