@@ -83,19 +83,8 @@ export const BOMPage: React.FC = () => {
             <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Brak szablonów BOM</p>
           </div>
         ) : (() => {
-          // Filter templates and items based on search
+          // Sort templates by subsystemType then taskVariant
           const filteredTemplates = subsystemTemplates
-            .map(template => {
-              if (!templateSearchTerm) return template;
-              
-              const filteredItems = template.items.filter(item =>
-                item.materialName.toLowerCase().includes(templateSearchTerm.toLowerCase()) ||
-                (item.catalogNumber && item.catalogNumber.toLowerCase().includes(templateSearchTerm.toLowerCase()))
-              );
-              
-              return filteredItems.length > 0 ? { ...template, items: filteredItems } : null;
-            })
-            .filter((t): t is BomSubsystemTemplate => t !== null)
             .sort((a, b) => {
               // Sort by subsystemType then taskVariant
               if (a.subsystemType !== b.subsystemType) {
