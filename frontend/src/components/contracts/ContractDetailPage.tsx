@@ -5,6 +5,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { BackButton } from '../common/BackButton';
 import { ContractStatusBadge } from './ContractStatusBadge';
+import { ModuleIcon } from '../common/ModuleIcon';
+import { MODULE_ICONS } from '../../config/moduleIcons';
 import { useAuth } from '../../hooks/useAuth';
 import type { Contract, SubsystemTask } from '../../services/contract.service';
 import api from '../../services/api';
@@ -75,7 +77,9 @@ export const ContractDetailPage: React.FC = () => {
       <BackButton to="/contracts" />
       
       <div className="module-header">
-        <div className="module-icon">📝</div>
+        <div className="module-icon">
+          <ModuleIcon name="contracts" emoji={MODULE_ICONS.contracts} size={36} />
+        </div>
         <div>
           <h1>{contract.customName}</h1>
           <p className="subtitle">
