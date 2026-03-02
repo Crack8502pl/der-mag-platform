@@ -40,6 +40,7 @@ export const Sidebar: React.FC = () => {
     { label: 'Zdjęcia', path: '/photos', icon: <ModuleIcon name="photos" emoji={MODULE_ICONS.photos} size={20} />, module: 'photos', action: 'read' },
     { label: 'Powiadomienia', path: '/notifications', icon: <ModuleIcon name="notifications" emoji={MODULE_ICONS.notifications} size={20} />, module: 'notifications' },
     { label: 'Ustawienia', path: '/settings', icon: <ModuleIcon name="settings" emoji={MODULE_ICONS.settings} size={20} />, module: 'settings', action: 'read' },
+    { label: 'Integracja Symfonia', path: '/admin/integracjaS', icon: <ModuleIcon name="symfonia" emoji="🔗" size={20} />, module: 'all', action: 'access' },
   ];
 
   const handleLogout = async () => {
