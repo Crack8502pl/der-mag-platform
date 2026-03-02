@@ -52,21 +52,26 @@ export class SymfoniaMSSQLService {
    * Get all tables with record counts
    */
   static async getTables(): Promise<Array<{ schema: string; name: string; rowCount: number }>> {
-    const pool = await sql.connect(getConfig());
+    let pool: sql.ConnectionPool | null = null;
     try {
+      pool = await sql.connect(getConfig());
       const result = await pool.request().query(`
         SELECT
-          s.name AS [schema],
-          t.name AS [name],
-          p.rows AS rowCount
-        FROM sys.tables t
-        INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
-        INNER JOIN sys.partitions p ON t.object_id = p.object_id AND p.index_id IN (0, 1)
-        ORDER BY s.name, t.name
+          TABLE_SCHEMA AS [schema],
+          TABLE_NAME AS [name],
+          0 AS rowCount  -- INFORMATION_SCHEMA does not expose row counts
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_TYPE = 'BASE TABLE'
+        ORDER BY TABLE_SCHEMA, TABLE_NAME
       `);
       return result.recordset;
+    } catch (error) {
+      console.error('❌ SymfoniaMSSQLService.getTables() ERROR:', error);
+      throw error;
     } finally {
-      await pool.close();
+      if (pool) {
+        await pool.close();
+      }
     }
   }
 
@@ -146,22 +151,32 @@ export class SymfoniaMSSQLService {
     toTable: string;
     toColumn: string;
   }>> {
-    const pool = await sql.connect(getConfig());
+    let pool: sql.ConnectionPool | null = null;
     try {
+      pool = await sql.connect(getConfig());
       const result = await pool.request().query(`
         SELECT
-          fk.name AS fkName,
-          OBJECT_NAME(fkc.parent_object_id) AS fromTable,
-          COL_NAME(fkc.parent_object_id, fkc.parent_column_id) AS fromColumn,
-          OBJECT_NAME(fkc.referenced_object_id) AS toTable,
-          COL_NAME(fkc.referenced_object_id, fkc.referenced_column_id) AS toColumn
-        FROM sys.foreign_keys fk
-        INNER JOIN sys.foreign_key_columns fkc ON fk.object_id = fkc.constraint_object_id
+          rc.CONSTRAINT_NAME AS fkName,
+          kcu1.TABLE_NAME AS fromTable,
+          kcu1.COLUMN_NAME AS fromColumn,
+          kcu2.TABLE_NAME AS toTable,
+          kcu2.COLUMN_NAME AS toColumn
+        FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
+        JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu1
+          ON rc.CONSTRAINT_NAME = kcu1.CONSTRAINT_NAME
+        JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu2
+          ON rc.UNIQUE_CONSTRAINT_NAME = kcu2.CONSTRAINT_NAME
+          AND kcu1.ORDINAL_POSITION = kcu2.ORDINAL_POSITION
         ORDER BY fromTable, fromColumn
       `);
       return result.recordset;
+    } catch (error) {
+      console.error('❌ SymfoniaMSSQLService.getForeignKeys() ERROR:', error);
+      throw error;
     } finally {
-      await pool.close();
+      if (pool) {
+        await pool.close();
+      }
     }
   }
 
@@ -169,17 +184,24 @@ export class SymfoniaMSSQLService {
    * Get list of views
    */
   static async getViews(): Promise<Array<{ schema: string; name: string }>> {
-    const pool = await sql.connect(getConfig());
+    let pool: sql.ConnectionPool | null = null;
     try {
+      pool = await sql.connect(getConfig());
       const result = await pool.request().query(`
-        SELECT s.name AS [schema], v.name AS [name]
-        FROM sys.views v
-        INNER JOIN sys.schemas s ON v.schema_id = s.schema_id
-        ORDER BY s.name, v.name
+        SELECT
+          TABLE_SCHEMA AS [schema],
+          TABLE_NAME AS [name]
+        FROM INFORMATION_SCHEMA.VIEWS
+        ORDER BY TABLE_SCHEMA, TABLE_NAME
       `);
       return result.recordset;
+    } catch (error) {
+      console.error('❌ SymfoniaMSSQLService.getViews() ERROR:', error);
+      throw error;
     } finally {
-      await pool.close();
+      if (pool) {
+        await pool.close();
+      }
     }
   }
 
