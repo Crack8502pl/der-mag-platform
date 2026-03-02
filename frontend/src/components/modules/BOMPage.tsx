@@ -25,7 +25,6 @@ export const BOMPage: React.FC = () => {
   const [subsystemTemplates, setSubsystemTemplates] = useState<BomSubsystemTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedTemplates, setExpandedTemplates] = useState<Set<number>>(new Set());
-  const [templateSearchTerm, setTemplateSearchTerm] = useState('');
 
   const totalMaterials = React.useMemo(() => 
     subsystemTemplates.reduce((sum, t) => sum + t.items.length, 0),
