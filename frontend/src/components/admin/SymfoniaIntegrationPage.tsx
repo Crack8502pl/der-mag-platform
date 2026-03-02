@@ -4,11 +4,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import symfoniaService, {
-  SymfoniaConnectionStatus,
-  SymfoniaTable,
-  SymfoniaColumn,
-  SymfoniaForeignKey,
-  SymfoniaView,
+  type SymfoniaConnectionStatus,
+  type SymfoniaTable,
+  type SymfoniaColumn,
+  type SymfoniaForeignKey,
+  type SymfoniaView,
 } from '../../services/symfoniaIntegration.service';
 import { ModuleIcon } from '../common/ModuleIcon';
 
