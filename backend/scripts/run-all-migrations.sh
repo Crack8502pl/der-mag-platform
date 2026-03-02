@@ -6,7 +6,9 @@ set -e  # Exit on error
 
 # Load environment variables
 if [ -f .env ]; then
-  export $(cat .env | grep -v '^#' | xargs)
+  set -a
+  source .env
+  set +a
 fi
 
 # Database connection string
