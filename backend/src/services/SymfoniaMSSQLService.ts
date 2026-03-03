@@ -57,12 +57,15 @@ export class SymfoniaMSSQLService {
       pool = await sql.connect(getConfig());
       const result = await pool.request().query(`
         SELECT
-          TABLE_SCHEMA AS [schema],
-          TABLE_NAME AS [name],
-          0 AS [rowCount]  -- INFORMATION_SCHEMA does not expose row counts
-        FROM INFORMATION_SCHEMA.TABLES
-        WHERE TABLE_TYPE = 'BASE TABLE'
-        ORDER BY TABLE_SCHEMA, TABLE_NAME
+          s.name AS [schema],
+          t.name AS [name],
+          SUM(p.rows) AS [rowCount]
+        FROM sys.tables t
+        INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+        INNER JOIN sys.partitions p ON t.object_id = p.object_id
+        WHERE p.index_id IN (0, 1)
+        GROUP BY s.name, t.name
+        ORDER BY s.name, t.name
       `);
       return result.recordset;
     } catch (error) {
