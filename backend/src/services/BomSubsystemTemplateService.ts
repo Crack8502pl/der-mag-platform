@@ -525,6 +525,125 @@ export class BomSubsystemTemplateService {
   }
 
   /**
+   * Generate empty CSV template with headers
+   */
+  static generateCsvTemplate(): string {
+    const UTF8_BOM = '\uFEFF';
+    const header = 'nazwa_materialu;numer_katalogowy;ilosc;jednostka;wymagane;grupa;wymaga_ip;notatki';
+    return UTF8_BOM + header + '\n';
+  }
+
+  /**
+   * Export template items to CSV string
+   */
+  static async exportTemplateToCsv(id: number): Promise<string> {
+    const template = await this.getTemplateById(id);
+    if (!template) {
+      throw new Error('Template not found');
+    }
+
+    const UTF8_BOM = '\uFEFF';
+    const header = 'nazwa_materialu;numer_katalogowy;ilosc;jednostka;wymagane;grupa;wymaga_ip;notatki';
+    const rows = template.items.map(item => {
+      const escapeCsv = (val: string | undefined | null) => {
+        const str = val ?? '';
+        if (str.includes(';') || str.includes('"') || str.includes('\n')) {
+          return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+      };
+      return [
+        escapeCsv(item.materialName),
+        escapeCsv(item.catalogNumber),
+        String(item.defaultQuantity),
+        escapeCsv(item.unit),
+        item.isRequired ? 'tak' : 'nie',
+        escapeCsv(item.groupName),
+        item.requiresIp ? 'tak' : 'nie',
+        escapeCsv(item.notes)
+      ].join(';');
+    });
+
+    return UTF8_BOM + header + '\n' + rows.join('\n');
+  }
+
+  /**
+   * Import template from CSV content
+   */
+  static async importTemplateFromCsv(
+    csvContent: string,
+    metadata: {
+      templateName: string;
+      subsystemType: SubsystemType;
+      taskVariant?: string | null;
+      description?: string;
+      createdById?: number;
+    }
+  ): Promise<BomSubsystemTemplate> {
+    // Strip UTF-8 BOM if present
+    const content = csvContent.startsWith('\uFEFF') ? csvContent.slice(1) : csvContent;
+
+    const lines = content.split(/\r?\n/).filter(line => line.trim() !== '');
+    if (lines.length < 2) {
+      throw new Error('CSV musi zawierać nagłówek i co najmniej jeden wiersz danych');
+    }
+
+    // Skip header row
+    const dataLines = lines.slice(1);
+
+    const parseCsvLine = (line: string): string[] => {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (ch === ';' && !inQuotes) {
+          result.push(current);
+          current = '';
+        } else {
+          current += ch;
+        }
+      }
+      result.push(current);
+      return result;
+    };
+
+    const items = dataLines.map((line, idx) => {
+      const cols = parseCsvLine(line);
+      if (cols.length < 1 || !cols[0].trim()) {
+        throw new Error(`Wiersz ${idx + 2}: brakuje nazwy materiału`);
+      }
+      return {
+        materialName: cols[0].trim(),
+        catalogNumber: cols[1]?.trim() || undefined,
+        defaultQuantity: cols[2] ? parseFloat(cols[2].trim()) || 1 : 1,
+        unit: cols[3]?.trim() || 'szt',
+        isRequired: cols[4]?.trim().toLowerCase() !== 'nie',
+        groupName: cols[5]?.trim() || undefined,
+        requiresIp: cols[6]?.trim().toLowerCase() === 'tak',
+        notes: cols[7]?.trim() || undefined,
+        sortOrder: idx
+      };
+    });
+
+    return await this.createTemplate({
+      templateName: metadata.templateName,
+      subsystemType: metadata.subsystemType,
+      taskVariant: metadata.taskVariant,
+      description: metadata.description,
+      createdById: metadata.createdById,
+      items
+    });
+  }
+
+  /**
    * Evaluate dependency formula (simple math operations)
    */
   private static evaluateDependencyFormula(baseQuantity: number, formula: string): number {

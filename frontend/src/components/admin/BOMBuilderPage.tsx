@@ -623,11 +623,80 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
   } : null;
 
   const [showManageGroupsModal, setShowManageGroupsModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importTemplateName, setImportTemplateName] = useState('');
+  const [importSubsystemType, setImportSubsystemType] = useState('');
+  const [importTaskVariant, setImportTaskVariant] = useState('');
+  const [importDescription, setImportDescription] = useState('');
+  const [importing, setImporting] = useState(false);
+
+  const subsystemTypes = subsystemStructure.map(s => s.type);
+
+  const handleExportTemplate = async (templateId: number) => {
+    try {
+      await bomSubsystemTemplateService.exportTemplate(templateId);
+    } catch (err: any) {
+      alert('Błąd podczas eksportu szablonu: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleGetCsvTemplate = async () => {
+    try {
+      await bomSubsystemTemplateService.getCsvTemplate();
+    } catch (err: any) {
+      alert('Błąd podczas pobierania szablonu CSV: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleImportTemplate = async () => {
+    if (!importFile || !importTemplateName || !importSubsystemType) return;
+    setImporting(true);
+    try {
+      await bomSubsystemTemplateService.importTemplate(importFile, {
+        templateName: importTemplateName,
+        subsystemType: importSubsystemType,
+        taskVariant: importTaskVariant || null,
+        description: importDescription || undefined
+      });
+      setShowImportModal(false);
+      setImportFile(null);
+      setImportTemplateName('');
+      setImportSubsystemType('');
+      setImportTaskVariant('');
+      setImportDescription('');
+      const successMsg = document.createElement('div');
+      successMsg.textContent = '✅ Szablon zaimportowany pomyślnie';
+      successMsg.style.cssText = 'position:fixed;top:20px;right:20px;background:var(--success);color:white;padding:12px 20px;border-radius:8px;z-index:9999;';
+      document.body.appendChild(successMsg);
+      setTimeout(() => successMsg.remove(), 3000);
+    } catch (err: any) {
+      alert('Błąd podczas importu szablonu: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setImporting(false);
+    }
+  };
 
   return (
     <>
-      {/* Manage Groups Button */}
-      <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+      {/* Toolbar */}
+      <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap' }}>
+        <button
+          className="btn btn-secondary"
+          onClick={handleGetCsvTemplate}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
+          📥 Pobierz szablon CSV
+        </button>
+        {canCreate && (
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowImportModal(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            📤 Importuj szablon
+          </button>
+        )}
         <button
           className="btn btn-secondary"
           onClick={() => setShowManageGroupsModal(true)}
@@ -760,6 +829,13 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                   </div>
                   
                   <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => handleExportTemplate(selectedTemplate.id)}
+                      style={{ fontSize: '14px' }}
+                    >
+                      📥 Eksportuj
+                    </button>
                     {canCreate && (
                       <button 
                         className="btn btn-primary" 
@@ -1321,6 +1397,112 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
             }
           }}
         />
+      )}
+
+      {/* Import Template Modal */}
+      {showImportModal && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+          <div className="card" style={{ width: '480px', padding: '30px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h3 style={{ color: 'var(--text-primary)', marginBottom: '20px', fontSize: '18px' }}>
+              📤 Importuj szablon BOM z CSV
+            </h3>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                  Plik CSV *
+                </label>
+                <input
+                  type="file"
+                  accept=".csv"
+                  className="form-control"
+                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                  Nazwa szablonu *
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={importTemplateName}
+                  onChange={(e) => setImportTemplateName(e.target.value)}
+                  placeholder="np. BOM CCTV - Ogólny"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                  Typ podsystemu *
+                </label>
+                <select
+                  className="form-control"
+                  value={importSubsystemType}
+                  onChange={(e) => setImportSubsystemType(e.target.value)}
+                >
+                  <option value="">-- wybierz --</option>
+                  {subsystemTypes.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                  Wariant zadania (opcjonalny)
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={importTaskVariant}
+                  onChange={(e) => setImportTaskVariant(e.target.value)}
+                  placeholder="np. PRZEJAZD_KAT_A lub pozostaw puste"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                  Opis (opcjonalny)
+                </label>
+                <textarea
+                  className="form-control"
+                  value={importDescription}
+                  onChange={(e) => setImportDescription(e.target.value)}
+                  rows={2}
+                  placeholder="Opis szablonu..."
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '24px', justifyContent: 'flex-end' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportFile(null);
+                  setImportTemplateName('');
+                  setImportSubsystemType('');
+                  setImportTaskVariant('');
+                  setImportDescription('');
+                }}
+              >
+                Anuluj
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleImportTemplate}
+                disabled={importing || !importFile || !importTemplateName || !importSubsystemType}
+              >
+                {importing ? '⏳ Importowanie...' : '📤 Importuj'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
