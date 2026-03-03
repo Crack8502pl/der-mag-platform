@@ -6,6 +6,7 @@ import React from 'react';
 interface User {
   active: boolean;
   forcePasswordChange?: boolean;
+  deletedAt?: string | null;
 }
 
 interface UserStatusBadgeProps {
@@ -13,6 +14,16 @@ interface UserStatusBadgeProps {
 }
 
 export const UserStatusBadge: React.FC<UserStatusBadgeProps> = ({ user }) => {
+  if (user.deletedAt) {
+    return (
+      <div className="status-badges">
+        <span className="status-badge status-deleted">
+          🗑️ Usunięty
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="status-badges">
       <span className={`status-badge ${user.active ? 'status-active' : 'status-inactive'}`}>
