@@ -40,6 +40,8 @@ import bomGroupRoutes from './bomGroup.routes';
 import bomTemplateDependencyRuleRoutes from './bomTemplateDependencyRule.routes';
 // Symfonia MSSQL integration routes
 import symfoniaIntegrationRoutes from './symfoniaIntegration.routes';
+// Symfonia warehouse stock sync routes
+import symfoniaSyncRoutes from './symfoniaSync.routes';
 
 const router = Router();
 
@@ -91,6 +93,9 @@ router.use('/bom-template-dependency-rules', bomTemplateDependencyRuleRoutes);
 
 // Symfonia MSSQL integration routes (admin only)
 router.use('/admin/symfonia-integration', symfoniaIntegrationRoutes);
+
+// Symfonia warehouse stock sync routes (admin only)
+router.use('/admin/symfonia-sync', symfoniaSyncRoutes);
 
 // Admin routes
 router.use('/admin', adminRoutes);
