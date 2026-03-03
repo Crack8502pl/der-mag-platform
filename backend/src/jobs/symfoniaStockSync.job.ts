@@ -2,7 +2,7 @@
 // CRON Job: Automatyczna synchronizacja stanów magazynowych co 1 godzinę
 // READ-ONLY from Symfonia MSSQL
 
-import cron from 'node-cron';
+import * as cron from 'node-cron';
 import { SymfoniaSyncService } from '../services/SymfoniaSyncService';
 
 let syncTask: cron.ScheduledTask | null = null;
