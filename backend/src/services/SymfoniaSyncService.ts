@@ -84,6 +84,16 @@ const getMssqlConfig = (): sql.config => ({
   requestTimeout: 300000,
 });
 
+/**
+ * Usuwa NULL bytes (0x00) z tekstu - PostgreSQL nie akceptuje ich w polach tekstowych
+ */
+function sanitizeString(value: any): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  return String(value).replace(/\x00/g, '').trim();
+}
+
 export interface SyncProgress {
   phase: 'fetching' | 'processing' | 'saving' | 'completed';
   current: number;
@@ -277,19 +287,19 @@ export class SymfoniaSyncService {
 
       return result.recordset.map((row: any) => ({
         symfoniaTwId: row.symfonia_tw_id,
-        catalogNumber: String(row.catalog_number || '').trim(),
-        materialName: String(row.material_name || '').trim(),
-        unit: String(row.unit || 'szt').trim(),
-        productType: String(row.product_type || '').trim(),
+        catalogNumber: sanitizeString(row.catalog_number),
+        materialName: sanitizeString(row.material_name),
+        unit: sanitizeString(row.unit) || 'szt',
+        productType: sanitizeString(row.product_type),
         minStockLevel: row.min_stock_level != null ? Number(row.min_stock_level) : null,
         maxStockLevel: row.max_stock_level != null ? Number(row.max_stock_level) : null,
         isActive: Boolean(row.is_active),
-        barcode: row.barcode ? String(row.barcode).trim() : null,
+        barcode: row.barcode ? sanitizeString(row.barcode) : null,
         quantityInStock: Number(row.quantity_in_stock) || 0,
         stockValue: row.stock_value != null ? Number(row.stock_value) : null,
-        warehouseId: row.warehouse_id ? String(row.warehouse_id).trim() : null,
+        warehouseId: row.warehouse_id ? sanitizeString(row.warehouse_id) : null,
         unitPrice: row.unit_price != null ? Number(row.unit_price) : null,
-        lastGuid: row.last_guid ? String(row.last_guid).trim() : null,
+        lastGuid: row.last_guid ? sanitizeString(row.last_guid) : null,
       }));
     } finally {
       if (pool) {
@@ -318,9 +328,9 @@ export class SymfoniaSyncService {
       `);
 
       return result.recordset.map((row: any) => ({
-        catalogNumber: String(row.catalog_number || '').trim(),
+        catalogNumber: sanitizeString(row.catalog_number),
         quantityInStock: Number(row.quantity_in_stock) || 0,
-        warehouseId: row.warehouse_id ? String(row.warehouse_id).trim() : null,
+        warehouseId: row.warehouse_id ? sanitizeString(row.warehouse_id) : null,
       }));
     } finally {
       if (pool) {
