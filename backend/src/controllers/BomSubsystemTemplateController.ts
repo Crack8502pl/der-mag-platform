@@ -211,6 +211,98 @@ export class BomSubsystemTemplateController {
   }
 
   /**
+   * Export template to CSV
+   * GET /api/bom-subsystem-templates/:id/export
+   */
+  static async exportTemplate(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const csvContent = await BomSubsystemTemplateService.exportTemplateToCsv(Number(id));
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="bom-template-${id}.csv"`);
+      res.send(csvContent);
+    } catch (error: any) {
+      console.error('Error exporting template:', error);
+
+      if (error.message === 'Template not found') {
+        res.status(404).json({
+          success: false,
+          message: 'Szablon nie znaleziony'
+        });
+        return;
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Błąd eksportu szablonu',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Import template from CSV
+   * POST /api/bom-subsystem-templates/import
+   */
+  static async importTemplate(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.file) {
+        res.status(400).json({
+          success: false,
+          message: 'Brak pliku CSV'
+        });
+        return;
+      }
+
+      const { templateName, subsystemType, taskVariant, description } = req.body;
+
+      if (!templateName || !subsystemType) {
+        res.status(400).json({
+          success: false,
+          message: 'Brakuje wymaganych pól: templateName, subsystemType'
+        });
+        return;
+      }
+
+      const csvContent = req.file.buffer.toString('utf-8');
+      const userId = req.userId;
+
+      const template = await BomSubsystemTemplateService.importTemplateFromCsv(csvContent, {
+        templateName,
+        subsystemType: subsystemType as SubsystemType,
+        taskVariant: taskVariant || null,
+        description,
+        createdById: userId
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Szablon zaimportowany pomyślnie',
+        data: template
+      });
+    } catch (error: any) {
+      console.error('Error importing template:', error);
+      res.status(400).json({
+        success: false,
+        message: 'Błąd importu szablonu',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Get empty CSV template
+   * GET /api/bom-subsystem-templates/csv-template
+   */
+  static getCsvTemplate(req: Request, res: Response): void {
+    const csvContent = BomSubsystemTemplateService.generateCsvTemplate();
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="bom-template-empty.csv"');
+    res.send(csvContent);
+  }
+
+  /**
    * Apply template to a task
    * POST /api/bom-subsystem-templates/:id/apply/:taskId
    */

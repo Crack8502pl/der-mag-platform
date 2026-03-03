@@ -4,6 +4,7 @@
 import { Router } from 'express';
 import { BomSubsystemTemplateController } from '../controllers/BomSubsystemTemplateController';
 import { authenticate, authorize } from '../middleware/auth';
+import { uploadCSV } from '../middleware/upload';
 
 const router = Router();
 
@@ -23,10 +24,31 @@ router.get(
   BomSubsystemTemplateController.getTemplateFor
 );
 
+// Get empty CSV template (must be before /:id)
+router.get(
+  '/csv-template',
+  BomSubsystemTemplateController.getCsvTemplate
+);
+
+// Import template from CSV (must be before /:id)
+router.post(
+  '/import',
+  authorize('admin', 'manager'),
+  uploadCSV.single('file'),
+  BomSubsystemTemplateController.importTemplate
+);
+
 // Get specific template by ID
 router.get(
   '/:id',
   BomSubsystemTemplateController.getTemplateById
+);
+
+// Export template to CSV
+router.get(
+  '/:id/export',
+  authorize('admin', 'manager', 'bom_editor'),
+  BomSubsystemTemplateController.exportTemplate
 );
 
 // Create new template (requires admin or manager role)

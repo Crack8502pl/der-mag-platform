@@ -142,6 +142,65 @@ const bomSubsystemTemplateService = {
       { configParams }
     );
     return response.data;
+  },
+
+  /**
+   * Export template to CSV (triggers download)
+   */
+  async exportTemplate(id: number): Promise<void> {
+    const response = await api.get(`/bom-subsystem-templates/${id}/export`, {
+      responseType: 'blob'
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `bom-template-${id}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => window.URL.revokeObjectURL(url), 100);
+  },
+
+  /**
+   * Import template from CSV file
+   */
+  async importTemplate(
+    file: File,
+    metadata: {
+      templateName: string;
+      subsystemType: string;
+      taskVariant?: string | null;
+      description?: string;
+    }
+  ): Promise<BomSubsystemTemplate> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('templateName', metadata.templateName);
+    formData.append('subsystemType', metadata.subsystemType);
+    if (metadata.taskVariant) formData.append('taskVariant', metadata.taskVariant);
+    if (metadata.description) formData.append('description', metadata.description);
+
+    const response = await api.post('/bom-subsystem-templates/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data.data;
+  },
+
+  /**
+   * Download empty CSV template
+   */
+  async getCsvTemplate(): Promise<void> {
+    const response = await api.get('/bom-subsystem-templates/csv-template', {
+      responseType: 'blob'
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'bom-template-empty.csv');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => window.URL.revokeObjectURL(url), 100);
   }
 };
 
