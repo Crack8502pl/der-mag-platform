@@ -63,6 +63,9 @@ export class User {
   @Column({ name: 'deleted_at', type: 'timestamp', nullable: true })
   deletedAt: Date | null;
 
+  @Column({ name: 'deletion_reason', type: 'varchar', length: 500, nullable: true })
+  deletionReason: string | null;
+
   // Hashowanie hasła przed zapisem
   @BeforeInsert()
   @BeforeUpdate()

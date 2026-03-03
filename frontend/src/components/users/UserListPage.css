@@ -189,6 +189,23 @@
   border: 1px solid var(--status-warning);
 }
 
+.status-badge.status-deleted {
+  background: rgba(108, 117, 125, 0.2);
+  color: #6c757d;
+  border: 1px solid #6c757d;
+}
+
+.user-row-deleted {
+  opacity: 0.6;
+  background: rgba(108, 117, 125, 0.05);
+}
+
+.btn-action:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .role-badge {
   display: inline-flex;
   align-items: center;

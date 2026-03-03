@@ -33,8 +33,7 @@ export class UserController {
       const userRepository = AppDataSource.getRepository(User);
       const queryBuilder = userRepository
         .createQueryBuilder('user')
-        .leftJoinAndSelect('user.role', 'role')
-        .where('user.deletedAt IS NULL');
+        .leftJoinAndSelect('user.role', 'role');
 
       // Filtrowanie po roli
       if (role) {
@@ -43,9 +42,11 @@ export class UserController {
 
       // Filtrowanie po statusie
       if (status === 'active') {
-        queryBuilder.andWhere('user.active = :active', { active: true });
+        queryBuilder.andWhere('user.deletedAt IS NULL').andWhere('user.active = :active', { active: true });
       } else if (status === 'inactive') {
-        queryBuilder.andWhere('user.active = :active', { active: false });
+        queryBuilder.andWhere('user.deletedAt IS NULL').andWhere('user.active = :active', { active: false });
+      } else if (status === 'deleted') {
+        queryBuilder.andWhere('user.deletedAt IS NOT NULL');
       }
 
       // Wyszukiwanie
@@ -118,8 +119,7 @@ export class UserController {
       
       // Build query
       const qb = userRepo.createQueryBuilder('user')
-        .leftJoinAndSelect('user.role', 'role')
-        .where('user.deletedAt IS NULL');
+        .leftJoinAndSelect('user.role', 'role');
 
       // Search filter
       if (search) {
@@ -134,9 +134,13 @@ export class UserController {
         qb.andWhere('role.name = :role', { role });
       }
 
-      // Status filter (active/inactive)
-      if (status !== undefined) {
-        qb.andWhere('user.active = :active', { active: status === 'active' });
+      // Status filter (active/inactive/deleted)
+      if (status === 'active') {
+        qb.andWhere('user.deletedAt IS NULL').andWhere('user.active = :active', { active: true });
+      } else if (status === 'inactive') {
+        qb.andWhere('user.deletedAt IS NULL').andWhere('user.active = :active', { active: false });
+      } else if (status === 'deleted') {
+        qb.andWhere('user.deletedAt IS NOT NULL');
       }
 
       // Sorting - validate sortBy to prevent SQL injection
@@ -165,7 +169,9 @@ export class UserController {
             role: u.role?.name,
             active: u.active,
             createdAt: u.createdAt,
-            lastLogin: u.lastLogin
+            lastLogin: u.lastLogin,
+            deletedAt: u.deletedAt,
+            deletionReason: u.deletionReason
           })),
           pagination: {
             page: pageNum,
@@ -588,6 +594,17 @@ export class UserController {
   static async delete(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
+      const { reason } = req.body;
+
+      if (!reason || !reason.trim()) {
+        res.status(400).json({
+          success: false,
+          error: 'MISSING_REASON',
+          message: 'Powód usunięcia jest wymagany'
+        });
+        return;
+      }
+
       const userRepository = AppDataSource.getRepository(User);
 
       const user = await userRepository.findOne({
@@ -606,6 +623,7 @@ export class UserController {
       // Soft delete
       user.deletedAt = new Date();
       user.active = false;
+      user.deletionReason = reason.trim();
 
       await userRepository.save(user);
 

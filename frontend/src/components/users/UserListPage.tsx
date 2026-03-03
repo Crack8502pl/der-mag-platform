@@ -7,6 +7,7 @@ import { UserCreateModal } from './UserCreateModal';
 import { UserEditModal } from './UserEditModal';
 import { ResetPasswordModal } from './ResetPasswordModal';
 import { DeactivateUserModal } from './DeactivateUserModal';
+import { DeleteUserModal } from './DeleteUserModal';
 import { UserStatusBadge } from './UserStatusBadge';
 import api from '../../services/api';
 import { FALLBACK_ROLES } from '../../constants/roles';
@@ -30,6 +31,8 @@ interface User {
   lastLogin?: string;
   createdAt: string;
   forcePasswordChange: boolean;
+  deletedAt?: string | null;
+  deletionReason?: string | null;
 }
 
 interface Role {
@@ -63,6 +66,7 @@ export const UserListPage: React.FC = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
   const [deactivateUser, setDeactivateUser] = useState<User | null>(null);
+  const [deleteUser, setDeleteUser] = useState<User | null>(null);
 
   useEffect(() => {
     loadUsers();
@@ -162,6 +166,13 @@ export const UserListPage: React.FC = () => {
     setTimeout(() => setSuccess(''), 5000);
   };
 
+  const handleUserDeleted = () => {
+    setDeleteUser(null);
+    setSuccess('Użytkownik został usunięty');
+    loadUsers();
+    setTimeout(() => setSuccess(''), 5000);
+  };
+
   const handleActivateUser = async (userId: number) => {
     try {
       await api.post(`/users/${userId}/activate`);
@@ -170,22 +181,6 @@ export const UserListPage: React.FC = () => {
       setTimeout(() => setSuccess(''), 5000);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd aktywacji użytkownika');
-      setTimeout(() => setError(''), 5000);
-    }
-  };
-
-  const handleDeleteUser = async (userId: number, username: string) => {
-    if (!confirm(`Czy na pewno chcesz usunąć użytkownika ${username}? Ta operacja jest nieodwracalna.`)) {
-      return;
-    }
-
-    try {
-      await api.delete(`/users/${userId}`);
-      setSuccess('Użytkownik został usunięty');
-      loadUsers();
-      setTimeout(() => setSuccess(''), 5000);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Błąd usuwania użytkownika');
       setTimeout(() => setError(''), 5000);
     }
   };
@@ -274,6 +269,7 @@ export const UserListPage: React.FC = () => {
             <option value="">Wszystkie statusy</option>
             <option value="active">Aktywni</option>
             <option value="inactive">Nieaktywni</option>
+            <option value="deleted">Usunięci</option>
           </select>
           
           <div className="user-count">
@@ -320,7 +316,7 @@ export const UserListPage: React.FC = () => {
               </tr>
             ) : (
               users.map((user) => (
-                <tr key={user.id}>
+                <tr key={user.id} className={user.deletedAt ? 'user-row-deleted' : ''}>
                   <td>{user.id}</td>
                   <td>
                     <div className="user-name">
@@ -340,6 +336,11 @@ export const UserListPage: React.FC = () => {
                   </td>
                   <td>
                     <UserStatusBadge user={user} />
+                    {user.deletedAt && user.deletionReason && (
+                      <small style={{ display: 'block', color: '#6c757d', marginTop: '4px' }} title={user.deletionReason}>
+                        Powód: {user.deletionReason.length > 40 ? user.deletionReason.slice(0, 40) + '…' : user.deletionReason}
+                      </small>
+                    )}
                   </td>
                   <td>
                     {new Date(user.createdAt).toLocaleDateString('pl-PL')}
@@ -350,46 +351,52 @@ export const UserListPage: React.FC = () => {
                       : 'Nigdy'}
                   </td>
                   <td>
-                    <div className="action-buttons">
-                      <button 
-                        className="btn-action" 
-                        title="Edytuj"
-                        onClick={() => setEditingUser(user)}
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        className="btn-action" 
-                        title="Resetuj hasło"
-                        onClick={() => setResetPasswordUser(user)}
-                      >
-                        🔑
-                      </button>
-                      {user.active ? (
+                    {user.deletedAt ? (
+                      <div className="action-buttons">
+                        <span style={{ color: '#6c757d', fontSize: '13px' }}>Tylko podgląd</span>
+                      </div>
+                    ) : (
+                      <div className="action-buttons">
                         <button 
                           className="btn-action" 
-                          title="Dezaktywuj"
-                          onClick={() => setDeactivateUser(user)}
+                          title="Edytuj"
+                          onClick={() => setEditingUser(user)}
                         >
-                          🚫
+                          ✏️
                         </button>
-                      ) : (
                         <button 
                           className="btn-action" 
-                          title="Aktywuj"
-                          onClick={() => handleActivateUser(user.id)}
+                          title="Resetuj hasło"
+                          onClick={() => setResetPasswordUser(user)}
                         >
-                          ✅
+                          🔑
                         </button>
-                      )}
-                      <button 
-                        className="btn-action" 
-                        title="Usuń"
-                        onClick={() => handleDeleteUser(user.id, user.username)}
-                      >
-                        🗑️
-                      </button>
-                    </div>
+                        {user.active ? (
+                          <button 
+                            className="btn-action" 
+                            title="Dezaktywuj"
+                            onClick={() => setDeactivateUser(user)}
+                          >
+                            🚫
+                          </button>
+                        ) : (
+                          <button 
+                            className="btn-action" 
+                            title="Aktywuj"
+                            onClick={() => handleActivateUser(user.id)}
+                          >
+                            ✅
+                          </button>
+                        )}
+                        <button 
+                          className="btn-action" 
+                          title="Usuń"
+                          onClick={() => setDeleteUser(user)}
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))
@@ -452,6 +459,14 @@ export const UserListPage: React.FC = () => {
           user={deactivateUser}
           onClose={() => setDeactivateUser(null)}
           onSuccess={handleUserDeactivated}
+        />
+      )}
+
+      {deleteUser && (
+        <DeleteUserModal
+          user={deleteUser}
+          onClose={() => setDeleteUser(null)}
+          onSuccess={handleUserDeleted}
         />
       )}
     </div>
