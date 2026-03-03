@@ -11,26 +11,15 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Load environment variables from .env
-load_env() {
-  local env_file=$1
-  while IFS='=' read -r key value; do
-    # Skip empty lines and comments
-    [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
-    # Remove inline comments and trim whitespace
-    value=$(echo "$value" | sed 's/[[:space:]]*#.*$//' | xargs)
-    key=$(echo "$key" | xargs)
-    # Only export if key is valid identifier
-    if [[ "$key" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
-      export "$key=$value"
-    fi
-  done < "$env_file"
-}
-
+# Load environment variables from .env (safer method)
 if [ -f backend/.env ]; then
-  load_env "backend/.env"
+  set -a
+  source <(grep -E '^[A-Z_]+=' backend/.env | sed "s/'//g; s/\"//g; s/[[:space:]]*#.*$//")
+  set +a
 elif [ -f .env ]; then
-  load_env ".env"
+  set -a
+  source <(grep -E '^[A-Z_]+=' .env | sed "s/'//g; s/\"//g; s/[[:space:]]*#.*$//")
+  set +a
 fi
 
 # Default values
