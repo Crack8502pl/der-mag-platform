@@ -11,18 +11,26 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Load environment variables from .env (safer method)
+# Load only DB_NAME and DB_USER from .env (safe parsing)
+get_env_value() {
+  local key=$1
+  local file=$2
+  grep "^${key}=" "$file" 2>/dev/null | head -1 | cut -d'=' -f2 | tr -d "'" | tr -d '"' | cut -d'#' -f1 | xargs
+}
+
+ENV_FILE=""
 if [ -f backend/.env ]; then
-  set -a
-  source <(grep -E '^[A-Z_]+=' backend/.env | sed "s/'//g; s/\"//g; s/[[:space:]]*#.*$//")
-  set +a
+  ENV_FILE="backend/.env"
 elif [ -f .env ]; then
-  set -a
-  source <(grep -E '^[A-Z_]+=' .env | sed "s/'//g; s/\"//g; s/[[:space:]]*#.*$//")
-  set +a
+  ENV_FILE=".env"
 fi
 
-# Default values
+if [ -n "$ENV_FILE" ]; then
+  DB_NAME=$(get_env_value "DB_NAME" "$ENV_FILE")
+  DB_USER=$(get_env_value "DB_USER" "$ENV_FILE")
+fi
+
+# Default values if not found
 DB_NAME="${DB_NAME:-dermag_platform}"
 DB_USER="${DB_USER:-dermag_user}"
 
