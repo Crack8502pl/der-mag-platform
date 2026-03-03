@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import symfoniaSyncService, { type SyncResult, type SyncStatus, type SyncHistory } from '../../services/symfoniaSync.service';
+import symfoniaSyncService, { type SyncResult, type SyncStatus, type SyncHistory, type SyncProgress } from '../../services/symfoniaSync.service';
 import { ModuleIcon } from '../common/ModuleIcon';
 
 const formatDate = (dateStr: string | null): string => {
@@ -44,6 +44,7 @@ export const SymfoniaSyncPage: React.FC = () => {
   const [lastResult, setLastResult] = useState<SyncResult | null>(null);
   const [syncLoading, setSyncLoading] = useState<'full' | 'quick' | null>(null);
   const [syncError, setSyncError] = useState('');
+  const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
 
   const loadStatus = async () => {
     setStatusLoading(true);
@@ -82,14 +83,36 @@ export const SymfoniaSyncPage: React.FC = () => {
     setSyncLoading('full');
     setSyncError('');
     setLastResult(null);
+    setSyncProgress({ phase: 'fetching', current: 0, total: 0, percentage: 0, message: 'Pobieranie danych z Symfonii...' });
+
+    // Subskrybuj na SSE progress
+    const eventSource = new EventSource('/api/admin/symfonia-sync/progress');
+    eventSource.onmessage = (event) => {
+      try {
+        const progress: SyncProgress = JSON.parse(event.data);
+        setSyncProgress(progress);
+      } catch (err) {
+        console.warn('Failed to parse progress update:', err);
+      }
+    };
+
     try {
       const result = await symfoniaSyncService.fullSync();
       setLastResult(result);
+      setSyncProgress({
+        phase: 'completed',
+        current: result.stats.totalProcessed,
+        total: result.stats.totalProcessed,
+        percentage: 100,
+        message: 'Synchronizacja zakończona!',
+      });
       await loadStatus();
       await loadHistory();
     } catch (err: any) {
       setSyncError(err?.response?.data?.message || err?.message || 'Błąd synchronizacji');
+      setSyncProgress(null);
     } finally {
+      eventSource.close();
       setSyncLoading(null);
     }
   };
@@ -98,6 +121,7 @@ export const SymfoniaSyncPage: React.FC = () => {
     setSyncLoading('quick');
     setSyncError('');
     setLastResult(null);
+    setSyncProgress(null);
     try {
       const result = await symfoniaSyncService.quickSync();
       setLastResult(result);
@@ -159,6 +183,25 @@ export const SymfoniaSyncPage: React.FC = () => {
           {syncError && (
             <div className="alert alert-error" style={{ marginTop: '1rem' }}>
               ❌ {syncError}
+            </div>
+          )}
+          {syncProgress && (
+            <div style={{ marginTop: '1rem' }}>
+              <div style={{ height: 8, background: 'var(--border-color, #dee2e6)', borderRadius: 4, overflow: 'hidden' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    width: `${syncProgress.percentage}%`,
+                    background: syncProgress.phase === 'completed' ? '#28a745' : '#007bff',
+                    borderRadius: 4,
+                    transition: 'width 0.3s ease',
+                  }}
+                />
+              </div>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem', marginBottom: 0 }}>
+                {syncProgress.message}
+                {syncProgress.total > 0 && ` (${syncProgress.current}/${syncProgress.total} — ${syncProgress.percentage}%)`}
+              </p>
             </div>
           )}
         </div>

@@ -15,5 +15,6 @@ router.post('/full', SymfoniaSyncController.fullSync);
 router.post('/quick', SymfoniaSyncController.quickSync);
 router.get('/status', SymfoniaSyncController.getStatus);
 router.get('/history', SymfoniaSyncController.getHistory);
+router.get('/progress', SymfoniaSyncController.getProgress);
 
 export default router;

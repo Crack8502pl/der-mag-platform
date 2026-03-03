@@ -2,7 +2,7 @@
 // Controller for Symfonia warehouse sync endpoints - admin only
 
 import { Request, Response } from 'express';
-import { SymfoniaSyncService } from '../services/SymfoniaSyncService';
+import { SymfoniaSyncService, type SyncProgress } from '../services/SymfoniaSyncService';
 
 export class SymfoniaSyncController {
   /**
@@ -70,5 +70,26 @@ export class SymfoniaSyncController {
       console.error('❌ SymfoniaSyncController.getHistory ERROR:', error);
       res.status(500).json({ success: false, message: msg });
     }
+  }
+
+  /**
+   * GET /api/admin/symfonia-sync/progress
+   * Server-Sent Events stream for sync progress tracking
+   */
+  static async getProgress(req: Request, res: Response): Promise<void> {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const sendProgress = (progress: SyncProgress) => {
+      res.write(`data: ${JSON.stringify(progress)}\n\n`);
+    };
+
+    SymfoniaSyncService.subscribeToProgress(sendProgress);
+
+    req.on('close', () => {
+      SymfoniaSyncService.unsubscribeFromProgress(sendProgress);
+    });
   }
 }

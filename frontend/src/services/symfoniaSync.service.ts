@@ -44,16 +44,24 @@ export interface SyncHistory {
   };
 }
 
+export interface SyncProgress {
+  phase: 'fetching' | 'processing' | 'saving' | 'completed';
+  current: number;
+  total: number;
+  percentage: number;
+  message: string;
+}
+
 const BASE = '/admin/symfonia-sync';
 
 export class SymfoniaSyncService {
   async fullSync(): Promise<SyncResult> {
-    const response = await api.post(`${BASE}/full`);
+    const response = await api.post(`${BASE}/full`, {}, { timeout: 300000 }); // 5 minut
     return response.data.data;
   }
 
   async quickSync(): Promise<SyncResult> {
-    const response = await api.post(`${BASE}/quick`);
+    const response = await api.post(`${BASE}/quick`, {}, { timeout: 120000 }); // 2 minuty
     return response.data.data;
   }
 
