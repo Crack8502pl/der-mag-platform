@@ -262,6 +262,15 @@ export class SymfoniaSyncService {
             ROW_NUMBER() OVER (PARTITION BY idtw ORDER BY data DESC) as rn
           FROM [HM].[MZ]
           WHERE LEN(opis) > 0 OR cena > 0
+        ),
+        AggregatedStock AS (
+          SELECT
+            idtw,
+            SUM(stan) AS total_quantity,
+            SUM(wartosc) AS total_value,
+            STRING_AGG(CAST(magazyn AS NVARCHAR(100)), ',') AS warehouse_ids
+          FROM [HM].[SM]
+          GROUP BY idtw
         )
         SELECT
           tw.id AS symfonia_tw_id,
@@ -273,13 +282,13 @@ export class SymfoniaSyncService {
           tw.stanmax AS max_stock_level,
           tw.aktywny AS is_active,
           tw.kodpaskowy AS barcode,
-          sm.stan AS quantity_in_stock,
-          sm.wartosc AS stock_value,
-          sm.magazyn AS warehouse_id,
+          agg.total_quantity AS quantity_in_stock,
+          agg.total_value AS stock_value,
+          agg.warehouse_ids AS warehouse_id,
           mz.cena AS unit_price,
           mz.guid AS last_guid
         FROM [HM].[TW] tw
-        INNER JOIN [HM].[SM] sm ON tw.id = sm.idtw
+        INNER JOIN AggregatedStock agg ON tw.id = agg.idtw
         LEFT JOIN LatestMZ mz ON mz.idtw = tw.id AND mz.rn = 1
         WHERE tw.typks = 'Towar'
         ORDER BY tw.kod
@@ -320,11 +329,12 @@ export class SymfoniaSyncService {
       const result = await pool.request().query(`
         SELECT
           tw.kod AS catalog_number,
-          sm.stan AS quantity_in_stock,
-          sm.magazyn AS warehouse_id
+          SUM(sm.stan) AS quantity_in_stock,
+          STRING_AGG(CAST(sm.magazyn AS NVARCHAR(100)), ',') AS warehouse_id
         FROM [HM].[TW] tw
         INNER JOIN [HM].[SM] sm ON tw.id = sm.idtw
         WHERE tw.typks = 'Towar'
+        GROUP BY tw.kod
       `);
 
       return result.recordset.map((row: any) => ({
