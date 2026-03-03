@@ -12,6 +12,7 @@ import { DatabaseSeeder } from './services/DatabaseSeeder';
 import EmailService from './services/EmailService';
 import EmailQueueService from './services/EmailQueueService';
 import NotificationSchedulerService from './services/NotificationSchedulerService';
+import { startSymfoniaStockSyncJob, stopSymfoniaStockSyncJob } from './jobs/symfoniaStockSync.job';
 
 const PORT = process.env.PORT || 3000;
 const USE_HTTPS = process.env.USE_HTTPS === 'true';
@@ -34,6 +35,10 @@ const startServer = async () => {
     // Inicjalizacja schedulera powiadomień
     console.log('⏰ Inicjalizacja schedulera powiadomień...');
     NotificationSchedulerService.initialize();
+
+    // Inicjalizacja CRON synchronizacji Symfonia
+    console.log('🔄 Inicjalizacja synchronizacji stanów magazynowych Symfonia...');
+    startSymfoniaStockSyncJob();
 
     // Start serwera z HTTPS lub HTTP
     if (USE_HTTPS) {
@@ -101,12 +106,14 @@ process.on('uncaughtException', (error) => {
 process.on('SIGTERM', async () => {
   console.log('👋 SIGTERM received, shutting down gracefully');
   NotificationSchedulerService.stopAll();
+  stopSymfoniaStockSyncJob();
   await EmailQueueService.close();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('👋 SIGINT received, shutting down gracefully');
+  stopSymfoniaStockSyncJob();
   await EmailQueueService.close();
   process.exit(0);
 });

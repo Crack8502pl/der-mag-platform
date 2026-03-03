@@ -1,0 +1,526 @@
+// src/services/SymfoniaSyncService.ts
+// WAŻNE: Ten serwis TYLKO POBIERA dane z MSSQL Symfonia - nigdy nie zapisuje!
+// Data flows ONE WAY: Symfonia MSSQL → PostgreSQL (never the other direction)
+
+import * as sql from 'mssql';
+import { AppDataSource } from '../config/database';
+import { WarehouseStock, MaterialType, StockStatus } from '../entities/WarehouseStock';
+import { MaterialImport } from '../entities/MaterialImport';
+
+export interface SyncResult {
+  success: boolean;
+  syncType: 'full' | 'quick';
+  startedAt: Date;
+  completedAt: Date;
+  duration: number; // ms
+  stats: {
+    totalProcessed: number;
+    created: number;
+    updated: number;
+    skipped: number;
+    errors: number;
+  };
+  errors?: SyncError[];
+}
+
+export interface SyncError {
+  catalogNumber?: string;
+  message: string;
+}
+
+export interface SyncStatus {
+  lastFullSync: Date | null;
+  lastQuickSync: Date | null;
+  nextScheduledSync: Date;
+  isRunning: boolean;
+  cronEnabled: boolean;
+}
+
+export interface SyncHistory {
+  id: number;
+  syncType: 'full' | 'quick';
+  triggeredBy: 'admin' | 'cron';
+  userId?: number;
+  startedAt: Date;
+  completedAt: Date;
+  status: 'success' | 'partial' | 'failed';
+  stats: object;
+}
+
+interface SymfoniaProduct {
+  symfoniaTwId: number;
+  catalogNumber: string;
+  materialName: string;
+  unit: string;
+  productType: string;
+  minStockLevel: number | null;
+  maxStockLevel: number | null;
+  isActive: boolean;
+  barcode: string | null;
+  quantityInStock: number;
+  stockValue: number | null;
+  warehouseId: string | null;
+  unitPrice: number | null;
+  lastGuid: string | null;
+}
+
+interface SymfoniaQuickStock {
+  catalogNumber: string;
+  quantityInStock: number;
+  warehouseId: string | null;
+}
+
+const getMssqlConfig = (): sql.config => ({
+  server: process.env.SYMFONIA_MSSQL_SERVER || '',
+  database: process.env.SYMFONIA_MSSQL_DATABASE || '',
+  user: process.env.SYMFONIA_MSSQL_USER || '',
+  password: process.env.SYMFONIA_MSSQL_PASSWORD || '',
+  port: parseInt(process.env.SYMFONIA_MSSQL_PORT || '1433', 10),
+  options: {
+    encrypt: false,
+    trustServerCertificate: true,
+  },
+  connectionTimeout: 10000,
+  requestTimeout: 60000,
+});
+
+// Track running state to prevent concurrent syncs
+let isSyncRunning = false;
+
+export class SymfoniaSyncService {
+  /**
+   * Pełna synchronizacja (Admin - ręcznie)
+   * Pobiera: TW + SM + MZ → warehouse_stock
+   * READ-ONLY from MSSQL
+   */
+  static async fullSync(userId: number): Promise<SyncResult> {
+    if (isSyncRunning) {
+      throw new Error('Synchronizacja jest już uruchomiona');
+    }
+    isSyncRunning = true;
+    const startedAt = new Date();
+    const errors: SyncError[] = [];
+    let stats = { totalProcessed: 0, created: 0, updated: 0, skipped: 0, errors: 0 };
+
+    try {
+      const data = await SymfoniaSyncService.fetchSymfoniaData();
+      stats.totalProcessed = data.length;
+      const upsertStats = await SymfoniaSyncService.upsertToWarehouseStock(data, errors);
+      stats.created = upsertStats.created;
+      stats.updated = upsertStats.updated;
+      stats.skipped = upsertStats.skipped;
+      stats.errors = upsertStats.errors;
+
+      const completedAt = new Date();
+      const result: SyncResult = {
+        success: stats.errors === 0,
+        syncType: 'full',
+        startedAt,
+        completedAt,
+        duration: completedAt.getTime() - startedAt.getTime(),
+        stats,
+        errors: errors.length > 0 ? errors : undefined,
+      };
+
+      await SymfoniaSyncService.logSync(result, userId, 'admin');
+      return result;
+    } catch (error) {
+      const completedAt = new Date();
+      const msg = error instanceof Error ? error.message : String(error);
+      errors.push({ message: msg });
+      stats.errors += 1;
+      const result: SyncResult = {
+        success: false,
+        syncType: 'full',
+        startedAt,
+        completedAt,
+        duration: completedAt.getTime() - startedAt.getTime(),
+        stats,
+        errors,
+      };
+      await SymfoniaSyncService.logSync(result, userId, 'admin').catch(() => {});
+      throw error;
+    } finally {
+      isSyncRunning = false;
+    }
+  }
+
+  /**
+   * Szybka synchronizacja ilości (CRON - co 1h)
+   * Pobiera tylko: SM.stan → warehouse_stock.quantity_in_stock
+   * READ-ONLY from MSSQL
+   */
+  static async quickStockSync(): Promise<SyncResult> {
+    if (isSyncRunning) {
+      throw new Error('Synchronizacja jest już uruchomiona');
+    }
+    isSyncRunning = true;
+    const startedAt = new Date();
+    const errors: SyncError[] = [];
+    let stats = { totalProcessed: 0, created: 0, updated: 0, skipped: 0, errors: 0 };
+
+    try {
+      const data = await SymfoniaSyncService.fetchQuickStockData();
+      stats.totalProcessed = data.length;
+      const quickStats = await SymfoniaSyncService.updateQuantitiesOnly(data, errors);
+      stats.updated = quickStats.updated;
+      stats.skipped = quickStats.skipped;
+      stats.errors = quickStats.errors;
+
+      const completedAt = new Date();
+      const result: SyncResult = {
+        success: stats.errors === 0,
+        syncType: 'quick',
+        startedAt,
+        completedAt,
+        duration: completedAt.getTime() - startedAt.getTime(),
+        stats,
+        errors: errors.length > 0 ? errors : undefined,
+      };
+
+      await SymfoniaSyncService.logSync(result, undefined, 'cron');
+      return result;
+    } catch (error) {
+      const completedAt = new Date();
+      const msg = error instanceof Error ? error.message : String(error);
+      errors.push({ message: msg });
+      stats.errors += 1;
+      const result: SyncResult = {
+        success: false,
+        syncType: 'quick',
+        startedAt,
+        completedAt,
+        duration: completedAt.getTime() - startedAt.getTime(),
+        stats,
+        errors,
+      };
+      await SymfoniaSyncService.logSync(result, undefined, 'cron').catch(() => {});
+      throw error;
+    } finally {
+      isSyncRunning = false;
+    }
+  }
+
+  /**
+   * Pobiera pełne dane z Symfonii (READ-ONLY!)
+   * Łączy tabele TW + SM + MZ
+   */
+  private static async fetchSymfoniaData(): Promise<SymfoniaProduct[]> {
+    let pool: sql.ConnectionPool | null = null;
+    try {
+      pool = await sql.connect(getMssqlConfig());
+      // PEŁNA SYNCHRONIZACJA - tylko SELECT, nigdy INSERT/UPDATE/DELETE na MSSQL
+      const result = await pool.request().query(`
+        SELECT
+          tw.id AS symfonia_tw_id,
+          tw.kod AS catalog_number,
+          COALESCE(
+            (SELECT TOP 1 mz.opis FROM [HM].[MZ] mz WHERE mz.idtw = tw.id AND LEN(mz.opis) > 0 ORDER BY mz.data DESC),
+            tw.nazwa
+          ) AS material_name,
+          tw.jm AS unit,
+          tw.typks AS product_type,
+          tw.stanmin AS min_stock_level,
+          tw.stanmax AS max_stock_level,
+          tw.aktywny AS is_active,
+          tw.kodpaskowy AS barcode,
+          sm.stan AS quantity_in_stock,
+          sm.wartosc AS stock_value,
+          sm.magazyn AS warehouse_id,
+          (SELECT TOP 1 mz.cena FROM [HM].[MZ] mz WHERE mz.idtw = tw.id AND mz.cena > 0 ORDER BY mz.data DESC) AS unit_price,
+          (SELECT TOP 1 mz.guid FROM [HM].[MZ] mz WHERE mz.idtw = tw.id ORDER BY mz.data DESC) AS last_guid
+        FROM [HM].[TW] tw
+        INNER JOIN [HM].[SM] sm ON tw.id = sm.idtw
+        WHERE tw.typks = 'Towar'
+        ORDER BY tw.kod
+      `);
+
+      return result.recordset.map((row: any) => ({
+        symfoniaTwId: row.symfonia_tw_id,
+        catalogNumber: String(row.catalog_number || '').trim(),
+        materialName: String(row.material_name || '').trim(),
+        unit: String(row.unit || 'szt').trim(),
+        productType: String(row.product_type || '').trim(),
+        minStockLevel: row.min_stock_level != null ? Number(row.min_stock_level) : null,
+        maxStockLevel: row.max_stock_level != null ? Number(row.max_stock_level) : null,
+        isActive: Boolean(row.is_active),
+        barcode: row.barcode ? String(row.barcode).trim() : null,
+        quantityInStock: Number(row.quantity_in_stock) || 0,
+        stockValue: row.stock_value != null ? Number(row.stock_value) : null,
+        warehouseId: row.warehouse_id ? String(row.warehouse_id).trim() : null,
+        unitPrice: row.unit_price != null ? Number(row.unit_price) : null,
+        lastGuid: row.last_guid ? String(row.last_guid).trim() : null,
+      }));
+    } finally {
+      if (pool) {
+        await pool.close();
+      }
+    }
+  }
+
+  /**
+   * Pobiera tylko stany ilościowe z Symfonii (READ-ONLY!)
+   * Dla szybkiej synchronizacji CRON
+   */
+  private static async fetchQuickStockData(): Promise<SymfoniaQuickStock[]> {
+    let pool: sql.ConnectionPool | null = null;
+    try {
+      pool = await sql.connect(getMssqlConfig());
+      // SZYBKA SYNCHRONIZACJA - tylko SELECT, nigdy INSERT/UPDATE/DELETE na MSSQL
+      const result = await pool.request().query(`
+        SELECT
+          tw.kod AS catalog_number,
+          sm.stan AS quantity_in_stock,
+          sm.magazyn AS warehouse_id
+        FROM [HM].[TW] tw
+        INNER JOIN [HM].[SM] sm ON tw.id = sm.idtw
+        WHERE tw.typks = 'Towar'
+      `);
+
+      return result.recordset.map((row: any) => ({
+        catalogNumber: String(row.catalog_number || '').trim(),
+        quantityInStock: Number(row.quantity_in_stock) || 0,
+        warehouseId: row.warehouse_id ? String(row.warehouse_id).trim() : null,
+      }));
+    } finally {
+      if (pool) {
+        await pool.close();
+      }
+    }
+  }
+
+  /**
+   * Zapisuje do PostgreSQL (upsert) - pełna synchronizacja
+   */
+  private static async upsertToWarehouseStock(
+    data: SymfoniaProduct[],
+    errors: SyncError[]
+  ): Promise<{ created: number; updated: number; skipped: number; errors: number }> {
+    const stockRepo = AppDataSource.getRepository(WarehouseStock);
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+    let errorCount = 0;
+
+    for (const item of data) {
+      try {
+        if (!item.catalogNumber) {
+          skipped++;
+          continue;
+        }
+
+        const existing = await stockRepo.findOne({ where: { catalogNumber: item.catalogNumber } });
+
+        // Mapowanie typks → materialType
+        // The SQL query filters for tw.typks = 'Towar', so all records here are of type COMPONENT
+        const materialType = MaterialType.COMPONENT;
+
+        // Mapowanie aktywny → status
+        const status = item.isActive ? StockStatus.ACTIVE : StockStatus.DISCONTINUED;
+
+        // Metadata z Symfonii (JSONB)
+        const technicalSpecs = {
+          symfonia_tw_id: item.symfoniaTwId,
+          last_guid: item.lastGuid,
+          warehouse_id: item.warehouseId,
+          barcode: item.barcode,
+          stock_value: item.stockValue,
+        };
+
+        if (existing) {
+          // Aktualizuj istniejący rekord
+          existing.materialName = item.materialName || existing.materialName;
+          existing.unit = item.unit || existing.unit;
+          existing.materialType = materialType;
+          existing.minStockLevel = item.minStockLevel ?? existing.minStockLevel;
+          existing.maxStockLevel = item.maxStockLevel ?? existing.maxStockLevel;
+          existing.quantityInStock = item.quantityInStock;
+          existing.unitPrice = item.unitPrice ?? existing.unitPrice;
+          existing.warehouseLocation = item.warehouseId ?? existing.warehouseLocation;
+          existing.status = status;
+          existing.technicalSpecs = { ...existing.technicalSpecs, ...technicalSpecs };
+
+          await stockRepo.save(existing);
+          updated++;
+        } else {
+          // Utwórz nowy rekord
+          const stock = stockRepo.create({
+            catalogNumber: item.catalogNumber,
+            materialName: item.materialName || item.catalogNumber,
+            unit: item.unit || 'szt',
+            materialType,
+            minStockLevel: item.minStockLevel ?? undefined,
+            maxStockLevel: item.maxStockLevel ?? undefined,
+            quantityInStock: item.quantityInStock,
+            unitPrice: item.unitPrice ?? undefined,
+            warehouseLocation: item.warehouseId ?? undefined,
+            status,
+            isActive: item.isActive,
+            technicalSpecs,
+          });
+
+          await stockRepo.save(stock);
+          created++;
+        }
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        errors.push({ catalogNumber: item.catalogNumber, message: msg });
+        errorCount++;
+      }
+    }
+
+    return { created, updated, skipped, errors: errorCount };
+  }
+
+  /**
+   * Aktualizuje tylko ilości w PostgreSQL (szybka synchronizacja)
+   */
+  private static async updateQuantitiesOnly(
+    data: SymfoniaQuickStock[],
+    errors: SyncError[]
+  ): Promise<{ updated: number; skipped: number; errors: number }> {
+    const stockRepo = AppDataSource.getRepository(WarehouseStock);
+    let updated = 0;
+    let skipped = 0;
+    let errorCount = 0;
+
+    for (const item of data) {
+      try {
+        if (!item.catalogNumber) {
+          skipped++;
+          continue;
+        }
+
+        const existing = await stockRepo.findOne({ where: { catalogNumber: item.catalogNumber } });
+
+        if (!existing) {
+          skipped++;
+          continue;
+        }
+
+        existing.quantityInStock = item.quantityInStock;
+        if (item.warehouseId) {
+          existing.warehouseLocation = item.warehouseId;
+        }
+
+        await stockRepo.save(existing);
+        updated++;
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        errors.push({ catalogNumber: item.catalogNumber, message: msg });
+        errorCount++;
+      }
+    }
+
+    return { updated, skipped, errors: errorCount };
+  }
+
+  private static determineSyncStatus(result: SyncResult): string {
+    if (result.success) return 'completed';
+    if (result.stats.errors > 0 && result.stats.errors < result.stats.totalProcessed) return 'partial';
+    return 'failed';
+  }
+
+  /**
+   * Loguje wynik synchronizacji do tabeli material_imports
+   */
+  private static async logSync(
+    result: SyncResult,
+    userId: number | undefined,
+    triggeredBy: 'admin' | 'cron'
+  ): Promise<void> {
+    try {
+      const importRepo = AppDataSource.getRepository(MaterialImport);
+      const syncLabel = result.syncType === 'full' ? 'SYMFONIA_FULL' : 'SYMFONIA_QUICK';
+      const timestamp = result.startedAt.toISOString().replace('T', ' ').substring(0, 19);
+
+      const importLog = importRepo.create({
+        filename: `${syncLabel.toLowerCase()}-${result.startedAt.toISOString()}`,
+        status: SymfoniaSyncService.determineSyncStatus(result),
+        totalRows: result.stats.totalProcessed,
+        newItems: result.stats.created,
+        existingItems: result.stats.updated,
+        errorItems: result.stats.errors,
+        importedById: userId,
+        diffPreview: {
+          syncType: result.syncType,
+          triggeredBy,
+          duration: result.duration,
+          stats: result.stats,
+          errors: result.errors,
+          timestamp,
+        },
+      });
+
+      await importRepo.save(importLog);
+    } catch (err) {
+      console.error('❌ SymfoniaSyncService.logSync() ERROR:', err);
+    }
+  }
+
+  /**
+   * Zwraca status ostatniej synchronizacji
+   */
+  static async getStatus(): Promise<SyncStatus> {
+    const importRepo = AppDataSource.getRepository(MaterialImport);
+
+    // Query for last full and quick sync
+    const [lastFullRecord, lastQuickRecord] = await Promise.all([
+      importRepo
+        .createQueryBuilder('i')
+        .where("i.filename LIKE 'symfonia_full-%'")
+        .orderBy('i.createdAt', 'DESC')
+        .getOne(),
+      importRepo
+        .createQueryBuilder('i')
+        .where("i.filename LIKE 'symfonia_quick-%'")
+        .orderBy('i.createdAt', 'DESC')
+        .getOne(),
+    ]);
+
+    // Calculate next scheduled sync (next hour)
+    const now = new Date();
+    const nextSync = new Date(now);
+    nextSync.setMinutes(0, 0, 0);
+    nextSync.setHours(nextSync.getHours() + 1);
+
+    return {
+      lastFullSync: lastFullRecord?.createdAt ?? null,
+      lastQuickSync: lastQuickRecord?.createdAt ?? null,
+      nextScheduledSync: nextSync,
+      isRunning: isSyncRunning,
+      cronEnabled: process.env.SYMFONIA_SYNC_ENABLED !== 'false',
+    };
+  }
+
+  /**
+   * Zwraca historię synchronizacji (ostatnie 10)
+   */
+  static async getHistory(limit: number = 10): Promise<SyncHistory[]> {
+    const importRepo = AppDataSource.getRepository(MaterialImport);
+
+    const records = await importRepo
+      .createQueryBuilder('i')
+      .where("i.filename LIKE 'symfonia_%'")
+      .orderBy('i.createdAt', 'DESC')
+      .take(limit)
+      .getMany();
+
+    return records.map((r) => {
+      const meta = (r.diffPreview as any) || {};
+      const syncType: 'full' | 'quick' = r.filename.startsWith('symfonia_full') ? 'full' : 'quick';
+      const importStatus = r.status === 'completed' ? 'success' : r.status === 'partial' ? 'partial' : 'failed';
+
+      return {
+        id: r.id,
+        syncType,
+        triggeredBy: meta.triggeredBy || 'cron',
+        userId: r.importedById,
+        startedAt: r.createdAt,
+        completedAt: r.confirmedAt ?? r.createdAt,
+        status: importStatus as 'success' | 'partial' | 'failed',
+        stats: meta.stats || {},
+      };
+    });
+  }
+}

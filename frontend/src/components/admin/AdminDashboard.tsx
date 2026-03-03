@@ -75,6 +75,13 @@ export const AdminDashboard: React.FC = () => {
       adminOnly: true,
     },
     {
+      title: 'Synchronizacja Symfonia',
+      description: 'Synchronizuj stany magazynowe z Symfonii do magazynu (tylko odczyt)',
+      icon: '🔄',
+      path: '/admin/symfonia-sync',
+      adminOnly: true,
+    },
+    {
       title: 'Seed Database 🌱',
       description: 'Zresetuj i zainicjalizuj bazę danych testowymi danymi',
       icon: '🗄️',

@@ -20,6 +20,7 @@ import { MaterialImportPage } from './components/admin/MaterialImportPage';
 import { BOMBuilderPage } from './components/admin/BOMBuilderPage';
 import { PermissionsMatrixPage } from './components/admin/PermissionsMatrixPage';
 import { SymfoniaIntegrationPage } from './components/admin/SymfoniaIntegrationPage';
+import { SymfoniaSyncPage } from './components/admin/SymfoniaSyncPage';
 import { SubsystemsPage } from './components/modules/SubsystemsPage';
 import { TasksPage } from './components/modules/TasksPage';
 import { PrefabricationPage } from './components/modules/PrefabricationPage';
@@ -395,6 +396,16 @@ function App() {
             <ProtectedRoute>
               <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
                 <SymfoniaIntegrationPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/symfonia-sync"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
+                <SymfoniaSyncPage />
               </RoleBasedRoute>
             </ProtectedRoute>
           }
