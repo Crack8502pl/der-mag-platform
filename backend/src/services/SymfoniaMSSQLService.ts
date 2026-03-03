@@ -81,7 +81,7 @@ export class SymfoniaMSSQLService {
   /**
    * Get column structure of a table
    */
-  static async getTableStructure(tableName: string): Promise<Array<{
+  static async getTableStructure(schema: string, tableName: string): Promise<Array<{
     columnName: string;
     dataType: string;
     maxLength: number | null;
@@ -91,6 +91,7 @@ export class SymfoniaMSSQLService {
     const pool = await sql.connect(getConfig());
     try {
       const request = pool.request();
+      request.input('schema', sql.NVarChar, schema);
       request.input('tableName', sql.NVarChar, tableName);
       const result = await request.query(`
         SELECT
@@ -101,10 +102,13 @@ export class SymfoniaMSSQLService {
           CASE WHEN kcu.COLUMN_NAME IS NOT NULL THEN 1 ELSE 0 END AS [isPrimaryKey]
         FROM INFORMATION_SCHEMA.COLUMNS c
         LEFT JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
-          ON tc.TABLE_NAME = c.TABLE_NAME AND tc.CONSTRAINT_TYPE = 'PRIMARY KEY'
+          ON tc.TABLE_SCHEMA = c.TABLE_SCHEMA
+          AND tc.TABLE_NAME = c.TABLE_NAME
+          AND tc.CONSTRAINT_TYPE = 'PRIMARY KEY'
         LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
-          ON kcu.CONSTRAINT_NAME = tc.CONSTRAINT_NAME AND kcu.COLUMN_NAME = c.COLUMN_NAME
-        WHERE c.TABLE_NAME = @tableName
+          ON kcu.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
+          AND kcu.COLUMN_NAME = c.COLUMN_NAME
+        WHERE c.TABLE_SCHEMA = @schema AND c.TABLE_NAME = @tableName
         ORDER BY c.ORDINAL_POSITION
       `);
       return result.recordset.map((row: any) => ({
@@ -122,17 +126,16 @@ export class SymfoniaMSSQLService {
   /**
    * Get sample data from a table (max 10 rows)
    */
-  static async getTableSampleData(tableName: string, limit: number = 10): Promise<any[]> {
+  static async getTableSampleData(schema: string, tableName: string, limit: number = 10): Promise<any[]> {
     const safeLimit = Math.min(Math.max(1, limit), 10);
-    // Validate tableName: only allow alphanumeric characters, underscores, and dots (no brackets or special chars)
-    if (!/^[A-Za-z0-9_.]+$/.test(tableName)) {
+    // Validate schema and tableName: only allow alphanumeric characters and underscores
+    if (!/^[A-Za-z0-9_]+$/.test(schema)) {
+      throw new Error('Nieprawidłowa nazwa schematu');
+    }
+    if (!/^[A-Za-z0-9_]+$/.test(tableName)) {
       throw new Error('Nieprawidłowa nazwa tabeli');
     }
-    // Safely quote each part of a potentially schema-qualified name
-    const safeName = tableName
-      .split('.')
-      .map((part) => `[${part}]`)
-      .join('.');
+    const safeName = `[${schema}].[${tableName}]`;
     const pool = await sql.connect(getConfig());
     try {
       const result = await pool.request().query(
@@ -218,12 +221,11 @@ export class SymfoniaMSSQLService {
       SymfoniaMSSQLService.getViews(),
     ]);
 
-    const tablesWithStructure = await Promise.all(
-      tables.map(async (table) => {
-        const structure = await SymfoniaMSSQLService.getTableStructure(table.name);
-        return { ...table, columns: structure };
-      })
-    );
+    const tablesWithStructure = [];
+    for (const table of tables) {
+      const structure = await SymfoniaMSSQLService.getTableStructure(table.schema, table.name);
+      tablesWithStructure.push({ ...table, columns: structure });
+    }
 
     return {
       exportedAt: new Date().toISOString(),

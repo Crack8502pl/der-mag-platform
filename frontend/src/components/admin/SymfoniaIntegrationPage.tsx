@@ -91,25 +91,26 @@ export const SymfoniaIntegrationPage: React.FC = () => {
     }
   };
 
-  const handleToggleTable = async (tableName: string) => {
-    if (expandedTable === tableName) {
+  const handleToggleTable = async (table: SymfoniaTable) => {
+    const key = `${table.schema}.${table.name}`;
+    if (expandedTable === key) {
       setExpandedTable(null);
       return;
     }
-    setExpandedTable(tableName);
-    if (!tableStructures[tableName]) {
-      setTableLoading((prev) => ({ ...prev, [tableName]: true }));
+    setExpandedTable(key);
+    if (!tableStructures[key]) {
+      setTableLoading((prev) => ({ ...prev, [key]: true }));
       try {
         const [structure, data] = await Promise.all([
-          symfoniaService.getTableStructure(tableName),
-          symfoniaService.getTableData(tableName, 10),
+          symfoniaService.getTableStructure(table.schema, table.name),
+          symfoniaService.getTableData(table.schema, table.name, 10),
         ]);
-        setTableStructures((prev) => ({ ...prev, [tableName]: structure }));
-        setTableData((prev) => ({ ...prev, [tableName]: data }));
+        setTableStructures((prev) => ({ ...prev, [key]: structure }));
+        setTableData((prev) => ({ ...prev, [key]: data }));
       } catch {
         // ignore – structure will be empty
       } finally {
-        setTableLoading((prev) => ({ ...prev, [tableName]: false }));
+        setTableLoading((prev) => ({ ...prev, [key]: false }));
       }
     }
   };
@@ -209,7 +210,7 @@ export const SymfoniaIntegrationPage: React.FC = () => {
           <div className="card-body" style={{ padding: 0 }}>
             {tablesError && <p className="alert alert-error" style={{ margin: '1rem' }}>{tablesError}</p>}
             {tables.map((table) => {
-              const key = table.name;
+              const key = `${table.schema}.${table.name}`;
               const isExpanded = expandedTable === key;
               const isLoading = tableLoading[key];
               const structure = tableStructures[key] || [];
@@ -224,7 +225,7 @@ export const SymfoniaIntegrationPage: React.FC = () => {
                       cursor: 'pointer',
                       userSelect: 'none',
                     }}
-                    onClick={() => handleToggleTable(key)}
+                    onClick={() => handleToggleTable(table)}
                   >
                     <span style={{ marginRight: '0.5rem' }}>{isExpanded ? '▼' : '▶'}</span>
                     <span style={{ fontWeight: 600 }}>[{table.schema}].[{table.name}]</span>
