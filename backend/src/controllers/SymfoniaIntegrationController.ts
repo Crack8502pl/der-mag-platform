@@ -42,7 +42,8 @@ export class SymfoniaIntegrationController {
   static async getTableStructure(req: Request, res: Response): Promise<void> {
     try {
       const { tableName } = req.params;
-      const structure = await SymfoniaMSSQLService.getTableStructure(tableName);
+      const { schema = 'dbo' } = req.query;
+      const structure = await SymfoniaMSSQLService.getTableStructure(String(schema), tableName);
       res.json({ success: true, data: structure });
     } catch (error) {
       console.error('❌ SymfoniaIntegrationController ERROR:', error);
@@ -58,8 +59,9 @@ export class SymfoniaIntegrationController {
   static async getTableData(req: Request, res: Response): Promise<void> {
     try {
       const { tableName } = req.params;
+      const { schema = 'dbo' } = req.query;
       const limit = Math.min(parseInt(String(req.query.limit || '10'), 10), 10);
-      const data = await SymfoniaMSSQLService.getTableSampleData(tableName, limit);
+      const data = await SymfoniaMSSQLService.getTableSampleData(String(schema), tableName, limit);
       res.json({ success: true, data });
     } catch (error) {
       console.error('❌ SymfoniaIntegrationController ERROR:', error);

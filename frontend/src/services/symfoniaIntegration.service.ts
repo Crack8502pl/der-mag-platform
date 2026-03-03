@@ -50,14 +50,16 @@ export class SymfoniaIntegrationService {
     return response.data.data;
   }
 
-  async getTableStructure(tableName: string): Promise<SymfoniaColumn[]> {
-    const response = await api.get(`${BASE}/tables/${encodeURIComponent(tableName)}`);
+  async getTableStructure(schema: string, tableName: string): Promise<SymfoniaColumn[]> {
+    const response = await api.get(`${BASE}/tables/${encodeURIComponent(tableName)}`, {
+      params: { schema },
+    });
     return response.data.data;
   }
 
-  async getTableData(tableName: string, limit: number = 10): Promise<any[]> {
+  async getTableData(schema: string, tableName: string, limit: number = 10): Promise<any[]> {
     const response = await api.get(`${BASE}/tables/${encodeURIComponent(tableName)}/data`, {
-      params: { limit },
+      params: { schema, limit },
     });
     return response.data.data;
   }
