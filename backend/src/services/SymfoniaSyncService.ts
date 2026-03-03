@@ -80,14 +80,44 @@ const getMssqlConfig = (): sql.config => ({
     encrypt: false,
     trustServerCertificate: true,
   },
-  connectionTimeout: 10000,
-  requestTimeout: 60000,
+  connectionTimeout: 30000,
+  requestTimeout: 300000,
 });
+
+export interface SyncProgress {
+  phase: 'fetching' | 'processing' | 'saving' | 'completed';
+  current: number;
+  total: number;
+  percentage: number;
+  message: string;
+}
+
+type ProgressCallback = (progress: SyncProgress) => void;
+
+const BATCH_SIZE = 50;
 
 // Track running state to prevent concurrent syncs
 let isSyncRunning = false;
 
+// Progress subscribers
+const progressSubscribers = new Set<ProgressCallback>();
+
+function notifyProgress(progress: SyncProgress): void {
+  progressSubscribers.forEach((cb) => cb(progress));
+}
+
 export class SymfoniaSyncService {
+  /**
+   * Subskrypcja na aktualizacje progressu synchronizacji
+   */
+  static subscribeToProgress(cb: ProgressCallback): void {
+    progressSubscribers.add(cb);
+  }
+
+  static unsubscribeFromProgress(cb: ProgressCallback): void {
+    progressSubscribers.delete(cb);
+  }
+
   /**
    * Pełna synchronizacja (Admin - ręcznie)
    * Pobiera: TW + SM + MZ → warehouse_stock
@@ -103,9 +133,10 @@ export class SymfoniaSyncService {
     let stats = { totalProcessed: 0, created: 0, updated: 0, skipped: 0, errors: 0 };
 
     try {
+      notifyProgress({ phase: 'fetching', current: 0, total: 0, percentage: 0, message: 'Pobieranie danych z Symfonii...' });
       const data = await SymfoniaSyncService.fetchSymfoniaData();
       stats.totalProcessed = data.length;
-      const upsertStats = await SymfoniaSyncService.upsertToWarehouseStock(data, errors);
+      const upsertStats = await SymfoniaSyncService.upsertToWarehouseStock(data, errors, notifyProgress);
       stats.created = upsertStats.created;
       stats.updated = upsertStats.updated;
       stats.skipped = upsertStats.skipped;
@@ -123,6 +154,7 @@ export class SymfoniaSyncService {
       };
 
       await SymfoniaSyncService.logSync(result, userId, 'admin');
+      notifyProgress({ phase: 'completed', current: stats.totalProcessed, total: stats.totalProcessed, percentage: 100, message: 'Synchronizacja zakończona!' });
       return result;
     } catch (error) {
       const completedAt = new Date();
@@ -211,13 +243,20 @@ export class SymfoniaSyncService {
       pool = await sql.connect(getMssqlConfig());
       // PEŁNA SYNCHRONIZACJA - tylko SELECT, nigdy INSERT/UPDATE/DELETE na MSSQL
       const result = await pool.request().query(`
+        WITH LatestMZ AS (
+          SELECT
+            idtw,
+            opis,
+            cena,
+            guid,
+            ROW_NUMBER() OVER (PARTITION BY idtw ORDER BY data DESC) as rn
+          FROM [HM].[MZ]
+          WHERE LEN(opis) > 0 OR cena > 0
+        )
         SELECT
           tw.id AS symfonia_tw_id,
           tw.kod AS catalog_number,
-          COALESCE(
-            (SELECT TOP 1 mz.opis FROM [HM].[MZ] mz WHERE mz.idtw = tw.id AND LEN(mz.opis) > 0 ORDER BY mz.data DESC),
-            tw.nazwa
-          ) AS material_name,
+          COALESCE(mz.opis, tw.nazwa) AS material_name,
           tw.jm AS unit,
           tw.typks AS product_type,
           tw.stanmin AS min_stock_level,
@@ -227,10 +266,11 @@ export class SymfoniaSyncService {
           sm.stan AS quantity_in_stock,
           sm.wartosc AS stock_value,
           sm.magazyn AS warehouse_id,
-          (SELECT TOP 1 mz.cena FROM [HM].[MZ] mz WHERE mz.idtw = tw.id AND mz.cena > 0 ORDER BY mz.data DESC) AS unit_price,
-          (SELECT TOP 1 mz.guid FROM [HM].[MZ] mz WHERE mz.idtw = tw.id ORDER BY mz.data DESC) AS last_guid
+          mz.cena AS unit_price,
+          mz.guid AS last_guid
         FROM [HM].[TW] tw
         INNER JOIN [HM].[SM] sm ON tw.id = sm.idtw
+        LEFT JOIN LatestMZ mz ON mz.idtw = tw.id AND mz.rn = 1
         WHERE tw.typks = 'Towar'
         ORDER BY tw.kod
       `);
@@ -290,11 +330,12 @@ export class SymfoniaSyncService {
   }
 
   /**
-   * Zapisuje do PostgreSQL (upsert) - pełna synchronizacja
+   * Zapisuje do PostgreSQL (upsert) - pełna synchronizacja z batch processing
    */
   private static async upsertToWarehouseStock(
     data: SymfoniaProduct[],
-    errors: SyncError[]
+    errors: SyncError[],
+    onProgress?: ProgressCallback
   ): Promise<{ created: number; updated: number; skipped: number; errors: number }> {
     const stockRepo = AppDataSource.getRepository(WarehouseStock);
     let created = 0;
@@ -302,70 +343,96 @@ export class SymfoniaSyncService {
     let skipped = 0;
     let errorCount = 0;
 
-    for (const item of data) {
-      try {
-        if (!item.catalogNumber) {
-          skipped++;
-          continue;
+    const total = data.length;
+
+    // Przetwarzanie w batchach
+    for (let i = 0; i < data.length; i += BATCH_SIZE) {
+      const batch = data.slice(i, i + BATCH_SIZE);
+
+      // Raportuj progress
+      if (onProgress) {
+        onProgress({
+          phase: 'processing',
+          current: Math.min(i + BATCH_SIZE, total),
+          total,
+          percentage: Math.round((Math.min(i + BATCH_SIZE, total) / total) * 100),
+          message: `Przetwarzanie ${Math.min(i + BATCH_SIZE, total)}/${total} rekordów...`,
+        });
+      }
+
+      // Pobierz wszystkie istniejące rekordy dla batcha jednym zapytaniem
+      const catalogNumbers = batch.map((item) => item.catalogNumber).filter((cn) => cn != null && cn !== '');
+
+      const existingRecords = catalogNumbers.length > 0
+        ? await stockRepo
+            .createQueryBuilder('ws')
+            .where('ws.catalogNumber IN (:...catalogNumbers)', { catalogNumbers })
+            .getMany()
+        : [];
+
+      const existingMap = new Map(existingRecords.map((r) => [r.catalogNumber, r]));
+
+      // Przetwórz batch
+      for (const item of batch) {
+        try {
+          if (!item.catalogNumber) {
+            skipped++;
+            continue;
+          }
+
+          const existing = existingMap.get(item.catalogNumber);
+
+          // Mapowanie typks → materialType
+          const materialType = MaterialType.COMPONENT;
+
+          // Mapowanie aktywny → status
+          const status = item.isActive ? StockStatus.ACTIVE : StockStatus.DISCONTINUED;
+
+          // Metadata z Symfonii (JSONB)
+          const technicalSpecs = {
+            symfonia_tw_id: item.symfoniaTwId,
+            last_guid: item.lastGuid,
+            warehouse_id: item.warehouseId,
+            barcode: item.barcode,
+            stock_value: item.stockValue,
+          };
+
+          if (existing) {
+            existing.materialName = item.materialName || existing.materialName;
+            existing.unit = item.unit || existing.unit;
+            existing.materialType = materialType;
+            existing.minStockLevel = item.minStockLevel ?? existing.minStockLevel;
+            existing.maxStockLevel = item.maxStockLevel ?? existing.maxStockLevel;
+            existing.quantityInStock = item.quantityInStock;
+            existing.unitPrice = item.unitPrice ?? existing.unitPrice;
+            existing.warehouseLocation = item.warehouseId ?? existing.warehouseLocation;
+            existing.status = status;
+            existing.technicalSpecs = { ...existing.technicalSpecs, ...technicalSpecs };
+            await stockRepo.save(existing);
+            updated++;
+          } else {
+            const stock = stockRepo.create({
+              catalogNumber: item.catalogNumber,
+              materialName: item.materialName || item.catalogNumber,
+              unit: item.unit || 'szt',
+              materialType,
+              minStockLevel: item.minStockLevel ?? undefined,
+              maxStockLevel: item.maxStockLevel ?? undefined,
+              quantityInStock: item.quantityInStock,
+              unitPrice: item.unitPrice ?? undefined,
+              warehouseLocation: item.warehouseId ?? undefined,
+              status,
+              isActive: item.isActive,
+              technicalSpecs,
+            });
+            await stockRepo.save(stock);
+            created++;
+          }
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          errors.push({ catalogNumber: item.catalogNumber, message: msg });
+          errorCount++;
         }
-
-        const existing = await stockRepo.findOne({ where: { catalogNumber: item.catalogNumber } });
-
-        // Mapowanie typks → materialType
-        // The SQL query filters for tw.typks = 'Towar', so all records here are of type COMPONENT
-        const materialType = MaterialType.COMPONENT;
-
-        // Mapowanie aktywny → status
-        const status = item.isActive ? StockStatus.ACTIVE : StockStatus.DISCONTINUED;
-
-        // Metadata z Symfonii (JSONB)
-        const technicalSpecs = {
-          symfonia_tw_id: item.symfoniaTwId,
-          last_guid: item.lastGuid,
-          warehouse_id: item.warehouseId,
-          barcode: item.barcode,
-          stock_value: item.stockValue,
-        };
-
-        if (existing) {
-          // Aktualizuj istniejący rekord
-          existing.materialName = item.materialName || existing.materialName;
-          existing.unit = item.unit || existing.unit;
-          existing.materialType = materialType;
-          existing.minStockLevel = item.minStockLevel ?? existing.minStockLevel;
-          existing.maxStockLevel = item.maxStockLevel ?? existing.maxStockLevel;
-          existing.quantityInStock = item.quantityInStock;
-          existing.unitPrice = item.unitPrice ?? existing.unitPrice;
-          existing.warehouseLocation = item.warehouseId ?? existing.warehouseLocation;
-          existing.status = status;
-          existing.technicalSpecs = { ...existing.technicalSpecs, ...technicalSpecs };
-
-          await stockRepo.save(existing);
-          updated++;
-        } else {
-          // Utwórz nowy rekord
-          const stock = stockRepo.create({
-            catalogNumber: item.catalogNumber,
-            materialName: item.materialName || item.catalogNumber,
-            unit: item.unit || 'szt',
-            materialType,
-            minStockLevel: item.minStockLevel ?? undefined,
-            maxStockLevel: item.maxStockLevel ?? undefined,
-            quantityInStock: item.quantityInStock,
-            unitPrice: item.unitPrice ?? undefined,
-            warehouseLocation: item.warehouseId ?? undefined,
-            status,
-            isActive: item.isActive,
-            technicalSpecs,
-          });
-
-          await stockRepo.save(stock);
-          created++;
-        }
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        errors.push({ catalogNumber: item.catalogNumber, message: msg });
-        errorCount++;
       }
     }
 
