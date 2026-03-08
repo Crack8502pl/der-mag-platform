@@ -11,6 +11,12 @@ jest.mock('../../../src/config/database', () => ({
   },
 }));
 
+jest.mock('../../../src/services/BomTemplateDependencyRuleService', () => ({
+  BomTemplateDependencyRuleService: {
+    getRulesForTemplate: jest.fn().mockResolvedValue([]),
+  },
+}));
+
 describe('BomSubsystemTemplateService', () => {
   let mockTemplateRepository: any;
 
