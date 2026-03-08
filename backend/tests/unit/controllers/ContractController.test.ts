@@ -343,7 +343,7 @@ describe('ContractController', () => {
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Kod kierownika nie może być pusty',
+        message: 'Brakuje wymaganych pól: customName, orderDate, managerCode, projectManagerId',
       });
     });
 
@@ -412,7 +412,7 @@ describe('ContractController', () => {
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Kreator wymaga co najmniej jednego zadania',
+        message: 'Kontrakt musi mieć co najmniej jeden podsystem',
       });
     });
 
@@ -430,7 +430,7 @@ describe('ContractController', () => {
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Kreator wymaga co najmniej jednego zadania',
+        message: 'Kontrakt musi mieć co najmniej jeden podsystem',
       });
     });
 
