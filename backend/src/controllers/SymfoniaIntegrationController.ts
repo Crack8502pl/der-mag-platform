@@ -189,6 +189,57 @@ export class SymfoniaIntegrationController {
   }
 
   /**
+   * GET /api/admin/symfonia-integration/global-search
+   * Query params: value (required), exact (optional, default false)
+   *
+   * Automatycznie przeszukuje wszystkie tabele i kolumny tekstowe.
+   * Zwraca gdzie wartość została znaleziona.
+   */
+  static async globalSearch(req: Request, res: Response): Promise<void> {
+    try {
+      const { value, exact } = req.query;
+      if (!value || String(value).trim().length === 0) {
+        res.status(400).json({ success: false, message: 'Wymagany parametr: value' });
+        return;
+      }
+      const exactMatch = exact === 'true' || exact === '1';
+      const results = await SymfoniaMSSQLService.globalSearch(String(value), exactMatch);
+      res.json({ success: true, data: results });
+    } catch (error) {
+      console.error('❌ SymfoniaIntegrationController.globalSearch ERROR:', error);
+      const msg = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ success: false, message: msg });
+    }
+  }
+
+  /**
+   * POST /api/admin/symfonia-integration/batch-global-search
+   * Body: { values: string[], exact?: boolean }
+   *
+   * Batch wyszukiwanie wielu wartości we wszystkich tabelach (max 500 wartości).
+   */
+  static async batchGlobalSearch(req: Request, res: Response): Promise<void> {
+    try {
+      const { values, exact } = req.body;
+      if (!Array.isArray(values) || values.length === 0) {
+        res.status(400).json({ success: false, message: 'Wymagane pole: values (tablica)' });
+        return;
+      }
+      if (values.length > 500) {
+        res.status(400).json({ success: false, message: 'Maksymalnie 500 wartości naraz' });
+        return;
+      }
+      const exactMatch = exact === true || exact === 'true';
+      const result = await SymfoniaMSSQLService.batchGlobalSearch(values.map(String), exactMatch);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      console.error('❌ SymfoniaIntegrationController.batchGlobalSearch ERROR:', error);
+      const msg = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ success: false, message: msg });
+    }
+  }
+
+  /**
    * GET /api/admin/symfonia-integration/export
    * Export full schema as JSON file
    */

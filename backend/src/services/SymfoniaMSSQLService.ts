@@ -3,6 +3,14 @@
 
 import * as sql from 'mssql';
 
+export interface GlobalSearchResult {
+  tableName: string;
+  schemaName: string;
+  columnName: string;
+  matchedValue: string;
+  fullRecord: Record<string, any>;
+}
+
 const getConfig = (): sql.config => ({
   server: process.env.SYMFONIA_MSSQL_SERVER || '',
   database: process.env.SYMFONIA_MSSQL_DATABASE || '',
@@ -16,6 +24,9 @@ const getConfig = (): sql.config => ({
   connectionTimeout: 10000,
   requestTimeout: 30000,
 });
+
+/** Timeout in milliseconds for per-table search queries during global search */
+const TABLE_SEARCH_TIMEOUT_MS = 5000;
 
 export class SymfoniaMSSQLService {
   /**
@@ -323,6 +334,187 @@ export class SymfoniaMSSQLService {
     } finally {
       await pool.close();
     }
+  }
+
+  /**
+   * Przeszukaj jedną tabelę w podanych kolumnach tekstowych w poszukiwaniu wartości.
+   * Zwraca wyniki z informacją, w której kolumnie nastąpiło trafienie.
+   */
+  private static async searchTableForValue(
+    pool: sql.ConnectionPool,
+    schema: string,
+    tableName: string,
+    columns: string[],
+    searchValue: string,
+    exactMatch: boolean,
+  ): Promise<GlobalSearchResult[]> {
+    const results: GlobalSearchResult[] = [];
+    if (columns.length === 0) return results;
+
+    if (!/^[A-Za-z0-9_]+$/.test(schema) || !/^[A-Za-z0-9_]+$/.test(tableName)) {
+      return results;
+    }
+
+    const validColumns = columns.filter((c) => /^[A-Za-z0-9_]+$/.test(c));
+    if (validColumns.length === 0) return results;
+
+    const safeName = `[${schema}].[${tableName}]`;
+
+    try {
+      const request = pool.request();
+      request.timeout = TABLE_SEARCH_TIMEOUT_MS;
+      request.input('searchValue', sql.NVarChar, exactMatch ? searchValue : `%${searchValue}%`);
+      const operator = exactMatch ? '=' : 'LIKE';
+
+      const unionParts = validColumns.map((col) => {
+        const safeCol = `[${col}]`;
+        // The column name is already validated to contain only [A-Za-z0-9_],
+        // so it is safe to embed directly in the SQL literal.
+        const escapedCol = col.replace(/'/g, "''");
+        return `SELECT TOP 5 *, N'${escapedCol}' AS __matchedColumn FROM ${safeName} WHERE CAST(${safeCol} AS NVARCHAR(MAX)) ${operator} @searchValue`;
+      });
+
+      const query = unionParts.join('\nUNION ALL\n');
+      const result = await request.query(query);
+
+      for (const row of result.recordset) {
+        const matchedColumn: string = row.__matchedColumn;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { __matchedColumn, ...fullRecord } = row;
+        results.push({
+          tableName,
+          schemaName: schema,
+          columnName: matchedColumn,
+          matchedValue: String(row[matchedColumn] ?? ''),
+          fullRecord,
+        });
+      }
+    } catch {
+      // Pomiń tabelę jeśli zapytanie nie powiodło się (np. timeout, brak uprawnień)
+    }
+
+    return results;
+  }
+
+  /**
+   * Globalne wyszukiwanie wartości we wszystkich tabelach i kolumnach tekstowych.
+   * Automatycznie przeszukuje całą bazę danych (max 50 tabel, kolumny: varchar/nvarchar/char/nchar/text/ntext).
+   * Opcjonalnie przyjmuje zewnętrzny pool (do ponownego użycia przy batch search).
+   */
+  static async globalSearch(searchValue: string, exactMatch: boolean = false): Promise<GlobalSearchResult[]> {
+    if (!searchValue || searchValue.trim().length === 0) {
+      throw new Error('Wartość do wyszukania nie może być pusta');
+    }
+    const pool = await sql.connect(getConfig());
+    try {
+      return await SymfoniaMSSQLService._globalSearchWithPool(pool, searchValue, exactMatch);
+    } finally {
+      await pool.close();
+    }
+  }
+
+  /**
+   * Internal: run global search on an already-open pool.
+   * Used by both globalSearch (single-value) and batchGlobalSearch (multi-value, same pool).
+   */
+  private static async _globalSearchWithPool(
+    pool: sql.ConnectionPool,
+    searchValue: string,
+    exactMatch: boolean,
+  ): Promise<GlobalSearchResult[]> {
+    const MAX_TABLES = 50;
+    const BATCH_SIZE = 5;
+    const results: GlobalSearchResult[] = [];
+
+    // Pobierz wszystkie kolumny tekstowe z tabel użytkownika (nie systemowych)
+    const columnsResult = await pool.request().query(`
+      SELECT
+        c.TABLE_SCHEMA AS [schema],
+        c.TABLE_NAME AS [tableName],
+        c.COLUMN_NAME AS [columnName]
+      FROM INFORMATION_SCHEMA.COLUMNS c
+      INNER JOIN INFORMATION_SCHEMA.TABLES t
+        ON c.TABLE_SCHEMA = t.TABLE_SCHEMA
+        AND c.TABLE_NAME = t.TABLE_NAME
+      WHERE t.TABLE_TYPE = 'BASE TABLE'
+        AND c.TABLE_SCHEMA NOT IN ('sys', 'INFORMATION_SCHEMA')
+        AND c.DATA_TYPE IN ('varchar', 'nvarchar', 'char', 'nchar', 'text', 'ntext')
+      ORDER BY c.TABLE_SCHEMA, c.TABLE_NAME, c.COLUMN_NAME
+    `);
+
+    // Zgrupuj kolumny według tabeli
+    const tableMap = new Map<string, { schema: string; tableName: string; columns: string[] }>();
+    for (const row of columnsResult.recordset) {
+      const key = `${row.schema}.${row.tableName}`;
+      if (!tableMap.has(key)) {
+        tableMap.set(key, { schema: row.schema, tableName: row.tableName, columns: [] });
+      }
+      tableMap.get(key)!.columns.push(row.columnName);
+    }
+
+    const tables = [...tableMap.values()].slice(0, MAX_TABLES);
+
+    // Przeszukuj tabele równolegle w grupach po BATCH_SIZE
+    for (let i = 0; i < tables.length; i += BATCH_SIZE) {
+      const batch = tables.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map((t) =>
+          SymfoniaMSSQLService.searchTableForValue(pool, t.schema, t.tableName, t.columns, searchValue, exactMatch),
+        ),
+      );
+      for (const tableResults of batchResults) {
+        results.push(...tableResults);
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Batch globalne wyszukiwanie - wyszukaj wiele wartości automatycznie w całej bazie.
+   * Limit: 500 wartości naraz. Używa jednego poolingu dla wszystkich wartości.
+   */
+  static async batchGlobalSearch(
+    values: string[],
+    exactMatch: boolean = false,
+  ): Promise<{
+    found: Array<{ searchedValue: string; results: GlobalSearchResult[] }>;
+    notFound: string[];
+    stats: { totalSearched: number; totalFound: number; totalNotFound: number };
+  }> {
+    const safeValues = [...new Set(values.map((v) => String(v).trim()).filter((v) => v.length > 0))].slice(0, 500);
+
+    if (safeValues.length === 0) {
+      throw new Error('Brak wartości do wyszukania');
+    }
+
+    const found: Array<{ searchedValue: string; results: GlobalSearchResult[] }> = [];
+    const notFound: string[] = [];
+
+    // Użyj jednego połączenia dla całego batch
+    const pool = await sql.connect(getConfig());
+    try {
+      for (const value of safeValues) {
+        const results = await SymfoniaMSSQLService._globalSearchWithPool(pool, value, exactMatch);
+        if (results.length > 0) {
+          found.push({ searchedValue: value, results });
+        } else {
+          notFound.push(value);
+        }
+      }
+    } finally {
+      await pool.close();
+    }
+
+    return {
+      found,
+      notFound,
+      stats: {
+        totalSearched: safeValues.length,
+        totalFound: found.length,
+        totalNotFound: notFound.length,
+      },
+    };
   }
 
   /**

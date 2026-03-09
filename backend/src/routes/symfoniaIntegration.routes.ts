@@ -21,5 +21,7 @@ router.get('/tables/:tableName', SymfoniaIntegrationController.getTableStructure
 router.get('/foreign-keys', SymfoniaIntegrationController.getForeignKeys);
 router.get('/views', SymfoniaIntegrationController.getViews);
 router.get('/export', SymfoniaIntegrationController.exportSchema);
+router.get('/global-search', SymfoniaIntegrationController.globalSearch);
+router.post('/batch-global-search', SymfoniaIntegrationController.batchGlobalSearch);
 
 export default router;
