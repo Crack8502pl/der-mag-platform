@@ -85,6 +85,45 @@ export class SymfoniaIntegrationService {
     link.remove();
     window.URL.revokeObjectURL(url);
   }
+
+  async searchInTable(
+    schema: string,
+    tableName: string,
+    columnName: string,
+    searchValue: string,
+    limit: number = 100
+  ): Promise<any[]> {
+    const response = await api.get(`${BASE}/tables/${encodeURIComponent(tableName)}/search`, {
+      params: { schema, column: columnName, value: searchValue, limit },
+    });
+    return response.data.data;
+  }
+
+  async batchSearch(
+    schema: string,
+    tableName: string,
+    columnName: string,
+    values: string[]
+  ): Promise<{ found: any[]; notFound: string[] }> {
+    const response = await api.post(`${BASE}/tables/${encodeURIComponent(tableName)}/batch-search`, {
+      schema,
+      columnName,
+      values,
+    });
+    return response.data.data;
+  }
+
+  async getTableDataPaginated(
+    schema: string,
+    tableName: string,
+    page: number,
+    pageSize: number
+  ): Promise<{ data: any[]; total: number; page: number; pageSize: number }> {
+    const response = await api.get(`${BASE}/tables/${encodeURIComponent(tableName)}/data-paginated`, {
+      params: { schema, page, pageSize },
+    });
+    return response.data.data;
+  }
 }
 
 export default new SymfoniaIntegrationService();
