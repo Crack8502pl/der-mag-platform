@@ -369,11 +369,28 @@ export class SymfoniaSyncService {
     let skipped = 0;
     let errorCount = 0;
 
-    const total = data.length;
+    // Deduplicate: remove duplicate catalogNumbers from input data (last one wins)
+    const uniqueData = new Map<string, SymfoniaProduct>();
+    for (const item of data) {
+      if (item.catalogNumber) {
+        uniqueData.set(item.catalogNumber, item);
+      } else {
+        skipped++;
+      }
+    }
+
+    const deduplicatedData = Array.from(uniqueData.values());
+    const duplicatesRemoved = data.length - deduplicatedData.length - skipped;
+
+    if (duplicatesRemoved > 0) {
+      console.log(`⚠️ Usunięto ${duplicatesRemoved} duplikatów z danych Symfonii`);
+    }
+
+    const total = deduplicatedData.length;
 
     // Przetwarzanie w batchach
-    for (let i = 0; i < data.length; i += BATCH_SIZE) {
-      const batch = data.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < deduplicatedData.length; i += BATCH_SIZE) {
+      const batch = deduplicatedData.slice(i, i + BATCH_SIZE);
 
       // Raportuj progress
       if (onProgress) {

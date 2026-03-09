@@ -1,7 +1,7 @@
 // src/components/admin/SymfoniaSyncPage.tsx
 // Admin panel for Symfonia synchronization: Magazyn (Warehouse) and Kontrakty (Contracts)
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import symfoniaSyncService, { type SyncResult, type SyncStatus, type SyncHistory, type SyncProgress } from '../../services/symfoniaSync.service';
 import { ModuleIcon } from '../common/ModuleIcon';
@@ -64,11 +64,16 @@ const SyncSection: React.FC<SyncSectionProps> = ({
   const [syncError, setSyncError] = useState('');
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
 
+  const onLoadStatusRef = useRef(onLoadStatus);
+  const onLoadHistoryRef = useRef(onLoadHistory);
+  useEffect(() => { onLoadStatusRef.current = onLoadStatus; }, [onLoadStatus]);
+  useEffect(() => { onLoadHistoryRef.current = onLoadHistory; }, [onLoadHistory]);
+
   const loadStatus = useCallback(async () => {
     setStatusLoading(true);
     setStatusError('');
     try {
-      const data = await onLoadStatus();
+      const data = await onLoadStatusRef.current();
       setStatus(data);
     } catch (err: any) {
       console.error('Error loading sync status:', err);
@@ -76,13 +81,13 @@ const SyncSection: React.FC<SyncSectionProps> = ({
     } finally {
       setStatusLoading(false);
     }
-  }, [onLoadStatus]);
+  }, []);
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true);
     setHistoryError('');
     try {
-      const data = await onLoadHistory(10);
+      const data = await onLoadHistoryRef.current(10);
       setHistory(data);
     } catch (err: any) {
       console.error('Error loading sync history:', err);
@@ -90,12 +95,14 @@ const SyncSection: React.FC<SyncSectionProps> = ({
     } finally {
       setHistoryLoading(false);
     }
-  }, [onLoadHistory]);
+  }, []);
 
   useEffect(() => {
     loadStatus();
     loadHistory();
-  }, [loadStatus, loadHistory]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Only run on mount; callbacks are stable via refs to avoid re-render polling loop
+  }, []);
 
   const handleFullSync = async () => {
     setSyncLoading('full');
