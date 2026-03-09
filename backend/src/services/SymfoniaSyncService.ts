@@ -592,11 +592,10 @@ export class SymfoniaSyncService {
   ): Promise<void> {
     try {
       const importRepo = AppDataSource.getRepository(MaterialImport);
-      const syncLabel = result.syncType === 'full' ? 'SYMFONIA_FULL' : 'SYMFONIA_QUICK';
       const timestamp = result.startedAt.toISOString().replace('T', ' ').substring(0, 19);
 
       const importLog = importRepo.create({
-        filename: `${syncLabel.toLowerCase()}-${result.startedAt.toISOString()}`,
+        filename: `symfonia_warehouse_${result.syncType}-${result.startedAt.toISOString()}`,
         status: SymfoniaSyncService.determineSyncStatus(result),
         totalRows: result.stats.totalProcessed,
         newItems: result.stats.created,
@@ -629,12 +628,12 @@ export class SymfoniaSyncService {
     const [lastFullRecord, lastQuickRecord] = await Promise.all([
       importRepo
         .createQueryBuilder('i')
-        .where("i.filename LIKE 'symfonia_full-%'")
+        .where("i.filename LIKE 'symfonia_warehouse_full-%'")
         .orderBy('i.createdAt', 'DESC')
         .getOne(),
       importRepo
         .createQueryBuilder('i')
-        .where("i.filename LIKE 'symfonia_quick-%'")
+        .where("i.filename LIKE 'symfonia_warehouse_quick-%'")
         .orderBy('i.createdAt', 'DESC')
         .getOne(),
     ]);
@@ -662,14 +661,14 @@ export class SymfoniaSyncService {
 
     const records = await importRepo
       .createQueryBuilder('i')
-      .where("i.filename LIKE 'symfonia_%'")
+      .where("i.filename LIKE 'symfonia_warehouse_%'")
       .orderBy('i.createdAt', 'DESC')
       .take(limit)
       .getMany();
 
     return records.map((r) => {
       const meta = (r.diffPreview as any) || {};
-      const syncType: 'full' | 'quick' = r.filename.startsWith('symfonia_full') ? 'full' : 'quick';
+      const syncType: 'full' | 'quick' = r.filename.startsWith('symfonia_warehouse_full') ? 'full' : 'quick';
       const importStatus = r.status === 'completed' ? 'success' : r.status === 'partial' ? 'partial' : 'failed';
 
       return {

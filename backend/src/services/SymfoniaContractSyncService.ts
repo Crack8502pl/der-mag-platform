@@ -482,11 +482,10 @@ export class SymfoniaContractSyncService {
   ): Promise<void> {
     try {
       const importRepo = AppDataSource.getRepository(MaterialImport);
-      const syncLabel = result.syncType === 'full' ? 'SYMFONIA_CONTRACTS_FULL' : 'SYMFONIA_CONTRACTS_QUICK';
       const timestamp = result.startedAt.toISOString().replace('T', ' ').substring(0, 19);
 
       const importLog = importRepo.create({
-        filename: `${syncLabel.toLowerCase()}-${result.startedAt.toISOString()}`,
+        filename: `symfonia_contracts_${result.syncType}-${result.startedAt.toISOString()}`,
         status: SymfoniaContractSyncService.determineSyncStatus(result),
         totalRows: result.stats.totalProcessed,
         newItems: result.stats.created,
