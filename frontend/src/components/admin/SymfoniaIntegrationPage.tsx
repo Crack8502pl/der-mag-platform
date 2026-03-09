@@ -10,6 +10,7 @@ import symfoniaService, {
   type SymfoniaForeignKey,
   type SymfoniaView,
   type GlobalSearchResult,
+  type GlobalSearchStats,
   type BatchGlobalSearchResult,
 } from '../../services/symfoniaIntegration.service';
 import { parseCSVColumn, parseCSVHeaders } from '../../utils/csvParser';
@@ -70,6 +71,7 @@ export const SymfoniaIntegrationPage: React.FC = () => {
   const [globalSearchValue, setGlobalSearchValue] = useState('');
   const [globalSearchExact, setGlobalSearchExact] = useState(false);
   const [globalSearchResults, setGlobalSearchResults] = useState<GlobalSearchResult[] | null>(null);
+  const [globalSearchStats, setGlobalSearchStats] = useState<GlobalSearchStats | null>(null);
   const [globalSearchLoading, setGlobalSearchLoading] = useState(false);
   const [globalSearchError, setGlobalSearchError] = useState('');
 
@@ -194,9 +196,11 @@ export const SymfoniaIntegrationPage: React.FC = () => {
     setGlobalSearchLoading(true);
     setGlobalSearchError('');
     setGlobalSearchResults(null);
+    setGlobalSearchStats(null);
     try {
-      const results = await symfoniaService.globalSearch(globalSearchValue.trim(), globalSearchExact);
+      const { results, stats } = await symfoniaService.globalSearch(globalSearchValue.trim(), globalSearchExact);
       setGlobalSearchResults(results);
+      setGlobalSearchStats(stats);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Błąd podczas wyszukiwania globalnego';
       setGlobalSearchError(msg);
@@ -498,7 +502,7 @@ export const SymfoniaIntegrationPage: React.FC = () => {
               {globalSearchResults !== null && (
                 <button
                   className="btn btn-secondary"
-                  onClick={() => { setGlobalSearchResults(null); setGlobalSearchError(''); }}
+                  onClick={() => { setGlobalSearchResults(null); setGlobalSearchStats(null); setGlobalSearchError(''); }}
                 >
                   Wyczyść
                 </button>
@@ -508,6 +512,21 @@ export const SymfoniaIntegrationPage: React.FC = () => {
 
           {globalSearchError && (
             <p className="alert alert-error" style={{ marginBottom: '0.75rem' }}>{globalSearchError}</p>
+          )}
+
+          {globalSearchLoading && (
+            <div style={{ marginBottom: '0.75rem', padding: '0.75rem', background: 'var(--bg-secondary, #f9f9f9)', borderRadius: '6px', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+              ⏳ Przeszukiwanie bazy danych (do 100 tabel, kolumny tekstowe i numeryczne)...
+            </div>
+          )}
+
+          {globalSearchStats && (
+            <div style={{ marginBottom: '0.5rem', padding: '0.5rem 0.75rem', background: 'var(--bg-secondary, #f0f4ff)', borderRadius: '6px', fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+              📊 Przeszukano <strong>{globalSearchStats.tablesSearched}</strong> tabel
+              {globalSearchStats.tablesSkipped > 0 && (
+                <span> (pominięto <strong>{globalSearchStats.tablesSkipped}</strong> pustych)</span>
+              )}
+            </div>
           )}
 
           {globalSearchResults !== null && (

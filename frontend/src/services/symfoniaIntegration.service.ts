@@ -45,6 +45,16 @@ export interface GlobalSearchResult {
   fullRecord: Record<string, any>;
 }
 
+export interface GlobalSearchStats {
+  tablesSearched: number;
+  tablesSkipped: number;
+}
+
+export interface GlobalSearchResponse {
+  results: GlobalSearchResult[];
+  stats: GlobalSearchStats;
+}
+
 export interface BatchGlobalSearchResult {
   found: Array<{ searchedValue: string; results: GlobalSearchResult[] }>;
   notFound: string[];
@@ -139,7 +149,7 @@ export class SymfoniaIntegrationService {
     return response.data.data;
   }
 
-  async globalSearch(value: string, exact?: boolean): Promise<GlobalSearchResult[]> {
+  async globalSearch(value: string, exact?: boolean): Promise<GlobalSearchResponse> {
     const response = await api.get(`${BASE}/global-search`, {
       params: { value, exact: exact ? 'true' : undefined },
     });
