@@ -37,6 +37,20 @@ export interface SymfoniaView {
   name: string;
 }
 
+export interface GlobalSearchResult {
+  tableName: string;
+  schemaName: string;
+  columnName: string;
+  matchedValue: string;
+  fullRecord: Record<string, any>;
+}
+
+export interface BatchGlobalSearchResult {
+  found: Array<{ searchedValue: string; results: GlobalSearchResult[] }>;
+  notFound: string[];
+  stats: { totalSearched: number; totalFound: number; totalNotFound: number };
+}
+
 const BASE = '/admin/symfonia-integration';
 
 export class SymfoniaIntegrationService {
@@ -122,6 +136,18 @@ export class SymfoniaIntegrationService {
     const response = await api.get(`${BASE}/tables/${encodeURIComponent(tableName)}/data-paginated`, {
       params: { schema, page, pageSize },
     });
+    return response.data.data;
+  }
+
+  async globalSearch(value: string, exact?: boolean): Promise<GlobalSearchResult[]> {
+    const response = await api.get(`${BASE}/global-search`, {
+      params: { value, exact: exact ? 'true' : undefined },
+    });
+    return response.data.data;
+  }
+
+  async batchGlobalSearch(values: string[], exact?: boolean): Promise<BatchGlobalSearchResult> {
+    const response = await api.post(`${BASE}/batch-global-search`, { values, exact: exact ?? false });
     return response.data.data;
   }
 }
