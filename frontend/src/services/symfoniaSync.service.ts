@@ -1,5 +1,5 @@
 // src/services/symfoniaSync.service.ts
-// Frontend service for Symfonia warehouse stock sync API
+// Frontend service for Symfonia warehouse stock sync and contracts sync API
 
 import api from './api';
 
@@ -58,6 +58,8 @@ export interface SyncProgress {
 const BASE = '/admin/symfonia-sync';
 
 export class SymfoniaSyncService {
+  // ── Magazyn (Warehouse) ──────────────────────────────────────────────────
+
   async fullSync(): Promise<SyncResult> {
     const response = await api.post(`${BASE}/full`, {}, { timeout: 300000 }); // 5 minut
     return response.data.data;
@@ -75,6 +77,28 @@ export class SymfoniaSyncService {
 
   async getHistory(limit: number = 10): Promise<SyncHistory[]> {
     const response = await api.get(`${BASE}/history`, { params: { limit } });
+    return response.data.data;
+  }
+
+  // ── Kontrakty (Contracts) ────────────────────────────────────────────────
+
+  async contractsFullSync(): Promise<SyncResult> {
+    const response = await api.post(`${BASE}/contracts/full`, {}, { timeout: 300000 }); // 5 minut
+    return response.data.data;
+  }
+
+  async contractsQuickSync(): Promise<SyncResult> {
+    const response = await api.post(`${BASE}/contracts/quick`, {}, { timeout: 120000 }); // 2 minuty
+    return response.data.data;
+  }
+
+  async getContractsStatus(): Promise<SyncStatus> {
+    const response = await api.get(`${BASE}/contracts/status`);
+    return response.data.data;
+  }
+
+  async getContractsHistory(limit: number = 10): Promise<SyncHistory[]> {
+    const response = await api.get(`${BASE}/contracts/history`, { params: { limit } });
     return response.data.data;
   }
 }
