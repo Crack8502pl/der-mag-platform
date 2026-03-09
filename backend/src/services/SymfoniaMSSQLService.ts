@@ -25,9 +25,6 @@ const getConfig = (): sql.config => ({
   requestTimeout: 30000,
 });
 
-/** Timeout in milliseconds for per-table search queries during global search */
-const TABLE_SEARCH_TIMEOUT_MS = 5000;
-
 export class SymfoniaMSSQLService {
   /**
    * Test connection to MSSQL database
@@ -362,7 +359,8 @@ export class SymfoniaMSSQLService {
 
     try {
       const request = pool.request();
-      request.timeout = TABLE_SEARCH_TIMEOUT_MS;
+      // Per-request timeout is not supported by the mssql TypeScript typings.
+      // Global query timeout is controlled via `requestTimeout` in getConfig().
       request.input('searchValue', sql.NVarChar, exactMatch ? searchValue : `%${searchValue}%`);
       const operator = exactMatch ? '=' : 'LIKE';
 
