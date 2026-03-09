@@ -212,6 +212,118 @@ export class SymfoniaMSSQLService {
   }
 
   /**
+   * Wyszukaj rekordy po wartości w konkretnej kolumnie (LIKE search)
+   */
+  static async searchInTable(
+    schema: string,
+    tableName: string,
+    columnName: string,
+    searchValue: string,
+    limit: number = 100
+  ): Promise<any[]> {
+    if (!/^[A-Za-z0-9_]+$/.test(schema)) {
+      throw new Error('Nieprawidłowa nazwa schematu');
+    }
+    if (!/^[A-Za-z0-9_]+$/.test(tableName)) {
+      throw new Error('Nieprawidłowa nazwa tabeli');
+    }
+    if (!/^[A-Za-z0-9_]+$/.test(columnName)) {
+      throw new Error('Nieprawidłowa nazwa kolumny');
+    }
+    const safeLimit = Math.min(Math.max(1, limit), 500);
+    const safeName = `[${schema}].[${tableName}]`;
+    const safeColumn = `[${columnName}]`;
+    const pool = await sql.connect(getConfig());
+    try {
+      const request = pool.request();
+      request.input('searchValue', sql.NVarChar, `%${searchValue}%`);
+      const result = await request.query(
+        `SELECT TOP ${safeLimit} * FROM ${safeName} WHERE CAST(${safeColumn} AS NVARCHAR(MAX)) LIKE @searchValue`
+      );
+      return result.recordset;
+    } finally {
+      await pool.close();
+    }
+  }
+
+  /**
+   * Batch search - wyszukaj wiele wartości naraz (dla CSV)
+   * Używa IN clause dla dokładnego dopasowania
+   */
+  static async batchSearchByValues(
+    schema: string,
+    tableName: string,
+    columnName: string,
+    values: string[]
+  ): Promise<{ found: any[]; notFound: string[] }> {
+    if (!/^[A-Za-z0-9_]+$/.test(schema)) {
+      throw new Error('Nieprawidłowa nazwa schematu');
+    }
+    if (!/^[A-Za-z0-9_]+$/.test(tableName)) {
+      throw new Error('Nieprawidłowa nazwa tabeli');
+    }
+    if (!/^[A-Za-z0-9_]+$/.test(columnName)) {
+      throw new Error('Nieprawidłowa nazwa kolumny');
+    }
+    const safeValues = values.slice(0, 1000);
+    const safeName = `[${schema}].[${tableName}]`;
+    const safeColumn = `[${columnName}]`;
+    const pool = await sql.connect(getConfig());
+    try {
+      const request = pool.request();
+      const placeholders = safeValues.map((v, i) => {
+        request.input(`val${i}`, sql.NVarChar, v);
+        return `@val${i}`;
+      });
+      const result = await request.query(
+        `SELECT * FROM ${safeName} WHERE CAST(${safeColumn} AS NVARCHAR(MAX)) IN (${placeholders.join(', ')})`
+      );
+      const found: any[] = result.recordset;
+      const foundValues = new Set(
+        found.map((row) => String(row[columnName]))
+      );
+      const notFound = safeValues.filter((v) => !foundValues.has(v));
+      return { found, notFound };
+    } finally {
+      await pool.close();
+    }
+  }
+
+  /**
+   * Pobierz dane z paginacją (zamiast tylko TOP 10)
+   */
+  static async getTableDataPaginated(
+    schema: string,
+    tableName: string,
+    page: number = 1,
+    pageSize: number = 50
+  ): Promise<{ data: any[]; total: number; page: number; pageSize: number }> {
+    if (!/^[A-Za-z0-9_]+$/.test(schema)) {
+      throw new Error('Nieprawidłowa nazwa schematu');
+    }
+    if (!/^[A-Za-z0-9_]+$/.test(tableName)) {
+      throw new Error('Nieprawidłowa nazwa tabeli');
+    }
+    const safePage = Math.max(1, page);
+    const safePageSize = Math.min(Math.max(1, pageSize), 500);
+    const offset = (safePage - 1) * safePageSize;
+    const safeName = `[${schema}].[${tableName}]`;
+    const pool = await sql.connect(getConfig());
+    try {
+      const countResult = await pool.request().query(
+        `SELECT COUNT(*) AS [total] FROM ${safeName}`
+      );
+      const total: number = countResult.recordset[0].total;
+      const dataResult = await pool.request().query(
+        `SELECT * FROM ${safeName} ORDER BY 1 OFFSET ${offset} ROWS FETCH NEXT ${safePageSize} ROWS ONLY`
+      );
+      return { data: dataResult.recordset, total, page: safePage, pageSize: safePageSize };
+    } finally {
+      await pool.close();
+    }
+  }
+
+  /**
    * Export full schema (tables + structures + foreign keys + views)
    */
   static async exportFullSchema(): Promise<object> {

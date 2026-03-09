@@ -101,6 +101,91 @@ export class SymfoniaIntegrationController {
   }
 
   /**
+   * GET /api/admin/symfonia-integration/tables/:tableName/search
+   * Search in table by column value (LIKE)
+   * Query params: schema, column, value, limit
+   */
+  static async searchInTable(req: Request, res: Response): Promise<void> {
+    try {
+      const { tableName } = req.params;
+      const { schema = 'dbo', column, value, limit } = req.query;
+      if (!column || !value) {
+        res.status(400).json({ success: false, message: 'Wymagane parametry: column, value' });
+        return;
+      }
+      const safeLimit = Math.min(parseInt(String(limit || '100'), 10), 500);
+      const data = await SymfoniaMSSQLService.searchInTable(
+        String(schema),
+        tableName,
+        String(column),
+        String(value),
+        safeLimit
+      );
+      res.json({ success: true, data });
+    } catch (error) {
+      console.error('❌ SymfoniaIntegrationController ERROR:', error);
+      const msg = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ success: false, message: msg });
+    }
+  }
+
+  /**
+   * POST /api/admin/symfonia-integration/tables/:tableName/batch-search
+   * Batch search - find multiple values at once (for CSV)
+   * Body: { schema, columnName, values: string[] }
+   */
+  static async batchSearch(req: Request, res: Response): Promise<void> {
+    try {
+      const { tableName } = req.params;
+      const { schema = 'dbo', columnName, values } = req.body;
+      if (!columnName || !Array.isArray(values) || values.length === 0) {
+        res.status(400).json({ success: false, message: 'Wymagane pola: columnName, values (tablica)' });
+        return;
+      }
+      if (values.length > 1000) {
+        res.status(400).json({ success: false, message: 'Maksymalnie 1000 wartości naraz' });
+        return;
+      }
+      const result = await SymfoniaMSSQLService.batchSearchByValues(
+        String(schema),
+        tableName,
+        String(columnName),
+        values.map(String)
+      );
+      res.json({ success: true, data: result });
+    } catch (error) {
+      console.error('❌ SymfoniaIntegrationController ERROR:', error);
+      const msg = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ success: false, message: msg });
+    }
+  }
+
+  /**
+   * GET /api/admin/symfonia-integration/tables/:tableName/data-paginated
+   * Get paginated table data
+   * Query params: schema, page, pageSize
+   */
+  static async getTableDataPaginated(req: Request, res: Response): Promise<void> {
+    try {
+      const { tableName } = req.params;
+      const { schema = 'dbo' } = req.query;
+      const page = Math.max(1, parseInt(String(req.query.page || '1'), 10));
+      const pageSize = Math.min(Math.max(1, parseInt(String(req.query.pageSize || '50'), 10)), 500);
+      const result = await SymfoniaMSSQLService.getTableDataPaginated(
+        String(schema),
+        tableName,
+        page,
+        pageSize
+      );
+      res.json({ success: true, data: result });
+    } catch (error) {
+      console.error('❌ SymfoniaIntegrationController ERROR:', error);
+      const msg = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ success: false, message: msg });
+    }
+  }
+
+  /**
    * GET /api/admin/symfonia-integration/export
    * Export full schema as JSON file
    */
