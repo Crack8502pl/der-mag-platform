@@ -15,6 +15,9 @@ export interface SyncResult {
     updated: number;
     skipped: number;
     errors: number;
+    reactivated?: number;
+    outOfStock?: number;
+    deactivated?: number;
   };
   errors?: Array<{ catalogNumber?: string; message: string }>;
 }

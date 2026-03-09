@@ -5,6 +5,7 @@
 import * as sql from 'mssql';
 import { AppDataSource } from '../config/database';
 import { WarehouseStock, MaterialType, StockStatus } from '../entities/WarehouseStock';
+import { WarehouseStockHistory, StockOperationType } from '../entities/WarehouseStockHistory';
 import { MaterialImport } from '../entities/MaterialImport';
 
 export interface SyncResult {
@@ -19,6 +20,9 @@ export interface SyncResult {
     updated: number;
     skipped: number;
     errors: number;
+    reactivated?: number;
+    outOfStock?: number;
+    deactivated?: number;
   };
   errors?: SyncError[];
 }
@@ -140,7 +144,7 @@ export class SymfoniaSyncService {
     isSyncRunning = true;
     const startedAt = new Date();
     const errors: SyncError[] = [];
-    let stats = { totalProcessed: 0, created: 0, updated: 0, skipped: 0, errors: 0 };
+    let stats: SyncResult['stats'] = { totalProcessed: 0, created: 0, updated: 0, skipped: 0, errors: 0 };
 
     try {
       notifyProgress({ phase: 'fetching', current: 0, total: 0, percentage: 0, message: 'Pobieranie danych z Symfonii...' });
@@ -199,7 +203,7 @@ export class SymfoniaSyncService {
     isSyncRunning = true;
     const startedAt = new Date();
     const errors: SyncError[] = [];
-    let stats = { totalProcessed: 0, created: 0, updated: 0, skipped: 0, errors: 0 };
+    let stats: SyncResult['stats'] = { totalProcessed: 0, created: 0, updated: 0, skipped: 0, errors: 0, reactivated: 0, outOfStock: 0 };
 
     try {
       const data = await SymfoniaSyncService.fetchQuickStockData();
@@ -208,6 +212,8 @@ export class SymfoniaSyncService {
       stats.updated = quickStats.updated;
       stats.skipped = quickStats.skipped;
       stats.errors = quickStats.errors;
+      stats.reactivated = quickStats.reactivated;
+      stats.outOfStock = quickStats.outOfStock;
 
       const completedAt = new Date();
       const result: SyncResult = {
@@ -465,11 +471,14 @@ export class SymfoniaSyncService {
   private static async updateQuantitiesOnly(
     data: SymfoniaQuickStock[],
     errors: SyncError[]
-  ): Promise<{ updated: number; skipped: number; errors: number }> {
+  ): Promise<{ updated: number; skipped: number; errors: number; reactivated: number; outOfStock: number }> {
     const stockRepo = AppDataSource.getRepository(WarehouseStock);
+    const historyRepo = AppDataSource.getRepository(WarehouseStockHistory);
     let updated = 0;
     let skipped = 0;
     let errorCount = 0;
+    let reactivated = 0;
+    let outOfStock = 0;
 
     for (const item of data) {
       try {
@@ -485,9 +494,57 @@ export class SymfoniaSyncService {
           continue;
         }
 
-        existing.quantityInStock = item.quantityInStock;
+        const oldQuantity = existing.quantityInStock;
+        const newQuantity = item.quantityInStock;
+        const oldStatus = existing.status;
+
+        existing.quantityInStock = newQuantity;
         if (item.warehouseId) {
           existing.warehouseLocation = item.warehouseId;
+        }
+
+        // REAKTYWACJA: jeśli stan wzrósł > 0 (z 0) i towar był DISCONTINUED lub OUT_OF_STOCK
+        if (newQuantity > 0 && oldQuantity === 0 && (oldStatus === StockStatus.DISCONTINUED || oldStatus === StockStatus.OUT_OF_STOCK)) {
+          existing.status = StockStatus.ACTIVE;
+          existing.isActive = true;
+          reactivated++;
+
+          const historyEntry = historyRepo.create({
+            warehouseStockId: existing.id,
+            operationType: StockOperationType.STATUS_CHANGE,
+            quantityBefore: oldQuantity,
+            quantityAfter: newQuantity,
+            details: {
+              reason: 'AUTO_REACTIVATION',
+              message: 'Automatyczna reaktywacja - stan wzrósł > 0',
+              previousStatus: oldStatus,
+              newStatus: StockStatus.ACTIVE,
+              source: 'symfonia_sync',
+            },
+            notes: 'Automatyczna reaktywacja przez synchronizację Symfonia',
+          });
+          await historyRepo.save(historyEntry);
+        }
+        // OUT_OF_STOCK: jeśli stan spadł do 0 (z wartości > 0) i towar był ACTIVE
+        else if (newQuantity === 0 && oldQuantity > 0 && oldStatus === StockStatus.ACTIVE) {
+          existing.status = StockStatus.OUT_OF_STOCK;
+          outOfStock++;
+
+          const historyEntry = historyRepo.create({
+            warehouseStockId: existing.id,
+            operationType: StockOperationType.STATUS_CHANGE,
+            quantityBefore: oldQuantity,
+            quantityAfter: newQuantity,
+            details: {
+              reason: 'ZERO_STOCK',
+              message: 'Stan spadł do 0',
+              previousStatus: oldStatus,
+              newStatus: StockStatus.OUT_OF_STOCK,
+              source: 'symfonia_sync',
+            },
+            notes: 'Automatyczna zmiana statusu - stan = 0',
+          });
+          await historyRepo.save(historyEntry);
         }
 
         await stockRepo.save(existing);
@@ -499,7 +556,7 @@ export class SymfoniaSyncService {
       }
     }
 
-    return { updated, skipped, errors: errorCount };
+    return { updated, skipped, errors: errorCount, reactivated, outOfStock };
   }
 
   private static determineSyncStatus(result: SyncResult): string {

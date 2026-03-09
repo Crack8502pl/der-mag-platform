@@ -114,6 +114,7 @@ export interface StockFilters {
   materialType?: MaterialType;
   lowStock?: boolean;
   warehouseLocation?: string;
+  includeDiscontinued?: boolean;
 }
 
 export interface StockPagination {
