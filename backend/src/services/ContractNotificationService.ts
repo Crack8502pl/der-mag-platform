@@ -28,6 +28,19 @@ export class ContractNotificationService {
   }
 
   /**
+   * Pobiera szczegóły kontraktu i wymaga obecności Project Managera
+   */
+  private async getContractWithProjectManager(contractId: number): Promise<Contract & { projectManager: User }> {
+    const contract = await this.getContractDetails(contractId);
+
+    if (!contract.projectManager) {
+      throw new Error(`Kontrakt ${contractId} nie ma przypisanego Project Managera`);
+    }
+
+    return contract as Contract & { projectManager: User };
+  }
+
+  /**
    * Pobiera użytkownika po ID
    */
   private async getUserById(userId: number): Promise<User> {
@@ -75,7 +88,7 @@ export class ContractNotificationService {
    */
   async notifyContractCreated(contractId: number, createdById: number): Promise<void> {
     try {
-      const contract = await this.getContractDetails(contractId);
+      const contract = await this.getContractWithProjectManager(contractId);
       const createdBy = await this.getUserById(createdById);
       const managers = await this.getManagerEmails();
 
@@ -106,7 +119,7 @@ export class ContractNotificationService {
    */
   async notifyContractApproved(contractId: number, approvedById: number): Promise<void> {
     try {
-      const contract = await this.getContractDetails(contractId);
+      const contract = await this.getContractWithProjectManager(contractId);
       const approvedBy = await this.getUserById(approvedById);
       const admins = await this.getAdminEmails();
 
@@ -141,7 +154,7 @@ export class ContractNotificationService {
    */
   async notifyContractCancelled(contractId: number, cancelledById: number, reason?: string): Promise<void> {
     try {
-      const contract = await this.getContractDetails(contractId);
+      const contract = await this.getContractWithProjectManager(contractId);
       const cancelledBy = await this.getUserById(cancelledById);
       const admins = await this.getAdminEmails();
 
@@ -177,7 +190,7 @@ export class ContractNotificationService {
    */
   async notifyContractDeadline(contractId: number, daysRemaining: number): Promise<void> {
     try {
-      const contract = await this.getContractDetails(contractId);
+      const contract = await this.getContractWithProjectManager(contractId);
 
       await EmailQueueService.addToQueue({
         to: contract.projectManager.email,
