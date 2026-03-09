@@ -1,9 +1,49 @@
 // src/routes/user.routes.ts
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { UserController } from '../controllers/UserController';
 import { authenticate, authorize } from '../middleware/auth';
+import { AppDataSource } from '../config/database';
+import { User } from '../entities/User';
 
 const router = Router();
+
+/**
+ * GET /api/users/managers
+ * Get list of users who can manage projects (admin, management_board, manager, coordinator)
+ */
+router.get('/managers', authenticate, async (req: Request, res: Response) => {
+  try {
+    const userRepository = AppDataSource.getRepository(User);
+    const managers = await userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role')
+      .where('user.active = :active', { active: true })
+      .andWhere('user.deletedAt IS NULL')
+      .andWhere('role.name IN (:...roles)', {
+        roles: ['admin', 'management_board', 'manager', 'coordinator']
+      })
+      .orderBy('user.lastName', 'ASC')
+      .addOrderBy('user.firstName', 'ASC')
+      .getMany();
+
+    res.json({
+      success: true,
+      data: managers.map((m) => ({
+        id: m.id,
+        firstName: m.firstName,
+        lastName: m.lastName,
+        employeeCode: m.employeeCode,
+        role: (m.role as any)?.name
+      }))
+    });
+  } catch (error: any) {
+    console.error('Error fetching managers:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Błąd pobierania listy kierowników'
+    });
+  }
+});
 
 /**
  * GET /api/users/project-managers
