@@ -203,8 +203,8 @@ export class SymfoniaIntegrationController {
         return;
       }
       const exactMatch = exact === 'true' || exact === '1';
-      const results = await SymfoniaMSSQLService.globalSearch(String(value), exactMatch);
-      res.json({ success: true, data: results });
+      const { results, stats } = await SymfoniaMSSQLService.globalSearch(String(value), exactMatch);
+      res.json({ success: true, data: { results, stats } });
     } catch (error) {
       console.error('❌ SymfoniaIntegrationController.globalSearch ERROR:', error);
       const msg = error instanceof Error ? error.message : String(error);

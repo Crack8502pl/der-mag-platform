@@ -395,17 +395,21 @@ export class SymfoniaMSSQLService {
   }
 
   /**
-   * Globalne wyszukiwanie wartości we wszystkich tabelach i kolumnach tekstowych.
-   * Automatycznie przeszukuje całą bazę danych (max 50 tabel, kolumny: varchar/nvarchar/char/nchar/text/ntext).
-   * Opcjonalnie przyjmuje zewnętrzny pool (do ponownego użycia przy batch search).
+   * Globalne wyszukiwanie wartości we wszystkich tabelach i kolumnach.
+   * Automatycznie przeszukuje całą bazę danych (max 100 tabel, priorytet dla schematu HM,
+   * pomija puste tabele, przeszukuje kolumny tekstowe i numeryczne).
    */
-  static async globalSearch(searchValue: string, exactMatch: boolean = false): Promise<GlobalSearchResult[]> {
+  static async globalSearch(
+    searchValue: string,
+    exactMatch: boolean = false,
+    onProgress?: (current: number, total: number, currentTable: string) => void,
+  ): Promise<{ results: GlobalSearchResult[]; stats: { tablesSearched: number; tablesSkipped: number } }> {
     if (!searchValue || searchValue.trim().length === 0) {
       throw new Error('Wartość do wyszukania nie może być pusta');
     }
     const pool = await sql.connect(getConfig());
     try {
-      return await SymfoniaMSSQLService._globalSearchWithPool(pool, searchValue, exactMatch);
+      return await SymfoniaMSSQLService._globalSearchWithPool(pool, searchValue, exactMatch, onProgress);
     } finally {
       await pool.close();
     }
@@ -419,12 +423,45 @@ export class SymfoniaMSSQLService {
     pool: sql.ConnectionPool,
     searchValue: string,
     exactMatch: boolean,
-  ): Promise<GlobalSearchResult[]> {
-    const MAX_TABLES = 50;
+    onProgress?: (current: number, total: number, currentTable: string) => void,
+  ): Promise<{ results: GlobalSearchResult[]; stats: { tablesSearched: number; tablesSkipped: number } }> {
+    const MAX_TABLES = 100;
     const BATCH_SIZE = 5;
     const results: GlobalSearchResult[] = [];
 
-    // Pobierz wszystkie kolumny tekstowe z tabel użytkownika (nie systemowych)
+    // Pobierz niepuste tabele z priorytetem dla schematu HM
+    const tablesResult = await pool.request().query(`
+      SELECT
+        s.name AS [schema],
+        t.name AS [name],
+        SUM(p.rows) AS [rowCount]
+      FROM sys.tables t
+      INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+      INNER JOIN sys.partitions p ON t.object_id = p.object_id
+      WHERE p.index_id IN (0, 1)
+      GROUP BY s.name, t.name
+      HAVING SUM(p.rows) > 0
+      ORDER BY
+        CASE WHEN s.name = 'HM' THEN 0 ELSE 1 END,
+        s.name, t.name
+    `);
+
+    const nonEmptyTableKeys = new Set<string>(
+      tablesResult.recordset.map((r: any) => `${r.schema}.${r.name}`),
+    );
+    const nonEmptyCount = tablesResult.recordset.length;
+
+    // Pobierz całkowitą liczbę tabel (łącznie z pustymi) aby obliczyć, ile pustych pominięto
+    const totalTablesResult = await pool.request().query(`
+      SELECT COUNT(*) AS [total]
+      FROM sys.tables t
+      INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+      WHERE s.name NOT IN ('sys', 'INFORMATION_SCHEMA')
+    `);
+    const totalTableCount: number = totalTablesResult.recordset[0].total;
+    const tablesSkippedEmpty = totalTableCount - nonEmptyCount;
+
+    // Pobierz kolumny tekstowe i numeryczne z tabel użytkownika (nie systemowych)
     const columnsResult = await pool.request().query(`
       SELECT
         c.TABLE_SCHEMA AS [schema],
@@ -436,36 +473,61 @@ export class SymfoniaMSSQLService {
         AND c.TABLE_NAME = t.TABLE_NAME
       WHERE t.TABLE_TYPE = 'BASE TABLE'
         AND c.TABLE_SCHEMA NOT IN ('sys', 'INFORMATION_SCHEMA')
-        AND c.DATA_TYPE IN ('varchar', 'nvarchar', 'char', 'nchar', 'text', 'ntext')
-      ORDER BY c.TABLE_SCHEMA, c.TABLE_NAME, c.COLUMN_NAME
+        AND c.DATA_TYPE IN (
+          'varchar', 'nvarchar', 'char', 'nchar', 'text', 'ntext',
+          'int', 'bigint', 'smallint', 'tinyint', 'decimal', 'numeric',
+          'float', 'real', 'money', 'smallmoney', 'uniqueidentifier'
+        )
+      ORDER BY
+        CASE WHEN c.TABLE_SCHEMA = 'HM' THEN 0 ELSE 1 END,
+        c.TABLE_SCHEMA, c.TABLE_NAME, c.COLUMN_NAME
     `);
 
-    // Zgrupuj kolumny według tabeli
+    // Zgrupuj kolumny według tabeli (tylko niepuste tabele)
     const tableMap = new Map<string, { schema: string; tableName: string; columns: string[] }>();
     for (const row of columnsResult.recordset) {
       const key = `${row.schema}.${row.tableName}`;
+      if (!nonEmptyTableKeys.has(key)) continue;
       if (!tableMap.has(key)) {
         tableMap.set(key, { schema: row.schema, tableName: row.tableName, columns: [] });
       }
       tableMap.get(key)!.columns.push(row.columnName);
     }
 
-    const tables = [...tableMap.values()].slice(0, MAX_TABLES);
+    // Priorytetyzacja: najpierw HM, potem reszta (zachowuje kolejność z ORDER BY)
+    const sortedTables = [...tableMap.values()].sort((a, b) => {
+      if (a.schema === 'HM' && b.schema !== 'HM') return -1;
+      if (a.schema !== 'HM' && b.schema === 'HM') return 1;
+      return 0;
+    });
+
+    const tables = sortedTables.slice(0, MAX_TABLES);
+    const totalTables = tables.length;
 
     // Przeszukuj tabele równolegle w grupach po BATCH_SIZE
     for (let i = 0; i < tables.length; i += BATCH_SIZE) {
       const batch = tables.slice(i, i + BATCH_SIZE);
       const batchResults = await Promise.all(
-        batch.map((t) =>
-          SymfoniaMSSQLService.searchTableForValue(pool, t.schema, t.tableName, t.columns, searchValue, exactMatch),
-        ),
+        batch.map(async (t, batchIdx) => {
+          const current = i + batchIdx + 1;
+          if (onProgress) {
+            onProgress(current, totalTables, `[${t.schema}].[${t.tableName}]`);
+          }
+          return SymfoniaMSSQLService.searchTableForValue(pool, t.schema, t.tableName, t.columns, searchValue, exactMatch);
+        }),
       );
       for (const tableResults of batchResults) {
         results.push(...tableResults);
       }
     }
 
-    return results;
+    return {
+      results,
+      stats: {
+        tablesSearched: totalTables,
+        tablesSkipped: tablesSkippedEmpty,
+      },
+    };
   }
 
   /**
@@ -493,7 +555,7 @@ export class SymfoniaMSSQLService {
     const pool = await sql.connect(getConfig());
     try {
       for (const value of safeValues) {
-        const results = await SymfoniaMSSQLService._globalSearchWithPool(pool, value, exactMatch);
+        const { results } = await SymfoniaMSSQLService._globalSearchWithPool(pool, value, exactMatch);
         if (results.length > 0) {
           found.push({ searchedValue: value, results });
         } else {

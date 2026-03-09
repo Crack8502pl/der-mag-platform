@@ -158,8 +158,13 @@ export class WarehouseStockService {
       queryBuilder.andWhere('stock.supplier = :supplier', { supplier: filters.supplier });
     }
 
+    // Domyślnie ukryj towary DISCONTINUED (chyba że użytkownik jawnie je wybierze)
     if (filters.status) {
       queryBuilder.andWhere('stock.status = :status', { status: filters.status });
+    } else {
+      queryBuilder.andWhere('stock.status != :discontinuedStatus', {
+        discontinuedStatus: StockStatus.DISCONTINUED,
+      });
     }
 
     if (filters.materialType) {

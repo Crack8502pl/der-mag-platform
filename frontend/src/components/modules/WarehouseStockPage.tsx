@@ -28,6 +28,7 @@ export const WarehouseStockPage: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<StockStatus | ''>('');
   const [filterMaterialType, setFilterMaterialType] = useState<MaterialType | ''>('');
   const [filterLowStock, setFilterLowStock] = useState(false);
+  const [showDiscontinued, setShowDiscontinued] = useState(false);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -57,7 +58,7 @@ export const WarehouseStockPage: React.FC = () => {
 
   useEffect(() => {
     loadItems();
-  }, [searchTerm, filterCategory, filterSupplier, filterStatus, filterMaterialType, filterLowStock, sortBy, sortOrder, currentPage]);
+  }, [searchTerm, filterCategory, filterSupplier, filterStatus, filterMaterialType, filterLowStock, showDiscontinued, sortBy, sortOrder, currentPage]);
 
   useEffect(() => {
     loadCategories();
@@ -73,7 +74,11 @@ export const WarehouseStockPage: React.FC = () => {
       if (searchTerm) filters.search = searchTerm;
       if (filterCategory) filters.category = filterCategory;
       if (filterSupplier) filters.supplier = filterSupplier;
-      if (filterStatus) filters.status = filterStatus as StockStatus;
+      if (showDiscontinued) {
+        filters.status = 'DISCONTINUED' as StockStatus;
+      } else if (filterStatus) {
+        filters.status = filterStatus as StockStatus;
+      }
       if (filterMaterialType) filters.materialType = filterMaterialType as MaterialType;
       if (filterLowStock) filters.lowStock = true;
       
@@ -185,7 +190,11 @@ export const WarehouseStockPage: React.FC = () => {
       if (searchTerm) filters.search = searchTerm;
       if (filterCategory) filters.category = filterCategory;
       if (filterSupplier) filters.supplier = filterSupplier;
-      if (filterStatus) filters.status = filterStatus as StockStatus;
+      if (showDiscontinued) {
+        filters.status = 'DISCONTINUED' as StockStatus;
+      } else if (filterStatus) {
+        filters.status = filterStatus as StockStatus;
+      }
       if (filterMaterialType) filters.materialType = filterMaterialType as MaterialType;
       if (filterLowStock) filters.lowStock = true;
       
@@ -339,6 +348,18 @@ export const WarehouseStockPage: React.FC = () => {
               }}
             />
             <span>Tylko niskie stany</span>
+          </label>
+
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={showDiscontinued}
+              onChange={(e) => {
+                setShowDiscontinued(e.target.checked);
+                setCurrentPage(1);
+              }}
+            />
+            <span>🚫 Pokaż wycofane</span>
           </label>
           
           <div className="items-count">

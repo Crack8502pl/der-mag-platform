@@ -13,6 +13,7 @@ import EmailService from './services/EmailService';
 import EmailQueueService from './services/EmailQueueService';
 import NotificationSchedulerService from './services/NotificationSchedulerService';
 import { startSymfoniaStockSyncJob, stopSymfoniaStockSyncJob } from './jobs/symfoniaStockSync.job';
+import { scheduleWarehouseCleanup, stopWarehouseCleanupJob } from './jobs/warehouseCleanupJob';
 
 const PORT = process.env.PORT || 3000;
 const USE_HTTPS = process.env.USE_HTTPS === 'true';
@@ -39,6 +40,10 @@ const startServer = async () => {
     // Inicjalizacja CRON synchronizacji Symfonia
     console.log('🔄 Inicjalizacja synchronizacji stanów magazynowych Symfonia...');
     startSymfoniaStockSyncJob();
+
+    // Inicjalizacja CRON czyszczenia magazynu
+    console.log('🧹 Inicjalizacja automatycznego czyszczenia magazynu...');
+    scheduleWarehouseCleanup();
 
     // Start serwera z HTTPS lub HTTP
     if (USE_HTTPS) {
@@ -107,6 +112,7 @@ process.on('SIGTERM', async () => {
   console.log('👋 SIGTERM received, shutting down gracefully');
   NotificationSchedulerService.stopAll();
   stopSymfoniaStockSyncJob();
+  stopWarehouseCleanupJob();
   await EmailQueueService.close();
   process.exit(0);
 });
@@ -114,6 +120,7 @@ process.on('SIGTERM', async () => {
 process.on('SIGINT', async () => {
   console.log('👋 SIGINT received, shutting down gracefully');
   stopSymfoniaStockSyncJob();
+  stopWarehouseCleanupJob();
   await EmailQueueService.close();
   process.exit(0);
 });
