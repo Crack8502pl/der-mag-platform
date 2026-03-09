@@ -166,7 +166,10 @@ export const SymfoniaIntegrationPage: React.FC = () => {
     tableSearch[key] || { column: '', value: '', results: null, loading: false, error: '' };
 
   const updateSearchState = (key: string, patch: Partial<TableSearchState>) => {
-    setTableSearch((prev) => ({ ...prev, [key]: { ...getSearchState(key), ...patch } }));
+    setTableSearch((prev) => {
+      const current = prev[key] || { column: '', value: '', results: null, loading: false, error: '' };
+      return { ...prev, [key]: { ...current, ...patch } };
+    });
   };
 
   const handleSearch = async (table: SymfoniaTable) => {
@@ -191,7 +194,10 @@ export const SymfoniaIntegrationPage: React.FC = () => {
     tablePagination[key] || { page: 1, pageSize: 50, total: 0, data: [], loading: false, error: '', active: false };
 
   const updatePaginationState = (key: string, patch: Partial<TablePaginationState>) => {
-    setTablePagination((prev) => ({ ...prev, [key]: { ...getPaginationState(key), ...patch } }));
+    setTablePagination((prev) => {
+      const current = prev[key] || { page: 1, pageSize: 50, total: 0, data: [], loading: false, error: '', active: false };
+      return { ...prev, [key]: { ...current, ...patch } };
+    });
   };
 
   const handleLoadPaginatedData = async (table: SymfoniaTable, page: number, pageSize: number) => {
@@ -344,11 +350,21 @@ export const SymfoniaIntegrationPage: React.FC = () => {
                 <select
                   className="form-select"
                   value={batchTable}
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const selected = tables.find((t) => `${t.schema}.${t.name}` === e.target.value);
-                    setBatchTable(selected?.name || '');
-                    setBatchSchema(selected?.schema || 'dbo');
+                    const name = selected?.name || '';
+                    const schema = selected?.schema || 'dbo';
+                    setBatchTable(name);
+                    setBatchSchema(schema);
                     setBatchColumn('');
+                    if (name && !tableStructures[`${schema}.${name}`]) {
+                      try {
+                        const structure = await symfoniaService.getTableStructure(schema, name);
+                        setTableStructures((prev) => ({ ...prev, [`${schema}.${name}`]: structure }));
+                      } catch {
+                        // ignore – column list will stay empty
+                      }
+                    }
                   }}
                   style={{ minWidth: '180px' }}
                 >

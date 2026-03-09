@@ -230,7 +230,7 @@ export class SymfoniaMSSQLService {
     if (!/^[A-Za-z0-9_]+$/.test(columnName)) {
       throw new Error('Nieprawidłowa nazwa kolumny');
     }
-    const safeLimit = Math.min(Math.max(1, limit), 500);
+    const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(1, limit), 500) : 100;
     const safeName = `[${schema}].[${tableName}]`;
     const safeColumn = `[${columnName}]`;
     const pool = await sql.connect(getConfig());
@@ -276,11 +276,13 @@ export class SymfoniaMSSQLService {
         return `@val${i}`;
       });
       const result = await request.query(
-        `SELECT * FROM ${safeName} WHERE CAST(${safeColumn} AS NVARCHAR(MAX)) IN (${placeholders.join(', ')})`
+        `SELECT *, CAST(${safeColumn} AS NVARCHAR(MAX)) AS __searchValue FROM ${safeName} WHERE CAST(${safeColumn} AS NVARCHAR(MAX)) IN (${placeholders.join(', ')})`
       );
       const found: any[] = result.recordset;
       const foundValues = new Set(
-        found.map((row) => String(row[columnName]))
+        found
+          .map((row) => row.__searchValue as string)
+          .filter((v) => v !== null && v !== undefined)
       );
       const notFound = safeValues.filter((v) => !foundValues.has(v));
       return { found, notFound };
@@ -304,8 +306,8 @@ export class SymfoniaMSSQLService {
     if (!/^[A-Za-z0-9_]+$/.test(tableName)) {
       throw new Error('Nieprawidłowa nazwa tabeli');
     }
-    const safePage = Math.max(1, page);
-    const safePageSize = Math.min(Math.max(1, pageSize), 500);
+    const safePage = Number.isFinite(page) ? Math.max(1, page) : 1;
+    const safePageSize = Number.isFinite(pageSize) ? Math.min(Math.max(1, pageSize), 500) : 50;
     const offset = (safePage - 1) * safePageSize;
     const safeName = `[${schema}].[${tableName}]`;
     const pool = await sql.connect(getConfig());

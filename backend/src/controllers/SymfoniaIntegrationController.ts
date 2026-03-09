@@ -113,7 +113,8 @@ export class SymfoniaIntegrationController {
         res.status(400).json({ success: false, message: 'Wymagane parametry: column, value' });
         return;
       }
-      const safeLimit = Math.min(parseInt(String(limit || '100'), 10), 500);
+      const parsedLimit = parseInt(String(limit || '100'), 10);
+      const safeLimit = Number.isFinite(parsedLimit) ? Math.min(Math.max(1, parsedLimit), 500) : 100;
       const data = await SymfoniaMSSQLService.searchInTable(
         String(schema),
         tableName,
@@ -169,8 +170,10 @@ export class SymfoniaIntegrationController {
     try {
       const { tableName } = req.params;
       const { schema = 'dbo' } = req.query;
-      const page = Math.max(1, parseInt(String(req.query.page || '1'), 10));
-      const pageSize = Math.min(Math.max(1, parseInt(String(req.query.pageSize || '50'), 10)), 500);
+      const parsedPage = parseInt(String(req.query.page || '1'), 10);
+      const parsedPageSize = parseInt(String(req.query.pageSize || '50'), 10);
+      const page = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
+      const pageSize = Number.isFinite(parsedPageSize) ? Math.min(Math.max(1, parsedPageSize), 500) : 50;
       const result = await SymfoniaMSSQLService.getTableDataPaginated(
         String(schema),
         tableName,
