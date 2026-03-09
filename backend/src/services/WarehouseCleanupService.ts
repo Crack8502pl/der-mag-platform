@@ -33,9 +33,7 @@ export class WarehouseCleanupService {
     const itemsToDeactivate = await stockRepo
       .createQueryBuilder('stock')
       .where('stock.quantityInStock = 0')
-      .andWhere('stock.status IN (:...statuses)', {
-        statuses: [StockStatus.ACTIVE, StockStatus.OUT_OF_STOCK],
-      })
+      .andWhere('stock.status = :outOfStock', { outOfStock: StockStatus.OUT_OF_STOCK })
       .andWhere('stock.updatedAt < :sevenDaysAgo', { sevenDaysAgo })
       .getMany();
 
@@ -55,6 +53,7 @@ export class WarehouseCleanupService {
             message: 'Automatyczna dezaktywacja - stan 0 przez 7+ dni',
             previousStatus: oldStatus,
             newStatus: StockStatus.DISCONTINUED,
+            daysWithZeroStock: 7,
           },
           notes: 'Automatyczna dezaktywacja przez system (CRON)',
         });

@@ -20,6 +20,7 @@ interface StockFilters {
   materialType?: MaterialType;
   lowStock?: boolean;
   warehouseLocation?: string;
+  includeDiscontinued?: boolean;
 }
 
 interface PaginationOptions {
@@ -161,7 +162,7 @@ export class WarehouseStockService {
     // Domyślnie ukryj towary DISCONTINUED (chyba że użytkownik jawnie je wybierze)
     if (filters.status) {
       queryBuilder.andWhere('stock.status = :status', { status: filters.status });
-    } else {
+    } else if (!filters.includeDiscontinued) {
       queryBuilder.andWhere('stock.status != :discontinuedStatus', {
         discontinuedStatus: StockStatus.DISCONTINUED,
       });
