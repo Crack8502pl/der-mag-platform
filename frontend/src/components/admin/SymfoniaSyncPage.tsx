@@ -1,7 +1,7 @@
 // src/components/admin/SymfoniaSyncPage.tsx
-// Admin panel for Symfonia warehouse stock synchronization
+// Admin panel for Symfonia synchronization: Magazyn (Warehouse) and Kontrakty (Contracts)
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import symfoniaSyncService, { type SyncResult, type SyncStatus, type SyncHistory, type SyncProgress } from '../../services/symfoniaSync.service';
 import { ModuleIcon } from '../common/ModuleIcon';
@@ -30,9 +30,27 @@ const statusBadge = (status: 'success' | 'partial' | 'failed'): React.ReactNode 
   );
 };
 
-export const SymfoniaSyncPage: React.FC = () => {
-  const navigate = useNavigate();
+interface SyncSectionProps {
+  title: string;
+  description: React.ReactNode;
+  progressEventUrl: string;
+  onFullSync: () => Promise<SyncResult>;
+  onQuickSync: () => Promise<SyncResult>;
+  onLoadStatus: () => Promise<SyncStatus>;
+  onLoadHistory: (limit: number) => Promise<SyncHistory[]>;
+  cronLabel?: string;
+}
 
+const SyncSection: React.FC<SyncSectionProps> = ({
+  title,
+  description,
+  progressEventUrl,
+  onFullSync,
+  onQuickSync,
+  onLoadStatus,
+  onLoadHistory,
+  cronLabel,
+}) => {
   const [status, setStatus] = useState<SyncStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
   const [statusError, setStatusError] = useState('');
@@ -46,11 +64,11 @@ export const SymfoniaSyncPage: React.FC = () => {
   const [syncError, setSyncError] = useState('');
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
 
-  const loadStatus = async () => {
+  const loadStatus = useCallback(async () => {
     setStatusLoading(true);
     setStatusError('');
     try {
-      const data = await symfoniaSyncService.getStatus();
+      const data = await onLoadStatus();
       setStatus(data);
     } catch (err: any) {
       console.error('Error loading sync status:', err);
@@ -58,13 +76,13 @@ export const SymfoniaSyncPage: React.FC = () => {
     } finally {
       setStatusLoading(false);
     }
-  };
+  }, [onLoadStatus]);
 
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     setHistoryLoading(true);
     setHistoryError('');
     try {
-      const data = await symfoniaSyncService.getHistory(10);
+      const data = await onLoadHistory(10);
       setHistory(data);
     } catch (err: any) {
       console.error('Error loading sync history:', err);
@@ -72,12 +90,12 @@ export const SymfoniaSyncPage: React.FC = () => {
     } finally {
       setHistoryLoading(false);
     }
-  };
+  }, [onLoadHistory]);
 
   useEffect(() => {
     loadStatus();
     loadHistory();
-  }, []);
+  }, [loadStatus, loadHistory]);
 
   const handleFullSync = async () => {
     setSyncLoading('full');
@@ -85,8 +103,7 @@ export const SymfoniaSyncPage: React.FC = () => {
     setLastResult(null);
     setSyncProgress({ phase: 'fetching', current: 0, total: 0, percentage: 0, message: 'Pobieranie danych z Symfonii...' });
 
-    // Subskrybuj na SSE progress
-    const eventSource = new EventSource('/api/admin/symfonia-sync/progress');
+    const eventSource = new EventSource(`/api${progressEventUrl}`);
     eventSource.onmessage = (event) => {
       try {
         const progress: SyncProgress = JSON.parse(event.data);
@@ -97,7 +114,7 @@ export const SymfoniaSyncPage: React.FC = () => {
     };
 
     try {
-      const result = await symfoniaSyncService.fullSync();
+      const result = await onFullSync();
       setLastResult(result);
       setSyncProgress({
         phase: 'completed',
@@ -123,7 +140,7 @@ export const SymfoniaSyncPage: React.FC = () => {
     setLastResult(null);
     setSyncProgress(null);
     try {
-      const result = await symfoniaSyncService.quickSync();
+      const result = await onQuickSync();
       setLastResult(result);
       await loadStatus();
       await loadHistory();
@@ -137,25 +154,11 @@ export const SymfoniaSyncPage: React.FC = () => {
   const isLoading = syncLoading !== null;
 
   return (
-    <div className="page-container">
-      {/* Header */}
-      <div className="page-header">
-        <button onClick={() => navigate('/admin')} className="btn btn-secondary btn-sm" style={{ marginBottom: '1rem' }}>
-          ← Powrót
-        </button>
-        <h1 className="page-title">
-          <ModuleIcon name="sync" emoji="🔄" size={28} />
-          Synchronizacja Symfonia → Magazyn
-        </h1>
-        <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem', fontSize: '0.9rem' }}>
-          Dane przepływają jednokierunkowo: <strong>Symfonia MSSQL → PostgreSQL</strong> (tylko odczyt z Symfonii)
-        </p>
-      </div>
-
+    <div>
       {/* Sync Actions */}
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div className="card-header">
-          <h2 className="card-title">Akcje synchronizacji</h2>
+          <h2 className="card-title">{title} — Akcje synchronizacji</h2>
         </div>
         <div className="card-body">
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
@@ -163,7 +166,7 @@ export const SymfoniaSyncPage: React.FC = () => {
               className="btn btn-primary"
               onClick={handleFullSync}
               disabled={isLoading}
-              title="Pobiera TW + SM + MZ i aktualizuje warehouse_stock"
+              title="Pełna synchronizacja — tworzy i aktualizuje wszystkie rekordy"
             >
               {syncLoading === 'full' ? '⏳ Synchronizuję...' : '🔄 Pełna synchronizacja'}
             </button>
@@ -171,14 +174,13 @@ export const SymfoniaSyncPage: React.FC = () => {
               className="btn btn-secondary"
               onClick={handleQuickSync}
               disabled={isLoading}
-              title="Aktualizuje tylko ilości (SM.stan)"
+              title="Szybka synchronizacja — aktualizuje tylko statusy"
             >
               {syncLoading === 'quick' ? '⏳ Synchronizuję...' : '⚡ Szybka synchronizacja'}
             </button>
           </div>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
-            🔄 <strong>Pełna synchronizacja</strong> — pobiera kartotekę towarów (TW), stany (SM) i ruchy (MZ). Tworzy/aktualizuje wszystkie rekordy.<br />
-            ⚡ <strong>Szybka synchronizacja</strong> — aktualizuje tylko ilości stanów magazynowych. Uruchamiana też automatycznie co godzinę przez CRON.
+            {description}
           </p>
           {syncError && (
             <div className="alert alert-error" style={{ marginTop: '1rem' }}>
@@ -285,7 +287,7 @@ export const SymfoniaSyncPage: React.FC = () => {
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>CRON (auto co 1h)</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{cronLabel || 'CRON (auto)'}</div>
                 <div style={{ fontWeight: 600 }}>
                   {status.cronEnabled ? (
                     <span style={{ color: '#155724' }}>✅ Aktywny</span>
@@ -349,6 +351,91 @@ export const SymfoniaSyncPage: React.FC = () => {
           )}
         </div>
       </div>
+    </div>
+  );
+};
+
+type TabId = 'warehouse' | 'contracts';
+
+export const SymfoniaSyncPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<TabId>('warehouse');
+
+  const tabStyle = (tab: TabId): React.CSSProperties => ({
+    padding: '0.6rem 1.25rem',
+    fontWeight: 600,
+    fontSize: '0.9rem',
+    cursor: 'pointer',
+    border: 'none',
+    borderBottom: activeTab === tab ? '3px solid #007bff' : '3px solid transparent',
+    background: 'none',
+    color: activeTab === tab ? '#007bff' : 'var(--text-muted)',
+    transition: 'color 0.15s, border-color 0.15s',
+  });
+
+  return (
+    <div className="page-container">
+      {/* Header */}
+      <div className="page-header">
+        <button onClick={() => navigate('/admin')} className="btn btn-secondary btn-sm" style={{ marginBottom: '1rem' }}>
+          ← Powrót
+        </button>
+        <h1 className="page-title">
+          <ModuleIcon name="sync" emoji="🔄" size={28} />
+          Synchronizacja Symfonia
+        </h1>
+        <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem', fontSize: '0.9rem' }}>
+          Dane przepływają jednokierunkowo: <strong>Symfonia MSSQL → PostgreSQL</strong> (tylko odczyt z Symfonii)
+        </p>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color, #dee2e6)', marginBottom: '1.5rem', gap: 0 }}>
+        <button style={tabStyle('warehouse')} onClick={() => setActiveTab('warehouse')}>
+          📦 Magazyn
+        </button>
+        <button style={tabStyle('contracts')} onClick={() => setActiveTab('contracts')}>
+          📋 Kontrakty
+        </button>
+      </div>
+
+      {/* Warehouse tab */}
+      {activeTab === 'warehouse' && (
+        <SyncSection
+          title="Magazyn"
+          description={
+            <>
+              🔄 <strong>Pełna synchronizacja</strong> — pobiera kartotekę towarów (TW), stany (SM) i ruchy (MZ). Tworzy/aktualizuje wszystkie rekordy.<br />
+              ⚡ <strong>Szybka synchronizacja</strong> — aktualizuje tylko ilości stanów magazynowych. Uruchamiana też automatycznie co godzinę przez CRON.
+            </>
+          }
+          progressEventUrl="/admin/symfonia-sync/progress"
+          onFullSync={() => symfoniaSyncService.fullSync()}
+          onQuickSync={() => symfoniaSyncService.quickSync()}
+          onLoadStatus={() => symfoniaSyncService.getStatus()}
+          onLoadHistory={(limit) => symfoniaSyncService.getHistory(limit)}
+          cronLabel="CRON (auto co 1h)"
+        />
+      )}
+
+      {/* Contracts tab */}
+      {activeTab === 'contracts' && (
+        <SyncSection
+          title="Kontrakty"
+          description={
+            <>
+              🔄 <strong>Pełna synchronizacja</strong> — pobiera kontrakty z tabeli [SSCommon].[STElements] (ElementKindId=128). Tworzy/aktualizuje wszystkie rekordy w tabeli contracts.<br />
+              ⚡ <strong>Szybka synchronizacja</strong> — aktualizuje tylko statusy (Active) kontraktów.
+            </>
+          }
+          progressEventUrl="/admin/symfonia-sync/contracts/progress"
+          onFullSync={() => symfoniaSyncService.contractsFullSync()}
+          onQuickSync={() => symfoniaSyncService.contractsQuickSync()}
+          onLoadStatus={() => symfoniaSyncService.getContractsStatus()}
+          onLoadHistory={(limit) => symfoniaSyncService.getContractsHistory(limit)}
+          cronLabel="CRON (auto)"
+        />
+      )}
     </div>
   );
 };
