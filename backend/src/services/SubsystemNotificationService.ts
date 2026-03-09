@@ -7,6 +7,13 @@ import { User } from '../entities/User';
 import EmailQueueService from './EmailQueueService';
 import { EmailTemplate } from '../types/EmailTypes';
 
+// Typ pomocniczy dla podsystemu z wymaganym Project Managerem
+type SubsystemWithProjectManager = Subsystem & {
+  contract: Subsystem['contract'] & {
+    projectManager: User;
+  };
+};
+
 export class SubsystemNotificationService {
   private subsystemRepository = AppDataSource.getRepository(Subsystem);
   private userRepository = AppDataSource.getRepository(User);
@@ -25,6 +32,19 @@ export class SubsystemNotificationService {
     }
 
     return subsystem;
+  }
+
+  /**
+   * Pobiera szczegóły podsystemu i wymaga obecności Project Managera
+   */
+  private async getSubsystemWithProjectManager(subsystemId: number): Promise<SubsystemWithProjectManager> {
+    const subsystem = await this.getSubsystemDetails(subsystemId);
+
+    if (!subsystem.contract?.projectManager) {
+      throw new Error(`Kontrakt podsystemu ${subsystemId} nie ma przypisanego Project Managera`);
+    }
+
+    return subsystem as SubsystemWithProjectManager;
   }
 
   /**
@@ -61,7 +81,7 @@ export class SubsystemNotificationService {
    */
   async notifySubsystemCreated(subsystemId: number, createdById: number): Promise<void> {
     try {
-      const subsystem = await this.getSubsystemDetails(subsystemId);
+      const subsystem = await this.getSubsystemWithProjectManager(subsystemId);
       const createdBy = await this.getUserById(createdById);
 
       await EmailQueueService.addToQueue({
@@ -96,7 +116,7 @@ export class SubsystemNotificationService {
     changedById: number
   ): Promise<void> {
     try {
-      const subsystem = await this.getSubsystemDetails(subsystemId);
+      const subsystem = await this.getSubsystemWithProjectManager(subsystemId);
       const changedBy = await this.getUserById(changedById);
 
       await EmailQueueService.addToQueue({
@@ -127,7 +147,7 @@ export class SubsystemNotificationService {
    */
   async notifyNetworkAllocated(subsystemId: number, networkDetails: string): Promise<void> {
     try {
-      const subsystem = await this.getSubsystemDetails(subsystemId);
+      const subsystem = await this.getSubsystemWithProjectManager(subsystemId);
       const networkAdmins = await this.getNetworkAdminEmails();
 
       // Powiadomienie do PM kontraktu
