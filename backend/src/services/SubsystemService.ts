@@ -140,7 +140,7 @@ export class SubsystemService {
   async getSubsystemsByContract(contractId: number): Promise<Subsystem[]> {
     return await this.subsystemRepository.find({
       where: { contractId },
-      relations: ['networkAllocation'],
+      relations: ['networkAllocation', 'tasks'],
       order: { createdAt: 'ASC' }
     });
   }
