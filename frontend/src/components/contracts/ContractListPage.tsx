@@ -27,8 +27,17 @@ export const ContractListPage: React.FC = () => {
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterManager, setFilterManager] = useState('');
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
+
+  // Manager list for filter
+  const [managers, setManagers] = useState<Array<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    employeeCode?: string;
+  }>>([]);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -51,7 +60,24 @@ export const ContractListPage: React.FC = () => {
 
   useEffect(() => {
     loadContracts();
-  }, [searchTerm, filterStatus, sortBy, sortOrder, currentPage]);
+  }, [searchTerm, filterStatus, filterManager, sortBy, sortOrder, currentPage]);
+
+  useEffect(() => {
+    loadManagers();
+  }, []);
+
+  const loadManagers = async () => {
+    try {
+      const response = await api.get('/users/managers');
+      const data = response.data.data || response.data || [];
+      setManagers(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Błąd pobierania listy kierowników:', err);
+      setManagers([]);
+      setError('Nie udało się pobrać listy kierowników. Filtr może być niedostępny.');
+      setTimeout(() => setError(''), 5000);
+    }
+  };
 
   const loadContracts = async () => {
     try {
@@ -71,6 +97,8 @@ export const ContractListPage: React.FC = () => {
       // Auto-filter by current user for non-admin users
       if (user && user.role !== 'admin' && user.id) {
         params.projectManagerId = user.id;
+      } else if (filterManager) {
+        params.projectManagerId = parseInt(filterManager, 10);
       }
       
       const response = await api.get('/contracts', { params });
@@ -236,8 +264,29 @@ export const ContractListPage: React.FC = () => {
             <option value="IN_PROGRESS">W realizacji</option>
             <option value="COMPLETED">Zakończony</option>
             <option value="CANCELLED">Anulowany</option>
+            <option value="ACTIVE">Aktywny (Symfonia)</option>
+            <option value="INACTIVE">Nieaktywny (Symfonia)</option>
           </select>
           
+          {user && user.role === 'admin' && (
+            <select
+              className="filter-select"
+              value={filterManager}
+              onChange={(e) => {
+                setFilterManager(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              <option value="">Wszyscy kierownicy</option>
+              {managers.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.firstName} {m.lastName}
+                  {m.employeeCode ? ` (${m.employeeCode})` : ''}
+                </option>
+              ))}
+            </select>
+          )}
+
           {user && user.role !== 'admin' && (
             <div className="filter-info">
               📋 Wyświetlam tylko moje kontrakty

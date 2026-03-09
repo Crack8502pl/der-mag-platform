@@ -188,6 +188,18 @@
   border: 1px solid #6c757d;
 }
 
+.status-badge.status-active {
+  background: rgba(40, 167, 69, 0.2);
+  color: #28a745;
+  border: 1px solid #28a745;
+}
+
+.status-badge.status-inactive {
+  background: rgba(108, 117, 125, 0.15);
+  color: #868e96;
+  border: 1px solid #868e96;
+}
+
 /* Actions dropdown */
 .actions-dropdown {
   position: relative;
