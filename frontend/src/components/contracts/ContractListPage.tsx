@@ -77,8 +77,15 @@ export const ContractListPage: React.FC = () => {
       
       const data = response.data.data || response.data;
       setContracts(Array.isArray(data) ? data : []);
-      setTotalContracts(response.data.count || data.length || 0);
-      setTotalPages(Math.ceil((response.data.count || data.length) / itemsPerPage));
+
+      // Use pagination from response if available
+      if (response.data.pagination) {
+        setTotalContracts(response.data.pagination.total || 0);
+        setTotalPages(response.data.pagination.totalPages || 1);
+      } else {
+        setTotalContracts(response.data.count || data.length || 0);
+        setTotalPages(Math.ceil((response.data.count || data.length) / itemsPerPage));
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd pobierania kontraktów');
       setContracts([]);
