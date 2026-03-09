@@ -12,7 +12,9 @@ const statusConfig: Record<string, { label: string; className: string; icon: str
   APPROVED: { label: 'Zatwierdzony', className: 'status-approved', icon: '✅' },
   IN_PROGRESS: { label: 'W realizacji', className: 'status-in-progress', icon: '🔄' },
   COMPLETED: { label: 'Zakończony', className: 'status-completed', icon: '🏁' },
-  CANCELLED: { label: 'Anulowany', className: 'status-cancelled', icon: '❌' }
+  CANCELLED: { label: 'Anulowany', className: 'status-cancelled', icon: '❌' },
+  ACTIVE: { label: 'Aktywny', className: 'status-active', icon: '🟢' },
+  INACTIVE: { label: 'Nieaktywny', className: 'status-inactive', icon: '⚪' }
 };
 
 export const ContractStatusBadge: React.FC<Props> = ({ status }) => {
