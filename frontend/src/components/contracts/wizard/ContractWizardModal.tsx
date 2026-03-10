@@ -125,15 +125,55 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
   };
 
   /**
+   * Validate subsystems before saving.
+   * Returns a list of critical issues that would prevent correct saving.
+   */
+  const validateSubsystemsForSave = (): string[] => {
+    const issues: string[] = [];
+
+    for (const subsystem of wizardData.subsystems) {
+      if (subsystem.isExisting && !subsystem.id) {
+        issues.push(`Podsystem ${subsystem.type} jest oznaczony jako istniejący, ale nie ma ID`);
+      }
+
+      if (subsystem.isExisting && subsystem.taskDetails) {
+        const tasksWithoutId = subsystem.taskDetails.filter(t => !t.id);
+        if (tasksWithoutId.length > 0) {
+          console.log(`ℹ️ Podsystem ${subsystem.type} ma ${tasksWithoutId.length} nowe zadanie(a) do dodania (bez ID)`);
+        }
+      }
+    }
+
+    if (issues.length > 0) {
+      console.error('❌ Błędy walidacji przed zapisem:', issues);
+    }
+
+    return issues;
+  };
+
+  /**
    * Handle final submission (create or update contract)
    */
   const handleSubmit = async () => {
-    console.log('🔍 handleSubmit called');
+    console.log('🔍 DEBUG - handleSubmit called');
+    console.log('📋 All subsystems:', wizardData.subsystems.map(s => ({
+      type: s.type,
+      isExisting: s.isExisting,
+      id: s.id,
+      taskDetailsCount: s.taskDetails?.length || 0,
+      taskDetails: s.taskDetails?.map(t => ({ id: t.id, taskType: t.taskType }))
+    })));
     console.log('wizardData:', wizardData);
     console.log('generatedTasks:', generatedTasks);
     
     if (!wizardData.projectManagerId) {
       setError('Nie wybrano kierownika projektu');
+      return;
+    }
+
+    const validationIssues = validateSubsystemsForSave();
+    if (validationIssues.length > 0) {
+      setError(validationIssues.join('; '));
       return;
     }
     
@@ -180,10 +220,18 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         }
         
         // 3. For existing subsystems - add only NEW tasks
+        console.log('🔍 Processing existing subsystems...');
         for (const subsystem of wizardData.subsystems.filter(s => s.isExisting)) {
           const newTasks = (subsystem.taskDetails || []).filter(t => !t.id);
           
+          console.log(`📌 Subsystem ${subsystem.type} (id: ${subsystem.id}):`, {
+            totalTasks: subsystem.taskDetails?.length || 0,
+            newTasks: newTasks.length,
+            newTasksDetails: newTasks
+          });
+          
           if (newTasks.length > 0 && subsystem.id) {
+            console.log(`✅ Adding ${newTasks.length} new tasks to subsystem ${subsystem.id}`);
             await contractService.addTasksToSubsystem(subsystem.id, {
               tasks: newTasks.map(t => ({
                 name: buildTaskNameFromDetails(t.taskType, t, wizardData.liniaKolejowa),
@@ -195,6 +243,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
                 }
               }))
             });
+          } else {
+            console.log(`⚠️ Skipping - newTasks: ${newTasks.length}, subsystem.id: ${subsystem.id}`);
           }
         }
         
@@ -463,7 +513,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
                 onClick={handleSubmit}
                 disabled={loading || generatedTasks.length === 0}
               >
-                {loading ? 'Tworzenie...' : '✅ Utwórz kontrakt'}
+                {loading ? (editMode ? 'Zapisywanie...' : 'Tworzenie...') : (editMode ? '💾 Zapisz zmiany' : '✅ Utwórz kontrakt')}
               </button>
             )}
           </div>

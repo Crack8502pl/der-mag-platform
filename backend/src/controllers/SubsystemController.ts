@@ -543,6 +543,9 @@ export class SubsystemController {
       const { id } = req.params;
       const { tasks } = req.body;
 
+      console.log(`📥 POST /api/subsystems/${id}/tasks`);
+      console.log('Tasks to create:', JSON.stringify(tasks, null, 2));
+
       if (!Array.isArray(tasks) || tasks.length === 0) {
         res.status(400).json({
           success: false,
@@ -636,6 +639,7 @@ export class SubsystemController {
         }
       }
 
+      console.log(`✅ Created ${createdTasks.length} tasks for subsystem ${id}`);
       res.status(201).json({
         success: true,
         message: `Utworzono ${createdTasks.length} zadań pomyślnie`,
@@ -648,6 +652,7 @@ export class SubsystemController {
         })
       });
     } catch (error: any) {
+      console.error('❌ Error creating tasks:', error);
       res.status(400).json({
         success: false,
         message: 'Błąd podczas tworzenia zadań',
