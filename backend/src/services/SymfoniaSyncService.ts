@@ -441,13 +441,6 @@ export class SymfoniaSyncService {
           };
 
           if (existing) {
-            // Pomiń aktualizację jeśli rekord był edytowany lokalnie (nie przez sync)
-            const wasLocallyModified = existing.technicalSpecs?.locally_modified === true;
-            if (wasLocallyModified) {
-              skipped++;
-              continue;
-            }
-
             existing.materialName = item.materialName || existing.materialName;
             existing.unit = item.unit || existing.unit;
             existing.materialType = materialType;
