@@ -440,7 +440,7 @@ export const SymfoniaSyncPage: React.FC = () => {
           onQuickSync={() => symfoniaSyncService.contractsQuickSync()}
           onLoadStatus={() => symfoniaSyncService.getContractsStatus()}
           onLoadHistory={(limit) => symfoniaSyncService.getContractsHistory(limit)}
-          cronLabel="CRON (pełna co 3h, kierownicy co 1h)"
+          cronLabel="CRON (pełna co 3h, szybka co 1h)"
         />
       )}
     </div>
