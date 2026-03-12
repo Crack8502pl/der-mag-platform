@@ -49,7 +49,7 @@ export class Contract {
 
   @Column({
     type: 'varchar',
-    length: 20,
+    length: 30,
     default: ContractStatus.CREATED
   })
   status: ContractStatus;
