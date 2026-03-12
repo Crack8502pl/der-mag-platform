@@ -64,7 +64,12 @@ export class ContractController {
           filters.projectManagerId = parsedId;
         }
       }
-      if (search) filters.search = search as string;
+      if (typeof search === 'string') {
+        filters.search = search;
+      } else if (Array.isArray(search) && search.length > 0 && typeof search[0] === 'string') {
+        // If search appears multiple times (?search=a&search=b), use the first value
+        filters.search = search[0];
+      }
 
       const result = await this.contractService.getAllContracts(filters, {
         sortBy: sortBy as string,
