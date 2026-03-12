@@ -149,6 +149,7 @@ export class ContractService {
     filters?: {
       status?: ContractStatus;
       projectManagerId?: number;
+      search?: string;
     },
     options?: {
       sortBy?: string;
@@ -188,6 +189,14 @@ export class ContractService {
       query.andWhere('contract.projectManagerId = :projectManagerId', {
         projectManagerId: filters.projectManagerId
       });
+    }
+
+    if (filters?.search) {
+      const searchLower = filters.search.toLowerCase();
+      query.andWhere(
+        '(LOWER(contract.contractNumber) LIKE :search OR LOWER(contract.customName) LIKE :search OR LOWER(contract.managerCode) LIKE :search)',
+        { search: `%${searchLower}%` }
+      );
     }
 
     // Sorting with validation

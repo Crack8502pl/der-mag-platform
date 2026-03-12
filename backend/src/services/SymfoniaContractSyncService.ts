@@ -6,6 +6,7 @@ import * as sql from 'mssql';
 import { AppDataSource } from '../config/database';
 import { Contract, ContractStatus } from '../entities/Contract';
 import { MaterialImport } from '../entities/MaterialImport';
+import { User } from '../entities/User';
 
 export interface ContractSyncResult {
   success: boolean;
@@ -255,6 +256,63 @@ export class SymfoniaContractSyncService {
   }
 
   /**
+   * Pełna synchronizacja kontraktów z CRON (bez userId)
+   * Uruchamiana automatycznie co 3 godziny
+   */
+  static async fullSyncFromCron(): Promise<ContractSyncResult> {
+    if (isContractSyncRunning) {
+      throw new Error('Synchronizacja kontraktów jest już uruchomiona');
+    }
+    isContractSyncRunning = true;
+    const startedAt = new Date();
+    const errors: ContractSyncError[] = [];
+    let stats: ContractSyncResult['stats'] = { totalProcessed: 0, created: 0, updated: 0, skipped: 0, errors: 0 };
+
+    try {
+      const data = await SymfoniaContractSyncService.fetchSymfoniaContractData();
+      stats.totalProcessed = data.length;
+
+      const upsertStats = await SymfoniaContractSyncService.upsertContracts(data, errors);
+      stats.created = upsertStats.created;
+      stats.updated = upsertStats.updated;
+      stats.skipped = upsertStats.skipped;
+      stats.errors = upsertStats.errors;
+
+      const completedAt = new Date();
+      const result: ContractSyncResult = {
+        success: stats.errors === 0,
+        syncType: 'full',
+        startedAt,
+        completedAt,
+        duration: completedAt.getTime() - startedAt.getTime(),
+        stats,
+        errors: errors.length > 0 ? errors : undefined,
+      };
+
+      await SymfoniaContractSyncService.logSync(result, undefined, 'cron');
+      return result;
+    } catch (error) {
+      const completedAt = new Date();
+      const msg = error instanceof Error ? error.message : String(error);
+      errors.push({ message: msg });
+      stats.errors += 1;
+      const result: ContractSyncResult = {
+        success: false,
+        syncType: 'full',
+        startedAt,
+        completedAt,
+        duration: completedAt.getTime() - startedAt.getTime(),
+        stats,
+        errors,
+      };
+      await SymfoniaContractSyncService.logSync(result, undefined, 'cron').catch(() => {});
+      throw error;
+    } finally {
+      isContractSyncRunning = false;
+    }
+  }
+
+  /**
    * Pobiera dane kontraktów z Symfonii (READ-ONLY!)
    * SELECT z [SSCommon].[STElements] WHERE ElementKindId = 128
    */
@@ -306,6 +364,7 @@ export class SymfoniaContractSyncService {
     onProgress?: ProgressCallback
   ): Promise<{ created: number; updated: number; skipped: number; errors: number }> {
     const contractRepo = AppDataSource.getRepository(Contract);
+    const userRepo = AppDataSource.getRepository(User);
     let created = 0;
     let updated = 0;
     let skipped = 0;
@@ -333,6 +392,24 @@ export class SymfoniaContractSyncService {
         employeeCodes: parseEmployeeCodes(item.description),
       }));
 
+      // Pobierz mapę użytkowników dla kodów pracowniczych z batcha
+      const allEmployeeCodes = Array.from(
+        new Set(
+          batchWithNumbers
+            .flatMap((b) => b.employeeCodes)
+            .filter((code): code is string => !!code),
+        ),
+      );
+
+      let userMap = new Map<string, User>();
+      if (allEmployeeCodes.length > 0) {
+        const users = await userRepo
+          .createQueryBuilder('u')
+          .where('u.employeeCode IN (:...codes)', { codes: allEmployeeCodes })
+          .getMany();
+        userMap = new Map(users.filter((u) => u.employeeCode).map((u) => [u.employeeCode as string, u]));
+      }
+
       // Pobierz istniejące rekordy jednym zapytaniem
       const contractNumbers = batchWithNumbers
         .map((b) => b.contractNumber)
@@ -356,6 +433,7 @@ export class SymfoniaContractSyncService {
 
           const status = item.active ? ContractStatus.PENDING_CONFIGURATION : ContractStatus.INACTIVE;
           const managerCode = employeeCodes.length > 0 ? employeeCodes[0] : null;
+          const projectManager = managerCode ? userMap.get(managerCode) : null;
 
           const technicalSpecs = {
             symfonia_element_id: item.elementId,
@@ -372,7 +450,8 @@ export class SymfoniaContractSyncService {
 
           if (existing) {
             existing.customName = item.title || existing.customName;
-            existing.managerCode = managerCode ?? existing.managerCode;
+            existing.managerCode = managerCode;
+            existing.projectManagerId = projectManager ? projectManager.id : null;
             existing.status = status;
             existing.technicalSpecs = { ...existing.technicalSpecs, ...technicalSpecs };
             await contractRepo.save(existing);
@@ -382,9 +461,9 @@ export class SymfoniaContractSyncService {
               contractNumber,
               customName: item.title || contractNumber,
               managerCode,
+              projectManagerId: projectManager?.id ?? null,
               status,
               orderDate: item.lastModified ?? null,
-              projectManagerId: null,
               technicalSpecs,
             });
             await contractRepo.save(contract);
@@ -409,14 +488,16 @@ export class SymfoniaContractSyncService {
     errors: ContractSyncError[]
   ): Promise<{ updated: number; skipped: number; errors: number }> {
     const contractRepo = AppDataSource.getRepository(Contract);
+    const userRepo = AppDataSource.getRepository(User);
     let updated = 0;
     let skipped = 0;
     let errorCount = 0;
 
-    // Parse all contract numbers up front
+    // Parse all contract numbers and employee codes up front
     const items = data.map((item) => ({
       item,
       contractNumber: parseContractNumber(item.shortcut),
+      employeeCodes: parseEmployeeCodes(item.description),
     }));
 
     // Fetch all relevant contracts in one query
@@ -435,6 +516,22 @@ export class SymfoniaContractSyncService {
 
     const existingMap = new Map(existingRecords.map((r) => [r.contractNumber, r]));
 
+    // Build user map for all employee codes
+    const allEmployeeCodes = Array.from(
+      new Set(
+        items.flatMap((i) => i.employeeCodes).filter((code): code is string => !!code)
+      )
+    );
+
+    let userMap = new Map<string, User>();
+    if (allEmployeeCodes.length > 0) {
+      const users = await userRepo
+        .createQueryBuilder('u')
+        .where('u.employeeCode IN (:...codes)', { codes: allEmployeeCodes })
+        .getMany();
+      userMap = new Map(users.filter((u) => u.employeeCode).map((u) => [u.employeeCode as string, u]));
+    }
+
     const userConfiguredStatuses: ContractStatus[] = [
       ContractStatus.CREATED,
       ContractStatus.APPROVED,
@@ -443,7 +540,7 @@ export class SymfoniaContractSyncService {
       ContractStatus.CANCELLED,
     ];
 
-    for (const { item, contractNumber } of items) {
+    for (const { item, contractNumber, employeeCodes } of items) {
       try {
         if (!contractNumber) {
           skipped++;
@@ -457,12 +554,25 @@ export class SymfoniaContractSyncService {
         }
 
         const newStatus = item.active ? ContractStatus.PENDING_CONFIGURATION : ContractStatus.INACTIVE;
-        // Preserve user-configured statuses unless the contract becomes inactive
-        if (
+        const managerCode = employeeCodes.length > 0 ? employeeCodes[0] : null;
+        const projectManager = managerCode ? userMap.get(managerCode) : null;
+
+        const statusChanged =
           existing.status !== newStatus &&
-          (!userConfiguredStatuses.includes(existing.status) || newStatus === ContractStatus.INACTIVE)
-        ) {
-          existing.status = newStatus;
+          (!userConfiguredStatuses.includes(existing.status) || newStatus === ContractStatus.INACTIVE);
+
+        const managerChanged =
+          existing.managerCode !== managerCode ||
+          existing.projectManagerId !== (projectManager?.id ?? null);
+
+        if (statusChanged || managerChanged) {
+          if (statusChanged) {
+            existing.status = newStatus;
+          }
+          if (managerChanged) {
+            existing.managerCode = managerCode;
+            existing.projectManagerId = projectManager?.id ?? null;
+          }
           await contractRepo.save(existing);
           updated++;
         } else {

@@ -49,6 +49,7 @@ export class ContractController {
       const { 
         status, 
         projectManagerId,
+        search,
         sortBy = 'createdAt',
         sortOrder = 'DESC',
         page = 1,
@@ -62,6 +63,12 @@ export class ContractController {
         if (!isNaN(parsedId)) {
           filters.projectManagerId = parsedId;
         }
+      }
+      if (typeof search === 'string') {
+        filters.search = search;
+      } else if (Array.isArray(search) && search.length > 0 && typeof search[0] === 'string') {
+        // If search appears multiple times (?search=a&search=b), use the first value
+        filters.search = search[0];
       }
 
       const result = await this.contractService.getAllContracts(filters, {
