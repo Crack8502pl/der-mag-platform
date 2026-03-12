@@ -288,6 +288,7 @@ export class ContractService {
     
     const byStatus: Record<string, number> = {
       CREATED: 0,
+      PENDING_CONFIGURATION: 0,
       APPROVED: 0,
       IN_PROGRESS: 0,
       COMPLETED: 0,

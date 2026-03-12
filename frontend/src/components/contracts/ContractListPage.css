@@ -200,6 +200,12 @@
   border: 1px solid #868e96;
 }
 
+.status-badge.status-pending-config {
+  background: rgba(220, 53, 69, 0.2);
+  color: #dc3545;
+  border: 1px solid #dc3545;
+}
+
 /* Actions dropdown */
 .actions-dropdown {
   position: relative;

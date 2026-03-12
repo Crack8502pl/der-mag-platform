@@ -7,6 +7,7 @@ import { Subsystem } from './Subsystem';
 
 export enum ContractStatus {
   CREATED = 'CREATED',
+  PENDING_CONFIGURATION = 'PENDING_CONFIGURATION',
   APPROVED = 'APPROVED',
   IN_PROGRESS = 'IN_PROGRESS',
   COMPLETED = 'COMPLETED',

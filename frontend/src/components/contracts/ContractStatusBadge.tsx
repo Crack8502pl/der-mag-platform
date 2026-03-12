@@ -9,6 +9,7 @@ interface Props {
 
 const statusConfig: Record<string, { label: string; className: string; icon: string }> = {
   CREATED: { label: 'Utworzony', className: 'status-created', icon: '📝' },
+  PENDING_CONFIGURATION: { label: 'Do konfiguracji', className: 'status-pending-config', icon: '⚠️' },
   APPROVED: { label: 'Zatwierdzony', className: 'status-approved', icon: '✅' },
   IN_PROGRESS: { label: 'W realizacji', className: 'status-in-progress', icon: '🔄' },
   COMPLETED: { label: 'Zakończony', className: 'status-completed', icon: '🏁' },

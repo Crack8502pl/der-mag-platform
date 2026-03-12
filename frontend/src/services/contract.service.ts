@@ -62,6 +62,7 @@ export interface CreateContractDto {
   projectManagerId: number;
   jowiszRef?: string;
   liniaKolejowa?: string;
+  status?: string;
 }
 
 class ContractService {

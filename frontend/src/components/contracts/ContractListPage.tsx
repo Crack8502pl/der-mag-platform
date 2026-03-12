@@ -259,6 +259,7 @@ export const ContractListPage: React.FC = () => {
             }}
           >
             <option value="">Wszystkie statusy</option>
+            <option value="PENDING_CONFIGURATION">⚠️ Do konfiguracji</option>
             <option value="CREATED">Utworzony</option>
             <option value="APPROVED">Zatwierdzony</option>
             <option value="IN_PROGRESS">W realizacji</option>
