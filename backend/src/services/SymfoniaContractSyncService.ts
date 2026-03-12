@@ -354,7 +354,7 @@ export class SymfoniaContractSyncService {
             continue;
           }
 
-          const status = item.active ? ContractStatus.ACTIVE : ContractStatus.INACTIVE;
+          const status = item.active ? ContractStatus.PENDING_CONFIGURATION : ContractStatus.INACTIVE;
           const managerCode = employeeCodes.length > 0 ? employeeCodes[0] : null;
 
           const technicalSpecs = {
@@ -435,6 +435,14 @@ export class SymfoniaContractSyncService {
 
     const existingMap = new Map(existingRecords.map((r) => [r.contractNumber, r]));
 
+    const userConfiguredStatuses: ContractStatus[] = [
+      ContractStatus.CREATED,
+      ContractStatus.APPROVED,
+      ContractStatus.IN_PROGRESS,
+      ContractStatus.COMPLETED,
+      ContractStatus.CANCELLED,
+    ];
+
     for (const { item, contractNumber } of items) {
       try {
         if (!contractNumber) {
@@ -448,8 +456,12 @@ export class SymfoniaContractSyncService {
           continue;
         }
 
-        const newStatus = item.active ? ContractStatus.ACTIVE : ContractStatus.INACTIVE;
-        if (existing.status !== newStatus) {
+        const newStatus = item.active ? ContractStatus.PENDING_CONFIGURATION : ContractStatus.INACTIVE;
+        // Preserve user-configured statuses unless the contract becomes inactive
+        if (
+          existing.status !== newStatus &&
+          (!userConfiguredStatuses.includes(existing.status) || newStatus === ContractStatus.INACTIVE)
+        ) {
           existing.status = newStatus;
           await contractRepo.save(existing);
           updated++;

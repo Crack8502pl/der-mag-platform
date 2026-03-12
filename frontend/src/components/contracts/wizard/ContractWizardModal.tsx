@@ -186,16 +186,17 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       if (editMode && contractToEdit) {
         // EDIT MODE - update contract
         
-        // 1. Update basic contract data
+        // 1. Update basic contract data (and change status if "Do konfiguracji" → CREATED)
         await contractService.updateContract(contractToEdit.id, {
           contractNumber: wizardData.contractNumber || undefined,
           customName: wizardData.customName,
           orderDate: wizardData.orderDate,
           projectManagerId: parseInt(wizardData.projectManagerId),
           managerCode: wizardData.managerCode,
-          liniaKolejowa: wizardData.liniaKolejowa || undefined
+          liniaKolejowa: wizardData.liniaKolejowa || undefined,
+          ...(contractToEdit.status === 'PENDING_CONFIGURATION' ? { status: 'CREATED' } : {})
         });
-        
+
         // 2. Add only NEW subsystems (without isExisting flag)
         const newSubsystems = wizardData.subsystems.filter(s => !s.isExisting);
         
@@ -219,7 +220,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           });
         }
         
-        // 3. For existing subsystems - add only NEW tasks
+        // 4. For existing subsystems - add only NEW tasks
         console.log('🔍 Processing existing subsystems...');
         for (const subsystem of wizardData.subsystems.filter(s => s.isExisting)) {
           const newTasks = (subsystem.taskDetails || []).filter(t => !t.id);
