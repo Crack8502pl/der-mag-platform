@@ -513,9 +513,11 @@ export class SymfoniaContractSyncService {
     const existingMap = new Map(existingRecords.map((r) => [r.contractNumber, r]));
 
     // Build user map for all employee codes
-    const allEmployeeCodes = items
-      .flatMap((i) => i.employeeCodes)
-      .filter((code, index, self) => code && self.indexOf(code) === index);
+    const allEmployeeCodes = Array.from(
+      new Set(
+        items.flatMap((i) => i.employeeCodes).filter((code): code is string => !!code)
+      )
+    );
 
     let userMap = new Map<string, User>();
     if (allEmployeeCodes.length > 0) {
