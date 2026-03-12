@@ -9,6 +9,7 @@ import { SubsystemTaskService } from '../services/SubsystemTaskService';
 import { AppDataSource } from '../config/database';
 import { Task } from '../entities/Task';
 import { TaskType } from '../entities/TaskType';
+import { Contract } from '../entities/Contract';
 import * as fs from 'fs';
 
 // Interfejs dla żądań uwierzytelnionych
@@ -211,6 +212,18 @@ export class SubsystemController {
         
         const createdSubsystems = [];
         
+        // Fetch contract for contractNumber and customName (needed for main Task creation)
+        const contractRepository = AppDataSource.getRepository(Contract);
+        const contract = await contractRepository.findOne({ where: { id: parseInt(contractId) } });
+        if (!contract) {
+          console.warn(`Contract ${contractId} not found - main Task entries will not be created`);
+        }
+
+        // Get repositories needed for main Task creation
+        const taskRepository = AppDataSource.getRepository(Task);
+        const taskTypeRepository = AppDataSource.getRepository(TaskType);
+        const DEFAULT_TASK_TYPE_ID = 1;
+
         for (const subsystemData of subsystems) {
           const { type, params, tasks: subsystemTasks, ipPool } = subsystemData;
           
@@ -230,11 +243,22 @@ export class SubsystemController {
             ipPool: ipPool?.trim() || null
           });
           
+          // Find task type for this subsystem type - once per subsystem
+          let taskTypeId = DEFAULT_TASK_TYPE_ID;
+          const taskType = await taskTypeRepository.findOne({
+            where: { code: type }
+          });
+          if (taskType) {
+            taskTypeId = taskType.id;
+          }
+
           // Create tasks if provided
           const createdTasks = [];
+          const createdMainTasks = [];
           if (subsystemTasks && Array.isArray(subsystemTasks)) {
             for (const taskData of subsystemTasks) {
               try {
+                // 1. Create SubsystemTask
                 const subsystemTask = await this.taskService.createTask({
                   subsystemId: subsystem.id,
                   taskName: taskData.name || 'Zadanie',
@@ -242,6 +266,35 @@ export class SubsystemController {
                   metadata: taskData.metadata || params || {}
                 });
                 createdTasks.push(subsystemTask);
+
+                // 2. Create main Task entity so tasks are visible on /tasks page
+                if (contract) {
+                  try {
+                    const mainTask = taskRepository.create({
+                      taskNumber: subsystemTask.taskNumber,
+                      title: taskData.name || `Zadanie ${taskData.type || 'nowe'}`,
+                      description: taskData.description || '',
+                      taskTypeId,
+                      status: 'created',
+                      contractId: contract.id,
+                      contractNumber: contract.contractNumber,
+                      subsystemId: subsystem.id,
+                      location: contract.customName,
+                      priority: 0,
+                      metadata: {
+                        createdFromWizard: true,
+                        wizardData: taskData,
+                        subsystemType: type,
+                        taskVariant: taskData.type || null,
+                        configParams: taskData.metadata || params || {}
+                      }
+                    });
+                    const savedMainTask = await taskRepository.save(mainTask);
+                    createdMainTasks.push(savedMainTask);
+                  } catch (taskError) {
+                    console.error(`Failed to create main task for ${taskData.name}:`, taskError);
+                  }
+                }
               } catch (error) {
                 console.error(`Failed to create task for subsystem ${subsystem.subsystemNumber}:`, error);
               }
@@ -251,7 +304,8 @@ export class SubsystemController {
           createdSubsystems.push({
             ...subsystem,
             params,
-            tasks: createdTasks
+            tasks: createdTasks,
+            mainTasks: createdMainTasks
           });
         }
         
