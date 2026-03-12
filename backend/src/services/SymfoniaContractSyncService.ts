@@ -393,9 +393,13 @@ export class SymfoniaContractSyncService {
       }));
 
       // Pobierz mapę użytkowników dla kodów pracowniczych z batcha
-      const allEmployeeCodes = batchWithNumbers
-        .flatMap((b) => b.employeeCodes)
-        .filter((code, index, self) => code && self.indexOf(code) === index);
+      const allEmployeeCodes = Array.from(
+        new Set(
+          batchWithNumbers
+            .flatMap((b) => b.employeeCodes)
+            .filter((code): code is string => !!code),
+        ),
+      );
 
       let userMap = new Map<string, User>();
       if (allEmployeeCodes.length > 0) {
