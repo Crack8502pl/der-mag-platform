@@ -446,8 +446,8 @@ export class SymfoniaContractSyncService {
 
           if (existing) {
             existing.customName = item.title || existing.customName;
-            existing.managerCode = managerCode ?? existing.managerCode;
-            existing.projectManagerId = projectManager?.id ?? existing.projectManagerId;
+            existing.managerCode = managerCode;
+            existing.projectManagerId = projectManager ? projectManager.id : null;
             existing.status = status;
             existing.technicalSpecs = { ...existing.technicalSpecs, ...technicalSpecs };
             await contractRepo.save(existing);
