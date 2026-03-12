@@ -431,8 +431,8 @@ export const SymfoniaSyncPage: React.FC = () => {
           title="Kontrakty"
           description={
             <>
-              🔄 <strong>Pełna synchronizacja</strong> — pobiera kontrakty z tabeli [SSCommon].[STElements] (ElementKindId=128). Tworzy/aktualizuje wszystkie rekordy w tabeli contracts.<br />
-              ⚡ <strong>Szybka synchronizacja</strong> — aktualizuje tylko statusy (Active) kontraktów.
+              🔄 <strong>Pełna synchronizacja</strong> — pobiera kontrakty z tabeli [SSCommon].[STElements] (ElementKindId=128). Tworzy/aktualizuje wszystkie rekordy w tabeli contracts. Sprawdza zmiany kierowników. Uruchamiana automatycznie co 3 godziny przez CRON.<br />
+              ⚡ <strong>Szybka synchronizacja</strong> — aktualizuje statusy i kierowników kontraktów. Uruchamiana automatycznie co godzinę przez CRON.
             </>
           }
           progressEventUrl="/admin/symfonia-sync/contracts/progress"
@@ -440,7 +440,7 @@ export const SymfoniaSyncPage: React.FC = () => {
           onQuickSync={() => symfoniaSyncService.contractsQuickSync()}
           onLoadStatus={() => symfoniaSyncService.getContractsStatus()}
           onLoadHistory={(limit) => symfoniaSyncService.getContractsHistory(limit)}
-          cronLabel="CRON (auto)"
+          cronLabel="CRON (pełna co 3h, kierownicy co 1h)"
         />
       )}
     </div>

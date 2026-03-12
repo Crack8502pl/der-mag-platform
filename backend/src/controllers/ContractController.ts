@@ -49,6 +49,7 @@ export class ContractController {
       const { 
         status, 
         projectManagerId,
+        search,
         sortBy = 'createdAt',
         sortOrder = 'DESC',
         page = 1,
@@ -63,6 +64,7 @@ export class ContractController {
           filters.projectManagerId = parsedId;
         }
       }
+      if (search) filters.search = search as string;
 
       const result = await this.contractService.getAllContracts(filters, {
         sortBy: sortBy as string,
