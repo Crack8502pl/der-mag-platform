@@ -6,7 +6,6 @@ import bomSubsystemTemplateService from '../../services/bomSubsystemTemplate.ser
 import bomGroupService, { type BomGroup } from '../../services/bomGroup.service';
 import { warehouseStockService } from '../../services/warehouseStock.service';
 import taskService from '../../services/task.service';
-import api from '../../services/api';
 import type { BomSubsystemTemplate, BomSubsystemTemplateItem } from '../../services/bomSubsystemTemplate.service';
 import type { Task } from '../../types/task.types';
 import type { WarehouseStock } from '../../types/warehouseStock.types';
@@ -338,32 +337,46 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
         return;
       }
 
+      // Determine existing config params and whether BOM template was already applied
+      const existingConfigParams: any =
+        (task.metadata && (task.metadata as any).configParams) || {};
+      const previouslyAppliedTemplateId: number | string | undefined =
+        existingConfigParams.appliedBomTemplateId;
+
+      // Build new config params to be saved with the task
+      let newConfigParams: any = {
+        ...existingConfigParams,
+        ...configValues,
+        selectedModels,
+      };
+
+      // Decide whether to apply BOM subsystem template for this save
+      let shouldApplyBomTemplate = false;
+      if (template?.id != null) {
+        if (previouslyAppliedTemplateId !== template.id) {
+          shouldApplyBomTemplate = true;
+          newConfigParams = {
+            ...newConfigParams,
+            appliedBomTemplateId: template.id,
+          };
+        }
+      }
+
       // Update task metadata with new config params
       await taskService.update(task.taskNumber, {
         metadata: {
           ...task.metadata,
-          configParams: {
-            ...configValues,
-            selectedModels
-          }
-        }
+          configParams: newConfigParams,
+        },
       });
 
-      // Automatically generate BOM and set status to BOM_GENERATED
-      if (task.subsystemId) {
-        try {
-          await api.post(`/workflow-bom/generate/${task.subsystemId}`);
-        } catch (bomErr: unknown) {
-          // If BOM already exists, status is already BOM_GENERATED - ignore this error
-          const errResponse = bomErr && typeof bomErr === 'object' && 'response' in bomErr
-            ? (bomErr as { response?: { data?: { message?: string } } }).response
-            : undefined;
-          const msg = errResponse?.data?.message
-            ?? (bomErr instanceof Error ? bomErr.message : '');
-          if (!msg.includes('już został wygenerowany')) {
-            throw bomErr;
-          }
-        }
+      // Apply BOM subsystem template to task only if it has not been applied yet
+      if (shouldApplyBomTemplate && template?.id != null) {
+        await bomSubsystemTemplateService.applyToTask(
+          template.id,
+          task.id,
+          { ...configValues, selectedModels }
+        );
       }
 
       onSuccess();
