@@ -6,6 +6,7 @@ import bomSubsystemTemplateService from '../../services/bomSubsystemTemplate.ser
 import bomGroupService, { type BomGroup } from '../../services/bomGroup.service';
 import { warehouseStockService } from '../../services/warehouseStock.service';
 import taskService from '../../services/task.service';
+import api from '../../services/api';
 import type { BomSubsystemTemplate, BomSubsystemTemplateItem } from '../../services/bomSubsystemTemplate.service';
 import type { Task } from '../../types/task.types';
 import type { WarehouseStock } from '../../types/warehouseStock.types';
@@ -347,6 +348,23 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
           }
         }
       });
+
+      // Automatically generate BOM and set status to BOM_GENERATED
+      if (task.subsystemId) {
+        try {
+          await api.post(`/workflow-bom/generate/${task.subsystemId}`);
+        } catch (bomErr: unknown) {
+          // If BOM already exists, status is already BOM_GENERATED - ignore this error
+          const errResponse = bomErr && typeof bomErr === 'object' && 'response' in bomErr
+            ? (bomErr as { response?: { data?: { message?: string } } }).response
+            : undefined;
+          const msg = errResponse?.data?.message
+            ?? (bomErr instanceof Error ? bomErr.message : '');
+          if (!msg.includes('już został wygenerowany')) {
+            throw bomErr;
+          }
+        }
+      }
 
       onSuccess();
     } catch (err: any) {
