@@ -115,6 +115,27 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
       const groups = analyzeTemplate(tmpl);
       setConfigGroups(groups);
 
+      // Initialize selectedModels defaults for model_picker fields that are not yet in state
+      setSelectedModels(prev => {
+        const defaults: Record<string, { checked: boolean; quantity: number }> = {};
+        groups.forEach(group => {
+          group.fields.forEach(field => {
+            if (field.type === 'model_picker' && field.materialItems) {
+              field.materialItems.forEach((matItem, matIdx) => {
+                const modelKey = `${field.paramName}_${matItem.id || matIdx}`;
+                if (!(modelKey in prev)) {
+                  defaults[modelKey] = {
+                    checked: false,
+                    quantity: matItem.defaultQuantity || 1
+                  };
+                }
+              });
+            }
+          });
+        });
+        return { ...defaults, ...prev };
+      });
+
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd pobierania konfiguracji');
     } finally {
