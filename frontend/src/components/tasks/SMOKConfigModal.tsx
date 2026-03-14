@@ -337,19 +337,41 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
         return;
       }
 
+      // Determine existing config params and whether BOM template was already applied
+      const existingConfigParams: any =
+        (task.metadata && (task.metadata as any).configParams) || {};
+      const previouslyAppliedTemplateId: number | string | undefined =
+        existingConfigParams.appliedBomTemplateId;
+
+      // Build new config params to be saved with the task
+      let newConfigParams: any = {
+        ...existingConfigParams,
+        ...configValues,
+        selectedModels,
+      };
+
+      // Decide whether to apply BOM subsystem template for this save
+      let shouldApplyBomTemplate = false;
+      if (template?.id != null) {
+        if (previouslyAppliedTemplateId !== template.id) {
+          shouldApplyBomTemplate = true;
+          newConfigParams = {
+            ...newConfigParams,
+            appliedBomTemplateId: template.id,
+          };
+        }
+      }
+
       // Update task metadata with new config params
       await taskService.update(task.taskNumber, {
         metadata: {
           ...task.metadata,
-          configParams: {
-            ...configValues,
-            selectedModels
-          }
-        }
+          configParams: newConfigParams,
+        },
       });
 
-      // Apply BOM subsystem template to task using the correct service
-      if (template?.id) {
+      // Apply BOM subsystem template to task only if it has not been applied yet
+      if (shouldApplyBomTemplate && template?.id != null) {
         await bomSubsystemTemplateService.applyToTask(
           template.id,
           task.id,
