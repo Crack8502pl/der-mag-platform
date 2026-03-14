@@ -290,7 +290,7 @@ export const ContractDetailPage: React.FC = () => {
                                   📦 Zleć wysyłkę
                                 </button>
                               )}
-                              {canCreateCompletion && task.status === 'BOM_GENERATED' && task.bomId && (
+                              {canCreateCompletion && task.status === 'BOM_GENERATED' && task.bomId && !task.completionOrderId && (
                                 <button
                                   className="btn btn-primary btn-sm"
                                   title="Przekaż do kompletacji"
