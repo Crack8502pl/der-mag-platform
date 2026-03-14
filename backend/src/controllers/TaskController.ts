@@ -14,6 +14,11 @@ import EmailQueueService from '../services/EmailQueueService';
 import { EmailTemplate } from '../types/EmailTypes';
 import { User } from '../entities/User';
 
+// Lista typów zadań, dla których NIE wolno zlecać wysyłki.
+// Powinna odzwierciedlać konfigurację frontendową (NO_SHIPMENT_TYPES).
+// Minimalnie blokujemy tworzenie wysyłki z innej wysyłki.
+const NO_SHIPMENT_TYPES: string[] = ['KOMPLETACJA_WYSYLKI'];
+
 export class TaskController {
   /**
    * GET /api/tasks
@@ -635,6 +640,15 @@ export class TaskController {
         res.status(404).json({
           success: false,
           message: 'Zadanie nie znalezione'
+        });
+        return;
+      }
+
+      // Walidacja typu zadania źródłowego - nie wszystkie typy mogą zlecać wysyłkę
+      if (NO_SHIPMENT_TYPES.includes(sourceTask.taskType)) {
+        res.status(400).json({
+          success: false,
+          message: 'Nie można zlecić wysyłki dla tego typu zadania'
         });
         return;
       }
