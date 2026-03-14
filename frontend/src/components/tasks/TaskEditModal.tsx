@@ -69,7 +69,7 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>✏️ Edytuj zadanie</h2>

@@ -281,7 +281,7 @@ export const BOMConfigModal: React.FC<Props> = ({ task, onClose, onSuccess, read
   }, {} as Record<string, ResolvedItem[]>);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div 
         className="modal-content" 
         onClick={(e) => e.stopPropagation()}
