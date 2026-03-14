@@ -621,8 +621,21 @@ export class TaskController {
   static async requestShipment(req: Request, res: Response): Promise<void> {
     try {
       const { taskNumber } = req.params;
-      const { deliveryAddress, contactPhone } = req.body;
+      const { deliveryAddress: rawDeliveryAddress, contactPhone: rawContactPhone } = req.body;
 
+      // Validate types
+      if (typeof rawDeliveryAddress !== 'string' || typeof rawContactPhone !== 'string') {
+        res.status(400).json({
+          success: false,
+          message: 'Adres dostawy i telefon kontaktowy muszą być poprawnymi ciągami znaków'
+        });
+        return;
+      }
+
+      const deliveryAddress = rawDeliveryAddress.trim();
+      const contactPhone = rawContactPhone.trim();
+
+      // Validate non-empty after trimming
       if (!deliveryAddress || !contactPhone) {
         res.status(400).json({
           success: false,
