@@ -93,6 +93,7 @@ export const ContractDetailPage: React.FC = () => {
       setCompletionWorkers(response.data.data || []);
     } catch {
       setCompletionWorkers([]);
+      setCompletionError('Nie udało się załadować listy pracowników');
     }
   };
 

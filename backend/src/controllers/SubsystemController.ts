@@ -293,11 +293,15 @@ export class SubsystemController {
                     const savedMainTask = await taskRepository.save(mainTask);
                     createdMainTasks.push(savedMainTask);
                   } catch (taskError) {
-                    serverLogger.error(`Failed to create main task for ${taskData.name}:`, { error: String(taskError) });
+                    serverLogger.error(`Failed to create main task for ${taskData.name}:`, {
+                      error: taskError instanceof Error ? taskError.stack || taskError.message : String(taskError)
+                    });
                   }
                 }
               } catch (error) {
-                serverLogger.error(`Failed to create task for subsystem ${subsystem.subsystemNumber}:`, { error: String(error) });
+                serverLogger.error(`Failed to create task for subsystem ${subsystem.subsystemNumber}:`, {
+                  error: error instanceof Error ? error.stack || error.message : String(error)
+                });
               }
             }
           }
@@ -685,12 +689,16 @@ export class SubsystemController {
             createdMainTasks.push(savedMainTask);
 
           } catch (taskError) {
-            serverLogger.error(`Failed to create main task for ${taskData.name}:`, { error: String(taskError) });
+            serverLogger.error(`Failed to create main task for ${taskData.name}:`, {
+              error: taskError instanceof Error ? taskError.stack || taskError.message : String(taskError)
+            });
             failedMainTasks.push(taskData.name || 'Unknown task');
             // Continue with next task - don't break entire process
           }
         } catch (error) {
-          serverLogger.error(`Failed to create task for subsystem ${id}:`, { error: String(error) });
+          serverLogger.error(`Failed to create task for subsystem ${id}:`, {
+            error: error instanceof Error ? error.stack || error.message : String(error)
+          });
         }
       }
 
