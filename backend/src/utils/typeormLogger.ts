@@ -5,6 +5,7 @@
 
 import { Logger as TypeOrmLoggerInterface, QueryRunner } from 'typeorm';
 import serverLogger from './logger';
+import * as util from 'util';
 
 export class TypeOrmLogger implements TypeOrmLoggerInterface {
   logQuery(query: string, parameters?: any[], _queryRunner?: QueryRunner): void {
@@ -43,7 +44,7 @@ export class TypeOrmLogger implements TypeOrmLoggerInterface {
   }
 
   log(level: 'log' | 'info' | 'warn', message: any, _queryRunner?: QueryRunner): void {
-    const text = typeof message === 'object' ? JSON.stringify(message) : String(message);
+    const text = typeof message === 'object' ? this.safeSerialize(message) : String(message);
     if (level === 'warn') {
       serverLogger.warn(`[DB] ${text}`);
     } else {
@@ -51,9 +52,21 @@ export class TypeOrmLogger implements TypeOrmLoggerInterface {
     }
   }
 
+  private safeSerialize(value: any): string {
+    try {
+      return JSON.stringify(value);
+    } catch (err) {
+      try {
+        return util.inspect(value, { depth: 5 });
+      } catch {
+        return '[Unserializable value]';
+      }
+    }
+  }
+
   private formatQuery(query: string, parameters?: any[]): string {
     if (parameters && parameters.length > 0) {
-      return `${query} -- PARAMETERS: ${JSON.stringify(parameters)}`;
+      return `${query} -- PARAMETERS: ${this.safeSerialize(parameters)}`;
     }
     return query;
   }
