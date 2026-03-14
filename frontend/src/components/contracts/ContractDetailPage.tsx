@@ -2,7 +2,7 @@
 // Contract detail page
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { BackButton } from '../common/BackButton';
 import { ContractStatusBadge } from './ContractStatusBadge';
 import { ModuleIcon } from '../common/ModuleIcon';
@@ -13,18 +13,32 @@ import api from '../../services/api';
 import { ShipmentRequestModal } from './ShipmentRequestModal';
 import './ContractListPage.css';
 
+interface UserOption {
+  id: number;
+  firstName: string;
+  lastName: string;
+}
+
 export const ContractDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { hasPermission } = useAuth();
 
   const [contract, setContract] = useState<Contract | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [shipmentTask, setShipmentTask] = useState<SubsystemTask | null>(null);
+  const [completionTask, setCompletionTask] = useState<SubsystemTask | null>(null);
+  const [completionWorkers, setCompletionWorkers] = useState<UserOption[]>([]);
+  const [selectedWorkerId, setSelectedWorkerId] = useState<number | ''>('');
+  const [completionLoading, setCompletionLoading] = useState(false);
+  const [completionError, setCompletionError] = useState('');
 
   const canCreateTasks =
     typeof hasPermission === 'function' ? hasPermission('tasks', 'create') : false;
   const canApprove = hasPermission('contracts', 'approve');
+  const canCreateCompletion =
+    typeof hasPermission === 'function' ? hasPermission('completion', 'create') : false;
 
   useEffect(() => {
     loadContract();
@@ -68,6 +82,41 @@ export const ContractDetailPage: React.FC = () => {
       return 'Kompletacja szafy wewnętrznej';
     }
     return 'Kompletacja szafy przejazdowej';
+  };
+
+  const handleOpenCompletionModal = async (task: SubsystemTask) => {
+    setCompletionTask(task);
+    setCompletionError('');
+    setSelectedWorkerId('');
+    try {
+      const response = await api.get('/users/managers');
+      setCompletionWorkers(response.data.data || []);
+    } catch {
+      setCompletionWorkers([]);
+    }
+  };
+
+  const handleSendToCompletion = async () => {
+    if (!completionTask || !selectedWorkerId) return;
+    setCompletionLoading(true);
+    setCompletionError('');
+    try {
+      const response = await api.post('/completion', {
+        subsystemId: completionTask.subsystemId,
+        generatedBomId: completionTask.bomId,
+        assignedToId: selectedWorkerId,
+      });
+      setCompletionTask(null);
+      if (response.data?.data?.id) {
+        navigate(`/completion/${response.data.data.id}/scanner`);
+      } else {
+        loadContract();
+      }
+    } catch (err: any) {
+      setCompletionError(err.response?.data?.message || 'Błąd przekazywania do kompletacji');
+    } finally {
+      setCompletionLoading(false);
+    }
   };
 
   if (loading) {
@@ -240,6 +289,15 @@ export const ContractDetailPage: React.FC = () => {
                                   📦 Zleć wysyłkę
                                 </button>
                               )}
+                              {canCreateCompletion && task.status === 'BOM_GENERATED' && task.bomId && (
+                                <button
+                                  className="btn btn-primary btn-sm"
+                                  title="Przekaż do kompletacji"
+                                  onClick={() => handleOpenCompletionModal(task)}
+                                >
+                                  ✅ Przekaż do kompletacji
+                                </button>
+                              )}
                             </li>
                           ))}
                         </ul>
@@ -265,6 +323,57 @@ export const ContractDetailPage: React.FC = () => {
             loadContract();
           }}
         />
+      )}
+
+      {completionTask && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>📦 Przekaż do kompletacji</h2>
+              <button className="modal-close" onClick={() => setCompletionTask(null)}>✕</button>
+            </div>
+            <div className="modal-form">
+              <p>
+                Zadanie: <strong>{completionTask.taskName}</strong>{' '}
+                (<code>{completionTask.taskNumber}</code>)
+              </p>
+              <div className="form-group">
+                <label>Przypisz do pracownika:</label>
+                <select
+                  className="filter-select"
+                  value={selectedWorkerId}
+                  onChange={e => setSelectedWorkerId(e.target.value ? Number(e.target.value) : '')}
+                >
+                  <option value="">-- Wybierz pracownika --</option>
+                  {completionWorkers.map(w => (
+                    <option key={w.id} value={w.id}>
+                      {w.firstName} {w.lastName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {completionError && (
+                <div className="alert alert-error">{completionError}</div>
+              )}
+              <div className="modal-footer">
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setCompletionTask(null)}
+                  disabled={completionLoading}
+                >
+                  Anuluj
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSendToCompletion}
+                  disabled={!selectedWorkerId || completionLoading}
+                >
+                  {completionLoading ? 'Przekazywanie...' : '✅ Przekaż do kompletacji'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

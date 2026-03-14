@@ -1,6 +1,26 @@
 /* src/components/completion/CompletionOrderList.css */
 /* Completion order list styles */
 
+.completion-list-card {
+  margin-bottom: var(--spacing-xl);
+}
+
+.completion-list-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.completion-list-card-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
 .completion-order-list {
   padding: var(--spacing-xl);
   max-width: 1200px;

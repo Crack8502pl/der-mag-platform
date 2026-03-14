@@ -4,8 +4,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePermissions } from '../../hooks/usePermissions';
+import { BackButton } from '../common/BackButton';
+import { ModuleIcon } from '../common/ModuleIcon';
+import { MODULE_ICONS } from '../../config/moduleIcons';
 import completionService from '../../services/completion.service';
 import type { CompletionOrder } from '../../types/completion.types';
+import '../modules/ModulePage.css';
 import './CompletionOrderList.css';
 
 const PAGE_SIZE = 10;
@@ -118,53 +122,72 @@ export const CompletionOrderList: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="completion-list-loading">
-        <div className="spinner"></div>
-        <p>Ładowanie zleceń...</p>
+      <div className="module-page">
+        <BackButton to="/dashboard" />
+        <div className="completion-list-loading">
+          <div className="spinner"></div>
+          <p>Ładowanie zleceń...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="completion-list-error alert alert-error">
-        {error}
+      <div className="module-page">
+        <BackButton to="/dashboard" />
+        <div className="completion-list-error alert alert-error">
+          {error}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="completion-order-list">
-      <div className="completion-list-header">
-        <h2>Zlecenia kompletacji</h2>
-        <div className="completion-filters">
-          <button
-            onClick={() => setFilter('assigned')}
-            className={`btn ${filter === 'assigned' ? 'btn-primary' : 'btn-secondary'}`}
-          >
-            Moje zlecenia
-          </button>
-          <button
-            onClick={() => setFilter('all')}
-            className={`btn ${filter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
-          >
-            Wszystkie
-          </button>
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="completion-filter-select"
-          >
-            <option value="">Wszystkie statusy</option>
-            <option value="CREATED">Utworzone</option>
-            <option value="IN_PROGRESS">W trakcie</option>
-            <option value="WAITING_FOR_MATERIALS">Oczekuje materiałów</option>
-            <option value="WAITING_DECISION">Oczekuje decyzji</option>
-            <option value="COMPLETED">Zakończone</option>
-            <option value="CANCELLED">Anulowane</option>
-          </select>
+    <div className="module-page">
+      <BackButton to="/dashboard" />
+
+      <div className="module-header">
+        <div className="module-icon">
+          <ModuleIcon name="completion" emoji={MODULE_ICONS.completion} size={36} />
+        </div>
+        <div>
+          <h1>Kompletacja</h1>
+          <p className="subtitle">Zlecenia kompletacji materiałów</p>
         </div>
       </div>
+
+      <div className="completion-list-card card">
+        <div className="completion-list-card-header card-header">
+          <h2>Zlecenia kompletacji</h2>
+          <div className="completion-filters">
+            <button
+              onClick={() => setFilter('assigned')}
+              className={`btn ${filter === 'assigned' ? 'btn-primary' : 'btn-secondary'}`}
+            >
+              Moje zlecenia
+            </button>
+            <button
+              onClick={() => setFilter('all')}
+              className={`btn ${filter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+            >
+              Wszystkie
+            </button>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="completion-filter-select"
+            >
+              <option value="">Wszystkie statusy</option>
+              <option value="CREATED">Utworzone</option>
+              <option value="IN_PROGRESS">W trakcie</option>
+              <option value="WAITING_FOR_MATERIALS">Oczekuje materiałów</option>
+              <option value="WAITING_DECISION">Oczekuje decyzji</option>
+              <option value="COMPLETED">Zakończone</option>
+              <option value="CANCELLED">Anulowane</option>
+            </select>
+          </div>
+        </div>
 
       {filteredOrders.length === 0 ? (
         <div className="completion-list-empty">
@@ -275,6 +298,7 @@ export const CompletionOrderList: React.FC = () => {
           )}
         </>
       )}
+      </div>
     </div>
   );
 };
