@@ -715,11 +715,13 @@ export class SubsystemController {
         })
       });
     } catch (error: any) {
-      serverLogger.error('❌ Error creating tasks:', { error: error.message });
+      serverLogger.error('❌ Error creating tasks:', {
+        error: error instanceof Error ? error.stack || error.message : String(error)
+      });
       res.status(400).json({
         success: false,
         message: 'Błąd podczas tworzenia zadań',
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
     }
   };
