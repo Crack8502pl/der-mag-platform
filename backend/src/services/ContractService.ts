@@ -180,10 +180,8 @@ export class ContractService {
       .createQueryBuilder('contract')
       .leftJoinAndSelect('contract.projectManager', 'projectManager')
       .leftJoinAndSelect('contract.subsystems', 'subsystems')
-      .addSelect(
-        '(SELECT COUNT(*) FROM subsystems s WHERE s.contract_id = contract.id)',
-        'subsystemsCount'
-      );
+      .addSelect('COUNT(DISTINCT subsystems.id)', 'subsystemsCount')
+      .groupBy('contract.id');
 
     if (filters?.status) {
       query.andWhere('contract.status = :status', { status: filters.status });
