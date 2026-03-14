@@ -273,7 +273,7 @@ if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEBUG_ENDPOINTS 
 const enableApiTester = process.env.ENABLE_API_TESTER === 'true' || process.env.NODE_ENV !== 'production';
 if (enableApiTester) {
   app.use('/test', express.static(path.join(__dirname, '../public')));
-  console.log('🧪 Test interface dostępny na: /test/api-tester.html');
+  serverLogger.info('🧪 Test interface dostępny na: /test/api-tester.html');
 }
 
 // API routes (MUSZĄ być przed serwowaniem frontendu)
@@ -282,7 +282,7 @@ app.use('/api', routes);
 // Serwowanie frontendu z tego samego portu co backend
 const frontendPath = path.join(__dirname, '../../frontend/dist');
 if (fs.existsSync(frontendPath)) {
-  console.log('🌐 Frontend będzie serwowany z: ' + frontendPath);
+  serverLogger.info('🌐 Frontend będzie serwowany z: ' + frontendPath);
   
   // 🆕 CRITICAL - Explicit route for assets directory with CORS
   app.use('/assets', express.static(path.join(frontendPath, 'assets'), {
@@ -331,8 +331,8 @@ if (fs.existsSync(frontendPath)) {
     res.sendFile(path.join(frontendPath, 'index.html'));
   });
 } else {
-  console.warn('⚠️  Frontend dist nie znaleziony w: ' + frontendPath);
-  console.warn('   Uruchom: cd frontend && npm run build');
+  serverLogger.warn('⚠️  Frontend dist nie znaleziony w: ' + frontendPath);
+  serverLogger.warn('   Uruchom: cd frontend && npm run build');
 }
 
 // Error handlers (MUSZĄ być na samym końcu, ale tylko dla API routes)

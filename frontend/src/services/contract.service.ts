@@ -10,6 +10,9 @@ export interface SubsystemTask {
   taskType: string;
   subsystemId: number;
   status: string;
+  bomGenerated: boolean;
+  bomId: number | null;
+  completionOrderId: number | null;
   metadata: Record<string, any>;
   createdAt: string;
   updatedAt: string;

@@ -4,6 +4,7 @@ dotenv.config();
 // Konfiguracja połączenia z bazą danych PostgreSQL
 
 import { DataSource } from 'typeorm';
+import { TypeOrmLogger } from '../utils/typeormLogger';
 import { User } from '../entities/User';
 import { Role } from '../entities/Role';
 import { Task } from '../entities/Task';
@@ -75,6 +76,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME || 'dermag_platform',
   synchronize: process.env.NODE_ENV === 'development', // Tylko w dev!
   logging: process.env.NODE_ENV === 'development',
+  logger: process.env.NODE_ENV === 'development' ? new TypeOrmLogger() : undefined,
   entities: [
     User,
     Role,

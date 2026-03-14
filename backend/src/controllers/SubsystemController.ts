@@ -10,6 +10,7 @@ import { AppDataSource } from '../config/database';
 import { Task } from '../entities/Task';
 import { TaskType } from '../entities/TaskType';
 import { Contract } from '../entities/Contract';
+import { serverLogger } from '../utils/logger';
 import * as fs from 'fs';
 
 // Interfejs dla żądań uwierzytelnionych
@@ -216,7 +217,7 @@ export class SubsystemController {
         const contractRepository = AppDataSource.getRepository(Contract);
         const contract = await contractRepository.findOne({ where: { id: parseInt(contractId) } });
         if (!contract) {
-          console.warn(`Contract ${contractId} not found - main Task entries will not be created`);
+          serverLogger.warn(`Contract ${contractId} not found - main Task entries will not be created`);
         }
 
         // Get repositories needed for main Task creation
@@ -292,11 +293,15 @@ export class SubsystemController {
                     const savedMainTask = await taskRepository.save(mainTask);
                     createdMainTasks.push(savedMainTask);
                   } catch (taskError) {
-                    console.error(`Failed to create main task for ${taskData.name}:`, taskError);
+                    serverLogger.error(`Failed to create main task for ${taskData.name}:`, {
+                      error: taskError instanceof Error ? taskError.stack || taskError.message : String(taskError)
+                    });
                   }
                 }
               } catch (error) {
-                console.error(`Failed to create task for subsystem ${subsystem.subsystemNumber}:`, error);
+                serverLogger.error(`Failed to create task for subsystem ${subsystem.subsystemNumber}:`, {
+                  error: error instanceof Error ? error.stack || error.message : String(error)
+                });
               }
             }
           }
@@ -597,8 +602,8 @@ export class SubsystemController {
       const { id } = req.params;
       const { tasks } = req.body;
 
-      console.log(`📥 POST /api/subsystems/${id}/tasks`);
-      console.log('Tasks to create:', JSON.stringify(tasks, null, 2));
+      serverLogger.info(`📥 POST /api/subsystems/${id}/tasks`);
+      serverLogger.debug(`Tasks to create: ${JSON.stringify(tasks, null, 2)}`);
 
       if (!Array.isArray(tasks) || tasks.length === 0) {
         res.status(400).json({
@@ -684,16 +689,20 @@ export class SubsystemController {
             createdMainTasks.push(savedMainTask);
 
           } catch (taskError) {
-            console.error(`Failed to create main task for ${taskData.name}:`, taskError);
+            serverLogger.error(`Failed to create main task for ${taskData.name}:`, {
+              error: taskError instanceof Error ? taskError.stack || taskError.message : String(taskError)
+            });
             failedMainTasks.push(taskData.name || 'Unknown task');
             // Continue with next task - don't break entire process
           }
         } catch (error) {
-          console.error(`Failed to create task for subsystem ${id}:`, error);
+          serverLogger.error(`Failed to create task for subsystem ${id}:`, {
+            error: error instanceof Error ? error.stack || error.message : String(error)
+          });
         }
       }
 
-      console.log(`✅ Created ${createdTasks.length} tasks for subsystem ${id}`);
+      serverLogger.info(`✅ Created ${createdTasks.length} tasks for subsystem ${id}`);
       res.status(201).json({
         success: true,
         message: `Utworzono ${createdTasks.length} zadań pomyślnie`,
@@ -706,11 +715,13 @@ export class SubsystemController {
         })
       });
     } catch (error: any) {
-      console.error('❌ Error creating tasks:', error);
+      serverLogger.error('❌ Error creating tasks:', {
+        error: error instanceof Error ? error.stack || error.message : String(error)
+      });
       res.status(400).json({
         success: false,
         message: 'Błąd podczas tworzenia zadań',
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
     }
   };

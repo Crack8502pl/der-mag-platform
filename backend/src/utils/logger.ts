@@ -50,39 +50,39 @@ export const warehouseSyncLogger = createLogger('warehouse-sync');
 export const contractsSyncLogger = createLogger('contracts-sync');
 
 // ===== OVERRIDE console.log/console.error/console.warn =====
-const originalConsoleLog = console.log;
-const originalConsoleError = console.error;
-const originalConsoleWarn = console.warn;
+// NOTE: Winston's Console transport uses process.stdout.write directly (no recursion risk).
+// The originalConsole* forwarding is intentionally omitted to avoid double console output —
+// Winston's Console transport (registered above for non-production) handles stdout display.
+
+const serializeArg = (arg: unknown): string => {
+  if (arg instanceof Error) {
+    return arg.stack || arg.message;
+  }
+  if (typeof arg === 'object' && arg !== null) {
+    try {
+      return JSON.stringify(arg);
+    } catch {
+      return String(arg);
+    }
+  }
+  return String(arg);
+};
 
 export const overrideConsole = (): void => {
   console.log = (...args: unknown[]) => {
-    const message = args.map(arg =>
-      typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
-    ).join(' ');
-    serverLogger.info(message);
-    if (process.env.NODE_ENV !== 'production') {
-      originalConsoleLog.apply(console, args);
-    }
+    serverLogger.info(args.map(serializeArg).join(' '));
   };
 
   console.error = (...args: unknown[]) => {
-    const message = args.map(arg =>
-      typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
-    ).join(' ');
-    serverLogger.error(message);
-    if (process.env.NODE_ENV !== 'production') {
-      originalConsoleError.apply(console, args);
-    }
+    serverLogger.error(args.map(serializeArg).join(' '));
   };
 
   console.warn = (...args: unknown[]) => {
-    const message = args.map(arg =>
-      typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
-    ).join(' ');
-    serverLogger.warn(message);
-    if (process.env.NODE_ENV !== 'production') {
-      originalConsoleWarn.apply(console, args);
-    }
+    serverLogger.warn(args.map(serializeArg).join(' '));
+  };
+
+  console.debug = (...args: unknown[]) => {
+    serverLogger.debug(args.map(serializeArg).join(' '));
   };
 };
 
