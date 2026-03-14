@@ -15,6 +15,7 @@ import NotificationSchedulerService from './services/NotificationSchedulerServic
 import { startSymfoniaStockSyncJob, stopSymfoniaStockSyncJob } from './jobs/symfoniaStockSync.job';
 import { scheduleWarehouseCleanup, stopWarehouseCleanupJob } from './jobs/warehouseCleanupJob';
 import { startSymfoniaContractSyncJobs, stopSymfoniaContractSyncJobs } from './jobs/symfoniaContractSync.job';
+import { serverLogger } from './utils/logger';
 
 const PORT = process.env.PORT || 3000;
 const USE_HTTPS = process.env.USE_HTTPS === 'true';
@@ -30,24 +31,24 @@ const startServer = async () => {
     await DatabaseSeeder.seed();
 
     // Inicjalizacja systemu emaili
-    console.log('📧 Inicjalizacja systemu emaili...');
+    serverLogger.info('📧 Inicjalizacja systemu emaili...');
     await EmailService.initialize();
     await EmailQueueService.initialize();
 
     // Inicjalizacja schedulera powiadomień
-    console.log('⏰ Inicjalizacja schedulera powiadomień...');
+    serverLogger.info('⏰ Inicjalizacja schedulera powiadomień...');
     NotificationSchedulerService.initialize();
 
     // Inicjalizacja CRON synchronizacji Symfonia
-    console.log('🔄 Inicjalizacja synchronizacji stanów magazynowych Symfonia...');
+    serverLogger.info('🔄 Inicjalizacja synchronizacji stanów magazynowych Symfonia...');
     startSymfoniaStockSyncJob();
 
     // Inicjalizacja CRON synchronizacji kontraktów
-    console.log('📋 Inicjalizacja synchronizacji kontraktów Symfonia...');
+    serverLogger.info('📋 Inicjalizacja synchronizacji kontraktów Symfonia...');
     startSymfoniaContractSyncJobs();
 
     // Inicjalizacja CRON czyszczenia magazynu
-    console.log('🧹 Inicjalizacja automatycznego czyszczenia magazynu...');
+    serverLogger.info('🧹 Inicjalizacja automatycznego czyszczenia magazynu...');
     scheduleWarehouseCleanup();
 
     // Start serwera z HTTPS lub HTTP
@@ -56,12 +57,12 @@ const startServer = async () => {
       const keyPath = path.join(__dirname, '../certs/key.pem');
 
       if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
-        console.error('❌ Certyfikaty SSL nie znalezione!');
-        console.error(`   Sprawdź: ${certPath} i ${keyPath}`);
-        console.error('');
-        console.error('   Wygeneruj certyfikaty za pomocą:');
-        console.error('   Linux/Mac: ./scripts/generate-certs.sh ' + SERVER_HOST);
-        console.error('   Windows:   .\\scripts\\generate-certs.ps1 -IpAddress ' + SERVER_HOST);
+        serverLogger.error('❌ Certyfikaty SSL nie znalezione!');
+        serverLogger.error(`   Sprawdź: ${certPath} i ${keyPath}`);
+        serverLogger.error('');
+        serverLogger.error('   Wygeneruj certyfikaty za pomocą:');
+        serverLogger.error('   Linux/Mac: ./scripts/generate-certs.sh ' + SERVER_HOST);
+        serverLogger.error('   Windows:   .\\scripts\\generate-certs.ps1 -IpAddress ' + SERVER_HOST);
         process.exit(1);
       }
 
@@ -71,50 +72,50 @@ const startServer = async () => {
       };
 
       https.createServer(httpsOptions, app).listen(PORT, () => {
-        console.log('╔════════════════════════════════════════╗');
-        console.log('║   Grover Platform Backend API         ║');
-        console.log('║   🔐 HTTPS Mode                        ║');
-        console.log('╠════════════════════════════════════════╣');
-        console.log(`║   🚀 Serwer działa na porcie: ${PORT}    ║`);
-        console.log(`║   🌍 Environment: ${(process.env.NODE_ENV || 'development').padEnd(19)} ║`);
-        console.log(`║   🖥️  Host: ${SERVER_HOST.padEnd(27)} ║`);
-        console.log(`║   📡 API: https://${SERVER_HOST}:${PORT}/api         ║`);
-        console.log(`║   💚 Health: https://${SERVER_HOST}:${PORT}/health  ║`);
-        console.log('╚════════════════════════════════════════╝');
+        serverLogger.info('╔════════════════════════════════════════╗');
+        serverLogger.info('║   Grover Platform Backend API         ║');
+        serverLogger.info('║   🔐 HTTPS Mode                        ║');
+        serverLogger.info('╠════════════════════════════════════════╣');
+        serverLogger.info(`║   🚀 Serwer działa na porcie: ${PORT}    ║`);
+        serverLogger.info(`║   🌍 Environment: ${(process.env.NODE_ENV || 'development').padEnd(19)} ║`);
+        serverLogger.info(`║   🖥️  Host: ${SERVER_HOST.padEnd(27)} ║`);
+        serverLogger.info(`║   📡 API: https://${SERVER_HOST}:${PORT}/api         ║`);
+        serverLogger.info(`║   💚 Health: https://${SERVER_HOST}:${PORT}/health  ║`);
+        serverLogger.info('╚════════════════════════════════════════╝');
       });
     } else {
       http.createServer(app).listen(PORT, () => {
-        console.log('╔════════════════════════════════════════╗');
-        console.log('║   Grover Platform Backend API         ║');
-        console.log('║   🔓 HTTP Mode (Not Secure)            ║');
-        console.log('╠════════════════════════════════════════╣');
-        console.log(`║   🚀 Serwer działa na porcie: ${PORT}    ║`);
-        console.log(`║   🌍 Environment: ${(process.env.NODE_ENV || 'development').padEnd(19)} ║`);
-        console.log(`║   🖥️  Host: ${SERVER_HOST.padEnd(27)} ║`);
-        console.log(`║   📡 API: http://${SERVER_HOST}:${PORT}/api          ║`);
-        console.log(`║   💚 Health: http://${SERVER_HOST}:${PORT}/health   ║`);
-        console.log('╚════════════════════════════════════════╝');
+        serverLogger.info('╔════════════════════════════════════════╗');
+        serverLogger.info('║   Grover Platform Backend API         ║');
+        serverLogger.info('║   🔓 HTTP Mode (Not Secure)            ║');
+        serverLogger.info('╠════════════════════════════════════════╣');
+        serverLogger.info(`║   🚀 Serwer działa na porcie: ${PORT}    ║`);
+        serverLogger.info(`║   🌍 Environment: ${(process.env.NODE_ENV || 'development').padEnd(19)} ║`);
+        serverLogger.info(`║   🖥️  Host: ${SERVER_HOST.padEnd(27)} ║`);
+        serverLogger.info(`║   📡 API: http://${SERVER_HOST}:${PORT}/api          ║`);
+        serverLogger.info(`║   💚 Health: http://${SERVER_HOST}:${PORT}/health   ║`);
+        serverLogger.info('╚════════════════════════════════════════╝');
       });
     }
   } catch (error) {
-    console.error('❌ Błąd uruchomienia serwera:', error);
+    serverLogger.error('❌ Błąd uruchomienia serwera:', error);
     process.exit(1);
   }
 };
 
 // Obsługa niezłapanych błędów
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  serverLogger.error('❌ Unhandled Rejection', { promise: String(promise), reason: String(reason) });
 });
 
 process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception:', error);
+  serverLogger.error('❌ Uncaught Exception', { message: error.message, stack: error.stack });
   process.exit(1);
 });
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
-  console.log('👋 SIGTERM received, shutting down gracefully');
+  serverLogger.info('👋 SIGTERM received, shutting down gracefully');
   NotificationSchedulerService.stopAll();
   stopSymfoniaStockSyncJob();
   stopSymfoniaContractSyncJobs();
@@ -124,7 +125,7 @@ process.on('SIGTERM', async () => {
 });
 
 process.on('SIGINT', async () => {
-  console.log('👋 SIGINT received, shutting down gracefully');
+  serverLogger.info('👋 SIGINT received, shutting down gracefully');
   stopSymfoniaStockSyncJob();
   stopSymfoniaContractSyncJobs();
   stopWarehouseCleanupJob();

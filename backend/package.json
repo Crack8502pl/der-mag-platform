@@ -88,7 +88,9 @@
     "typeorm": "^0.3.19",
     "typescript": "^5.9.3",
     "uuid": "^13.0.0",
-    "webdav-server": "^2.6.2"
+    "webdav-server": "^2.6.2",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

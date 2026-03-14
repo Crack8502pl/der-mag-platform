@@ -7,6 +7,7 @@ import { AppDataSource } from '../config/database';
 import { WarehouseStock, MaterialType, StockStatus } from '../entities/WarehouseStock';
 import { WarehouseStockHistory, StockOperationType } from '../entities/WarehouseStockHistory';
 import { MaterialImport } from '../entities/MaterialImport';
+import { warehouseSyncLogger } from '../utils/logger';
 
 export interface SyncResult {
   success: boolean;
@@ -383,7 +384,7 @@ export class SymfoniaSyncService {
     const duplicatesRemoved = data.length - deduplicatedData.length - skipped;
 
     if (duplicatesRemoved > 0) {
-      console.log(`⚠️ Usunięto ${duplicatesRemoved} duplikatów z danych Symfonii`);
+      warehouseSyncLogger.warn(`⚠️ Usunięto ${duplicatesRemoved} duplikatów z danych Symfonii`);
     }
 
     const total = deduplicatedData.length;
@@ -614,7 +615,7 @@ export class SymfoniaSyncService {
 
       await importRepo.save(importLog);
     } catch (err) {
-      console.error('❌ SymfoniaSyncService.logSync() ERROR:', err);
+      warehouseSyncLogger.error('❌ SymfoniaSyncService.logSync() ERROR:', err);
     }
   }
 

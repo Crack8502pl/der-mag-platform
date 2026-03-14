@@ -7,6 +7,7 @@ import { AppDataSource } from '../config/database';
 import { Contract, ContractStatus } from '../entities/Contract';
 import { MaterialImport } from '../entities/MaterialImport';
 import { User } from '../entities/User';
+import { contractsSyncLogger } from '../utils/logger';
 
 export interface ContractSyncResult {
   success: boolean;
@@ -626,7 +627,7 @@ export class SymfoniaContractSyncService {
 
       await importRepo.save(importLog);
     } catch (err) {
-      console.error('❌ SymfoniaContractSyncService.logSync() ERROR:', err);
+      contractsSyncLogger.error('❌ SymfoniaContractSyncService.logSync() ERROR:', err);
     }
   }
 
