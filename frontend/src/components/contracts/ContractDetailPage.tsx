@@ -15,6 +15,9 @@ import './ContractListPage.css';
 
 export const ContractDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { hasPermission } = useAuth();
+  const canCreateTasks =
+    typeof hasPermission === 'function' ? hasPermission('tasks', 'create') : false;
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   
@@ -231,7 +234,7 @@ export const ContractDetailPage: React.FC = () => {
                               <span className={`task-status task-status--${(task.status || 'created').toLowerCase()}`}>
                                 {task.status || 'CREATED'}
                               </span>
-                              {canRequestShipment(task.taskType) && (
+                              {canCreateTasks && canRequestShipment(task.taskType) && (
                                 <button
                                   className="btn btn-secondary btn-sm"
                                   title={`Zleć wysyłkę: ${getShipmentTaskName(task.taskType)}`}
@@ -255,7 +258,7 @@ export const ContractDetailPage: React.FC = () => {
         )}
       </div>
 
-      {shipmentTask && (
+      {shipmentTask && canCreateTasks && (
         <ShipmentRequestModal
           task={shipmentTask}
           shipmentTaskName={getShipmentTaskName(shipmentTask.taskType)}
