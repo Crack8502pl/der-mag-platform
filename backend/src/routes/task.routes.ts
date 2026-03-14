@@ -16,5 +16,6 @@ router.put('/:taskNumber', authenticate, authorize('admin', 'manager', 'coordina
 router.patch('/:taskNumber/status', authenticate, TaskController.updateStatus);
 router.delete('/:taskNumber', authenticate, authorize('admin', 'manager'), TaskController.delete);
 router.post('/:taskNumber/assign', authenticate, authorize('admin', 'manager', 'coordinator'), TaskController.assign);
+router.post('/:taskNumber/request-shipment', authenticate, authorize('admin', 'manager', 'coordinator'), TaskController.requestShipment);
 
 export default router;

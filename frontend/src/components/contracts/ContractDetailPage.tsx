@@ -10,16 +10,21 @@ import { MODULE_ICONS } from '../../config/moduleIcons';
 import { useAuth } from '../../hooks/useAuth';
 import type { Contract, SubsystemTask } from '../../services/contract.service';
 import api from '../../services/api';
+import { ShipmentRequestModal } from './ShipmentRequestModal';
 import './ContractListPage.css';
 
 export const ContractDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { hasPermission } = useAuth();
+  const canCreateTasks =
+    typeof hasPermission === 'function' ? hasPermission('tasks', 'create') : false;
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   
   const [contract, setContract] = useState<Contract | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [shipmentTask, setShipmentTask] = useState<SubsystemTask | null>(null);
 
   const canUpdate = hasPermission('contracts', 'update');
   const canApprove = hasPermission('contracts', 'approve');
@@ -52,6 +57,20 @@ export const ContractDetailPage: React.FC = () => {
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd zatwierdzania kontraktu');
     }
+  };
+
+  // Task types that do NOT get a shipment button
+  const NO_SHIPMENT_TYPES = ['NASTAWNIA', 'LCS', 'CUID'];
+
+  const canRequestShipment = (taskType: string): boolean => {
+    return !NO_SHIPMENT_TYPES.includes(taskType);
+  };
+
+  const getShipmentTaskName = (taskType: string): string => {
+    if (taskType === 'SZAFA_WEWNĘTRZNA') {
+      return 'Kompletacja szafy wewnętrznej';
+    }
+    return 'Kompletacja szafy przejazdowej';
   };
 
   if (loading) {
@@ -96,11 +115,6 @@ export const ContractDetailPage: React.FC = () => {
             {canApprove && contract.status === 'CREATED' && (
               <button className="btn btn-success" onClick={handleApprove}>
                 ✅ Zatwierdź
-              </button>
-            )}
-            {canUpdate && (
-              <button className="btn btn-primary" onClick={() => navigate(`/contracts`)}>
-                ✏️ Edytuj
               </button>
             )}
           </div>
@@ -220,6 +234,15 @@ export const ContractDetailPage: React.FC = () => {
                               <span className={`task-status task-status--${(task.status || 'created').toLowerCase()}`}>
                                 {task.status || 'CREATED'}
                               </span>
+                              {canCreateTasks && canRequestShipment(task.taskType) && (
+                                <button
+                                  className="btn btn-secondary btn-sm"
+                                  title={`Zleć wysyłkę: ${getShipmentTaskName(task.taskType)}`}
+                                  onClick={() => setShipmentTask(task)}
+                                >
+                                  📦 Zleć wysyłkę
+                                </button>
+                              )}
                             </li>
                           ))}
                         </ul>
@@ -234,6 +257,18 @@ export const ContractDetailPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {shipmentTask && canCreateTasks && (
+        <ShipmentRequestModal
+          task={shipmentTask}
+          shipmentTaskName={getShipmentTaskName(shipmentTask.taskType)}
+          onClose={() => setShipmentTask(null)}
+          onSuccess={() => {
+            setShipmentTask(null);
+            loadContract();
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -7,10 +7,17 @@ import { Task } from '../entities/Task';
 import { TaskType } from '../entities/TaskType';
 import { TaskService } from '../services/TaskService';
 import { TaskAssignment } from '../entities/TaskAssignment';
+import { SubsystemTask } from '../entities/SubsystemTask';
+import { SubsystemTaskService } from '../services/SubsystemTaskService';
 import { PAGINATION } from '../config/constants';
 import EmailQueueService from '../services/EmailQueueService';
 import { EmailTemplate } from '../types/EmailTypes';
 import { User } from '../entities/User';
+
+// Lista typów zadań, dla których NIE wolno zlecać wysyłki.
+// Powinna odzwierciedlać konfigurację frontendową (NO_SHIPMENT_TYPES).
+// Minimalnie blokujemy tworzenie wysyłki z innej wysyłki.
+const NO_SHIPMENT_TYPES: string[] = ['KOMPLETACJA_WYSYLKI'];
 
 export class TaskController {
   /**
@@ -603,6 +610,94 @@ export class TaskController {
       res.status(500).json({
         success: false,
         message: 'Błąd serwera'
+      });
+    }
+  }
+
+  /**
+   * POST /api/tasks/:taskNumber/request-shipment
+   * Zleć wysyłkę materiałów podstawowych dla zadania podsystemu
+   */
+  static async requestShipment(req: Request, res: Response): Promise<void> {
+    try {
+      const { taskNumber } = req.params;
+      const { deliveryAddress: rawDeliveryAddress, contactPhone: rawContactPhone } = req.body;
+
+      // Validate types
+      if (typeof rawDeliveryAddress !== 'string' || typeof rawContactPhone !== 'string') {
+        res.status(400).json({
+          success: false,
+          message: 'Adres dostawy i telefon kontaktowy muszą być poprawnymi ciągami znaków'
+        });
+        return;
+      }
+
+      const deliveryAddress = rawDeliveryAddress.trim();
+      const contactPhone = rawContactPhone.trim();
+
+      // Validate non-empty after trimming
+      if (!deliveryAddress || !contactPhone) {
+        res.status(400).json({
+          success: false,
+          message: 'Adres dostawy i telefon kontaktowy są wymagane'
+        });
+        return;
+      }
+
+      const subsystemTaskRepository = AppDataSource.getRepository(SubsystemTask);
+      const sourceTask = await subsystemTaskRepository.findOne({
+        where: { taskNumber }
+      });
+
+      if (!sourceTask) {
+        res.status(404).json({
+          success: false,
+          message: 'Zadanie nie znalezione'
+        });
+        return;
+      }
+
+      // Walidacja typu zadania źródłowego - nie wszystkie typy mogą zlecać wysyłkę
+      if (NO_SHIPMENT_TYPES.includes(sourceTask.taskType)) {
+        res.status(400).json({
+          success: false,
+          message: 'Nie można zlecić wysyłki dla tego typu zadania'
+        });
+        return;
+      }
+
+      // Determine shipment task name based on source task type
+      const INTERNAL_CABINET_TYPE = 'SZAFA_WEWNĘTRZNA';
+      const shipmentTaskName = sourceTask.taskType === INTERNAL_CABINET_TYPE
+        ? 'Kompletacja szafy wewnętrznej'
+        : 'Kompletacja szafy przejazdowej';
+
+      const subsystemTaskService = new SubsystemTaskService();
+      const newTask = await subsystemTaskService.createTask({
+        subsystemId: sourceTask.subsystemId,
+        taskName: shipmentTaskName,
+        taskType: 'KOMPLETACJA_WYSYLKI',
+        // Metadata fields: deliveryAddress (string), contactPhone (string),
+        // sourceTaskNumber (string) - reference to the originating task,
+        // sourceTaskType (string) - task type of the originating task
+        metadata: {
+          deliveryAddress,
+          contactPhone,
+          sourceTaskNumber: taskNumber,
+          sourceTaskType: sourceTask.taskType
+        }
+      });
+
+      res.status(201).json({
+        success: true,
+        message: `Zadanie "${shipmentTaskName}" zostało utworzone`,
+        data: newTask
+      });
+    } catch (error: any) {
+      console.error('Błąd zlecania wysyłki:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Błąd serwera'
       });
     }
   }

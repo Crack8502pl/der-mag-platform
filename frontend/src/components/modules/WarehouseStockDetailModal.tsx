@@ -90,7 +90,6 @@ export const WarehouseStockDetailModal: React.FC<Props> = ({ item, onClose }) =>
         padding: '20px',
         overflowY: 'auto'
       }}
-      onClick={onClose}
     >
       <div 
         className="modal-content card"

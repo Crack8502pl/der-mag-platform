@@ -102,7 +102,6 @@ export const BomGroupsManageModal: React.FC<BomGroupsManageModalProps> = ({ onCl
         zIndex: 1000,
         padding: '20px'
       }}
-      onClick={onClose}
     >
       <div
         className="card"

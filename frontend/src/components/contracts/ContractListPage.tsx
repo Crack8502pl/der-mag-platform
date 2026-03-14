@@ -319,7 +319,9 @@ export const ContractListPage: React.FC = () => {
               <th onClick={() => handleSort('orderDate')} className="sortable">
                 Data zamówienia {getSortIcon('orderDate')}
               </th>
-              <th>Podsystemy</th>
+              <th onClick={() => handleSort('subsystemsCount')} className="sortable">
+                Podsystemy {getSortIcon('subsystemsCount')}
+              </th>
               <th onClick={() => handleSort('createdAt')} className="sortable">
                 Utworzono {getSortIcon('createdAt')}
               </th>
