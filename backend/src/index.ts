@@ -15,7 +15,10 @@ import NotificationSchedulerService from './services/NotificationSchedulerServic
 import { startSymfoniaStockSyncJob, stopSymfoniaStockSyncJob } from './jobs/symfoniaStockSync.job';
 import { scheduleWarehouseCleanup, stopWarehouseCleanupJob } from './jobs/warehouseCleanupJob';
 import { startSymfoniaContractSyncJobs, stopSymfoniaContractSyncJobs } from './jobs/symfoniaContractSync.job';
-import { serverLogger } from './utils/logger';
+import { serverLogger, overrideConsole } from './utils/logger';
+
+// Override console.* to redirect all logs to winston files
+overrideConsole();
 
 const PORT = process.env.PORT || 3000;
 const USE_HTTPS = process.env.USE_HTTPS === 'true';

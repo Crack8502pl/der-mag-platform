@@ -1,15 +1,45 @@
 // src/components/scanner/BarcodeScanner.tsx
 // Main barcode scanner component
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
 import { ManualBarcodeInput } from './ManualBarcodeInput';
 import './BarcodeScanner.css';
+
+const SCAN_HISTORY_LIMIT = 10;
 
 interface BarcodeScannerProps {
   onScan: (barcode: string) => void;
   onError?: (error: string) => void;
   enabled?: boolean;
+}
+
+interface ScanHistoryEntry {
+  code: string;
+  timestamp: Date;
+}
+
+function playBeep(success: boolean): void {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const AudioCtx: typeof AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    const ctx = new AudioCtx();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(success ? 1046 : 440, ctx.currentTime);
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.3);
+  } catch {
+    // Audio not supported - silently ignore
+  }
 }
 
 export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
@@ -19,14 +49,32 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 }) => {
   const [showManualInput, setShowManualInput] = useState(false);
   const [torchEnabled, setTorchEnabled] = useState(false);
-  
+  const [scanHistory, setScanHistory] = useState<ScanHistoryEntry[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const lastScannedRef = useRef<string | null>(null);
+
+  const handleScanWithFeedback = useCallback((barcode: string) => {
+    playBeep(true);
+    setScanHistory(prev => {
+      const entry: ScanHistoryEntry = { code: barcode, timestamp: new Date() };
+      return [entry, ...prev].slice(0, SCAN_HISTORY_LIMIT);
+    });
+    lastScannedRef.current = barcode;
+    onScan(barcode);
+  }, [onScan]);
+
+  const handleErrorWithFeedback = useCallback((error: string) => {
+    playBeep(false);
+    onError?.(error);
+  }, [onError]);
+
   const {
     isScanning,
     startScanning,
     stopScanning,
     error,
     lastScannedCode,
-  } = useBarcodeScanner(onScan, onError);
+  } = useBarcodeScanner(handleScanWithFeedback, handleErrorWithFeedback);
 
   useEffect(() => {
     if (enabled && !isScanning) {
@@ -43,7 +91,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   }, []);
 
   const handleManualScan = (barcode: string) => {
-    onScan(barcode);
+    handleScanWithFeedback(barcode);
     setShowManualInput(false);
   };
 
@@ -53,16 +101,16 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         video: { facingMode: 'environment' } 
       });
       const track = stream.getVideoTracks()[0];
-      const capabilities = track.getCapabilities() as any;
+      const capabilities = track.getCapabilities() as MediaTrackCapabilities & { torch?: boolean };
 
       if (capabilities.torch) {
         await track.applyConstraints({
-          advanced: [{ torch: !torchEnabled } as any]
+          advanced: [{ torch: !torchEnabled } as MediaTrackConstraintSet]
         });
         setTorchEnabled(!torchEnabled);
       }
-    } catch (err) {
-      console.warn('Torch not supported on this device');
+    } catch {
+      // Torch not supported on this device
     }
   };
 
@@ -110,7 +158,40 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         >
           ⌨️ Wpisz ręcznie
         </button>
+        {scanHistory.length > 0 && (
+          <button
+            onClick={() => setShowHistory(prev => !prev)}
+            className="btn btn-secondary scanner-btn"
+            title="Historia skanowań"
+          >
+            📋 Historia ({scanHistory.length})
+          </button>
+        )}
       </div>
+
+      {showHistory && scanHistory.length > 0 && (
+        <div className="scanner-history">
+          <div className="scanner-history-header">
+            <h4>Ostatnie skany</h4>
+            <button
+              className="btn btn-xs btn-secondary"
+              onClick={() => setScanHistory([])}
+            >
+              Wyczyść
+            </button>
+          </div>
+          <ul className="scanner-history-list">
+            {scanHistory.map((entry, idx) => (
+              <li key={idx} className="scanner-history-item">
+                <span className="scanner-history-code">{entry.code}</span>
+                <span className="scanner-history-time">
+                  {entry.timestamp.toLocaleTimeString('pl-PL')}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {showManualInput && (
         <ManualBarcodeInput
@@ -121,7 +202,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
       <div className="scanner-help">
         <p>Wyceluj kamerą w kod kreskowy</p>
-        <p className="scanner-help-small">Obsługiwane: EAN-13, Code128, QR</p>
+        <p className="scanner-help-small">Obsługiwane: EAN-13, EAN-8, Code128, QR, Data Matrix</p>
       </div>
     </div>
   );

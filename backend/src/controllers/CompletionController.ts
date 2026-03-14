@@ -9,6 +9,7 @@ import { WorkflowGeneratedBomItem } from '../entities/WorkflowGeneratedBomItem';
 import { Pallet } from '../entities/Pallet';
 import CompletionService from '../services/CompletionService';
 import NotificationService from '../services/NotificationService';
+import { serverLogger } from '../utils/logger';
 
 export class CompletionController {
   /**
@@ -68,7 +69,7 @@ export class CompletionController {
         data: ordersWithProgress
       });
     } catch (error) {
-      console.error('Error listing completion orders:', error);
+      serverLogger.error(`Error listing completion orders: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({
         success: false,
         message: 'Błąd serwera podczas pobierania zleceń kompletacji'
@@ -126,7 +127,7 @@ export class CompletionController {
         }
       });
     } catch (error) {
-      console.error('Error getting completion order:', error);
+      serverLogger.error(`Error getting completion order: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({
         success: false,
         message: 'Błąd serwera podczas pobierania zlecenia kompletacji'
@@ -232,7 +233,7 @@ export class CompletionController {
         }
       });
     } catch (error) {
-      console.error('Error scanning item:', error);
+      serverLogger.error(`Error scanning item: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({
         success: false,
         message: 'Błąd serwera podczas skanowania pozycji'
@@ -286,7 +287,7 @@ export class CompletionController {
         data: item
       });
     } catch (error) {
-      console.error('Error reporting missing item:', error);
+      serverLogger.error(`Error reporting missing item: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({
         success: false,
         message: 'Błąd serwera podczas zgłaszania braku pozycji'
@@ -357,7 +358,7 @@ export class CompletionController {
         }
       });
     } catch (error) {
-      console.error('Error assigning pallet:', error);
+      serverLogger.error(`Error assigning pallet: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({
         success: false,
         message: 'Błąd serwera podczas przypisywania do palety'
@@ -418,7 +419,7 @@ export class CompletionController {
         data: order
       });
     } catch (error) {
-      console.error('Error making decision:', error);
+      serverLogger.error(`Error making decision: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({
         success: false,
         message: 'Błąd serwera podczas zapisywania decyzji'
@@ -474,7 +475,7 @@ export class CompletionController {
         data: order
       });
     } catch (error) {
-      console.error('Error completing order:', error);
+      serverLogger.error(`Error completing order: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({
         success: false,
         message: 'Błąd serwera podczas kończenia zlecenia'
@@ -513,7 +514,7 @@ export class CompletionController {
         data: order
       });
     } catch (error) {
-      console.error('Error creating completion order:', error);
+      serverLogger.error(`Error creating completion order: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({
         success: false,
         message: error instanceof Error ? error.message : 'Błąd tworzenia zlecenia kompletacji'
@@ -549,7 +550,7 @@ export class CompletionController {
         data: pallet
       });
     } catch (error) {
-      console.error('Error creating pallet:', error);
+      serverLogger.error(`Error creating pallet: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({
         success: false,
         message: error instanceof Error ? error.message : 'Błąd tworzenia palety'
@@ -593,7 +594,7 @@ export class CompletionController {
         data: order
       });
     } catch (error) {
-      console.error('Error approving completion:', error);
+      serverLogger.error(`Error approving completion: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({
         success: false,
         message: error instanceof Error ? error.message : 'Błąd zatwierdzania kompletacji'
@@ -632,7 +633,7 @@ export class CompletionController {
         data: prefabTask
       });
     } catch (error) {
-      console.error('Error creating prefabrication task:', error);
+      serverLogger.error(`Error creating prefabrication task: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({
         success: false,
         message: error instanceof Error ? error.message : 'Błąd tworzenia zadania prefabrykacji'

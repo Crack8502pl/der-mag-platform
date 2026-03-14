@@ -11,6 +11,8 @@ import { PrefabricationTask, PrefabricationTaskStatus } from '../entities/Prefab
 import { User } from '../entities/User';
 import { SubsystemTaskService } from './SubsystemTaskService';
 import { TaskWorkflowStatus } from '../entities/SubsystemTask';
+import { serverLogger } from '../utils/logger';
+import NotificationService from './NotificationService';
 
 export interface CreateCompletionOrderParams {
   subsystemId: number;
@@ -132,7 +134,14 @@ export class CompletionService {
       }
     );
 
-    console.log(`✅ Utworzono zlecenie kompletacji #${order.id} dla podsystemu ${subsystem.subsystemNumber}`);
+    serverLogger.info(`Utworzono zlecenie kompletacji #${order.id} dla podsystemu ${subsystem.subsystemNumber}`);
+
+    // Powiadom pracownika o przypisaniu zlecenia
+    try {
+      await NotificationService.notifyNewCompletionTask(order.id);
+    } catch (notifError) {
+      serverLogger.warn(`Nie udało się wysłać powiadomienia o zleceniu kompletacji #${order.id}: ${notifError}`);
+    }
 
     return order;
   }
@@ -172,7 +181,7 @@ export class CompletionService {
 
     await palletRepo.save(pallet);
 
-    console.log(`✅ Utworzono paletę ${palletNumber} dla zlecenia #${completionOrderId}`);
+    serverLogger.info(`Utworzono paletę ${palletNumber} dla zlecenia #${completionOrderId}`);
 
     return pallet;
   }
@@ -261,7 +270,7 @@ export class CompletionService {
       }
     }
 
-    console.log(`✅ Zeskanowano materiał: ${params.barcode} (${quantity} szt)`);
+    serverLogger.info(`Zeskanowano materiał: ${params.barcode} dla zlecenia #${params.completionOrderId} (${quantity} szt)`);
 
     return matchingItem;
   }
@@ -301,7 +310,7 @@ export class CompletionService {
     order.status = CompletionOrderStatus.WAITING_FOR_MATERIALS;
     await orderRepo.save(order);
 
-    console.log(`✅ Zgłoszono braki materiałowe w zleceniu #${params.completionOrderId}: ${params.itemIds.length} pozycji`);
+    serverLogger.warn(`Zgłoszono braki materiałowe w zleceniu #${params.completionOrderId}: ${params.itemIds.length} pozycji`);
   }
 
   /**
@@ -366,7 +375,16 @@ export class CompletionService {
 
     await orderRepo.save(order);
 
-    console.log(`✅ Zatwierdzono kompletację zlecenia #${order.id} (${params.partial ? 'częściowa' : 'pełna'})`);
+    serverLogger.info(`Zatwierdzono kompletację zlecenia #${order.id} (${params.partial ? 'częściowa' : 'pełna'})`);
+
+    // Powiadom o zakończeniu kompletacji
+    if (order.status === CompletionOrderStatus.COMPLETED || order.status === CompletionOrderStatus.WAITING_DECISION) {
+      try {
+        await NotificationService.notifyCompletionFinished(order.id);
+      } catch (notifError) {
+        serverLogger.warn(`Nie udało się wysłać powiadomienia o zakończeniu kompletacji #${order.id}: ${notifError}`);
+      }
+    }
 
     return order;
   }
@@ -423,7 +441,7 @@ export class CompletionService {
       }
     );
 
-    console.log(`✅ Utworzono zadanie prefabrykacji #${prefabTask.id} dla zlecenia #${completionOrderId}`);
+    serverLogger.info(`Utworzono zadanie prefabrykacji #${prefabTask.id} dla zlecenia #${completionOrderId}`);
 
     return prefabTask;
   }

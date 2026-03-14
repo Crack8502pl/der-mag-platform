@@ -29,6 +29,42 @@
 .completion-filters {
   display: flex;
   gap: var(--spacing-sm);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.completion-filter-select {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.completion-sort-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  font-size: 0.875rem;
+}
+
+.completion-sort-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.completion-count {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.btn-xs {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
 }
 
 .completion-list-empty {
@@ -157,6 +193,23 @@
   font-weight: 600;
 }
 
+.completion-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-color);
+}
+
+.pagination-info {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  min-width: 120px;
+  text-align: center;
+}
+
 /* Mobile optimization */
 @media (max-width: 768px) {
   .completion-cards {
@@ -174,5 +227,9 @@
 
   .completion-filters button {
     flex: 1;
+  }
+
+  .completion-filter-select {
+    width: 100%;
   }
 }
