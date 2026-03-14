@@ -38,7 +38,7 @@ export const ContractDetailPage: React.FC = () => {
     typeof hasPermission === 'function' ? hasPermission('tasks', 'create') : false;
   const canApprove = hasPermission('contracts', 'approve');
   const canCreateCompletion =
-    typeof hasPermission === 'function' ? hasPermission('completion', 'create') : false;
+    typeof hasPermission === 'function' ? hasPermission('completion', 'update') : false;
 
   useEffect(() => {
     loadContract();
