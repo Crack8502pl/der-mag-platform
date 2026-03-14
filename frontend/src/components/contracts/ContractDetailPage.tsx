@@ -2,7 +2,7 @@
 // Contract detail page
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { BackButton } from '../common/BackButton';
 import { ContractStatusBadge } from './ContractStatusBadge';
 import { ModuleIcon } from '../common/ModuleIcon';
@@ -16,17 +16,14 @@ import './ContractListPage.css';
 export const ContractDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { hasPermission } = useAuth();
-  const canCreateTasks =
-    typeof hasPermission === 'function' ? hasPermission('tasks', 'create') : false;
-  const navigate = useNavigate();
-  const { hasPermission } = useAuth();
-  
+
   const [contract, setContract] = useState<Contract | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [shipmentTask, setShipmentTask] = useState<SubsystemTask | null>(null);
 
-  const canUpdate = hasPermission('contracts', 'update');
+  const canCreateTasks =
+    typeof hasPermission === 'function' ? hasPermission('tasks', 'create') : false;
   const canApprove = hasPermission('contracts', 'approve');
 
   useEffect(() => {
