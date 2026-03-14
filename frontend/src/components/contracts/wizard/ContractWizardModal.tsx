@@ -476,7 +476,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     wizardData.subsystems[stepInfo.subsystemIndex]?.type === 'SMW';
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div className="modal-content modal-wizard" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>🧙‍♂️ {editMode ? 'Edycja Kontraktu' : 'Kreator Kontraktu'}</h2>

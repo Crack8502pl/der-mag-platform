@@ -179,7 +179,11 @@ export class ContractService {
     const query = this.contractRepository
       .createQueryBuilder('contract')
       .leftJoinAndSelect('contract.projectManager', 'projectManager')
-      .leftJoinAndSelect('contract.subsystems', 'subsystems');
+      .leftJoinAndSelect('contract.subsystems', 'subsystems')
+      .addSelect(
+        '(SELECT COUNT(*) FROM subsystems s WHERE s.contract_id = contract.id)',
+        'subsystemsCount'
+      );
 
     if (filters?.status) {
       query.andWhere('contract.status = :status', { status: filters.status });
@@ -202,8 +206,12 @@ export class ContractService {
     // Sorting with validation
     const sortBy = options?.sortBy || 'createdAt';
     const sortOrder = options?.sortOrder || 'DESC';
-    const sortColumn = columnMap[sortBy] || 'contract.createdAt';
-    query.orderBy(sortColumn, sortOrder);
+    if (sortBy === 'subsystemsCount') {
+      query.orderBy('subsystemsCount', sortOrder);
+    } else {
+      const sortColumn = columnMap[sortBy] || 'contract.createdAt';
+      query.orderBy(sortColumn, sortOrder);
+    }
 
     // Pagination
     const page = Math.max(1, options?.page || 1);

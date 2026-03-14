@@ -123,7 +123,6 @@ export const WarehouseStockEditModal: React.FC<Props> = ({ item, onClose, onSucc
         padding: '20px',
         overflowY: 'auto'
       }}
-      onClick={onClose}
     >
       <div 
         className="modal-content card"

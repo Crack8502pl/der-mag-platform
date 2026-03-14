@@ -179,7 +179,7 @@ export const AdminDashboard: React.FC = () => {
       )}
 
       {isModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+        <div className="modal-overlay">
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>⚠️ Ostrzeżenie</h2>
             <p>Ta operacja:</p>

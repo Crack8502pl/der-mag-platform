@@ -24,7 +24,7 @@ export const ConfirmDialog: React.FC<Props> = ({
   type = 'warning'
 }) => {
   return (
-    <div className="confirm-dialog-overlay" onClick={onCancel}>
+    <div className="confirm-dialog-overlay">
       <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
         <div className={`confirm-dialog-header ${type}`}>
           <h3>{title}</h3>

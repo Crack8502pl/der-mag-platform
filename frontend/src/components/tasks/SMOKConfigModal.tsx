@@ -336,7 +336,7 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div 
         className="modal-content" 
         onClick={(e) => e.stopPropagation()}
