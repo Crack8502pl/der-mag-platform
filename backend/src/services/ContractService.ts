@@ -205,14 +205,10 @@ export class ContractService {
     if (sortBy === 'subsystemsCount') {
       query
         .addSelect(
-          subQuery =>
-            subQuery
-              .select('COUNT(s.id)')
-              .from('subsystems', 's')
-              .where('s.contract_id = contract.id'),
+          `(SELECT COUNT(*) FROM subsystems WHERE subsystems."contractId" = contract.id)`,
           'subsystemsCount'
         )
-        .orderBy('subsystemsCount', sortOrder);
+        .orderBy('"subsystemsCount"', sortOrder);
     } else {
       const sortColumn = columnMap[sortBy] || 'contract.createdAt';
       query.orderBy(sortColumn, sortOrder);

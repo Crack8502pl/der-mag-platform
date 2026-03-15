@@ -13,7 +13,9 @@ const statusConfig: Record<string, { label: string; color: string; icon: string 
   in_progress: { label: 'W realizacji', color: '#ffc107', icon: '🔄' },
   on_hold: { label: 'Wstrzymane', color: '#dc3545', icon: '⏸️' },
   completed: { label: 'Zakończone', color: '#28a745', icon: '✅' },
-  cancelled: { label: 'Anulowane', color: '#6c757d', icon: '❌' }
+  cancelled: { label: 'Anulowane', color: '#6c757d', icon: '❌' },
+  configured: { label: 'Skonfigurowane', color: '#8b5cf6', icon: '⚙️' },
+  ready_for_completion: { label: 'Do kompletacji', color: '#06b6d4', icon: '📦' }
 };
 
 export const TaskStatusBadge: React.FC<Props> = ({ status }) => {

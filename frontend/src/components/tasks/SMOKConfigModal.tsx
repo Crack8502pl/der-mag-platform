@@ -362,12 +362,13 @@ export const SMOKConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =
         }
       }
 
-      // Update task metadata with new config params
+      // Update task metadata with new config params and change status to configured
       await taskService.update(task.taskNumber, {
         metadata: {
           ...task.metadata,
           configParams: newConfigParams,
         },
+        status: 'configured',
       });
 
       // Apply BOM subsystem template to task only if it has not been applied yet

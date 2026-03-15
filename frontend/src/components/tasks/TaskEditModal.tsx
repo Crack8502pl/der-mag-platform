@@ -68,6 +68,18 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handlePassToCompletion = async () => {
+    try {
+      setLoading(true);
+      await taskService.updateStatus(task.taskNumber, 'ready_for_completion');
+      onSuccess();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Błąd podczas przekazywania do kompletacji');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="modal-overlay">
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -141,6 +153,8 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
                 <option value="assigned">Przypisane</option>
                 <option value="in_progress">W realizacji</option>
                 <option value="on_hold">Wstrzymane</option>
+                <option value="configured">Skonfigurowane</option>
+                <option value="ready_for_completion">Do kompletacji</option>
                 <option value="completed">Zakończone</option>
                 <option value="cancelled">Anulowane</option>
               </select>
@@ -219,6 +233,21 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
             >
               ⚙️ Konfiguruj
             </button>
+            {task.status === 'configured' && (
+              <button
+                type="button"
+                className="btn"
+                onClick={handlePassToCompletion}
+                disabled={loading}
+                style={{
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  marginRight: '8px'
+                }}
+              >
+                📦 Przekaż do kompletacji
+              </button>
+            )}
             <button 
               type="button" 
               className="btn btn-secondary" 
