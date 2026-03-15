@@ -17,12 +17,12 @@ export class TaskMaterial {
   @Column({ name: 'task_id' })
   taskId: number;
 
-  @ManyToOne(() => BOMTemplate)
+  @ManyToOne(() => BOMTemplate, { nullable: true })
   @JoinColumn({ name: 'bom_template_id' })
-  bomTemplate: BOMTemplate;
+  bomTemplate: BOMTemplate | null;
 
-  @Column({ name: 'bom_template_id' })
-  bomTemplateId: number;
+  @Column({ name: 'bom_template_id', nullable: true })
+  bomTemplateId: number | null;
 
   @Column({ name: 'material_name', length: 200 })
   materialName: string;
