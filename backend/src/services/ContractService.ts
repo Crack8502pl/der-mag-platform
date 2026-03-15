@@ -205,7 +205,7 @@ export class ContractService {
     if (sortBy === 'subsystemsCount') {
       query
         .addSelect(
-          `(SELECT COUNT(*) FROM subsystems WHERE subsystems."contractId" = contract.id)`,
+          `(SELECT COUNT(*) FROM subsystems WHERE subsystems.contract_id = contract.id)`,
           'subsystemsCount'
         )
         .orderBy('"subsystemsCount"', sortOrder);
