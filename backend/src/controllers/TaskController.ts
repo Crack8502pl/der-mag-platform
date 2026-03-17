@@ -362,6 +362,40 @@ export class TaskController {
         }
       }
 
+      // Sprawdź czy próbuje zmienić taskTypeId
+      if (req.body.taskTypeId !== undefined && req.body.taskTypeId !== task.taskTypeId) {
+        // Sprawdź czy zadanie ma BOM w metadata lub jest w zaawansowanym statusie
+        const hasBom = task.metadata?.bomGenerated === true || task.metadata?.bomId;
+        const advancedStatuses = ['configured', 'ready_for_completion', 'completed'];
+        const isAdvanced = advancedStatuses.includes(task.status);
+
+        if (hasBom || isAdvanced) {
+          res.status(400).json({
+            success: false,
+            message: 'Nie można zmienić typu zadania po wygenerowaniu BOM lub gdy zadanie jest w zaawansowanym statusie',
+            code: 'TASK_TYPE_CHANGE_BLOCKED',
+            reason: hasBom ? 'BOM_EXISTS' : 'ADVANCED_STATUS'
+          });
+          return;
+        }
+
+        // Dodatkowo sprawdź w subsystem_tasks
+        const subsystemTaskRepo = AppDataSource.getRepository(SubsystemTask);
+        const subsystemTask = await subsystemTaskRepo.findOne({
+          where: { taskNumber: task.taskNumber }
+        });
+
+        if (subsystemTask && (subsystemTask.bomGenerated || subsystemTask.bomId)) {
+          res.status(400).json({
+            success: false,
+            message: 'Nie można zmienić typu zadania - BOM został wygenerowany dla tego zadania',
+            code: 'TASK_TYPE_CHANGE_BLOCKED',
+            reason: 'SUBSYSTEM_BOM_EXISTS'
+          });
+          return;
+        }
+      }
+
       Object.assign(task, req.body);
       await taskRepository.save(task);
 

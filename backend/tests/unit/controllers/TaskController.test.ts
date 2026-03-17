@@ -3,6 +3,9 @@ import { Request, Response } from 'express';
 import { TaskController } from '../../../src/controllers/TaskController';
 import { AppDataSource } from '../../../src/config/database';
 import { Task } from '../../../src/entities/Task';
+import { User } from '../../../src/entities/User';
+import { TaskAssignment } from '../../../src/entities/TaskAssignment';
+import { SubsystemTask } from '../../../src/entities/SubsystemTask';
 import { TaskService } from '../../../src/services/TaskService';
 import { createMockRequest, createMockResponse } from '../../mocks/request.mock';
 import { createMockRepository, createMockQueryBuilder } from '../../mocks/database.mock';
@@ -284,6 +287,259 @@ describe('TaskController', () => {
         success: false,
         message: 'Błąd serwera',
       });
+    });
+  });
+
+  describe('update - taskTypeId validation', () => {
+    let mockUserRepository: any;
+    let mockAssignmentRepository: any;
+    let mockSubsystemTaskRepository: any;
+
+    const adminUser = {
+      id: 1,
+      role: { name: 'admin' },
+    };
+
+    beforeEach(() => {
+      mockUserRepository = createMockRepository<User>();
+      mockAssignmentRepository = createMockRepository<TaskAssignment>();
+      mockSubsystemTaskRepository = createMockRepository<SubsystemTask>();
+
+      (AppDataSource.getRepository as jest.Mock).mockImplementation((entity) => {
+        if (entity === User) return mockUserRepository;
+        if (entity === TaskAssignment) return mockAssignmentRepository;
+        if (entity === SubsystemTask) return mockSubsystemTaskRepository;
+        return mockTaskRepository;
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(adminUser);
+      mockSubsystemTaskRepository.findOne.mockResolvedValue(null);
+
+      req = createMockRequest({ userId: 1 });
+      req.params = { taskNumber: 'Z001' };
+    });
+
+    it('should block taskTypeId change when BOM exists in metadata (bomGenerated)', async () => {
+      const mockTask = {
+        id: 1,
+        taskNumber: 'Z001',
+        taskTypeId: 1,
+        status: 'in_progress',
+        metadata: { bomGenerated: true },
+      } as any;
+      mockTaskRepository.findOne.mockResolvedValue(mockTask);
+      req.body = { taskTypeId: 2 };
+
+      await TaskController.update(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: false,
+        code: 'TASK_TYPE_CHANGE_BLOCKED',
+        reason: 'BOM_EXISTS',
+      }));
+    });
+
+    it('should block taskTypeId change when BOM exists in metadata (bomId)', async () => {
+      const mockTask = {
+        id: 1,
+        taskNumber: 'Z001',
+        taskTypeId: 1,
+        status: 'in_progress',
+        metadata: { bomId: 42 },
+      } as any;
+      mockTaskRepository.findOne.mockResolvedValue(mockTask);
+      req.body = { taskTypeId: 2 };
+
+      await TaskController.update(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: false,
+        code: 'TASK_TYPE_CHANGE_BLOCKED',
+        reason: 'BOM_EXISTS',
+      }));
+    });
+
+    it('should block taskTypeId change when status is configured', async () => {
+      const mockTask = {
+        id: 1,
+        taskNumber: 'Z001',
+        taskTypeId: 1,
+        status: 'configured',
+        metadata: {},
+      } as any;
+      mockTaskRepository.findOne.mockResolvedValue(mockTask);
+      req.body = { taskTypeId: 2 };
+
+      await TaskController.update(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: false,
+        code: 'TASK_TYPE_CHANGE_BLOCKED',
+        reason: 'ADVANCED_STATUS',
+      }));
+    });
+
+    it('should block taskTypeId change when status is ready_for_completion', async () => {
+      const mockTask = {
+        id: 1,
+        taskNumber: 'Z001',
+        taskTypeId: 1,
+        status: 'ready_for_completion',
+        metadata: {},
+      } as any;
+      mockTaskRepository.findOne.mockResolvedValue(mockTask);
+      req.body = { taskTypeId: 2 };
+
+      await TaskController.update(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: false,
+        code: 'TASK_TYPE_CHANGE_BLOCKED',
+        reason: 'ADVANCED_STATUS',
+      }));
+    });
+
+    it('should block taskTypeId change when status is completed', async () => {
+      const mockTask = {
+        id: 1,
+        taskNumber: 'Z001',
+        taskTypeId: 1,
+        status: 'completed',
+        metadata: {},
+      } as any;
+      mockTaskRepository.findOne.mockResolvedValue(mockTask);
+      req.body = { taskTypeId: 2 };
+
+      await TaskController.update(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: false,
+        code: 'TASK_TYPE_CHANGE_BLOCKED',
+        reason: 'ADVANCED_STATUS',
+      }));
+    });
+
+    it('should block taskTypeId change when subsystem_tasks has bomGenerated', async () => {
+      const mockTask = {
+        id: 1,
+        taskNumber: 'Z001',
+        taskTypeId: 1,
+        status: 'in_progress',
+        metadata: {},
+      } as any;
+      mockTaskRepository.findOne.mockResolvedValue(mockTask);
+      mockSubsystemTaskRepository.findOne.mockResolvedValue({
+        taskNumber: 'Z001',
+        bomGenerated: true,
+        bomId: null,
+      });
+      req.body = { taskTypeId: 2 };
+
+      await TaskController.update(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: false,
+        code: 'TASK_TYPE_CHANGE_BLOCKED',
+        reason: 'SUBSYSTEM_BOM_EXISTS',
+      }));
+    });
+
+    it('should block taskTypeId change when subsystem_tasks has bomId', async () => {
+      const mockTask = {
+        id: 1,
+        taskNumber: 'Z001',
+        taskTypeId: 1,
+        status: 'in_progress',
+        metadata: {},
+      } as any;
+      mockTaskRepository.findOne.mockResolvedValue(mockTask);
+      mockSubsystemTaskRepository.findOne.mockResolvedValue({
+        taskNumber: 'Z001',
+        bomGenerated: false,
+        bomId: 10,
+      });
+      req.body = { taskTypeId: 2 };
+
+      await TaskController.update(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: false,
+        code: 'TASK_TYPE_CHANGE_BLOCKED',
+        reason: 'SUBSYSTEM_BOM_EXISTS',
+      }));
+    });
+
+    it('should allow taskTypeId change when no BOM and status is basic', async () => {
+      const mockTask = {
+        id: 1,
+        taskNumber: 'Z001',
+        taskTypeId: 1,
+        status: 'created',
+        metadata: {},
+      } as any;
+      mockTaskRepository.findOne.mockResolvedValue(mockTask);
+      mockTaskRepository.save.mockResolvedValue({ ...mockTask, taskTypeId: 2 });
+      mockSubsystemTaskRepository.findOne.mockResolvedValue(null);
+      req.body = { taskTypeId: 2 };
+
+      await TaskController.update(req as Request, res as Response);
+
+      expect(res.status).not.toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+      }));
+    });
+
+    it('should allow taskTypeId change when in_progress and no BOM', async () => {
+      const mockTask = {
+        id: 1,
+        taskNumber: 'Z001',
+        taskTypeId: 1,
+        status: 'in_progress',
+        metadata: {},
+      } as any;
+      mockTaskRepository.findOne.mockResolvedValue(mockTask);
+      mockTaskRepository.save.mockResolvedValue({ ...mockTask, taskTypeId: 2 });
+      mockSubsystemTaskRepository.findOne.mockResolvedValue({
+        taskNumber: 'Z001',
+        bomGenerated: false,
+        bomId: null,
+      });
+      req.body = { taskTypeId: 2 };
+
+      await TaskController.update(req as Request, res as Response);
+
+      expect(res.status).not.toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+      }));
+    });
+
+    it('should allow update when taskTypeId is unchanged', async () => {
+      const mockTask = {
+        id: 1,
+        taskNumber: 'Z001',
+        taskTypeId: 1,
+        status: 'configured',
+        metadata: { bomGenerated: true },
+      } as any;
+      mockTaskRepository.findOne.mockResolvedValue(mockTask);
+      mockTaskRepository.save.mockResolvedValue(mockTask);
+      req.body = { taskTypeId: 1, title: 'Updated title' };
+
+      await TaskController.update(req as Request, res as Response);
+
+      expect(res.status).not.toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+      }));
     });
   });
 });
