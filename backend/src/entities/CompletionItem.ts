@@ -30,10 +30,10 @@ export class CompletionItem {
   @JoinColumn({ name: 'bom_item_id' })
   bomItem: WorkflowGeneratedBomItem | null;
 
-  @Column({ name: 'bom_item_id', nullable: true })
+  @Column({ name: 'bom_item_id', type: 'int', nullable: true })
   bomItemId: number | null;
 
-  @Column({ name: 'generated_bom_item_id', nullable: true })
+  @Column({ name: 'generated_bom_item_id', type: 'int', nullable: true })
   generatedBomItemId: number | null;
 
   @ManyToOne(() => TaskMaterial, { nullable: true })
