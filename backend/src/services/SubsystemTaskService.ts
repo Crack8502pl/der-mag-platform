@@ -5,6 +5,7 @@ import { AppDataSource } from '../config/database';
 import { SubsystemTask, TaskWorkflowStatus } from '../entities/SubsystemTask';
 import { Subsystem } from '../entities/Subsystem';
 import { TaskNumberGenerator } from './TaskNumberGenerator';
+import { TaskSyncService } from './TaskSyncService';
 
 export class SubsystemTaskService {
   private taskRepository = AppDataSource.getRepository(SubsystemTask);
@@ -106,7 +107,12 @@ export class SubsystemTaskService {
     task.status = status;
     Object.assign(task, additionalData);
 
-    return await this.taskRepository.save(task);
+    const saved = await this.taskRepository.save(task);
+
+    // Synchronizuj status do tabeli tasks jeśli istnieje rekord z tym samym taskNumber
+    await TaskSyncService.syncFromSubsystemTask(task.taskNumber, status);
+
+    return saved;
   }
 
   /**
