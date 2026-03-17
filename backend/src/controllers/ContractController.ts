@@ -11,6 +11,7 @@ import { AppDataSource } from '../config/database';
 import { Task } from '../entities/Task';
 import { TaskType } from '../entities/TaskType';
 import { TaskNumberGenerator } from '../services/TaskNumberGenerator';
+import { serverLogger } from '../utils/logger';
 
 export class ContractController {
   private contractService: ContractService;
@@ -332,8 +333,25 @@ export class ContractController {
 
   /**
    * POST /api/contracts/wizard
-   * Utworzenie kontraktu z kreatora wieloetapowego
-   * Obsługuje wiele podsystemów na kontrakt
+   * Tworzy kontrakt z podsystemami i zadaniami
+   *
+   * @deprecated Legacy object format is deprecated since 2026-03-17
+   *
+   * Expected format (NEW):
+   * {
+   *   contractData: { contractNumber, customName, ... },
+   *   subsystems: [
+   *     { type: 'PRZEJAZD_KAT_A', params: {...}, tasks: [...] }
+   *   ]
+   * }
+   *
+   * Legacy format (DEPRECATED - will be removed):
+   * {
+   *   contractData: {...},
+   *   subsystems: {
+   *     'PRZEJAZD_KAT_A': { params: {...} }
+   *   }
+   * }
    */
   createContractWithWizard = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -528,8 +546,49 @@ export class ContractController {
         });
         return;
       }
-      // Legacy format: single subsystem
+      // Legacy format handling with deprecation warning
+      // Handles the case where `subsystems` is a plain object keyed by subsystem type
+      else if (subsystems && !Array.isArray(subsystems) && typeof subsystems === 'object') {
+        serverLogger.warn('⚠️ DEPRECATED: Legacy wizard format used. This format will be removed in future versions.', {
+          contractNumber: contract.contractNumber,
+          legacyFormat: true,
+          receivedKeys: Object.keys(subsystems)
+        });
+
+        // Convert legacy object format { 'TYPE': { params, tasks } } to new array format
+        const convertedSubsystems: Array<{ type: string; params: unknown; tasks: unknown[] }> = [];
+        for (const [systemType, config] of Object.entries(subsystems)) {
+          if (config && typeof config === 'object') {
+            convertedSubsystems.push({
+              type: systemType,
+              params: (config as Record<string, unknown>).params || config,
+              tasks: ((config as Record<string, unknown>).tasks as unknown[]) || []
+            });
+          }
+        }
+
+        if (convertedSubsystems.length > 0) {
+          serverLogger.info(`Converted ${convertedSubsystems.length} legacy subsystems to new format`, {
+            contractNumber: contract.contractNumber
+          });
+        }
+
+        res.status(400).json({
+          success: false,
+          message: 'Przestarzały format danych kreatora. Użyj nowego formatu z tablicą podsystemów.',
+          code: 'DEPRECATED_LEGACY_FORMAT',
+          hint: 'Zmień format: subsystems: { TYPE: {...} } → subsystems: [{ type: TYPE, params: {...}, tasks: [...] }]'
+        });
+        return;
+      }
+      // Legacy format: single subsystem (subsystemType + tasks)
       else if (subsystemType || (Array.isArray(tasks) && tasks.length > 0)) {
+        serverLogger.warn('⚠️ DEPRECATED: Legacy single-subsystem wizard format used. This format will be removed in future versions.', {
+          contractNumber: contract.contractNumber,
+          legacyFormat: true,
+          subsystemType: subsystemType || null
+        });
+
         if (!Array.isArray(tasks) || tasks.length === 0) {
           res.status(400).json({
             success: false,
