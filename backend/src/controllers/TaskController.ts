@@ -13,6 +13,9 @@ import { PAGINATION } from '../config/constants';
 import EmailQueueService from '../services/EmailQueueService';
 import { EmailTemplate } from '../types/EmailTypes';
 import { User } from '../entities/User';
+import CompletionService from '../services/CompletionService';
+import { CompletionOrder } from '../entities/CompletionOrder';
+import { serverLogger } from '../utils/logger';
 
 // Lista typów zadań, dla których NIE wolno zlecać wysyłki.
 // Powinna odzwierciedlać konfigurację frontendową (NO_SHIPMENT_TYPES).
@@ -445,6 +448,39 @@ export class TaskController {
         } catch (emailError) {
           console.error('Błąd wysyłania emaila o zakończeniu zadania:', emailError);
           // Nie przerywamy procesu w przypadku błędu emaila
+        }
+      }
+
+      // Automatyczne tworzenie zlecenia kompletacji przy zmianie statusu na 'ready_for_completion'
+      if (status === 'ready_for_completion') {
+        try {
+          const subsystemTaskRepository = AppDataSource.getRepository(SubsystemTask);
+          const completionOrderRepository = AppDataSource.getRepository(CompletionOrder);
+
+          const subsystemTask = await subsystemTaskRepository.findOne({
+            where: { taskNumber }
+          });
+
+          if (subsystemTask && subsystemTask.subsystemId && subsystemTask.bomId) {
+            const existingOrder = await completionOrderRepository.findOne({
+              where: { subsystemId: subsystemTask.subsystemId }
+            });
+
+            if (existingOrder) {
+              serverLogger.info(`Zlecenie kompletacji dla zadania ${taskNumber} już istnieje (id: ${existingOrder.id}) – pomijam`);
+            } else {
+              await CompletionService.createCompletionOrder({
+                subsystemId: subsystemTask.subsystemId,
+                generatedBomId: subsystemTask.bomId,
+                assignedToId: userId
+              });
+              serverLogger.info(`Automatycznie utworzono zlecenie kompletacji dla zadania ${taskNumber}`);
+            }
+          } else {
+            serverLogger.info(`Zadanie ${taskNumber} nie ma podsystemu lub BOM – zlecenie kompletacji nie zostało utworzone`);
+          }
+        } catch (completionError: any) {
+          serverLogger.error(`Błąd tworzenia zlecenia kompletacji dla zadania ${taskNumber}: ${completionError.message}`);
         }
       }
 
