@@ -1,7 +1,7 @@
 // src/components/tasks/TaskEditModal.tsx
 // Modal for editing existing tasks
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import taskService from '../../services/task.service';
 import { BOMConfigModal } from './BOMConfigModal';
 import { SMOKConfigModal } from './SMOKConfigModal';
@@ -68,6 +68,12 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const isTaskTypeLocked = useMemo(() => {
+    const hasBom = task.metadata?.bomGenerated === true || task.metadata?.bomId;
+    const advancedStatuses = ['configured', 'ready_for_completion', 'completed'];
+    return hasBom || advancedStatuses.includes(task.status);
+  }, [task]);
+
   const handlePassToCompletion = async () => {
     try {
       setLoading(true);
@@ -118,11 +124,18 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
             <div className="form-group">
               <label>
                 Typ zadania <span className="required">*</span>
+                {isTaskTypeLocked && (
+                  <span className="locked-hint" title="Typ zadania zablokowany - BOM został wygenerowany lub zadanie jest w zaawansowanym statusie">
+                    🔒
+                  </span>
+                )}
               </label>
               <select
                 value={formData.taskTypeId}
                 onChange={(e) => handleChange('taskTypeId', Number(e.target.value))}
                 required
+                disabled={isTaskTypeLocked}
+                className={isTaskTypeLocked ? 'disabled' : ''}
               >
                 <option value="">Wybierz typ zadania</option>
                 {taskTypes.map(type => (
@@ -131,6 +144,11 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
                   </option>
                 ))}
               </select>
+              {isTaskTypeLocked && (
+                <small className="form-hint">
+                  Typ zadania nie może być zmieniony po wygenerowaniu BOM lub gdy zadanie jest w zaawansowanym statusie
+                </small>
+              )}
             </div>
 
             <div className="form-group">
