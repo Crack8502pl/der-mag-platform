@@ -34,7 +34,7 @@ export class CompletionItem {
   bomItemId: number | null;
 
   @Column({ name: 'generated_bom_item_id', nullable: true })
-  generatedBomItemId: number;
+  generatedBomItemId: number | null;
 
   @ManyToOne(() => TaskMaterial, { nullable: true })
   @JoinColumn({ name: 'task_material_id' })
