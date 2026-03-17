@@ -13,6 +13,9 @@ import { PAGINATION } from '../config/constants';
 import EmailQueueService from '../services/EmailQueueService';
 import { EmailTemplate } from '../types/EmailTypes';
 import { User } from '../entities/User';
+import CompletionService from '../services/CompletionService';
+import { CompletionOrder } from '../entities/CompletionOrder';
+import { serverLogger } from '../utils/logger';
 
 // Lista typów zadań, dla których NIE wolno zlecać wysyłki.
 // Powinna odzwierciedlać konfigurację frontendową (NO_SHIPMENT_TYPES).
@@ -445,6 +448,49 @@ export class TaskController {
         } catch (emailError) {
           console.error('Błąd wysyłania emaila o zakończeniu zadania:', emailError);
           // Nie przerywamy procesu w przypadku błędu emaila
+        }
+      }
+
+      // Automatyczne tworzenie zlecenia kompletacji przy zmianie statusu na 'ready_for_completion'
+      if (status === 'ready_for_completion') {
+        try {
+          const subsystemTaskRepository = AppDataSource.getRepository(SubsystemTask);
+
+          const subsystemTask = await subsystemTaskRepository.findOne({
+            where: { taskNumber }
+          });
+
+          if (subsystemTask && subsystemTask.subsystemId && subsystemTask.bomId) {
+            // Nie sprawdzamy już wcześniejszego istnienia zlecenia (unikamy wyścigu TOCTOU).
+            // Zakładamy, że na poziomie bazy jest unikalne ograniczenie dla subsystemId
+            // i traktujemy ewentualny konflikt jako no-op.
+            await CompletionService.createCompletionOrder({
+              subsystemId: subsystemTask.subsystemId,
+              generatedBomId: subsystemTask.bomId,
+              assignedToId: userId
+            });
+            serverLogger.info(`Automatycznie utworzono zlecenie kompletacji dla zadania ${taskNumber}`);
+          } else {
+            serverLogger.info(`Zadanie ${taskNumber} nie ma podsystemu lub BOM – zlecenie kompletacji nie zostało utworzone`);
+          }
+        } catch (completionError: any) {
+          // Jeżeli istnieje już zlecenie dla danego subsystemId (np. błąd unikalności),
+          // traktujemy to jako sytuację idempotentną (no-op).
+          const code = (completionError && (completionError.code || completionError.errno)) as string | undefined;
+          const message = (completionError && completionError.message) as string | undefined;
+
+          if (
+            code === '23505' || // typowy kod błędu unikalności w PostgreSQL
+            (message && message.toLowerCase().includes('duplicate key'))
+          ) {
+            serverLogger.info(
+              `Zlecenie kompletacji dla zadania ${taskNumber} już istnieje – traktuję jako no-op`
+            );
+          } else {
+            serverLogger.error(
+              `Błąd tworzenia zlecenia kompletacji dla zadania ${taskNumber}: ${completionError?.message}`
+            );
+          }
         }
       }
 
