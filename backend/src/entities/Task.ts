@@ -11,6 +11,7 @@ import { TaskAssignment } from './TaskAssignment';
 import { TaskMetric } from './TaskMetric';
 import { Contract } from './Contract';
 import { Subsystem } from './Subsystem';
+import { TaskGeneratedBom } from './TaskGeneratedBom';
 
 @Entity('tasks')
 @Index(['taskNumber'], { unique: true })
@@ -73,6 +74,13 @@ export class Task {
 
   @Column({ name: 'subsystem_id', nullable: true })
   subsystemId: number;
+
+  @ManyToOne(() => TaskGeneratedBom, { nullable: true })
+  @JoinColumn({ name: 'task_bom_id' })
+  taskBom: TaskGeneratedBom;
+
+  @Column({ name: 'task_bom_id', nullable: true })
+  taskBomId: number;
 
   @Column({ name: 'planned_start_date', type: 'date', nullable: true })
   plannedStartDate: Date;
