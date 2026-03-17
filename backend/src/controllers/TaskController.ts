@@ -15,6 +15,7 @@ import { EmailTemplate } from '../types/EmailTypes';
 import { User } from '../entities/User';
 import CompletionService from '../services/CompletionService';
 import { CompletionOrder } from '../entities/CompletionOrder';
+import { WorkflowGeneratedBom } from '../entities/WorkflowGeneratedBom';
 import { serverLogger } from '../utils/logger';
 
 // Lista typów zadań, dla których NIE wolno zlecać wysyłki.
@@ -455,18 +456,48 @@ export class TaskController {
       if (status === 'ready_for_completion') {
         try {
           const subsystemTaskRepository = AppDataSource.getRepository(SubsystemTask);
+          const taskRepository = AppDataSource.getRepository(Task);
+          const generatedBomRepository = AppDataSource.getRepository(WorkflowGeneratedBom);
 
+          let subsystemId: number | null = null;
+          let bomId: number | null = null;
+
+          // 1. Najpierw szukaj w subsystem_tasks
           const subsystemTask = await subsystemTaskRepository.findOne({
             where: { taskNumber }
           });
 
           if (subsystemTask && subsystemTask.subsystemId && subsystemTask.bomId) {
+            subsystemId = subsystemTask.subsystemId;
+            bomId = subsystemTask.bomId;
+          } else {
+            // 2. Fallback: szukaj w głównej tabeli tasks
+            const mainTask = await taskRepository.findOne({
+              where: { taskNumber, deletedAt: null as any }
+            });
+
+            if (mainTask && mainTask.subsystemId) {
+              subsystemId = mainTask.subsystemId;
+
+              // Szukaj BOM dla tego podsystemu (najnowszy w razie wielokrotnych wpisów)
+              const generatedBom = await generatedBomRepository.findOne({
+                where: { subsystemId: mainTask.subsystemId },
+                order: { generatedAt: 'DESC' }
+              });
+
+              if (generatedBom) {
+                bomId = generatedBom.id;
+              }
+            }
+          }
+
+          if (subsystemId && bomId) {
             // Nie sprawdzamy już wcześniejszego istnienia zlecenia (unikamy wyścigu TOCTOU).
             // Zakładamy, że na poziomie bazy jest unikalne ograniczenie dla subsystemId
             // i traktujemy ewentualny konflikt jako no-op.
             await CompletionService.createCompletionOrder({
-              subsystemId: subsystemTask.subsystemId,
-              generatedBomId: subsystemTask.bomId,
+              subsystemId,
+              generatedBomId: bomId,
               assignedToId: userId
             });
             serverLogger.info(`Automatycznie utworzono zlecenie kompletacji dla zadania ${taskNumber}`);
