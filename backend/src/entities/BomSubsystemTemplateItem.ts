@@ -80,6 +80,9 @@ export class BomSubsystemTemplateItem {
   @Column({ name: 'requires_ip', type: 'boolean', default: false })
   requiresIp: boolean;
 
+  @Column({ name: 'requires_serial_number', type: 'boolean', default: false })
+  requiresSerialNumber: boolean;
+
   @Column({ name: 'is_required', type: 'boolean', default: true })
   isRequired: boolean;
 

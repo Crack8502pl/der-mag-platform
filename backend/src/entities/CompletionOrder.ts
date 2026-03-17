@@ -41,6 +41,9 @@ export class CompletionOrder {
   @Column({ name: 'generated_bom_id', nullable: true })
   generatedBomId: number | null;
 
+  @Column({ name: 'task_number', type: 'varchar', length: 20, nullable: true })
+  taskNumber: string | null;
+
   @ManyToOne(() => User)
   @JoinColumn({ name: 'assigned_to' })
   assignedTo: User;

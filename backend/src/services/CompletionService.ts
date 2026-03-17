@@ -187,6 +187,7 @@ export class CompletionService {
     const order = completionOrderRepo.create({
       subsystemId: params.subsystemId,
       generatedBomId: null,
+      taskNumber: params.taskNumber,
       assignedToId: params.assignedToId,
       status: CompletionOrderStatus.CREATED
     });
@@ -287,7 +288,7 @@ export class CompletionService {
 
     const order = await orderRepo.findOne({
       where: { id: params.completionOrderId },
-      relations: ['items', 'items.bomItem', 'items.bomItem.templateItem']
+      relations: ['items', 'items.bomItem', 'items.bomItem.templateItem', 'items.taskMaterial']
     });
 
     if (!order) {
@@ -317,6 +318,17 @@ export class CompletionService {
     matchingItem.scannedBarcode = params.barcode;
     matchingItem.scannedBy = params.userId;
     matchingItem.scannedAt = new Date();
+
+    // Walidacja numeru seryjnego – sprawdź czy element wymaga S/N
+    const templateItem = matchingItem.bomItem?.templateItem;
+    const requiresSerial =
+      (templateItem as any)?.requiresSerialNumber ||
+      matchingItem.taskMaterial?.requiresSerialNumber ||
+      false;
+
+    if (requiresSerial && !params.serialNumber) {
+      throw new Error('Ten materiał wymaga podania numeru seryjnego');
+    }
 
     // Waliduj numer seryjny jeśli podany
     if (params.serialNumber) {
@@ -554,6 +566,7 @@ export class CompletionService {
         'items',
         'items.bomItem',
         'items.bomItem.templateItem',
+        'items.taskMaterial',
         'items.pallet',
         'pallets'
       ]

@@ -488,7 +488,8 @@ export class BomSubsystemTemplateService {
         plannedQuantity: quantity,
         unit: item.unit,
         category: item.groupName,
-        notes: item.notes
+        notes: item.notes,
+        requiresSerialNumber: item.requiresSerialNumber || false
       });
 
       taskMaterials.push(taskMaterial);

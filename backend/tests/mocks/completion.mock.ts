@@ -15,6 +15,7 @@ export const createMockCompletionOrder = (overrides: Partial<CompletionOrder> = 
     subsystem: null as any,
     generatedBomId: 1,
     generatedBom: null as any,
+    taskNumber: null,
     assignedToId: 1,
     assignedTo: null as any,
     status: CompletionOrderStatus.CREATED,
