@@ -12,6 +12,7 @@ import { TaskNumberGenerator } from './TaskNumberGenerator';
 import { CreateTaskDto } from '../dto/CreateTaskDto';
 import { BomTriggerService } from './BomTriggerService';
 import { Contract } from '../entities/Contract';
+import { TaskSyncService } from './TaskSyncService';
 
 export class TaskService {
   /**
@@ -162,6 +163,9 @@ export class TaskService {
     }
 
     await taskRepository.save(task);
+
+    // Synchronizuj status z subsystem_tasks jeśli istnieje rekord z tym samym taskNumber
+    await TaskSyncService.syncFromTask(task.taskNumber, status);
 
     // Wykonaj triggery ON_STATUS_CHANGE
     try {

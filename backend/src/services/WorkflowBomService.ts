@@ -11,6 +11,8 @@ import { parse } from 'csv-parse/sync';
 import { detectDeviceCategoryFromName, isNetworkDevice } from '../config/wizardConfig';
 import { SubsystemTaskService } from './SubsystemTaskService';
 import { TaskWorkflowStatus } from '../entities/SubsystemTask';
+import { SubsystemTask } from '../entities/SubsystemTask';
+import { TaskSyncService } from './TaskSyncService';
 
 /**
  * Struktura pozycji z CSV
@@ -222,6 +224,13 @@ export class WorkflowBomService {
         bomId: generatedBom.id 
       }
     );
+
+    // Synchronizuj bomId do tasks
+    const subsystemTaskRepo = AppDataSource.getRepository(SubsystemTask);
+    const subsystemTasks = await subsystemTaskRepo.find({ where: { subsystemId } });
+    for (const st of subsystemTasks) {
+      await TaskSyncService.syncBomId(st.taskNumber, generatedBom.id);
+    }
 
     console.log(`✅ Wygenerowano BOM dla podsystemu ${subsystem.subsystemNumber}: ${generatedItems.length} pozycji`);
 
