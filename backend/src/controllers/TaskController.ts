@@ -455,32 +455,42 @@ export class TaskController {
       if (status === 'ready_for_completion') {
         try {
           const subsystemTaskRepository = AppDataSource.getRepository(SubsystemTask);
-          const completionOrderRepository = AppDataSource.getRepository(CompletionOrder);
 
           const subsystemTask = await subsystemTaskRepository.findOne({
             where: { taskNumber }
           });
 
           if (subsystemTask && subsystemTask.subsystemId && subsystemTask.bomId) {
-            const existingOrder = await completionOrderRepository.findOne({
-              where: { subsystemId: subsystemTask.subsystemId }
+            // Nie sprawdzamy już wcześniejszego istnienia zlecenia (unikamy wyścigu TOCTOU).
+            // Zakładamy, że na poziomie bazy jest unikalne ograniczenie dla subsystemId
+            // i traktujemy ewentualny konflikt jako no-op.
+            await CompletionService.createCompletionOrder({
+              subsystemId: subsystemTask.subsystemId,
+              generatedBomId: subsystemTask.bomId,
+              assignedToId: userId
             });
-
-            if (existingOrder) {
-              serverLogger.info(`Zlecenie kompletacji dla zadania ${taskNumber} już istnieje (id: ${existingOrder.id}) – pomijam`);
-            } else {
-              await CompletionService.createCompletionOrder({
-                subsystemId: subsystemTask.subsystemId,
-                generatedBomId: subsystemTask.bomId,
-                assignedToId: userId
-              });
-              serverLogger.info(`Automatycznie utworzono zlecenie kompletacji dla zadania ${taskNumber}`);
-            }
+            serverLogger.info(`Automatycznie utworzono zlecenie kompletacji dla zadania ${taskNumber}`);
           } else {
             serverLogger.info(`Zadanie ${taskNumber} nie ma podsystemu lub BOM – zlecenie kompletacji nie zostało utworzone`);
           }
         } catch (completionError: any) {
-          serverLogger.error(`Błąd tworzenia zlecenia kompletacji dla zadania ${taskNumber}: ${completionError.message}`);
+          // Jeżeli istnieje już zlecenie dla danego subsystemId (np. błąd unikalności),
+          // traktujemy to jako sytuację idempotentną (no-op).
+          const code = (completionError && (completionError.code || completionError.errno)) as string | undefined;
+          const message = (completionError && completionError.message) as string | undefined;
+
+          if (
+            code === '23505' || // typowy kod błędu unikalności w PostgreSQL
+            (message && message.toLowerCase().includes('duplicate key'))
+          ) {
+            serverLogger.info(
+              `Zlecenie kompletacji dla zadania ${taskNumber} już istnieje – traktuję jako no-op`
+            );
+          } else {
+            serverLogger.error(
+              `Błąd tworzenia zlecenia kompletacji dla zadania ${taskNumber}: ${completionError?.message}`
+            );
+          }
         }
       }
 
