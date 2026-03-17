@@ -6,6 +6,7 @@ import { Subsystem } from './Subsystem';
 import { WorkflowGeneratedBom } from './WorkflowGeneratedBom';
 import { CompletionOrder } from './CompletionOrder';
 import { PrefabricationTask } from './PrefabricationTask';
+import { TaskGeneratedBom } from './TaskGeneratedBom';
 
 export enum TaskWorkflowStatus {
   CREATED = 'CREATED',
@@ -59,6 +60,13 @@ export class SubsystemTask {
   @ManyToOne(() => WorkflowGeneratedBom, { nullable: true })
   @JoinColumn({ name: 'bom_id' })
   bom: WorkflowGeneratedBom | null;
+
+  @Column({ name: 'task_bom_id', nullable: true })
+  taskBomId: number | null;
+
+  @ManyToOne(() => TaskGeneratedBom, { nullable: true })
+  @JoinColumn({ name: 'task_bom_id' })
+  taskBom: TaskGeneratedBom | null;
 
   // Completion tracking
   @Column({ name: 'completion_order_id', nullable: true })

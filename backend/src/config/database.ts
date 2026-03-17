@@ -66,6 +66,9 @@ import { ServiceTask } from '../entities/ServiceTask';
 import { ServiceTaskActivity } from '../entities/ServiceTaskActivity';
 import { Brigade } from '../entities/Brigade';
 import { BrigadeMember } from '../entities/BrigadeMember';
+// Task BOM infrastructure (Phase 1)
+import { TaskGeneratedBom } from '../entities/TaskGeneratedBom';
+import { TaskGeneratedBomItem } from '../entities/TaskGeneratedBomItem';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -147,6 +150,9 @@ export const AppDataSource = new DataSource({
     // Brigades
     Brigade,
     BrigadeMember,
+    // Task BOM infrastructure (Phase 1)
+    TaskGeneratedBom,
+    TaskGeneratedBomItem,
   ],
   subscribers: [],
   migrations: [],
