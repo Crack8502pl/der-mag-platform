@@ -16,6 +16,7 @@ import { User } from '../entities/User';
 import CompletionService from '../services/CompletionService';
 import { CompletionOrder } from '../entities/CompletionOrder';
 import { WorkflowGeneratedBom } from '../entities/WorkflowGeneratedBom';
+import { TaskMaterial } from '../entities/TaskMaterial';
 import { serverLogger } from '../utils/logger';
 
 // Lista typów zadań, dla których NIE wolno zlecać wysyłki.
@@ -535,6 +536,25 @@ export class TaskController {
               assignedToId: userId
             });
             serverLogger.info(`Automatycznie utworzono zlecenie kompletacji dla zadania ${taskNumber}`);
+          } else if (subsystemId && !bomId) {
+            // NOWA LOGIKA: Jeśli nie znaleziono WorkflowGeneratedBom, sprawdź czy istnieją TaskMaterial
+            const taskMaterialRepository = AppDataSource.getRepository(TaskMaterial);
+            const taskMaterials = await taskMaterialRepository.find({
+              where: { taskId: task.id }
+            });
+
+            if (taskMaterials.length > 0) {
+              await CompletionService.createCompletionOrderFromTaskMaterials({
+                taskId: task.id,
+                taskNumber,
+                subsystemId,
+                assignedToId: userId,
+                taskMaterials
+              });
+              serverLogger.info(`Automatycznie utworzono zlecenie kompletacji z TaskMaterial dla zadania ${taskNumber}`);
+            } else {
+              serverLogger.info(`Zadanie ${taskNumber} ma podsystem, ale nie posiada TaskMaterial ani WorkflowGeneratedBom – zlecenie kompletacji nie zostało utworzone`);
+            }
           } else {
             serverLogger.info(`Zadanie ${taskNumber} nie ma podsystemu lub BOM – zlecenie kompletacji nie zostało utworzone`);
           }

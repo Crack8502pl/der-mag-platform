@@ -34,12 +34,12 @@ export class CompletionOrder {
   @Column({ name: 'subsystem_id' })
   subsystemId: number;
 
-  @ManyToOne(() => WorkflowGeneratedBom)
+  @ManyToOne(() => WorkflowGeneratedBom, { nullable: true })
   @JoinColumn({ name: 'generated_bom_id' })
-  generatedBom: WorkflowGeneratedBom;
+  generatedBom: WorkflowGeneratedBom | null;
 
-  @Column({ name: 'generated_bom_id' })
-  generatedBomId: number;
+  @Column({ name: 'generated_bom_id', nullable: true })
+  generatedBomId: number | null;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'assigned_to' })

@@ -4,6 +4,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { CompletionOrder } from './CompletionOrder';
 import { WorkflowGeneratedBomItem } from './WorkflowGeneratedBomItem';
+import { TaskMaterial } from './TaskMaterial';
 import { Pallet } from './Pallet';
 
 export enum CompletionItemStatus {
@@ -25,15 +26,22 @@ export class CompletionItem {
   @Column({ name: 'completion_order_id' })
   completionOrderId: number;
 
-  @ManyToOne(() => WorkflowGeneratedBomItem)
+  @ManyToOne(() => WorkflowGeneratedBomItem, { nullable: true })
   @JoinColumn({ name: 'bom_item_id' })
-  bomItem: WorkflowGeneratedBomItem;
+  bomItem: WorkflowGeneratedBomItem | null;
 
-  @Column({ name: 'bom_item_id' })
-  bomItemId: number;
+  @Column({ name: 'bom_item_id', nullable: true })
+  bomItemId: number | null;
 
   @Column({ name: 'generated_bom_item_id', nullable: true })
   generatedBomItemId: number;
+
+  @ManyToOne(() => TaskMaterial, { nullable: true })
+  @JoinColumn({ name: 'task_material_id' })
+  taskMaterial: TaskMaterial | null;
+
+  @Column({ name: 'task_material_id', nullable: true })
+  taskMaterialId: number | null;
 
   @Column({ name: 'expected_quantity', type: 'int', default: 0 })
   expectedQuantity: number;

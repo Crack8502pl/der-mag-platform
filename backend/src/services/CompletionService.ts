@@ -13,11 +13,20 @@ import { SubsystemTaskService } from './SubsystemTaskService';
 import { TaskWorkflowStatus } from '../entities/SubsystemTask';
 import { serverLogger } from '../utils/logger';
 import NotificationService from './NotificationService';
+import { TaskMaterial } from '../entities/TaskMaterial';
 
 export interface CreateCompletionOrderParams {
   subsystemId: number;
   generatedBomId: number;
   assignedToId: number;
+}
+
+export interface CreateCompletionOrderFromTaskMaterialsParams {
+  taskId: number;
+  taskNumber: string;
+  subsystemId: number;
+  assignedToId: number;
+  taskMaterials: TaskMaterial[];
 }
 
 export interface ScanMaterialParams {
@@ -135,6 +144,89 @@ export class CompletionService {
     );
 
     serverLogger.info(`Utworzono zlecenie kompletacji #${order.id} dla podsystemu ${subsystem.subsystemNumber}`);
+
+    // Powiadom pracownika o przypisaniu zlecenia
+    try {
+      await NotificationService.notifyNewCompletionTask(order.id);
+    } catch (notifError) {
+      serverLogger.warn(`Nie udało się wysłać powiadomienia o zleceniu kompletacji #${order.id}: ${notifError}`);
+    }
+
+    return order;
+  }
+
+  /**
+   * Tworzy zlecenie kompletacji na podstawie TaskMaterial (nowy system BOM)
+   */
+  async createCompletionOrderFromTaskMaterials(
+    params: CreateCompletionOrderFromTaskMaterialsParams
+  ): Promise<CompletionOrder> {
+    const completionOrderRepo = AppDataSource.getRepository(CompletionOrder);
+    const completionItemRepo = AppDataSource.getRepository(CompletionItem);
+    const subsystemRepo = AppDataSource.getRepository(Subsystem);
+
+    const subsystem = await subsystemRepo.findOne({
+      where: { id: params.subsystemId }
+    });
+
+    if (!subsystem) {
+      throw new Error('Podsystem nie znaleziony');
+    }
+
+    // Sprawdź czy zlecenie już istnieje dla tego podsystemu
+    const existingOrder = await completionOrderRepo.findOne({
+      where: { subsystemId: params.subsystemId }
+    });
+
+    if (existingOrder) {
+      serverLogger.info(`Zlecenie kompletacji dla subsystemu ${subsystem.subsystemNumber} już istnieje`);
+      return existingOrder;
+    }
+
+    // Utwórz zlecenie kompletacji (generatedBomId = null dla nowego systemu BOM)
+    const order = completionOrderRepo.create({
+      subsystemId: params.subsystemId,
+      generatedBomId: null,
+      assignedToId: params.assignedToId,
+      status: CompletionOrderStatus.CREATED
+    });
+
+    await completionOrderRepo.save(order);
+
+    // Utwórz pozycje kompletacji na podstawie TaskMaterial
+    const items: CompletionItem[] = [];
+
+    for (const material of params.taskMaterials) {
+      const item = completionItemRepo.create({
+        completionOrderId: order.id,
+        bomItemId: null,
+        generatedBomItemId: null,
+        taskMaterialId: material.id,
+        expectedQuantity: material.plannedQuantity,
+        scannedQuantity: 0,
+        status: CompletionItemStatus.PENDING
+      });
+      items.push(item);
+    }
+
+    await completionItemRepo.save(items);
+
+    // Aktualizuj status podsystemu
+    subsystem.status = SubsystemStatus.IN_COMPLETION;
+    await subsystemRepo.save(subsystem);
+
+    // Aktualizuj statusy zadań
+    const taskService = new SubsystemTaskService();
+    await taskService.updateStatusForSubsystem(
+      subsystem.id,
+      TaskWorkflowStatus.COMPLETION_ASSIGNED,
+      {
+        completionOrderId: order.id,
+        completionStartedAt: new Date()
+      }
+    );
+
+    serverLogger.info(`Utworzono zlecenie kompletacji #${order.id} z TaskMaterial dla podsystemu ${subsystem.subsystemNumber}`);
 
     // Powiadom pracownika o przypisaniu zlecenia
     try {
