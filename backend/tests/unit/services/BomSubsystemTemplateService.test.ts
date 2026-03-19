@@ -449,5 +449,89 @@ describe('BomSubsystemTemplateService', () => {
       // Should include both camera models when selectedModels is not specified
       expect(mockTaskMaterialRepository.create).toHaveBeenCalledTimes(2);
     });
+
+    it('should propagate requiresSerialNumber=true from template item to TaskMaterial', async () => {
+      const mockTask = { id: 1, taskNumber: 'Z000010326' };
+
+      const mockTemplate = {
+        id: 1,
+        items: [
+          {
+            id: 1,
+            materialName: 'Serialized Device',
+            groupName: 'Urządzenia',
+            defaultQuantity: 1,
+            quantitySource: 'FIXED',
+            unit: 'szt',
+            sortOrder: 1,
+            requiresSerialNumber: true
+          },
+          {
+            id: 2,
+            materialName: 'Bulk Cable',
+            groupName: 'Kable',
+            defaultQuantity: 10,
+            quantitySource: 'FIXED',
+            unit: 'm',
+            sortOrder: 2,
+            requiresSerialNumber: false
+          }
+        ]
+      };
+
+      mockTaskRepository.findOne.mockResolvedValueOnce(mockTask);
+      mockTemplateRepository.findOne.mockResolvedValueOnce(mockTemplate);
+      mockTaskMaterialRepository.create.mockImplementation((data: any) => data);
+      mockTaskMaterialRepository.save.mockResolvedValueOnce([]);
+
+      await BomSubsystemTemplateService.applyTemplateToTask(1, 1, {});
+
+      expect(mockTaskMaterialRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          materialName: 'Serialized Device',
+          requiresSerialNumber: true
+        })
+      );
+      expect(mockTaskMaterialRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          materialName: 'Bulk Cable',
+          requiresSerialNumber: false
+        })
+      );
+    });
+
+    it('should default requiresSerialNumber to false when template item omits the flag', async () => {
+      const mockTask = { id: 1, taskNumber: 'Z000010327' };
+
+      const mockTemplate = {
+        id: 1,
+        items: [
+          {
+            id: 1,
+            materialName: 'Material Without Flag',
+            groupName: 'Inne',
+            defaultQuantity: 2,
+            quantitySource: 'FIXED',
+            unit: 'szt',
+            sortOrder: 1
+            // requiresSerialNumber intentionally absent
+          }
+        ]
+      };
+
+      mockTaskRepository.findOne.mockResolvedValueOnce(mockTask);
+      mockTemplateRepository.findOne.mockResolvedValueOnce(mockTemplate);
+      mockTaskMaterialRepository.create.mockImplementation((data: any) => data);
+      mockTaskMaterialRepository.save.mockResolvedValueOnce([]);
+
+      await BomSubsystemTemplateService.applyTemplateToTask(1, 1, {});
+
+      expect(mockTaskMaterialRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          materialName: 'Material Without Flag',
+          requiresSerialNumber: false
+        })
+      );
+    });
   });
 });
