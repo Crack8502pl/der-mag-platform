@@ -204,7 +204,7 @@ export class CompletionService {
         bomItemId: null,
         generatedBomItemId: null,
         taskMaterialId: material.id,
-        expectedQuantity: material.plannedQuantity,
+        expectedQuantity: Math.floor(Number(material.plannedQuantity) || 0),
         scannedQuantity: 0,
         status: CompletionItemStatus.PENDING
       });
