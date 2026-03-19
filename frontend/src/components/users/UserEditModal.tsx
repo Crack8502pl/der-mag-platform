@@ -91,7 +91,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>✏️ Edytuj użytkownika</h2>
