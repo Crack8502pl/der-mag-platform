@@ -76,6 +76,7 @@ export interface CompletionOrder {
   id: number;
   subsystemId: number;
   generatedBomId: number;
+  taskNumber?: string | null;
   assignedToId: number;
   status: CompletionOrderStatus;
   decision?: CompletionDecision;
