@@ -14,6 +14,7 @@ import { TaskWorkflowStatus } from '../entities/SubsystemTask';
 import { serverLogger } from '../utils/logger';
 import NotificationService from './NotificationService';
 import { TaskMaterial } from '../entities/TaskMaterial';
+import { Task } from '../entities/Task';
 
 export interface CreateCompletionOrderParams {
   subsystemId: number;
@@ -382,6 +383,15 @@ export class CompletionService {
           );
         }
       }
+
+      // Synchronizuj status zadania
+      if (order.taskNumber) {
+        try {
+          await this.syncTaskStatus(order.taskNumber, CompletionOrderStatus.IN_PROGRESS);
+        } catch (syncError) {
+          serverLogger.warn(`Nie udało się zsynchronizować statusu zadania ${order.taskNumber}: ${syncError}`);
+        }
+      }
     }
 
     serverLogger.info(`Zeskanowano materiał: ${params.barcode} dla zlecenia #${params.completionOrderId} (${quantity} szt)`);
@@ -423,6 +433,15 @@ export class CompletionService {
     // Aktualizuj status zlecenia
     order.status = CompletionOrderStatus.WAITING_FOR_MATERIALS;
     await orderRepo.save(order);
+
+    // Synchronizuj status zadania
+    if (order.taskNumber) {
+      try {
+        await this.syncTaskStatus(order.taskNumber, CompletionOrderStatus.WAITING_FOR_MATERIALS);
+      } catch (syncError) {
+        serverLogger.warn(`Nie udało się zsynchronizować statusu zadania ${order.taskNumber}: ${syncError}`);
+      }
+    }
 
     serverLogger.warn(`Zgłoszono braki materiałowe w zleceniu #${params.completionOrderId}: ${params.itemIds.length} pozycji`);
   }
@@ -490,6 +509,15 @@ export class CompletionService {
     await orderRepo.save(order);
 
     serverLogger.info(`Zatwierdzono kompletację zlecenia #${order.id} (${params.partial ? 'częściowa' : 'pełna'})`);
+
+    // Synchronizuj status zadania
+    if (order.taskNumber) {
+      try {
+        await this.syncTaskStatus(order.taskNumber, order.status);
+      } catch (syncError) {
+        serverLogger.warn(`Nie udało się zsynchronizować statusu zadania ${order.taskNumber}: ${syncError}`);
+      }
+    }
 
     // Powiadom o zakończeniu kompletacji
     if (order.status === CompletionOrderStatus.COMPLETED || order.status === CompletionOrderStatus.WAITING_DECISION) {
@@ -587,6 +615,38 @@ export class CompletionService {
     }
 
     return order;
+  }
+
+  /**
+   * Synchronizuje status zadania (Task) na podstawie statusu zlecenia kompletacji
+   */
+  private async syncTaskStatus(taskNumber: string, completionStatus: CompletionOrderStatus): Promise<void> {
+    const taskRepository = AppDataSource.getRepository(Task);
+
+    const task = await taskRepository.findOne({
+      where: { taskNumber }
+    });
+
+    if (!task) {
+      serverLogger.warn(`Nie znaleziono zadania ${taskNumber} do synchronizacji statusu`);
+      return;
+    }
+
+    const statusMap: Record<CompletionOrderStatus, string> = {
+      [CompletionOrderStatus.CREATED]: 'completion_assigned',
+      [CompletionOrderStatus.IN_PROGRESS]: 'in_completion',
+      [CompletionOrderStatus.WAITING_FOR_MATERIALS]: 'waiting_materials',
+      [CompletionOrderStatus.WAITING_DECISION]: 'waiting_decision',
+      [CompletionOrderStatus.COMPLETED]: 'completion_completed',
+      [CompletionOrderStatus.CANCELLED]: 'cancelled'
+    };
+
+    const newStatus = statusMap[completionStatus];
+    if (newStatus && task.status !== newStatus) {
+      task.status = newStatus;
+      await taskRepository.save(task);
+      serverLogger.info(`Zaktualizowano status zadania ${taskNumber} na ${newStatus}`);
+    }
   }
 
   /**

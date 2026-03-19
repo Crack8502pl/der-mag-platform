@@ -5,6 +5,8 @@ import { AppDataSource } from '../../../src/config/database';
 import { CompletionOrder, CompletionOrderStatus, CompletionDecision } from '../../../src/entities/CompletionOrder';
 import { CompletionItem, CompletionItemStatus } from '../../../src/entities/CompletionItem';
 import { Pallet } from '../../../src/entities/Pallet';
+import { Task } from '../../../src/entities/Task';
+import { TaskMaterial } from '../../../src/entities/TaskMaterial';
 import { createMockRequest, createMockResponse } from '../../mocks/request.mock';
 import { createMockRepository, createMockQueryBuilder } from '../../mocks/database.mock';
 import { createMockCompletionOrder, createMockCompletionItem, createMockPallet } from '../../mocks/completion.mock';
@@ -20,6 +22,7 @@ jest.mock('../../../src/services/CompletionService', () => ({
   __esModule: true,
   default: {
     createCompletionOrder: jest.fn(),
+    createCompletionOrderFromTaskMaterials: jest.fn(),
     createPallet: jest.fn(),
     approveCompletion: jest.fn(),
     createPrefabricationTask: jest.fn(),
@@ -52,6 +55,8 @@ describe('CompletionController', () => {
   let mockOrderRepo: any;
   let mockItemRepo: any;
   let mockPalletRepo: any;
+  let mockTaskRepo: any;
+  let mockTaskMaterialRepo: any;
   let mockQueryBuilder: any;
 
   beforeEach(() => {
@@ -60,12 +65,16 @@ describe('CompletionController', () => {
     mockOrderRepo = createMockRepository<CompletionOrder>();
     mockItemRepo = createMockRepository<CompletionItem>();
     mockPalletRepo = createMockRepository<Pallet>();
+    mockTaskRepo = createMockRepository<Task>();
+    mockTaskMaterialRepo = createMockRepository<TaskMaterial>();
     mockQueryBuilder = createMockQueryBuilder<CompletionOrder>();
 
     (AppDataSource.getRepository as jest.Mock).mockImplementation((entity) => {
       if (entity === CompletionOrder) return mockOrderRepo;
       if (entity === CompletionItem) return mockItemRepo;
       if (entity === Pallet) return mockPalletRepo;
+      if (entity === Task) return mockTaskRepo;
+      if (entity === TaskMaterial) return mockTaskMaterialRepo;
       return createMockRepository();
     });
 
@@ -763,25 +772,62 @@ describe('CompletionController', () => {
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Brak wymaganych parametrów: subsystemId, generatedBomId, assignedToId',
+        message: 'Brak wymaganych parametrów: taskNumber, subsystemId, assignedToId',
       });
     });
 
-    it('should create order and send notification on success', async () => {
-      const order = createMockCompletionOrder();
-      (CompletionService.createCompletionOrder as jest.Mock).mockResolvedValue(order);
-      (NotificationService.notifyNewCompletionTask as jest.Mock).mockResolvedValue(undefined);
+    it('should return 404 when task is not found', async () => {
+      mockTaskRepo.findOne.mockResolvedValue(null);
 
-      req.body = { subsystemId: 1, generatedBomId: 1, assignedToId: 1 };
+      req.body = { taskNumber: 'Z0001ABCD', subsystemId: 1, assignedToId: 1 };
 
       await CompletionController.createOrder(req as Request, res as Response);
 
-      expect(CompletionService.createCompletionOrder).toHaveBeenCalledWith({
-        subsystemId: 1,
-        generatedBomId: 1,
-        assignedToId: 1,
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Zadanie o numerze Z0001ABCD nie znalezione',
       });
-      expect(NotificationService.notifyNewCompletionTask).toHaveBeenCalledWith(order.id);
+    });
+
+    it('should return 400 when task has no BOM materials', async () => {
+      const mockTask = { id: 1, taskNumber: 'Z0001ABCD', status: 'assigned' };
+      mockTaskRepo.findOne.mockResolvedValue(mockTask);
+      mockTaskMaterialRepo.find.mockResolvedValue([]);
+
+      req.body = { taskNumber: 'Z0001ABCD', subsystemId: 1, assignedToId: 1 };
+
+      await CompletionController.createOrder(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Zadanie Z0001ABCD nie ma skonfigurowanych materiałów BOM',
+      });
+    });
+
+    it('should create order and update task status on success', async () => {
+      const mockTask = { id: 1, taskNumber: 'Z0001ABCD', status: 'assigned' };
+      const mockMaterials = [{ id: 1, taskId: 1, materialName: 'Material A', plannedQuantity: 2 }];
+      const order = createMockCompletionOrder();
+
+      mockTaskRepo.findOne.mockResolvedValue(mockTask);
+      mockTaskMaterialRepo.find.mockResolvedValue(mockMaterials);
+      (CompletionService.createCompletionOrderFromTaskMaterials as jest.Mock).mockResolvedValue(order);
+      mockTaskRepo.save.mockResolvedValue({ ...mockTask, status: 'in_completion' });
+
+      req.body = { taskNumber: 'Z0001ABCD', subsystemId: 1, assignedToId: 1 };
+
+      await CompletionController.createOrder(req as Request, res as Response);
+
+      expect(CompletionService.createCompletionOrderFromTaskMaterials).toHaveBeenCalledWith({
+        taskId: 1,
+        taskNumber: 'Z0001ABCD',
+        subsystemId: 1,
+        assignedToId: 1,
+        taskMaterials: mockMaterials,
+      });
+      expect(mockTaskRepo.save).toHaveBeenCalledWith({ ...mockTask, status: 'in_completion' });
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith({
         success: true,
@@ -791,18 +837,23 @@ describe('CompletionController', () => {
     });
 
     it('should return 500 on service error', async () => {
-      (CompletionService.createCompletionOrder as jest.Mock).mockRejectedValue(
-        new Error('BOM nie znaleziony')
+      const mockTask = { id: 1, taskNumber: 'Z0001ABCD', status: 'assigned' };
+      const mockMaterials = [{ id: 1, taskId: 1, materialName: 'Material A', plannedQuantity: 2 }];
+
+      mockTaskRepo.findOne.mockResolvedValue(mockTask);
+      mockTaskMaterialRepo.find.mockResolvedValue(mockMaterials);
+      (CompletionService.createCompletionOrderFromTaskMaterials as jest.Mock).mockRejectedValue(
+        new Error('Podsystem nie znaleziony')
       );
 
-      req.body = { subsystemId: 1, generatedBomId: 99, assignedToId: 1 };
+      req.body = { taskNumber: 'Z0001ABCD', subsystemId: 99, assignedToId: 1 };
 
       await CompletionController.createOrder(req as Request, res as Response);
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: 'BOM nie znaleziony',
+        message: 'Podsystem nie znaleziony',
       });
     });
   });
