@@ -309,9 +309,7 @@ export class CompletionService {
       const taskMaterial = item.taskMaterial as TaskMaterial | undefined;
       const taskMaterialMatches =
         !!taskMaterial &&
-        (taskMaterial.partNumber === params.barcode ||
-          // optionally support a dedicated barcode field on TaskMaterial
-          (taskMaterial as any).barcode === params.barcode);
+        taskMaterial.materialName === params.barcode;
 
       const statusAllowed =
         item.status === CompletionItemStatus.PENDING ||

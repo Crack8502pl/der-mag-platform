@@ -308,6 +308,108 @@ describe('CompletionController', () => {
         message: 'Błąd serwera podczas skanowania pozycji',
       });
     });
+
+    it('should match a TaskMaterial-based item by materialName and scan it successfully', async () => {
+      const item = createMockCompletionItem({
+        status: CompletionItemStatus.PENDING,
+        scannedQuantity: 0,
+        expectedQuantity: 2,
+        bomItem: null as any,
+        taskMaterial: { id: 5, materialName: 'Kabel 10m', requiresSerialNumber: false } as any,
+      });
+      const order = createMockCompletionOrder({ items: [item], status: CompletionOrderStatus.IN_PROGRESS });
+      mockOrderRepo.findOne.mockResolvedValue(order);
+      mockItemRepo.save.mockResolvedValue(item);
+
+      req.params = { id: '1' };
+      req.body = { barcode: 'Kabel 10m', quantity: 2 };
+
+      await CompletionController.scanItem(req as Request, res as Response);
+
+      expect(item.status).toBe(CompletionItemStatus.SCANNED);
+      expect(mockItemRepo.save).toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: true, message: 'Pozycja zeskanowana pomyślnie' })
+      );
+    });
+
+    it('should return 400 when TaskMaterial item requiresSerialNumber but no serialNumber provided', async () => {
+      const item = createMockCompletionItem({
+        status: CompletionItemStatus.PENDING,
+        scannedQuantity: 0,
+        expectedQuantity: 1,
+        bomItem: null as any,
+        taskMaterial: { id: 5, materialName: 'Urządzenie SN', requiresSerialNumber: true } as any,
+      });
+      const order = createMockCompletionOrder({ items: [item], status: CompletionOrderStatus.IN_PROGRESS });
+      mockOrderRepo.findOne.mockResolvedValue(order);
+
+      req.params = { id: '1' };
+      req.body = { barcode: 'Urządzenie SN' };
+
+      await CompletionController.scanItem(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Ten materiał wymaga podania numeru seryjnego',
+        code: 'SERIAL_NUMBER_REQUIRED',
+      });
+      expect(mockItemRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when BOM item requiresSerialNumber but no serialNumber provided', async () => {
+      const item = createMockCompletionItem({
+        status: CompletionItemStatus.PENDING,
+        scannedQuantity: 0,
+        expectedQuantity: 1,
+        bomItem: {
+          quantity: 1,
+          templateItem: { partNumber: 'SN-DEVICE', requiresSerialNumber: true },
+        } as any,
+      });
+      const order = createMockCompletionOrder({ items: [item], status: CompletionOrderStatus.IN_PROGRESS });
+      mockOrderRepo.findOne.mockResolvedValue(order);
+
+      req.params = { id: '1' };
+      req.body = { barcode: 'SN-DEVICE' };
+
+      await CompletionController.scanItem(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Ten materiał wymaga podania numeru seryjnego',
+        code: 'SERIAL_NUMBER_REQUIRED',
+      });
+      expect(mockItemRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should save serialNumber on item when provided', async () => {
+      const item = createMockCompletionItem({
+        status: CompletionItemStatus.PENDING,
+        scannedQuantity: 0,
+        expectedQuantity: 1,
+        bomItem: {
+          quantity: 1,
+          templateItem: { partNumber: 'SN-DEVICE', requiresSerialNumber: true },
+        } as any,
+      });
+      const order = createMockCompletionOrder({ items: [item], status: CompletionOrderStatus.IN_PROGRESS });
+      mockOrderRepo.findOne.mockResolvedValue(order);
+      mockItemRepo.save.mockResolvedValue(item);
+
+      req.params = { id: '1' };
+      req.body = { barcode: 'SN-DEVICE', serialNumber: 'SN-XYZ-001' };
+
+      await CompletionController.scanItem(req as Request, res as Response);
+
+      expect(item.serialNumber).toBe('SN-XYZ-001');
+      expect(mockItemRepo.save).toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: true })
+      );
+    });
   });
 
   // -------------------------------------------------------------------------

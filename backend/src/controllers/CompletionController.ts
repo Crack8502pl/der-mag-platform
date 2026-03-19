@@ -142,7 +142,7 @@ export class CompletionController {
   static async scanItem(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { barcode, quantity = 1 } = req.body;
+      const { barcode, quantity = 1, serialNumber } = req.body;
       const userId = req.userId;
 
       if (!barcode) {
@@ -156,10 +156,10 @@ export class CompletionController {
       const completionOrderRepo = AppDataSource.getRepository(CompletionOrder);
       const completionItemRepo = AppDataSource.getRepository(CompletionItem);
 
-      // Find the completion order
+      // Find the completion order – include taskMaterial so TaskMaterial-based items can be matched
       const order = await completionOrderRepo.findOne({
         where: { id: parseInt(id) },
-        relations: ['items', 'items.bomItem', 'items.bomItem.templateItem']
+        relations: ['items', 'items.bomItem', 'items.bomItem.templateItem', 'items.taskMaterial']
       });
 
       if (!order) {
@@ -170,16 +170,15 @@ export class CompletionController {
         return;
       }
 
-      // Try to match barcode to a pending or partial item
+      // Try to match barcode to a pending or partial item.
+      // BOM-based items match by templateItem.partNumber; TaskMaterial-based items match by materialName.
       const matchingItem = order.items.find(item => {
-        const bomItem = item.bomItem;
-        const templateItem = bomItem?.templateItem;
-        
-        // Check if barcode matches template item part number
-        // In a real scenario, you would match against actual material barcodes
-        return (
-          templateItem?.partNumber === barcode
-        ) && (item.status === CompletionItemStatus.PENDING || item.status === CompletionItemStatus.PARTIAL);
+        const templateItem = item.bomItem?.templateItem;
+        const bomMatches = templateItem?.partNumber === barcode;
+        const taskMaterialMatches = !!item.taskMaterial && item.taskMaterial.materialName === barcode;
+
+        return (bomMatches || taskMaterialMatches) &&
+          (item.status === CompletionItemStatus.PENDING || item.status === CompletionItemStatus.PARTIAL);
       });
 
       if (!matchingItem) {
@@ -191,9 +190,24 @@ export class CompletionController {
         return;
       }
 
+      // Enforce requiresSerialNumber validation
+      const requiresSerial =
+        matchingItem.bomItem?.templateItem?.requiresSerialNumber ||
+        matchingItem.taskMaterial?.requiresSerialNumber ||
+        false;
+
+      if (requiresSerial && !serialNumber) {
+        res.status(400).json({
+          success: false,
+          message: 'Ten materiał wymaga podania numeru seryjnego',
+          code: 'SERIAL_NUMBER_REQUIRED'
+        });
+        return;
+      }
+
       // Update the completion item
       const bomItem = matchingItem.bomItem;
-      const expectedQuantity = bomItem?.quantity || 0;
+      const expectedQuantity = bomItem?.quantity || matchingItem.expectedQuantity || 0;
       const newScannedQuantity = matchingItem.scannedQuantity + quantity;
 
       if (newScannedQuantity >= expectedQuantity) {
@@ -207,6 +221,10 @@ export class CompletionController {
       matchingItem.scannedBarcode = barcode;
       matchingItem.scannedBy = userId!;
       matchingItem.scannedAt = new Date();
+
+      if (serialNumber) {
+        matchingItem.serialNumber = serialNumber;
+      }
 
       await completionItemRepo.save(matchingItem);
 
