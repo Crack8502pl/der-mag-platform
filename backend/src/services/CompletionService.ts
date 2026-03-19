@@ -301,13 +301,25 @@ export class CompletionService {
       throw new Error('Zlecenie już zakończone');
     }
 
-    // Znajdź pasującą pozycję
+    // Znajdź pasującą pozycję (BOM lub TaskMaterial)
     const matchingItem = order.items.find(item => {
       const templateItem = item.bomItem?.templateItem;
-      return (
-        (templateItem?.partNumber === params.barcode || item.bomItem?.partNumber === params.barcode) &&
-        (item.status === CompletionItemStatus.PENDING || item.status === CompletionItemStatus.PARTIAL)
-      );
+      const bomMatches =
+        templateItem?.partNumber === params.barcode ||
+        item.bomItem?.partNumber === params.barcode;
+
+      const taskMaterial = item.taskMaterial as TaskMaterial | undefined;
+      const taskMaterialMatches =
+        !!taskMaterial &&
+        (taskMaterial.partNumber === params.barcode ||
+          // optionally support a dedicated barcode field on TaskMaterial
+          (taskMaterial as any).barcode === params.barcode);
+
+      const statusAllowed =
+        item.status === CompletionItemStatus.PENDING ||
+        item.status === CompletionItemStatus.PARTIAL;
+
+      return (bomMatches || taskMaterialMatches) && statusAllowed;
     });
 
     if (!matchingItem) {
