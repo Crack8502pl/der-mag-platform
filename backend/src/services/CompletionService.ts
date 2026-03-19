@@ -187,6 +187,7 @@ export class CompletionService {
     const order = completionOrderRepo.create({
       subsystemId: params.subsystemId,
       generatedBomId: null,
+      taskNumber: params.taskNumber,
       assignedToId: params.assignedToId,
       status: CompletionOrderStatus.CREATED
     });
@@ -287,7 +288,7 @@ export class CompletionService {
 
     const order = await orderRepo.findOne({
       where: { id: params.completionOrderId },
-      relations: ['items', 'items.bomItem', 'items.bomItem.templateItem']
+      relations: ['items', 'items.bomItem', 'items.bomItem.templateItem', 'items.taskMaterial']
     });
 
     if (!order) {
@@ -298,13 +299,23 @@ export class CompletionService {
       throw new Error('Zlecenie już zakończone');
     }
 
-    // Znajdź pasującą pozycję
+    // Znajdź pasującą pozycję (BOM lub TaskMaterial)
     const matchingItem = order.items.find(item => {
       const templateItem = item.bomItem?.templateItem;
-      return (
-        (templateItem?.partNumber === params.barcode || item.bomItem?.partNumber === params.barcode) &&
-        (item.status === CompletionItemStatus.PENDING || item.status === CompletionItemStatus.PARTIAL)
-      );
+      const bomMatches =
+        templateItem?.partNumber === params.barcode ||
+        item.bomItem?.partNumber === params.barcode;
+
+      const taskMaterial = item.taskMaterial as TaskMaterial | undefined;
+      const taskMaterialMatches =
+        !!taskMaterial &&
+        taskMaterial.materialName === params.barcode;
+
+      const statusAllowed =
+        item.status === CompletionItemStatus.PENDING ||
+        item.status === CompletionItemStatus.PARTIAL;
+
+      return (bomMatches || taskMaterialMatches) && statusAllowed;
     });
 
     if (!matchingItem) {
@@ -317,6 +328,17 @@ export class CompletionService {
     matchingItem.scannedBarcode = params.barcode;
     matchingItem.scannedBy = params.userId;
     matchingItem.scannedAt = new Date();
+
+    // Walidacja numeru seryjnego – sprawdź czy element wymaga S/N
+    const templateItem = matchingItem.bomItem?.templateItem;
+    const requiresSerial =
+      templateItem?.requiresSerialNumber ||
+      matchingItem.taskMaterial?.requiresSerialNumber ||
+      false;
+
+    if (requiresSerial && !params.serialNumber) {
+      throw new Error('Ten materiał wymaga podania numeru seryjnego');
+    }
 
     // Waliduj numer seryjny jeśli podany
     if (params.serialNumber) {
@@ -554,6 +576,7 @@ export class CompletionService {
         'items',
         'items.bomItem',
         'items.bomItem.templateItem',
+        'items.taskMaterial',
         'items.pallet',
         'pallets'
       ]

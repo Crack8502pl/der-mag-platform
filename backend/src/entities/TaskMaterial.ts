@@ -42,6 +42,9 @@ export class TaskMaterial {
   @Column({ type: 'jsonb', default: [] })
   serialNumbers: string[];
 
+  @Column({ name: 'requires_serial_number', type: 'boolean', default: false })
+  requiresSerialNumber: boolean;
+
   @Column({ type: 'text', nullable: true })
   notes: string;
 

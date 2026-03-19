@@ -493,52 +493,31 @@ export class TaskController {
           const subsystemTaskRepository = AppDataSource.getRepository(SubsystemTask);
           const taskRepository = AppDataSource.getRepository(Task);
           const generatedBomRepository = AppDataSource.getRepository(WorkflowGeneratedBom);
+          const taskMaterialRepository = AppDataSource.getRepository(TaskMaterial);
 
           let subsystemId: number | null = null;
           let bomId: number | null = null;
 
-          // 1. Najpierw szukaj w subsystem_tasks
-          const subsystemTask = await subsystemTaskRepository.findOne({
-            where: { taskNumber }
+          // Resolve subsystemId – preferuj główną tabelę tasks
+          const mainTask = await taskRepository.findOne({
+            where: { taskNumber, deletedAt: null as any }
           });
 
-          if (subsystemTask && subsystemTask.subsystemId && subsystemTask.bomId) {
-            subsystemId = subsystemTask.subsystemId;
-            bomId = subsystemTask.bomId;
+          if (mainTask && mainTask.subsystemId) {
+            subsystemId = mainTask.subsystemId;
           } else {
-            // 2. Fallback: szukaj w głównej tabeli tasks
-            const mainTask = await taskRepository.findOne({
-              where: { taskNumber, deletedAt: null as any }
+            // Fallback: szukaj w subsystem_tasks
+            const subsystemTask = await subsystemTaskRepository.findOne({
+              where: { taskNumber }
             });
-
-            if (mainTask && mainTask.subsystemId) {
-              subsystemId = mainTask.subsystemId;
-
-              // Szukaj BOM dla tego podsystemu (najnowszy w razie wielokrotnych wpisów)
-              const generatedBom = await generatedBomRepository.findOne({
-                where: { subsystemId: mainTask.subsystemId },
-                order: { generatedAt: 'DESC' }
-              });
-
-              if (generatedBom) {
-                bomId = generatedBom.id;
-              }
+            if (subsystemTask && subsystemTask.subsystemId) {
+              subsystemId = subsystemTask.subsystemId;
+              bomId = subsystemTask.bomId;
             }
           }
 
-          if (subsystemId && bomId) {
-            // Nie sprawdzamy już wcześniejszego istnienia zlecenia (unikamy wyścigu TOCTOU).
-            // Zakładamy, że na poziomie bazy jest unikalne ograniczenie dla subsystemId
-            // i traktujemy ewentualny konflikt jako no-op.
-            await CompletionService.createCompletionOrder({
-              subsystemId,
-              generatedBomId: bomId,
-              assignedToId: userId
-            });
-            serverLogger.info(`Automatycznie utworzono zlecenie kompletacji dla zadania ${taskNumber}`);
-          } else if (subsystemId && !bomId) {
-            // NOWA LOGIKA: Jeśli nie znaleziono WorkflowGeneratedBom, sprawdź czy istnieją TaskMaterial
-            const taskMaterialRepository = AppDataSource.getRepository(TaskMaterial);
+          if (subsystemId) {
+            // Priorytet: nowy system BOM – sprawdź czy istnieją TaskMaterial
             const taskMaterials = await taskMaterialRepository.find({
               where: { taskId: task.id }
             });
@@ -553,10 +532,30 @@ export class TaskController {
               });
               serverLogger.info(`Automatycznie utworzono zlecenie kompletacji z TaskMaterial dla zadania ${taskNumber}`);
             } else {
-              serverLogger.info(`Zadanie ${taskNumber} ma podsystem, ale nie posiada TaskMaterial ani WorkflowGeneratedBom – zlecenie kompletacji nie zostało utworzone`);
+              // Fallback: stary system – WorkflowGeneratedBom
+              if (!bomId && mainTask) {
+                const generatedBom = await generatedBomRepository.findOne({
+                  where: { subsystemId },
+                  order: { generatedAt: 'DESC' }
+                });
+                if (generatedBom) {
+                  bomId = generatedBom.id;
+                }
+              }
+
+              if (bomId) {
+                await CompletionService.createCompletionOrder({
+                  subsystemId,
+                  generatedBomId: bomId,
+                  assignedToId: userId
+                });
+                serverLogger.info(`Automatycznie utworzono zlecenie kompletacji dla zadania ${taskNumber}`);
+              } else {
+                serverLogger.info(`Zadanie ${taskNumber} ma podsystem, ale nie posiada TaskMaterial ani WorkflowGeneratedBom – zlecenie kompletacji nie zostało utworzone`);
+              }
             }
           } else {
-            serverLogger.info(`Zadanie ${taskNumber} nie ma podsystemu lub BOM – zlecenie kompletacji nie zostało utworzone`);
+            serverLogger.info(`Zadanie ${taskNumber} nie ma podsystemu – zlecenie kompletacji nie zostało utworzone`);
           }
         } catch (completionError: any) {
           // Jeżeli istnieje już zlecenie dla danego subsystemId (np. błąd unikalności),

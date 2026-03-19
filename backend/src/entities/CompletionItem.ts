@@ -40,7 +40,7 @@ export class CompletionItem {
   @JoinColumn({ name: 'task_material_id' })
   taskMaterial: TaskMaterial | null;
 
-  @Column({ name: 'task_material_id', nullable: true })
+  @Column({ name: 'task_material_id', type: 'int', nullable: true })
   taskMaterialId: number | null;
 
   @Column({ name: 'expected_quantity', type: 'int', default: 0 })

@@ -31,6 +31,7 @@ export interface BomSubsystemTemplateItem {
   dependsOnItemId?: number;
   dependencyFormula?: string;
   requiresIp: boolean;
+  requiresSerialNumber?: boolean;
   isRequired: boolean;
   groupName?: string;
   sortOrder: number;
