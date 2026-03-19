@@ -12,6 +12,7 @@ import path from 'path';
 import fs from 'fs';
 import routes from './routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
+import { noCacheHeaders } from './middleware/noCacheHeaders';
 import { RATE_LIMIT } from './config/constants';
 import { serverLogger } from './utils/logger';
 
@@ -277,6 +278,7 @@ if (enableApiTester) {
 }
 
 // API routes (MUSZĄ być przed serwowaniem frontendu)
+app.use('/api', noCacheHeaders);
 app.use('/api', routes);
 
 // Serwowanie frontendu z tego samego portu co backend
