@@ -43,7 +43,7 @@ export const DeactivateUserModal: React.FC<DeactivateUserModalProps> = ({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>🚫 Dezaktywuj użytkownika</h2>
