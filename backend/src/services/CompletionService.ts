@@ -322,7 +322,7 @@ export class CompletionService {
     // Walidacja numeru seryjnego – sprawdź czy element wymaga S/N
     const templateItem = matchingItem.bomItem?.templateItem;
     const requiresSerial =
-      (templateItem as any)?.requiresSerialNumber ||
+      templateItem?.requiresSerialNumber ||
       matchingItem.taskMaterial?.requiresSerialNumber ||
       false;
 
