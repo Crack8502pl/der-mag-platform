@@ -228,7 +228,7 @@ export const CompletionOrderList: React.FC = () => {
                 }}
               >
                 <div className="completion-card-header">
-                  <h3>Zlecenie #{order.id}</h3>
+                  <h3>{order.taskNumber ? `Zadanie ${order.taskNumber}` : `Zlecenie #${order.id}`}</h3>
                   <span className={`badge ${getStatusBadgeClass(order.status)}`}>
                     {getStatusLabel(order.status)}
                   </span>

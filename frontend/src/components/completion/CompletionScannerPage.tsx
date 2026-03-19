@@ -131,6 +131,9 @@ export const CompletionScannerPage: React.FC = () => {
   if (loading) {
     return (
       <div className="completion-scanner-loading">
+        <button onClick={() => navigate('/completion')} className="btn btn-secondary back-btn" style={{ position: 'absolute', top: '1rem', left: '1rem' }}>
+          ← Wróć
+        </button>
         <div className="spinner"></div>
         <p>Ładowanie zlecenia...</p>
       </div>
@@ -140,6 +143,9 @@ export const CompletionScannerPage: React.FC = () => {
   if (error || !order) {
     return (
       <div className="completion-scanner-error">
+        <button onClick={() => navigate('/completion')} className="btn btn-secondary back-btn" style={{ position: 'absolute', top: '1rem', left: '1rem' }}>
+          ← Wróć
+        </button>
         <p>{error || 'Zlecenie nie znalezione'}</p>
         <button onClick={() => navigate('/completion')} className="btn btn-primary">
           Wróć do listy
@@ -157,7 +163,7 @@ export const CompletionScannerPage: React.FC = () => {
         <button onClick={() => navigate('/completion')} className="btn btn-secondary back-btn">
           ← Wróć
         </button>
-        <h1>Kompletacja #{order.id}</h1>
+        <h1>Kompletacja {order.taskNumber || `#${order.id}`}</h1>
         <button
           onClick={() => setScannerEnabled(!scannerEnabled)}
           className={`btn ${scannerEnabled ? 'btn-secondary' : 'btn-primary'}`}
