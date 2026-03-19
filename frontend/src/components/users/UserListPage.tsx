@@ -3,6 +3,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { BackButton } from '../common/BackButton';
+import { ModuleIcon } from '../common/ModuleIcon';
+import { MODULE_ICONS } from '../../config/moduleIcons';
 import { UserCreateModal } from './UserCreateModal';
 import { UserEditModal } from './UserEditModal';
 import { ResetPasswordModal } from './ResetPasswordModal';
@@ -213,7 +215,9 @@ export const UserListPage: React.FC = () => {
       <BackButton to="/dashboard" />
       
       <div className="module-header">
-        <div className="module-icon">👥</div>
+        <div className="module-icon">
+          <ModuleIcon name="users" emoji={MODULE_ICONS.users} size={36} />
+        </div>
         <h1>Zarządzanie użytkownikami</h1>
       </div>
 

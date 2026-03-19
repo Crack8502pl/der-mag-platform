@@ -49,7 +49,12 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
     const { name, value } = e.target;
     
     // Convert employeeCode to uppercase
-    const finalValue = name === 'employeeCode' ? value.toUpperCase() : value;
+    let finalValue: string | number = name === 'employeeCode' ? value.toUpperCase() : value;
+    
+    // Convert roleId to number
+    if (name === 'roleId') {
+      finalValue = Number(value);
+    }
     
     setFormData({
       ...formData,
@@ -73,8 +78,8 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
       });
 
       // Update role if changed
-      if (formData.roleId !== user.roleId) {
-        await api.put(`/users/${user.id}/role`, { roleId: formData.roleId });
+      if (Number(formData.roleId) !== user.roleId) {
+        await api.put(`/users/${user.id}/role`, { roleId: Number(formData.roleId) });
       }
 
       onSuccess();
