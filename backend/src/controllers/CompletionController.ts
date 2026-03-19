@@ -7,6 +7,8 @@ import { CompletionOrder, CompletionOrderStatus, CompletionDecision } from '../e
 import { CompletionItem, CompletionItemStatus } from '../entities/CompletionItem';
 import { WorkflowGeneratedBomItem } from '../entities/WorkflowGeneratedBomItem';
 import { Pallet } from '../entities/Pallet';
+import { Task } from '../entities/Task';
+import { TaskMaterial } from '../entities/TaskMaterial';
 import CompletionService from '../services/CompletionService';
 import NotificationService from '../services/NotificationService';
 import { serverLogger } from '../utils/logger';
@@ -507,24 +509,54 @@ export class CompletionController {
    */
   static async createOrder(req: Request, res: Response): Promise<void> {
     try {
-      const { subsystemId, generatedBomId, assignedToId } = req.body;
+      const { taskNumber, subsystemId, assignedToId } = req.body;
 
-      if (!subsystemId || !generatedBomId || !assignedToId) {
+      if (!taskNumber || !subsystemId || !assignedToId) {
         res.status(400).json({
           success: false,
-          message: 'Brak wymaganych parametrów: subsystemId, generatedBomId, assignedToId'
+          message: 'Brak wymaganych parametrów: taskNumber, subsystemId, assignedToId'
         });
         return;
       }
 
-      const order = await CompletionService.createCompletionOrder({
-        subsystemId,
-        generatedBomId,
-        assignedToId
+      const taskRepository = AppDataSource.getRepository(Task);
+      const taskMaterialRepository = AppDataSource.getRepository(TaskMaterial);
+
+      const task = await taskRepository.findOne({
+        where: { taskNumber }
       });
 
-      // Wyślij powiadomienie
-      await NotificationService.notifyNewCompletionTask(order.id);
+      if (!task) {
+        res.status(404).json({
+          success: false,
+          message: `Zadanie o numerze ${taskNumber} nie znalezione`
+        });
+        return;
+      }
+
+      const taskMaterials = await taskMaterialRepository.find({
+        where: { taskId: task.id }
+      });
+
+      if (taskMaterials.length === 0) {
+        res.status(400).json({
+          success: false,
+          message: `Zadanie ${taskNumber} nie ma skonfigurowanych materiałów BOM`
+        });
+        return;
+      }
+
+      const order = await CompletionService.createCompletionOrderFromTaskMaterials({
+        taskId: task.id,
+        taskNumber: task.taskNumber,
+        subsystemId,
+        assignedToId,
+        taskMaterials
+      });
+
+      // Aktualizuj status zadania
+      task.status = 'in_completion';
+      await taskRepository.save(task);
 
       res.status(201).json({
         success: true,
