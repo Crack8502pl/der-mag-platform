@@ -19,6 +19,8 @@ export interface CreateCompletionOrderParams {
   subsystemId: number;
   generatedBomId: number;
   assignedToId: number;
+  taskNumber: string;
+  taskMaterials: TaskMaterial[];
 }
 
 export interface CreateCompletionOrderFromTaskMaterialsParams {
