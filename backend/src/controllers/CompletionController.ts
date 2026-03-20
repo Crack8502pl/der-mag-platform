@@ -15,6 +15,11 @@ import CompletionService from '../services/CompletionService';
 import NotificationService from '../services/NotificationService';
 import { serverLogger } from '../utils/logger';
 
+/** Resolve the planned/expected quantity for a completion item from multiple possible sources */
+function resolvePlannedQty(item: CompletionItem): number {
+  return Number(item.taskMaterial?.plannedQuantity ?? item.bomItem?.quantity ?? item.expectedQuantity ?? 0);
+}
+
 export class CompletionController {
   /**
    * GET /api/completion/orders
@@ -144,12 +149,12 @@ export class CompletionController {
           lp: index + 1,
           materialName: item.taskMaterial?.materialName || item.bomItem?.itemName || '',
           catalogNumber,
-          plannedQuantity: Number(item.taskMaterial?.plannedQuantity ?? item.bomItem?.quantity ?? item.expectedQuantity ?? 0),
+          plannedQuantity: resolvePlannedQty(item),
           stockQuantity: stock?.quantityAvailable ?? null,
           warehouseLocation: stock?.warehouseLocation ?? null,
           requiresSerialNumber: !!(item.taskMaterial?.requiresSerialNumber || item.taskMaterial?.bomTemplate?.isSerialized || item.bomItem?.templateItem?.requiresSerialNumber),
           isSerialized: !!(item.taskMaterial?.requiresSerialNumber || item.taskMaterial?.bomTemplate?.isSerialized || item.bomItem?.templateItem?.requiresSerialNumber),
-          serialNumbers: Array.isArray(item.taskMaterial?.serialNumbers) ? item.taskMaterial!.serialNumbers : []
+          serialNumbers: Array.isArray(item.taskMaterial?.serialNumbers) ? item.taskMaterial?.serialNumbers ?? [] : []
         };
       });
 
@@ -790,7 +795,7 @@ export class CompletionController {
 
       const item = await completionItemRepo.findOne({
         where: { id: parseInt(itemId), completionOrderId: parseInt(id) },
-        relations: ['taskMaterial']
+        relations: ['taskMaterial', 'bomItem']
       });
 
       if (!item) {
@@ -798,7 +803,7 @@ export class CompletionController {
         return;
       }
 
-      const expectedQty = item.expectedQuantity || 0;
+      const expectedQty = resolvePlannedQty(item);
       const uniqueSerials = [...new Set(serialNumbers.map((s: string) => s.trim()).filter(Boolean))];
 
       // Update taskMaterial serialNumbers if exists
@@ -847,7 +852,14 @@ export class CompletionController {
       const systemConfigRepo = AppDataSource.getRepository(SystemConfig);
       const config = await systemConfigRepo.findOne({ where: { key: 'serial_number_patterns' } });
 
-      const patterns = config ? JSON.parse(config.value) : { patterns: [], stripPrefixes: [] };
+      let patterns = { patterns: [], stripPrefixes: [] };
+      if (config) {
+        try {
+          patterns = JSON.parse(config.value);
+        } catch {
+          serverLogger.error('Invalid serial patterns configuration in database – using defaults');
+        }
+      }
 
       res.json({ success: true, data: patterns });
     } catch (error) {

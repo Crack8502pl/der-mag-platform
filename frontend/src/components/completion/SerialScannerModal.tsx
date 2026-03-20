@@ -40,7 +40,7 @@ export const SerialScannerModal: React.FC<SerialScannerModalProps> = ({
       setShowExitConfirm(false);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [isOpen]);
+  }, [isOpen, initialSerials]);
 
   const applyStripPrefixes = useCallback((value: string): string => {
     if (!patternsConfig?.stripPrefixes?.length) return value;

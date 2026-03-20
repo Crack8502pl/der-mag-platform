@@ -180,8 +180,8 @@ export const CompletionPage: React.FC = () => {
     const isSerial = item.requiresSerialNumber || item.isSerialized;
     if (isSerial) {
       const serials = localSerials[item.id] || item.serialNumbers || [];
-      const planned = item.plannedQuantity ?? item.bomItem?.quantity ?? 0;
-      if (serials.length >= Number(planned) && Number(planned) > 0) return 'complete';
+      const planned = getPlannedQuantity(item);
+      if (serials.length >= planned && planned > 0) return 'complete';
       if (serials.length > 0) return 'partial';
       return 'pending';
     }
@@ -189,6 +189,9 @@ export const CompletionPage: React.FC = () => {
     if (item.status === 'PARTIAL') return 'partial';
     return 'pending';
   };
+
+  const getPlannedQuantity = (item: CompletionItem): number =>
+    Number(item.plannedQuantity ?? item.bomItem?.quantity ?? item.expectedQuantity ?? 0);
 
   return (
     <div className="completion-page">
@@ -346,7 +349,7 @@ export const CompletionPage: React.FC = () => {
                     {selectedOrder.items.map((item, idx) => {
                       const isSerial = item.requiresSerialNumber || item.isSerialized;
                       const serials = localSerials[item.id] || item.serialNumbers || [];
-                      const planned = Number(item.plannedQuantity ?? item.bomItem?.quantity ?? item.expectedQuantity ?? 0);
+                      const planned = getPlannedQuantity(item);
                       const rowStatus = getItemStatus(item);
                       return (
                         <tr
@@ -433,7 +436,7 @@ export const CompletionPage: React.FC = () => {
           isOpen={!!scannerItem}
           itemName={scannerItem.materialName || scannerItem.bomItem?.templateItem?.name || ''}
           catalogNumber={scannerItem.catalogNumber || scannerItem.bomItem?.templateItem?.partNumber}
-          expectedCount={Number(scannerItem.plannedQuantity ?? scannerItem.bomItem?.quantity ?? scannerItem.expectedQuantity ?? 1)}
+          expectedCount={getPlannedQuantity(scannerItem) || 1}
           initialSerials={localSerials[scannerItem.id] || scannerItem.serialNumbers || []}
           patternsConfig={patternsConfig}
           onSave={(serials) => handleSaveSerials(scannerItem.id, serials)}
