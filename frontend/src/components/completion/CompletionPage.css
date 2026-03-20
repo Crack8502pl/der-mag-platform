@@ -45,6 +45,11 @@
 
 .completion-header-icon {
   font-size: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
 }
 
 .completion-header-title h1 {

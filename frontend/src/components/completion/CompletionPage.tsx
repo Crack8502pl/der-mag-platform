@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { BackButton } from '../common/BackButton';
+import { ModuleIcon } from '../common/ModuleIcon';
 import completionService from '../../services/completion.service';
 import type { CompletionOrder, CompletionItem, SerialPatternsConfig } from '../../types/completion.types';
 import { SerialScannerModal } from './SerialScannerModal';
@@ -250,7 +251,9 @@ export const CompletionPage: React.FC = () => {
           </button>
           <BackButton />
           <div className="completion-header-title">
-            <span className="completion-header-icon">📦</span>
+            <span className="completion-header-icon">
+                <ModuleIcon name="completion" emoji="📦" size={24} alt="Kompletacja" />
+              </span>
             <h1>KOMPLETACJA</h1>
           </div>
         </div>
