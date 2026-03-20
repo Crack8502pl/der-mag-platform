@@ -124,6 +124,63 @@ class CompletionService {
   }
 
   /**
+   * Request partial issue (send to manager for approval)
+   */
+  async requestPartialIssue(orderId: number, issuedQuantities: Record<number, number>, notes?: string) {
+    const response = await api.post<{ success: boolean; message: string; data: CompletionOrder }>(
+      `/completion/orders/${orderId}/request-partial`,
+      { issuedQuantities, notes }
+    );
+    return response.data;
+  }
+
+  /**
+   * Approve partial issue (manager only)
+   */
+  async approvePartialIssue(orderId: number, notes?: string) {
+    const response = await api.post<{ success: boolean; message: string; data: CompletionOrder }>(
+      `/completion/orders/${orderId}/approve-partial`,
+      { notes }
+    );
+    return response.data;
+  }
+
+  /**
+   * Reopen a partial order for further completion
+   */
+  async reopenOrder(orderId: number) {
+    const response = await api.post<{ success: boolean; message: string; data: CompletionOrder }>(
+      `/completion/orders/${orderId}/reopen`
+    );
+    return response.data;
+  }
+
+  /**
+   * Get completed orders (COMPLETED + PARTIAL_ISSUED)
+   */
+  async getCompletedOrders(filters?: { assignedTo?: number; subsystemId?: number }) {
+    const params = new URLSearchParams();
+    if (filters?.assignedTo) params.append('assignedTo', filters.assignedTo.toString());
+    if (filters?.subsystemId) params.append('subsystemId', filters.subsystemId.toString());
+
+    const response = await api.get<{ success: boolean; data: CompletionOrder[] }>(
+      `/completion/completed?${params.toString()}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Save issued quantities for non-serialized items
+   */
+  async saveIssuedQuantities(orderId: number, quantities: Record<number, number>) {
+    const response = await api.patch<{ success: boolean; message: string }>(
+      `/completion/orders/${orderId}/issued-quantities`,
+      { quantities }
+    );
+    return response.data;
+  }
+
+  /**
    * Get serial number validation patterns (admin)
    */
   async getSerialPatterns() {

@@ -11,6 +11,7 @@ import { Task } from '../entities/Task';
 import { TaskMaterial } from '../entities/TaskMaterial';
 import { WarehouseStock } from '../entities/WarehouseStock';
 import { SystemConfig } from '../entities/SystemConfig';
+import { User } from '../entities/User';
 import CompletionService from '../services/CompletionService';
 import NotificationService from '../services/NotificationService';
 import { serverLogger } from '../utils/logger';
@@ -34,6 +35,7 @@ export class CompletionController {
       const queryBuilder = completionOrderRepo.createQueryBuilder('order')
         .leftJoinAndSelect('order.subsystem', 'subsystem')
         .leftJoinAndSelect('order.assignedTo', 'assignedTo')
+        .leftJoinAndSelect('order.completedBy', 'completedBy')
         .leftJoinAndSelect('order.items', 'items')
         .leftJoinAndSelect('items.bomItem', 'bomItem')
         .orderBy('order.createdAt', 'DESC');
@@ -100,6 +102,7 @@ export class CompletionController {
         .leftJoinAndSelect('order.subsystem', 'subsystem')
         .leftJoinAndSelect('order.generatedBom', 'generatedBom')
         .leftJoinAndSelect('order.assignedTo', 'assignedTo')
+        .leftJoinAndSelect('order.completedBy', 'completedBy')
         .leftJoinAndSelect('order.items', 'items')
         .leftJoinAndSelect('items.bomItem', 'bomItem')
         .leftJoinAndSelect('bomItem.templateItem', 'templateItem')
@@ -1016,6 +1019,178 @@ export class CompletionController {
     } catch (error) {
       serverLogger.error(`Error updating warehouse location: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({ success: false, message: 'Błąd aktualizacji lokalizacji' });
+    }
+  }
+
+  /**
+   * POST /api/completion/orders/:id/request-partial
+   * Zgłoszenie prośby o częściowe wydanie materiałów
+   */
+  static async requestPartialIssue(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { notes, issuedQuantities } = req.body;
+      const userId = req.userId;
+
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Brak autoryzacji' });
+        return;
+      }
+
+      const order = await CompletionService.requestPartialIssue(
+        parseInt(id, 10),
+        userId,
+        issuedQuantities,
+        notes
+      );
+
+      // Get missing items for notification
+      const orderRepo = AppDataSource.getRepository(CompletionOrder);
+      const fullOrder = await orderRepo.findOne({
+        where: { id: parseInt(id, 10) },
+        relations: ['items', 'items.taskMaterial', 'items.taskMaterial.bomTemplate', 'items.bomItem', 'assignedTo', 'subsystem']
+      });
+
+      if (fullOrder) {
+        const enrichedItems = await CompletionService.enrichItemsWithWarehouseData(fullOrder.items);
+        const missingItems = enrichedItems
+          .filter(item => !(item.requiresSerialNumber || item.isSerialized))
+          .map(item => {
+            const planned = resolvePlannedQty(item);
+            const issued = issuedQuantities?.[item.id] ?? item.issuedQuantity ?? 0;
+            return { name: item.materialName || item.bomItem?.itemName || '—', catalogNumber: item.catalogNumber || '—', plannedQuantity: planned, issuedQuantity: issued, missing: Math.max(0, planned - issued) };
+          })
+          .filter(item => item.missing > 0);
+
+        const requestedByName = fullOrder.assignedTo
+          ? `${fullOrder.assignedTo.firstName} ${fullOrder.assignedTo.lastName}`
+          : `#${userId}`;
+
+        await NotificationService.notifyPartialIssueRequest(order.id, missingItems, requestedByName, notes);
+      }
+
+      res.json({
+        success: true,
+        message: 'Proszę czekać na zgodę kierownika',
+        data: order
+      });
+    } catch (error) {
+      serverLogger.error(`Error requesting partial issue: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Błąd zgłoszenia częściowego wydania'
+      });
+    }
+  }
+
+  /**
+   * POST /api/completion/orders/:id/approve-partial
+   * Akceptacja częściowego wydania przez kierownika
+   */
+  static async approvePartialIssue(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { notes } = req.body;
+      const userId = req.userId;
+
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Brak autoryzacji' });
+        return;
+      }
+
+      const order = await CompletionService.approvePartialIssue(parseInt(id, 10), userId, notes);
+
+      // Get manager name for notification
+      const userRepo = AppDataSource.getRepository(User);
+      const manager = await userRepo.findOne({ where: { id: userId } });
+      const managerName = manager ? `${manager.firstName} ${manager.lastName}` : `#${userId}`;
+
+      await NotificationService.notifyPartialIssueApproved(order.id, managerName, notes);
+
+      res.json({
+        success: true,
+        message: 'Częściowe wydanie zatwierdzone',
+        data: order
+      });
+    } catch (error) {
+      serverLogger.error(`Error approving partial issue: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Błąd zatwierdzania częściowego wydania'
+      });
+    }
+  }
+
+  /**
+   * POST /api/completion/orders/:id/reopen
+   * Ponowne otwarcie zlecenia częściowego do dokończenia
+   */
+  static async reopenPartialOrder(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const userId = req.userId;
+
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Brak autoryzacji' });
+        return;
+      }
+
+      const order = await CompletionService.reopenPartialOrder(parseInt(id, 10), userId);
+
+      res.json({
+        success: true,
+        message: 'Zlecenie ponownie otwarte',
+        data: order
+      });
+    } catch (error) {
+      serverLogger.error(`Error reopening partial order: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Błąd ponownego otwarcia zlecenia'
+      });
+    }
+  }
+
+  /**
+   * GET /api/completion/completed
+   * Lista zakończonych zleceń kompletacji (COMPLETED + PARTIAL_ISSUED)
+   */
+  static async getCompletedOrders(req: Request, res: Response): Promise<void> {
+    try {
+      const { assignedTo, subsystemId } = req.query;
+
+      const orders = await CompletionService.getCompletedOrders({
+        assignedToId: assignedTo ? parseInt(assignedTo as string, 10) : undefined,
+        subsystemId: subsystemId ? parseInt(subsystemId as string, 10) : undefined
+      });
+
+      res.json({ success: true, data: orders });
+    } catch (error) {
+      serverLogger.error(`Error getting completed orders: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ success: false, message: 'Błąd pobierania zakończonych zleceń' });
+    }
+  }
+
+  /**
+   * PATCH /api/completion/orders/:id/issued-quantities
+   * Zapisanie ilości wydanych dla pozycji nieserializowanych
+   */
+  static async saveIssuedQuantities(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { quantities } = req.body;
+
+      if (!quantities || typeof quantities !== 'object') {
+        res.status(400).json({ success: false, message: 'Brak danych quantities' });
+        return;
+      }
+
+      await CompletionService.saveIssuedQuantities(parseInt(id, 10), quantities);
+
+      res.json({ success: true, message: 'Ilości wydane zapisane' });
+    } catch (error) {
+      serverLogger.error(`Error saving issued quantities: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ success: false, message: 'Błąd zapisywania ilości wydanych' });
     }
   }
 }

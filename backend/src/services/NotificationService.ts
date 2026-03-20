@@ -377,6 +377,95 @@ export class NotificationService {
       // Don't throw - email failure shouldn't prevent password reset
     }
   }
+
+  /**
+   * Prośba o akceptację częściowego wydania
+   * Odbiorcy: smokip@der-mag.pl, managers
+   */
+  async notifyPartialIssueRequest(completionOrderId: number, missingItems: Array<{ name: string; catalogNumber: string; plannedQuantity: number; issuedQuantity: number; missing: number }>, requestedByName: string, notes?: string): Promise<void> {
+    try {
+      const orderRepo = AppDataSource.getRepository(CompletionOrder);
+      const order = await orderRepo.findOne({
+        where: { id: completionOrderId },
+        relations: ['subsystem', 'subsystem.contract']
+      });
+
+      if (!order) {
+        console.error('Zlecenie kompletacji nie znalezione');
+        return;
+      }
+
+      const managerEmails = await this.getEmailsByRoles(['managers']);
+      const recipients = [SYSTEM_EMAIL, ...managerEmails];
+
+      const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
+
+      await EmailService.sendEmail({
+        to: recipients,
+        subject: `🔔 Prośba o akceptację częściowego wydania - ${order.subsystem.subsystemNumber}`,
+        template: 'partial-issue-request',
+        context: {
+          taskNumber: order.taskNumber || `#${order.id}`,
+          subsystemNumber: order.subsystem.subsystemNumber,
+          contractNumber: order.subsystem.contract.contractNumber,
+          requestedBy: requestedByName,
+          missingItems,
+          missingItemsCount: missingItems.length,
+          notes: notes || null,
+          approvalUrl: `${appUrl}/completion`
+        },
+        priority: 'high'
+      });
+
+      console.log(`✅ Wysłano powiadomienie o prośbie o częściowe wydanie #${completionOrderId}`);
+    } catch (error) {
+      console.error('Błąd wysyłania powiadomienia o częściowym wydaniu:', error);
+    }
+  }
+
+  /**
+   * Akceptacja częściowego wydania
+   * Odbiorca: pracownik który kompletował
+   */
+  async notifyPartialIssueApproved(completionOrderId: number, approvedByName: string, notes?: string): Promise<void> {
+    try {
+      const orderRepo = AppDataSource.getRepository(CompletionOrder);
+      const order = await orderRepo.findOne({
+        where: { id: completionOrderId },
+        relations: ['subsystem', 'subsystem.contract', 'assignedTo']
+      });
+
+      if (!order) {
+        console.error('Zlecenie kompletacji nie znalezione');
+        return;
+      }
+
+      if (!order.assignedTo?.email) {
+        console.warn('Brak adresu email pracownika dla powiadomienia o akceptacji częściowego wydania');
+        return;
+      }
+
+      const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
+
+      await EmailService.sendEmail({
+        to: order.assignedTo.email,
+        subject: `✅ Częściowe wydanie zatwierdzone - ${order.subsystem.subsystemNumber}`,
+        template: 'partial-issue-approved',
+        context: {
+          taskNumber: order.taskNumber || `#${order.id}`,
+          subsystemNumber: order.subsystem.subsystemNumber,
+          approvedBy: approvedByName,
+          approvedAt: new Date().toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+          notes: notes || null,
+          orderUrl: `${appUrl}/completion`
+        }
+      });
+
+      console.log(`✅ Wysłano powiadomienie o akceptacji częściowego wydania #${completionOrderId}`);
+    } catch (error) {
+      console.error('Błąd wysyłania powiadomienia o akceptacji częściowego wydania:', error);
+    }
+  }
 }
 
 export default new NotificationService();

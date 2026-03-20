@@ -661,6 +661,8 @@ export class CompletionService {
       [CompletionOrderStatus.IN_PROGRESS]: 'in_completion',
       [CompletionOrderStatus.WAITING_FOR_MATERIALS]: 'waiting_materials',
       [CompletionOrderStatus.WAITING_DECISION]: 'waiting_decision',
+      [CompletionOrderStatus.PARTIAL_PENDING_APPROVAL]: 'partial_pending_approval',
+      [CompletionOrderStatus.PARTIAL_ISSUED]: 'partial_issued',
       [CompletionOrderStatus.COMPLETED]: 'completion_completed',
       [CompletionOrderStatus.CANCELLED]: 'cancelled'
     };
@@ -797,7 +799,8 @@ export class CompletionService {
     const activeStatuses = [
       CompletionOrderStatus.CREATED,
       CompletionOrderStatus.IN_PROGRESS,
-      CompletionOrderStatus.WAITING_DECISION
+      CompletionOrderStatus.WAITING_DECISION,
+      CompletionOrderStatus.PARTIAL_PENDING_APPROVAL
     ] as string[];
 
     const result = await completionItemRepo
@@ -857,6 +860,180 @@ export class CompletionService {
     for (const stockId of stockIds) {
       await this.recalculateReservations(stockId);
     }
+  }
+
+  /**
+   * Zgłoszenie prośby o częściowe wydanie materiałów
+   */
+  async requestPartialIssue(orderId: number, userId: number, issuedQuantities?: Record<number, number>, notes?: string): Promise<CompletionOrder> {
+    const orderRepo = AppDataSource.getRepository(CompletionOrder);
+
+    const order = await orderRepo.findOne({
+      where: { id: orderId },
+      relations: ['items', 'subsystem', 'assignedTo']
+    });
+
+    if (!order) {
+      throw new Error('Zlecenie kompletacji nie znalezione');
+    }
+
+    if (order.status !== CompletionOrderStatus.IN_PROGRESS && order.status !== CompletionOrderStatus.CREATED) {
+      throw new Error(`Zlecenie ma status ${order.status} - nie można zgłosić prośby o częściowe wydanie`);
+    }
+
+    // Save issued quantities if provided
+    if (issuedQuantities) {
+      await this.saveIssuedQuantities(orderId, issuedQuantities);
+    }
+
+    order.status = CompletionOrderStatus.PARTIAL_PENDING_APPROVAL;
+    order.decisionNotes = (notes || null) as unknown as string;
+    order.decisionBy = userId;
+    order.decisionAt = new Date();
+
+    await orderRepo.save(order);
+
+    serverLogger.info(`Zgłoszono prośbę o częściowe wydanie dla zlecenia #${orderId}`);
+
+    // Sync task status
+    if (order.taskNumber) {
+      await this.syncTaskStatus(order.taskNumber, CompletionOrderStatus.PARTIAL_PENDING_APPROVAL);
+    }
+
+    return order;
+  }
+
+  /**
+   * Akceptacja częściowego wydania przez kierownika
+   */
+  async approvePartialIssue(orderId: number, managerId: number, notes?: string): Promise<CompletionOrder> {
+    const orderRepo = AppDataSource.getRepository(CompletionOrder);
+    const subsystemRepo = AppDataSource.getRepository(Subsystem);
+
+    const order = await orderRepo.findOne({
+      where: { id: orderId },
+      relations: ['items', 'subsystem', 'assignedTo']
+    });
+
+    if (!order) {
+      throw new Error('Zlecenie kompletacji nie znalezione');
+    }
+
+    if (order.status !== CompletionOrderStatus.PARTIAL_PENDING_APPROVAL) {
+      throw new Error(`Zlecenie ma status ${order.status} - nie można zatwierdzić częściowego wydania`);
+    }
+
+    order.status = CompletionOrderStatus.PARTIAL_ISSUED;
+    order.completedAt = new Date();
+    order.completedById = managerId;
+    order.decisionBy = managerId;
+    order.decisionAt = new Date();
+    if (notes) {
+      order.decisionNotes = notes;
+    }
+
+    await orderRepo.save(order);
+
+    serverLogger.info(`Zatwierdzono częściowe wydanie dla zlecenia #${orderId} przez użytkownika #${managerId}`);
+
+    // Sync task status
+    if (order.taskNumber) {
+      await this.syncTaskStatus(order.taskNumber, CompletionOrderStatus.PARTIAL_ISSUED);
+    }
+
+    // Recalculate reservations
+    try {
+      await this.recalculateAllReservationsForOrder(order.id);
+    } catch (err) {
+      serverLogger.warn(`Nie udało się przeliczyć rezerwacji dla zlecenia #${order.id}: ${err}`);
+    }
+
+    return order;
+  }
+
+  /**
+   * Ponowne otwarcie częściowo wydanego zlecenia (dokończenie kompletacji)
+   */
+  async reopenPartialOrder(orderId: number, userId: number): Promise<CompletionOrder> {
+    const orderRepo = AppDataSource.getRepository(CompletionOrder);
+
+    const order = await orderRepo.findOne({
+      where: { id: orderId },
+      relations: ['items', 'subsystem']
+    });
+
+    if (!order) {
+      throw new Error('Zlecenie kompletacji nie znalezione');
+    }
+
+    if (order.status !== CompletionOrderStatus.PARTIAL_ISSUED && order.status !== CompletionOrderStatus.PARTIAL_PENDING_APPROVAL) {
+      throw new Error(`Zlecenie ma status ${order.status} - nie można ponownie otworzyć`);
+    }
+
+    order.status = CompletionOrderStatus.IN_PROGRESS;
+    order.completedAt = null as unknown as Date;
+    order.completedById = null;
+
+    await orderRepo.save(order);
+
+    serverLogger.info(`Ponownie otwarto zlecenie #${orderId} przez użytkownika #${userId}`);
+
+    if (order.taskNumber) {
+      await this.syncTaskStatus(order.taskNumber, CompletionOrderStatus.IN_PROGRESS);
+    }
+
+    return order;
+  }
+
+  /**
+   * Pobieranie zakończonych zleceń (COMPLETED i PARTIAL_ISSUED)
+   */
+  async getCompletedOrders(filters?: {
+    assignedToId?: number;
+    subsystemId?: number;
+  }) {
+    const orderRepo = AppDataSource.getRepository(CompletionOrder);
+
+    const queryBuilder = orderRepo
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.subsystem', 'subsystem')
+      .leftJoinAndSelect('order.assignedTo', 'assignedTo')
+      .leftJoinAndSelect('order.completedBy', 'completedBy')
+      .leftJoinAndSelect('order.items', 'items')
+      .where('order.status IN (:...statuses)', {
+        statuses: [CompletionOrderStatus.COMPLETED, CompletionOrderStatus.PARTIAL_ISSUED]
+      })
+      .orderBy('order.completedAt', 'DESC');
+
+    if (filters?.assignedToId) {
+      queryBuilder.andWhere('order.assignedToId = :assignedToId', { assignedToId: filters.assignedToId });
+    }
+
+    if (filters?.subsystemId) {
+      queryBuilder.andWhere('order.subsystemId = :subsystemId', { subsystemId: filters.subsystemId });
+    }
+
+    return await queryBuilder.getMany();
+  }
+
+  /**
+   * Zapisywanie ilości wydanych dla pozycji nieserializowanych
+   */
+  async saveIssuedQuantities(orderId: number, quantities: Record<number, number>): Promise<void> {
+    const completionItemRepo = AppDataSource.getRepository(CompletionItem);
+
+    const items = await completionItemRepo.find({
+      where: { completionOrderId: orderId }
+    });
+
+    for (const item of items) {
+      if (quantities[item.id] !== undefined) {
+        item.issuedQuantity = Math.max(0, quantities[item.id]);
+        await completionItemRepo.save(item);
+      }
+    }
+
+    serverLogger.info(`Zapisano ilości wydane dla zlecenia #${orderId}`);
   }
 }
 

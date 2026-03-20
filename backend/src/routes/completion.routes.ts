@@ -109,4 +109,39 @@ router.patch(
   CompletionController.updateWarehouseLocation
 );
 
+// Request partial issue (worker sends request to manager)
+router.post(
+  '/orders/:id/request-partial',
+  requirePermission('completion', 'complete'),
+  CompletionController.requestPartialIssue
+);
+
+// Approve partial issue (manager approves)
+router.post(
+  '/orders/:id/approve-partial',
+  requirePermission('completion', 'complete'),
+  CompletionController.approvePartialIssue
+);
+
+// Reopen partial order for further completion
+router.post(
+  '/orders/:id/reopen',
+  requirePermission('completion', 'complete'),
+  CompletionController.reopenPartialOrder
+);
+
+// Get completed orders (COMPLETED + PARTIAL_ISSUED)
+router.get(
+  '/completed',
+  requirePermission('completion', 'read'),
+  CompletionController.getCompletedOrders
+);
+
+// Save issued quantities for non-serialized items
+router.patch(
+  '/orders/:id/issued-quantities',
+  requirePermission('completion', 'scan'),
+  CompletionController.saveIssuedQuantities
+);
+
 export default router;

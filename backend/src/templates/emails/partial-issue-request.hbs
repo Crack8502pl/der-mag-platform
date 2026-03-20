@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prośba o akceptację częściowego wydania</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 0;">
+        <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); padding: 40px 30px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">
+                🔔 Prośba o akceptację częściowego wydania
+              </h1>
+              <p style="margin: 10px 0 0 0; color: #fde8d0; font-size: 14px;">
+                Grover Platform
+              </p>
+            </td>
+          </tr>
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="margin: 0 0 20px 0; color: #333333; font-size: 16px; line-height: 1.6;">
+                Magazynier zgłosił gotowość do częściowego wydania materiałów dla zlecenia:
+              </p>
+              <table style="border-collapse: collapse; width: 100%; margin: 20px 0;">
+                <tr>
+                  <td style="padding: 8px 12px; border: 1px solid #ddd; background: #f5f5f5; font-weight: 600; width: 40%;">Numer zadania:</td>
+                  <td style="padding: 8px 12px; border: 1px solid #ddd;">{{taskNumber}}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 12px; border: 1px solid #ddd; background: #f5f5f5; font-weight: 600;">Podsystem:</td>
+                  <td style="padding: 8px 12px; border: 1px solid #ddd;">{{subsystemNumber}}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 12px; border: 1px solid #ddd; background: #f5f5f5; font-weight: 600;">Kontrakt:</td>
+                  <td style="padding: 8px 12px; border: 1px solid #ddd;">{{contractNumber}}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 12px; border: 1px solid #ddd; background: #f5f5f5; font-weight: 600;">Zgłosił:</td>
+                  <td style="padding: 8px 12px; border: 1px solid #ddd;">{{requestedBy}}</td>
+                </tr>
+              </table>
+
+              <h3 style="color: #e74c3c; margin: 24px 0 12px;">⚠️ Brakujące materiały ({{missingItemsCount}}):</h3>
+              <table style="border-collapse: collapse; width: 100%; margin: 10px 0;">
+                <tr style="background: #e74c3c; color: white;">
+                  <th style="padding: 8px 10px; border: 1px solid #ddd; text-align: left;">Materiał</th>
+                  <th style="padding: 8px 10px; border: 1px solid #ddd; text-align: left;">Nr katalogowy</th>
+                  <th style="padding: 8px 10px; border: 1px solid #ddd; text-align: center;">Wymagane</th>
+                  <th style="padding: 8px 10px; border: 1px solid #ddd; text-align: center;">Wydano</th>
+                  <th style="padding: 8px 10px; border: 1px solid #ddd; text-align: center;">Brakuje</th>
+                </tr>
+                {{#each missingItems}}
+                <tr>
+                  <td style="padding: 8px 10px; border: 1px solid #ddd;">{{this.name}}</td>
+                  <td style="padding: 8px 10px; border: 1px solid #ddd; font-family: monospace; font-size: 13px;">{{this.catalogNumber}}</td>
+                  <td style="padding: 8px 10px; border: 1px solid #ddd; text-align: center;">{{this.plannedQuantity}}</td>
+                  <td style="padding: 8px 10px; border: 1px solid #ddd; text-align: center;">{{this.issuedQuantity}}</td>
+                  <td style="padding: 8px 10px; border: 1px solid #ddd; text-align: center; color: #e74c3c; font-weight: bold;">{{this.missing}}</td>
+                </tr>
+                {{/each}}
+              </table>
+
+              {{#if notes}}
+              <h3 style="margin: 24px 0 8px; color: #333;">📝 Notatki:</h3>
+              <p style="background: #f5f5f5; padding: 12px 16px; border-left: 4px solid #3498db; margin: 0 0 20px; color: #555; line-height: 1.6;">{{notes}}</p>
+              {{/if}}
+
+              <p style="margin-top: 30px; text-align: center;">
+                <a href="{{approvalUrl}}" style="background: #e67e22; color: white; padding: 14px 28px; text-decoration: none; border-radius: 4px; display: inline-block; font-size: 15px; font-weight: 600;">
+                  ⚠️ Przejdź do akceptacji
+                </a>
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background: #f5f5f5; padding: 20px 30px; text-align: center; border-top: 1px solid #eee;">
+              <p style="margin: 0; color: #999; font-size: 12px;">
+                To jest automatyczna wiadomość z systemu Grover Platform.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
