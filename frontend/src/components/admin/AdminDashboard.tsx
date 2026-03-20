@@ -82,6 +82,13 @@ export const AdminDashboard: React.FC = () => {
       adminOnly: true,
     },
     {
+      title: 'Wzorce numerów seryjnych',
+      description: 'Definiuj wzorce walidacji SN i prefiksy do eliminacji (np. % przed kodem kreskowym)',
+      icon: '🔢',
+      path: '/admin/serial-patterns',
+      adminOnly: true,
+    },
+    {
       title: 'Seed Database 🌱',
       description: 'Zresetuj i zainicjalizuj bazę danych testowymi danymi',
       icon: '🗄️',

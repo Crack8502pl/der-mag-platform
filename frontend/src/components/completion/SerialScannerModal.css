@@ -1,0 +1,299 @@
+/* src/components/completion/SerialScannerModal.css */
+/* Serial scanner modal styles */
+
+.serial-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--spacing-md);
+}
+
+.serial-modal-dialog {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+}
+
+/* Header */
+.serial-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--border-color);
+  gap: var(--spacing-md);
+}
+
+.serial-modal-title {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+.serial-modal-icon {
+  font-size: 1.75rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.serial-modal-title h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.2rem;
+}
+
+.serial-modal-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.serial-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: var(--spacing-xs);
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  transition: color 0.2s, background 0.2s;
+}
+
+.serial-modal-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+/* Progress */
+.serial-modal-progress {
+  padding: var(--spacing-md) var(--spacing-lg) 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.serial-progress-bar-wrap {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-dark);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.serial-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+  border-radius: var(--radius-sm);
+  transition: width 0.3s ease;
+}
+
+.serial-progress-bar-fill.complete {
+  background: linear-gradient(90deg, var(--success), #68d391);
+}
+
+.serial-progress-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.serial-progress-label.complete {
+  color: var(--success);
+}
+
+/* Body */
+.serial-modal-body {
+  padding: var(--spacing-lg);
+  overflow-y: auto;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
+}
+
+.serial-input-row {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.serial-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.serial-add-btn {
+  flex-shrink: 0;
+  min-width: 80px;
+}
+
+.serial-error {
+  color: var(--error);
+  font-size: 0.85rem;
+  margin: 0 0 var(--spacing-md);
+}
+
+/* Serial list */
+.serial-list {
+  background: var(--bg-dark);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+}
+
+.serial-list-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--spacing-sm);
+}
+
+.serial-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.serial-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+}
+
+.serial-index {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  min-width: 1.5rem;
+}
+
+.serial-value {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.serial-remove-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  opacity: 0.6;
+  padding: var(--spacing-xs);
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: opacity 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+
+.serial-remove-btn:hover {
+  opacity: 1;
+  background: rgba(245, 101, 101, 0.15);
+}
+
+.serial-complete-msg {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: rgba(72, 187, 120, 0.1);
+  border: 1px solid var(--success);
+  border-radius: var(--radius-md);
+  color: var(--success);
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Footer */
+.serial-modal-footer {
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+}
+
+/* Exit confirmation overlay (inside modal) */
+.serial-exit-confirm {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  z-index: 10;
+}
+
+.serial-exit-confirm-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xl);
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+}
+
+.serial-exit-confirm-box p {
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-lg);
+  line-height: 1.5;
+}
+
+.serial-exit-confirm-btns {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Mobile optimizations */
+@media (max-width: 480px) {
+  .serial-modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .serial-modal-dialog {
+    max-width: 100%;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-height: 92vh;
+  }
+
+  .serial-add-btn {
+    min-width: 64px;
+    font-size: 0.9rem;
+    padding: 0.6rem 0.75rem;
+  }
+}

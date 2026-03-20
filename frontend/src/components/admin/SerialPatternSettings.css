@@ -1,0 +1,237 @@
+/* src/components/admin/SerialPatternSettings.css */
+/* Admin serial pattern settings page styles */
+
+.serial-settings-page {
+  min-height: 100vh;
+  background: var(--bg-dark);
+  padding: var(--spacing-lg);
+  color: var(--text-primary);
+}
+
+.serial-settings-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+  flex-wrap: wrap;
+}
+
+.serial-settings-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.serial-settings-title span {
+  font-size: 1.75rem;
+}
+
+.serial-settings-title h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.serial-settings-loading {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: var(--spacing-xl);
+}
+
+.serial-settings-body {
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+/* Section */
+.serial-section {
+  padding: var(--spacing-lg);
+}
+
+.serial-section-header {
+  margin-bottom: var(--spacing-lg);
+}
+
+.serial-section-header h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: var(--spacing-xs);
+}
+
+.serial-section-desc {
+  font-size: 0.87rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.serial-section-desc code {
+  background: var(--bg-dark);
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--primary-light);
+}
+
+.serial-section-empty {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-style: italic;
+  margin-bottom: var(--spacing-md);
+}
+
+/* Pattern rows */
+.serial-patterns-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.serial-pattern-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+}
+
+.serial-pattern-fields {
+  flex: 1;
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.serial-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 160px;
+  flex: 1;
+}
+
+.serial-field-pattern {
+  flex: 2;
+  min-width: 200px;
+}
+
+.serial-field label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.input-error {
+  border-color: var(--error) !important;
+}
+
+.field-error {
+  font-size: 0.75rem;
+  color: var(--error);
+}
+
+.serial-remove-row-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 1rem;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  margin-top: 20px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.serial-remove-row-btn:hover {
+  color: var(--error);
+  background: rgba(245, 101, 101, 0.1);
+}
+
+/* Test section */
+.serial-test-row {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.serial-test-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.serial-test-result {
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+.serial-test-result.ok {
+  background: rgba(72, 187, 120, 0.1);
+  border: 1px solid rgba(72, 187, 120, 0.3);
+  color: var(--success);
+}
+
+.serial-test-result.fail {
+  background: rgba(245, 101, 101, 0.1);
+  border: 1px solid rgba(245, 101, 101, 0.3);
+  color: var(--error);
+}
+
+/* Save area */
+.serial-settings-msg {
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+}
+
+.serial-settings-msg.success {
+  background: rgba(72, 187, 120, 0.1);
+  border: 1px solid rgba(72, 187, 120, 0.3);
+  color: var(--success);
+}
+
+.serial-settings-msg.error {
+  background: rgba(245, 101, 101, 0.1);
+  border: 1px solid rgba(245, 101, 101, 0.3);
+  color: var(--error);
+}
+
+.serial-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .serial-settings-page {
+    padding: var(--spacing-md);
+  }
+
+  .serial-pattern-fields {
+    flex-direction: column;
+  }
+
+  .serial-field,
+  .serial-field-pattern {
+    min-width: 0;
+  }
+
+  .serial-test-row {
+    flex-direction: column;
+  }
+}

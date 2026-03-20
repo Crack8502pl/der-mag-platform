@@ -9,7 +9,7 @@ import { PasswordChangeForm } from './components/auth/PasswordChangeForm';
 import { Dashboard } from './components/layout/Dashboard';
 import { ForbiddenPage } from './components/layout/ForbiddenPage';
 import { RoleBasedRoute } from './components/layout/RoleBasedRoute';
-import { CompletionOrderList } from './components/completion/CompletionOrderList';
+import { CompletionPage } from './components/completion/CompletionPage';
 import { CompletionScannerPage } from './components/completion/CompletionScannerPage';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { UserManagementPage } from './components/admin/UserManagementPage';
@@ -21,6 +21,7 @@ import { BOMBuilderPage } from './components/admin/BOMBuilderPage';
 import { PermissionsMatrixPage } from './components/admin/PermissionsMatrixPage';
 import { SymfoniaIntegrationPage } from './components/admin/SymfoniaIntegrationPage';
 import { SymfoniaSyncPage } from './components/admin/SymfoniaSyncPage';
+import { SerialPatternSettings } from './components/admin/SerialPatternSettings';
 import { SubsystemsPage } from './components/modules/SubsystemsPage';
 import { TasksPage } from './components/modules/TasksPage';
 import { PrefabricationPage } from './components/modules/PrefabricationPage';
@@ -293,7 +294,7 @@ function App() {
           element={
             <ProtectedRoute>
               <RoleBasedRoute requiredPermission={{ module: 'completion', action: 'read' }}>
-                <CompletionOrderList />
+                <CompletionPage />
               </RoleBasedRoute>
             </ProtectedRoute>
           }
@@ -406,6 +407,16 @@ function App() {
             <ProtectedRoute>
               <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
                 <SymfoniaSyncPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/serial-patterns"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
+                <SerialPatternSettings />
               </RoleBasedRoute>
             </ProtectedRoute>
           }

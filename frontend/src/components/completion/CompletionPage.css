@@ -1,0 +1,636 @@
+/* src/components/completion/CompletionPage.css */
+/* Main completion page styles - sidebar + BOM table layout */
+
+/* ============================================================
+   PAGE CONTAINER
+   ============================================================ */
+.completion-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.completion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--bg-card);
+  border-bottom: 2px solid var(--primary-color);
+  gap: var(--spacing-md);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.completion-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.completion-header-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.completion-header-icon {
+  font-size: 1.5rem;
+}
+
+.completion-header-title h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: 0.05em;
+}
+
+.completion-task-badge {
+  background: var(--primary-color);
+  color: #fff;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.sidebar-toggle {
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 1rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.completion-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+.completion-sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.3s ease, min-width 0.3s ease;
+  flex-shrink: 0;
+}
+
+/* Hidden state (desktop) */
+.completion-layout:not(:has(.completion-sidebar.open)) .completion-sidebar,
+.completion-sidebar:not(.open) {
+  width: 0;
+  min-width: 0;
+  border-right: none;
+}
+
+.sidebar-header {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.sidebar-header h2 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.sidebar-filter {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.sidebar-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-sm);
+  -webkit-overflow-scrolling: touch;
+}
+
+.sidebar-loading,
+.sidebar-empty,
+.sidebar-error {
+  padding: var(--spacing-lg);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.sidebar-error {
+  color: var(--error);
+}
+
+/* Task cards */
+.sidebar-task-card {
+  width: 100%;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s, background 0.2s;
+  color: var(--text-primary);
+}
+
+.sidebar-task-card:hover {
+  border-color: var(--primary-color);
+  background: var(--bg-hover);
+}
+
+.sidebar-task-card.selected {
+  border-color: var(--primary-color);
+  background: rgba(255, 107, 53, 0.08);
+}
+
+.task-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-xs);
+}
+
+.task-card-number {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--primary-color);
+}
+
+.task-card-status-icon {
+  font-size: 1rem;
+}
+
+.task-card-name {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-card-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.task-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.task-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.task-progress-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.task-card-meta {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+
+.task-status-badge {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 50px;
+  font-weight: 500;
+}
+
+.status-created { background: rgba(160, 174, 192, 0.2); color: var(--text-secondary); }
+.status-in_progress { background: rgba(66, 153, 225, 0.2); color: #63b3ed; }
+.status-waiting_decision { background: rgba(237, 137, 54, 0.2); color: var(--warning); }
+.status-completed { background: rgba(72, 187, 120, 0.2); color: var(--success); }
+.status-cancelled { background: rgba(245, 101, 101, 0.2); color: var(--error); }
+
+/* ============================================================
+   MAIN CONTENT
+   ============================================================ */
+.completion-main {
+  flex: 1;
+  overflow: auto;
+  padding: var(--spacing-lg);
+  -webkit-overflow-scrolling: touch;
+  min-width: 0;
+}
+
+/* Empty state */
+.completion-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  gap: var(--spacing-md);
+  color: var(--text-secondary);
+}
+
+.completion-empty-icon {
+  font-size: 4rem;
+}
+
+.completion-empty-state h2 {
+  color: var(--text-primary);
+  font-size: 1.5rem;
+}
+
+/* Order view */
+.completion-order-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.order-view-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.order-view-header h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+}
+
+.order-subsystem-name {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.order-progress-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-xs);
+  min-width: 180px;
+}
+
+.order-progress-bar-wrap {
+  width: 100%;
+  height: 8px;
+  background: var(--border-color);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.order-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+  transition: width 0.4s ease;
+}
+
+.order-progress-text {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+/* ============================================================
+   BOM TABLE
+   ============================================================ */
+.bom-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+}
+
+.bom-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.bom-table thead tr {
+  background: var(--bg-dark);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.bom-table th {
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.bom-table td {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.bom-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Row status colors */
+.bom-row-complete {
+  background: rgba(72, 187, 120, 0.06);
+}
+
+.bom-row-complete td {
+  color: var(--text-primary);
+}
+
+.bom-row-complete .bom-name {
+  color: var(--success);
+}
+
+.bom-row-partial {
+  background: rgba(237, 137, 54, 0.06);
+}
+
+.bom-row-pending {
+  background: transparent;
+}
+
+/* Cell styles */
+.bom-lp {
+  text-align: center;
+  color: var(--text-secondary);
+  width: 50px;
+}
+
+.bom-name {
+  font-weight: 500;
+  min-width: 160px;
+}
+
+.bom-catalog {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.bom-qty-bom,
+.bom-qty-stock {
+  text-align: center;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bom-qty-stock.stock-low {
+  color: var(--error);
+}
+
+.bom-location {
+  font-size: 0.82rem;
+  color: var(--info);
+  white-space: nowrap;
+}
+
+.bom-serial {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.serial-cell {
+  display: flex;
+  justify-content: center;
+}
+
+.serial-scan-btn {
+  background: rgba(66, 153, 225, 0.15);
+  color: #63b3ed;
+  border-color: rgba(66, 153, 225, 0.3);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.serial-scan-btn:hover:not(:disabled) {
+  background: rgba(66, 153, 225, 0.25);
+  border-color: rgba(66, 153, 225, 0.5);
+}
+
+.serial-scan-btn.complete {
+  background: rgba(72, 187, 120, 0.15);
+  color: var(--success);
+  border-color: rgba(72, 187, 120, 0.3);
+}
+
+.bom-no-serial {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+/* ============================================================
+   ACTION BUTTONS
+   ============================================================ */
+.order-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  flex: 1;
+  min-width: 120px;
+  min-height: 44px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.action-btn-cancel {
+  background: rgba(220, 53, 69, 0.15);
+  color: var(--danger);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.action-btn-cancel:hover:not(:disabled) {
+  background: rgba(220, 53, 69, 0.25);
+  border-color: rgba(220, 53, 69, 0.5);
+}
+
+.action-msg {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+
+.action-msg-success {
+  background: rgba(72, 187, 120, 0.1);
+  color: var(--success);
+  border: 1px solid rgba(72, 187, 120, 0.3);
+}
+
+.action-msg-error {
+  background: rgba(245, 101, 101, 0.1);
+  color: var(--error);
+  border: 1px solid rgba(245, 101, 101, 0.3);
+}
+
+/* ============================================================
+   RESPONSIVE - TABLET (768px - 1023px)
+   ============================================================ */
+@media (max-width: 1023px) {
+  .completion-sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 200;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .completion-sidebar:not(.open) {
+    width: 0;
+    min-width: 0;
+  }
+
+  .completion-sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 199;
+  }
+}
+
+/* ============================================================
+   RESPONSIVE - MOBILE (< 768px)
+   ============================================================ */
+@media (max-width: 767px) {
+  .completion-header {
+    padding: var(--spacing-sm) var(--spacing-md);
+    gap: var(--spacing-xs);
+  }
+
+  .completion-header-title h1 {
+    font-size: 1rem;
+  }
+
+  .completion-main {
+    padding: var(--spacing-sm);
+  }
+
+  .completion-sidebar {
+    width: 85vw;
+    max-width: 340px;
+  }
+
+  .order-view-header {
+    flex-direction: column;
+  }
+
+  .order-progress-summary {
+    align-items: flex-start;
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Fixed action buttons at bottom on mobile */
+  .order-actions {
+    position: sticky;
+    bottom: 0;
+    margin: 0 calc(-1 * var(--spacing-sm));
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    padding: var(--spacing-sm);
+    gap: var(--spacing-xs);
+    z-index: 50;
+  }
+
+  .action-btn {
+    min-width: 44px;
+    flex: 1;
+    /* Show only icons on very small screens */
+    font-size: 0.8rem;
+  }
+}
+
+/* ============================================================
+   RESPONSIVE - LANDSCAPE MOBILE
+   ============================================================ */
+@media (max-width: 767px) and (orientation: landscape) {
+  .completion-sidebar {
+    width: 60vw;
+  }
+
+  .order-actions {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+}
+
+/* ============================================================
+   CSS trick to handle sidebar visibility without JS class issues
+   Use .open class on sidebar itself
+   ============================================================ */
+.completion-layout {
+  position: relative;
+}
+
+/* Desktop: sidebar not open - no layout issue */
+@media (min-width: 1024px) {
+  .completion-sidebar {
+    position: relative;
+  }
+
+  .completion-sidebar:not(.open) {
+    width: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .completion-sidebar.open {
+    width: 280px;
+    min-width: 280px;
+  }
+}

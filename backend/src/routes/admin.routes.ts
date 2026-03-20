@@ -8,6 +8,7 @@ import { SystemConfigController } from '../controllers/SystemConfigController';
 import { UserController } from '../controllers/UserController';
 import { RoleController } from '../controllers/RoleController';
 import { AdminController } from '../controllers/AdminController';
+import { CompletionController } from '../controllers/CompletionController';
 
 const router = Router();
 
@@ -27,6 +28,10 @@ router.post('/config/smtp/test', SystemConfigController.testSmtpConnection);
 // Portal Configuration
 router.get('/config/portal', SystemConfigController.getPortalUrl);
 router.put('/config/portal', SystemConfigController.setPortalUrl);
+
+// Serial Number Patterns Configuration
+router.get('/config/serial-patterns', CompletionController.getSerialPatterns);
+router.put('/config/serial-patterns', CompletionController.setSerialPatterns);
 
 // ============================================
 // User Management Routes
