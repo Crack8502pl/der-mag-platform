@@ -84,8 +84,18 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
 
       // Update role if changed
       const originalRoleId = user.roleId ?? user.role?.id;
-      if (originalRoleId !== undefined && Number(formData.roleId) !== originalRoleId) {
-        await api.put(`/users/${user.id}/role`, { roleId: Number(formData.roleId) });
+      const newRoleId = Number(formData.roleId);
+
+      console.log('🔍 Role change check:', {
+        originalRoleId,
+        newRoleId,
+        willUpdate: newRoleId > 0 && newRoleId !== originalRoleId
+      });
+
+      if (newRoleId > 0 && newRoleId !== originalRoleId) {
+        console.log('📤 Sending role update request for user', user.id);
+        const roleResponse = await api.put(`/users/${user.id}/role`, { roleId: newRoleId });
+        console.log('📥 Role update response:', roleResponse.data);
       }
 
       onSuccess();
