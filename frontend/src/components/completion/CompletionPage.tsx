@@ -167,34 +167,35 @@ export const CompletionPage: React.FC = () => {
 
   const handleIssue = async () => {
     if (!selectedOrder) return;
+
+    // First check for shortages in non-serialized items (before confirm!)
+    const missingItems: PartialIssueMissingItem[] = selectedOrder.items
+      .filter(item => !(item.requiresSerialNumber || item.isSerialized))
+      .map(item => {
+        const planned = getPlannedQuantity(item);
+        const issued = localIssuedQty[item.id] ?? item.issuedQuantity ?? item.scannedQuantity ?? 0;
+        return {
+          id: item.id,
+          name: item.materialName || item.bomItem?.templateItem?.name || '—',
+          catalogNumber: item.catalogNumber || item.bomItem?.templateItem?.partNumber || '—',
+          planned,
+          issued,
+          missing: Math.max(0, planned - issued),
+        };
+      })
+      .filter(item => item.missing > 0);
+
+    // If there are shortages - show modal (do NOT show confirm yet)
+    if (missingItems.length > 0) {
+      setPartialIssueModal({ open: true, missingItems });
+      return;
+    }
+
+    // Only if there are NO shortages - show confirm and issue
     if (!window.confirm(`Czy na pewno chcesz wydać materiały dla zlecenia ${selectedOrder.taskNumber || `#${selectedOrder.id}`}?`)) return;
     try {
-      // First save all serial numbers
+      // Save all serial numbers first
       await handleSave();
-
-      // Check for shortages in non-serialized items
-      const missingItems: PartialIssueMissingItem[] = selectedOrder.items
-        .filter(item => !(item.requiresSerialNumber || item.isSerialized))
-        .map(item => {
-          const planned = getPlannedQuantity(item);
-          const issued = localIssuedQty[item.id] ?? item.issuedQuantity ?? item.scannedQuantity ?? 0;
-          return {
-            id: item.id,
-            name: item.materialName || item.bomItem?.templateItem?.name || '—',
-            catalogNumber: item.catalogNumber || item.bomItem?.templateItem?.partNumber || '—',
-            planned,
-            issued,
-            missing: Math.max(0, planned - issued),
-          };
-        })
-        .filter(item => item.missing > 0);
-
-      if (missingItems.length > 0) {
-        // Show partial issue modal
-        setPartialIssueModal({ open: true, missingItems });
-        return;
-      }
-
       await completionService.completeOrder(selectedOrder.id);
       setActionMsg('✅ Materiały wydane');
       await loadOrders();
