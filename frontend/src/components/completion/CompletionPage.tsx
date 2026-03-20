@@ -45,8 +45,13 @@ export const CompletionPage: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [filter, setFilter] = useState<'all' | 'assigned'>('assigned');
 
+  // Tab state for sidebar: active tasks vs completed tasks
+  const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
+
   // Serial numbers tracked locally per item id
   const [localSerials, setLocalSerials] = useState<Record<number, string[]>>({});
+  // Issued quantities tracked locally per item id (non-serialized items)
+  const [localIssuedQty, setLocalIssuedQty] = useState<Record<number, number>>({});
   // Scanner modal state
   const [scannerItem, setScannerItem] = useState<CompletionItem | null>(null);
   const [patternsConfig, setPatternsConfig] = useState<SerialPatternsConfig | undefined>(undefined);
@@ -207,6 +212,14 @@ export const CompletionPage: React.FC = () => {
     return 'stock-ok';
   };
 
+  const getIssuedInputClass = (item: CompletionItem): string => {
+    const issued = localIssuedQty[item.id] ?? item.scannedQuantity ?? 0;
+    const planned = getPlannedQuantity(item);
+    if (issued >= planned && planned > 0) return 'complete';
+    if (issued > 0 && issued < planned) return 'incomplete';
+    return '';
+  };
+
   const handleLocationEdit = (item: CompletionItem) => {
     setEditingLocation(prev => ({ ...prev, [item.id]: item.warehouseLocation ?? '' }));
     setTimeout(() => locationInputRefs.current[item.id]?.focus(), 50);
@@ -290,46 +303,89 @@ export const CompletionPage: React.FC = () => {
                 Wszystkie
               </button>
             </div>
+            <div className="completion-tabs">
+              <button
+                className={`tab-btn${activeTab === 'active' ? ' active' : ''}`}
+                onClick={() => setActiveTab('active')}
+              >
+                Aktywne
+              </button>
+              <button
+                className={`tab-btn${activeTab === 'completed' ? ' active' : ''}`}
+                onClick={() => setActiveTab('completed')}
+              >
+                Zakończone
+              </button>
+            </div>
           </div>
 
           <div className="sidebar-body">
             {loading && <p className="sidebar-loading">Ładowanie...</p>}
             {error && <p className="sidebar-error">{error}</p>}
-            {!loading && !error && orders.length === 0 && (
-              <p className="sidebar-empty">Brak zleceń kompletacji</p>
-            )}
-            {orders.map(order => {
-              const pct = order.progress?.completionPercentage ?? 0;
-              const scanned = order.progress?.scannedItems ?? 0;
-              const total = order.progress?.totalItems ?? 0;
-              const isSelected = selectedOrder?.id === order.id;
+            {(() => {
+              const filteredOrders = orders.filter(order => {
+                if (activeTab === 'active') {
+                  return ['CREATED', 'IN_PROGRESS', 'WAITING_DECISION', 'WAITING_FOR_MATERIALS'].includes(order.status);
+                } else {
+                  return ['COMPLETED', 'CANCELLED'].includes(order.status);
+                }
+              });
               return (
-                <button
-                  key={order.id}
-                  className={`sidebar-task-card${isSelected ? ' selected' : ''}`}
-                  onClick={() => selectOrder(order)}
-                >
-                  <div className="task-card-header">
-                    <span className="task-card-number">{order.taskNumber || `#${order.id}`}</span>
-                    <span className="task-card-status-icon">{getStatusIcon(order.status)}</span>
-                  </div>
-                  {order.subsystem?.name && (
-                    <div className="task-card-name">{order.subsystem.name}</div>
+                <>
+                  {!loading && !error && filteredOrders.length === 0 && (
+                    <p className="sidebar-empty">Brak zleceń kompletacji</p>
                   )}
-                  <div className="task-card-progress">
-                    <div className="task-progress-bar">
-                      <div className="task-progress-fill" style={{ width: `${pct}%` }} />
-                    </div>
-                    <span className="task-progress-label">{scanned}/{total}</span>
-                  </div>
-                  <div className="task-card-meta">
-                    <span className={`task-status-badge status-${order.status.toLowerCase()}`}>
-                      {getStatusLabel(order.status)}
-                    </span>
-                  </div>
-                </button>
+                  {filteredOrders.map(order => {
+                    const pct = order.progress?.completionPercentage ?? 0;
+                    const scanned = order.progress?.scannedItems ?? 0;
+                    const total = order.progress?.totalItems ?? 0;
+                    const isSelected = selectedOrder?.id === order.id;
+                    return (
+                      <button
+                        key={order.id}
+                        className={`sidebar-task-card${isSelected ? ' selected' : ''}`}
+                        onClick={() => selectOrder(order)}
+                      >
+                        <div className="task-card-header">
+                          <span className="task-card-number">{order.taskNumber || `#${order.id}`}</span>
+                          <span className="task-card-status-icon">{getStatusIcon(order.status)}</span>
+                        </div>
+                        {order.subsystem?.name && (
+                          <div className="task-card-name">{order.subsystem.name}</div>
+                        )}
+                        <div className="task-card-progress">
+                          <div className="task-progress-bar">
+                            <div className="task-progress-fill" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="task-progress-label">{scanned}/{total}</span>
+                        </div>
+                        <div className="task-card-meta">
+                          <span className={`task-status-badge status-${order.status.toLowerCase()}`}>
+                            {getStatusLabel(order.status)}
+                          </span>
+                        </div>
+                        {order.status === 'COMPLETED' && order.completedAt && (
+                          <div className="order-completed-info">
+                            <span className="completed-by">
+                              ✓ {order.assignedTo?.firstName} {order.assignedTo?.lastName}
+                            </span>
+                            <span className="completed-at">
+                              {new Date(order.completedAt).toLocaleDateString('pl-PL', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </>
               );
-            })}
+            })()}
           </div>
         </aside>
 
@@ -387,6 +443,7 @@ export const CompletionPage: React.FC = () => {
                       <th>Nr katalogowy</th>
                       <th>Ilość z BOM</th>
                       <th>Na stanie</th>
+                      <th>Ilość wydana</th>
                       <th>Lokalizacja</th>
                       <th>Seryjne</th>
                     </tr>
@@ -417,6 +474,24 @@ export const CompletionPage: React.FC = () => {
                                 {item.stockQuantity === 0 ? ' ❌' : item.stockQuantity < planned ? ' ⚠️' : ' ✓'}
                               </>
                             ) : '—'}
+                          </td>
+                          <td className="bom-qty-issued">
+                            {!item.isSerialized && !item.requiresSerialNumber ? (
+                              <input
+                                type="number"
+                                className={`issued-quantity-input ${getIssuedInputClass(item)}`}
+                                value={localIssuedQty[item.id] ?? item.scannedQuantity ?? 0}
+                                min={0}
+                                max={planned}
+                                onChange={(e) => {
+                                  const val = Math.max(0, Math.min(parseInt(e.target.value) || 0, planned));
+                                  setLocalIssuedQty(prev => ({ ...prev, [item.id]: val }));
+                                }}
+                                disabled={selectedOrder.status === 'COMPLETED' || selectedOrder.status === 'CANCELLED'}
+                              />
+                            ) : (
+                              <span className="bom-no-serial">—</span>
+                            )}
                           </td>
                           <td className="bom-location">
                             {item.id in editingLocation ? (

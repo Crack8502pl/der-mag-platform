@@ -421,7 +421,8 @@
 }
 
 .bom-qty-bom,
-.bom-qty-stock {
+.bom-qty-stock,
+.bom-qty-issued {
   text-align: center;
   font-weight: 600;
   white-space: nowrap;
@@ -508,6 +509,105 @@
 .bom-no-serial {
   color: var(--text-secondary);
   font-size: 0.85rem;
+}
+
+/* ============================================================
+   ISSUED QUANTITY INPUT
+   ============================================================ */
+.issued-quantity-input {
+  width: 60px;
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  text-align: center;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.issued-quantity-input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.issued-quantity-input.incomplete {
+  background-color: rgba(244, 67, 54, 0.12);
+  border-color: #f44336;
+}
+
+.issued-quantity-input.complete {
+  background-color: rgba(76, 175, 80, 0.12);
+  border-color: #4caf50;
+}
+
+.issued-quantity-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   COMPLETION TABS
+   ============================================================ */
+.completion-tabs {
+  display: flex;
+  gap: 0;
+  margin-top: var(--spacing-sm);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  position: relative;
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.tab-btn.active {
+  color: var(--primary-color);
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--primary-color);
+}
+
+/* ============================================================
+   COMPLETED ORDER INFO
+   ============================================================ */
+.order-completed-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  margin-top: var(--spacing-xs);
+  padding-top: var(--spacing-xs);
+  border-top: 1px dashed var(--border-color);
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.completed-by {
+  color: var(--success);
+}
+
+.completed-at {
+  color: var(--text-secondary);
 }
 
 /* ============================================================
