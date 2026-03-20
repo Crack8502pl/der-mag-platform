@@ -252,8 +252,8 @@ export const CompletionPage: React.FC = () => {
           <BackButton />
           <div className="completion-header-title">
             <span className="completion-header-icon">
-                <ModuleIcon name="completion" emoji="📦" size={24} alt="Kompletacja" />
-              </span>
+              <ModuleIcon name="completion" emoji="📦" size={24} alt="Kompletacja" />
+            </span>
             <h1>KOMPLETACJA</h1>
           </div>
         </div>
