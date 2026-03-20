@@ -80,6 +80,16 @@ export const AppDataSource = new DataSource({
   synchronize: process.env.NODE_ENV === 'development', // Tylko w dev!
   logging: process.env.NODE_ENV === 'development',
   logger: process.env.NODE_ENV === 'development' ? new TypeOrmLogger() : undefined,
+  // Konfiguracja puli połączeń - rozwiązuje problem concurrent queries
+  poolSize: 10, // Maksymalna liczba połączeń w puli
+  extra: {
+    // Konfiguracja pg pool
+    max: 10,                        // Maksymalna liczba klientów w puli
+    min: 2,                         // Minimalna liczba klientów
+    idleTimeoutMillis: 30000,       // Czas bezczynności przed zamknięciem (30s)
+    connectionTimeoutMillis: 5000,  // Timeout połączenia (5s)
+    allowExitOnIdle: true,          // Pozwól na zakończenie procesu gdy pula jest bezczynna
+  },
   entities: [
     User,
     Role,
@@ -162,6 +172,7 @@ export const initializeDatabase = async (): Promise<void> => {
   try {
     await AppDataSource.initialize();
     console.log('✅ Połączono z bazą danych PostgreSQL');
+    console.log(`📊 Pool size: ${AppDataSource.options.poolSize || 'default'}`);
   } catch (error) {
     console.error('❌ Błąd połączenia z bazą danych:', error);
     throw error;
