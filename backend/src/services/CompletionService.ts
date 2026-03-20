@@ -817,14 +817,34 @@ export class CompletionService {
 
   /**
    * Przelicza rezerwacje dla wszystkich materiałów powiązanych z danym zleceniem.
+   * Jeśli pozycje nie mają jeszcze ustawionego warehouseStockId, dopasowuje je do magazynu
+   * po numerze katalogowym lub nazwie materiału i zapisuje powiązanie do bazy.
    */
   async recalculateAllReservationsForOrder(orderId: number): Promise<void> {
     const completionItemRepo = AppDataSource.getRepository(CompletionItem);
 
     const items = await completionItemRepo.find({
       where: { completionOrderId: orderId },
-      relations: ['completionOrder']
+      relations: ['completionOrder', 'taskMaterial', 'taskMaterial.bomTemplate', 'bomItem']
     });
+
+    // Link items without warehouseStockId to their warehouse stocks and persist
+    const needsLink = items.filter(i => !i.warehouseStockId);
+    if (needsLink.length > 0) {
+      const enriched = await this.enrichItemsWithWarehouseData(needsLink);
+      const toSave = enriched.filter(i => i.warehouseStockId != null);
+      if (toSave.length > 0) {
+        await Promise.all(
+          toSave.map(i => completionItemRepo.update(i.id, { warehouseStockId: i.warehouseStockId }))
+        );
+        // Update local references so stockIds collection below picks them up
+        const itemsById = new Map(items.map(i => [i.id, i]));
+        for (const ei of toSave) {
+          const orig = itemsById.get(ei.id);
+          if (orig) orig.warehouseStockId = ei.warehouseStockId;
+        }
+      }
+    }
 
     // Collect unique warehouseStockIds
     const stockIds = new Set<number>();

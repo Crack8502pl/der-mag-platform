@@ -707,5 +707,26 @@ describe('CompletionService', () => {
 
       expect(recalcSpy).not.toHaveBeenCalled();
     });
+
+    it('should persist warehouseStockId for unlinked items and recalculate', async () => {
+      const items = [
+        createMockCompletionItem({ id: 1, warehouseStockId: null }),
+      ];
+      mockItemRepo.find.mockResolvedValue(items);
+      mockItemRepo.update = jest.fn().mockResolvedValue({ affected: 1 });
+
+      // Mock enrichItemsWithWarehouseData to simulate a warehouse stock match
+      const enrichSpy = jest.spyOn(service, 'enrichItemsWithWarehouseData').mockResolvedValue([
+        { ...items[0], warehouseStockId: 42 } as any,
+      ]);
+
+      const recalcSpy = jest.spyOn(service, 'recalculateReservations').mockResolvedValue(undefined);
+
+      await service.recalculateAllReservationsForOrder(1);
+
+      expect(enrichSpy).toHaveBeenCalledWith(items);
+      expect(mockItemRepo.update).toHaveBeenCalledWith(1, { warehouseStockId: 42 });
+      expect(recalcSpy).toHaveBeenCalledWith(42);
+    });
   });
 });
