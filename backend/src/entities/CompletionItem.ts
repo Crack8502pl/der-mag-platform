@@ -70,6 +70,9 @@ export class CompletionItem {
   @Column({ name: 'scanned_quantity', type: 'int', default: 0 })
   scannedQuantity: number;
 
+  @Column({ name: 'issued_quantity', type: 'int', default: 0 })
+  issuedQuantity: number;
+
   @Column({ name: 'scanned_by', type: 'int', nullable: true })
   scannedBy: number; // user id
 

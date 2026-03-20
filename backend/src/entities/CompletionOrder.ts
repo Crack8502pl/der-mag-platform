@@ -1,7 +1,7 @@
 // src/entities/CompletionOrder.ts
 // Encja zlecenia kompletacji
 
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, OneToMany, UpdateDateColumn } from 'typeorm';
 import { Subsystem } from './Subsystem';
 import { WorkflowGeneratedBom } from './WorkflowGeneratedBom';
 import { User } from './User';
@@ -13,6 +13,8 @@ export enum CompletionOrderStatus {
   IN_PROGRESS = 'IN_PROGRESS',
   WAITING_FOR_MATERIALS = 'WAITING_FOR_MATERIALS',
   WAITING_DECISION = 'WAITING_DECISION',
+  PARTIAL_PENDING_APPROVAL = 'PARTIAL_PENDING_APPROVAL',
+  PARTIAL_ISSUED = 'PARTIAL_ISSUED',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED'
 }
@@ -81,4 +83,11 @@ export class CompletionOrder {
 
   @Column({ name: 'completed_at', type: 'timestamp', nullable: true })
   completedAt: Date;
+
+  @Column({ name: 'completed_by_id', type: 'int', nullable: true })
+  completedById: number | null;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'completed_by_id' })
+  completedBy: User | null;
 }

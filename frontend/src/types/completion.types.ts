@@ -5,6 +5,8 @@ export const CompletionOrderStatus = {
   CREATED: 'CREATED',
   IN_PROGRESS: 'IN_PROGRESS',
   WAITING_DECISION: 'WAITING_DECISION',
+  PARTIAL_PENDING_APPROVAL: 'PARTIAL_PENDING_APPROVAL',
+  PARTIAL_ISSUED: 'PARTIAL_ISSUED',
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED'
 } as const;
@@ -51,6 +53,7 @@ export interface CompletionItem {
   serialNumber?: string;
   palletId?: number;
   scannedQuantity: number;
+  issuedQuantity?: number;
   expectedQuantity?: number;
   scannedBy?: number;
   scannedAt?: string;
@@ -90,6 +93,7 @@ export interface CompletionOrder {
   generatedBomId: number;
   taskNumber?: string | null;
   assignedToId: number;
+  completedById?: number | null;
   status: CompletionOrderStatus;
   decision?: CompletionDecision;
   decisionNotes?: string;
@@ -110,6 +114,12 @@ export interface CompletionOrder {
     firstName: string;
     lastName: string;
   };
+  completedBy?: {
+    id: number;
+    username: string;
+    firstName: string;
+    lastName: string;
+  } | null;
 }
 
 export interface ScanItemRequest {

@@ -8,6 +8,7 @@ import { ModuleIcon } from '../common/ModuleIcon';
 import completionService from '../../services/completion.service';
 import type { CompletionOrder, CompletionItem, SerialPatternsConfig } from '../../types/completion.types';
 import { SerialScannerModal } from './SerialScannerModal';
+import { PartialIssueModal, type PartialIssueMissingItem } from './PartialIssueModal';
 import './CompletionPage.css';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -17,6 +18,8 @@ const getStatusIcon = (status: string) => {
     case 'COMPLETED': return '✅';
     case 'IN_PROGRESS': return '⏳';
     case 'CANCELLED': return '❌';
+    case 'PARTIAL_PENDING_APPROVAL': return '⚠️';
+    case 'PARTIAL_ISSUED': return '🔶';
     default: return '○';
   }
 };
@@ -26,6 +29,8 @@ const getStatusLabel = (status: string) => {
     case 'CREATED': return 'Utworzone';
     case 'IN_PROGRESS': return 'W trakcie';
     case 'WAITING_DECISION': return 'Oczekuje decyzji';
+    case 'PARTIAL_PENDING_APPROVAL': return 'Oczekuje akceptacji';
+    case 'PARTIAL_ISSUED': return 'Wydane częściowo';
     case 'COMPLETED': return 'Zakończone';
     case 'CANCELLED': return 'Anulowane';
     default: return status;
@@ -61,6 +66,8 @@ export const CompletionPage: React.FC = () => {
   // Inline location edit state: itemId -> current edit value
   const [editingLocation, setEditingLocation] = useState<Record<number, string>>({});
   const locationInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  // Partial issue modal state
+  const [partialIssueModal, setPartialIssueModal] = useState<{ open: boolean; missingItems: PartialIssueMissingItem[] }>({ open: false, missingItems: [] });
 
   const canScan = hasPermission('completion', 'scan');
   const canComplete = hasPermission('completion', 'complete');
@@ -104,13 +111,18 @@ export const CompletionPage: React.FC = () => {
       const response = await completionService.getOrder(order.id);
       setSelectedOrder(response.data);
       // Initialize localSerials from the enriched items
-      const initial: Record<number, string[]> = {};
+      const initialSerials: Record<number, string[]> = {};
+      const initialIssuedQty: Record<number, number> = {};
       for (const item of response.data.items) {
         if (item.serialNumbers?.length) {
-          initial[item.id] = item.serialNumbers;
+          initialSerials[item.id] = item.serialNumbers;
+        }
+        if (item.issuedQuantity != null) {
+          initialIssuedQty[item.id] = item.issuedQuantity;
         }
       }
-      setLocalSerials(initial);
+      setLocalSerials(initialSerials);
+      setLocalIssuedQty(initialIssuedQty);
       if (isMobile()) setSidebarOpen(false);
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
@@ -159,6 +171,30 @@ export const CompletionPage: React.FC = () => {
     try {
       // First save all serial numbers
       await handleSave();
+
+      // Check for shortages in non-serialized items
+      const missingItems: PartialIssueMissingItem[] = selectedOrder.items
+        .filter(item => !(item.requiresSerialNumber || item.isSerialized))
+        .map(item => {
+          const planned = getPlannedQuantity(item);
+          const issued = localIssuedQty[item.id] ?? item.issuedQuantity ?? item.scannedQuantity ?? 0;
+          return {
+            id: item.id,
+            name: item.materialName || item.bomItem?.templateItem?.name || '—',
+            catalogNumber: item.catalogNumber || item.bomItem?.templateItem?.partNumber || '—',
+            planned,
+            issued,
+            missing: Math.max(0, planned - issued),
+          };
+        })
+        .filter(item => item.missing > 0);
+
+      if (missingItems.length > 0) {
+        // Show partial issue modal
+        setPartialIssueModal({ open: true, missingItems });
+        return;
+      }
+
       await completionService.completeOrder(selectedOrder.id);
       setActionMsg('✅ Materiały wydane');
       await loadOrders();
@@ -167,6 +203,51 @@ export const CompletionPage: React.FC = () => {
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
       setActionMsg('❌ ' + (e.response?.data?.message || 'Błąd wydawania materiałów'));
+    }
+  };
+
+  const handleRequestPartial = async (notes?: string) => {
+    if (!selectedOrder) return;
+    setPartialIssueModal({ open: false, missingItems: [] });
+    try {
+      await completionService.requestPartialIssue(selectedOrder.id, localIssuedQty, notes);
+      setActionMsg('⚠️ Proszę czekać na zgodę kierownika');
+      await loadOrders();
+      const refreshed = await completionService.getOrder(selectedOrder.id);
+      setSelectedOrder(refreshed.data);
+    } catch (err) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setActionMsg('❌ ' + (e.response?.data?.message || 'Błąd zgłoszenia częściowego wydania'));
+    }
+  };
+
+  const handleApprovePartial = async () => {
+    if (!selectedOrder) return;
+    if (!window.confirm(`Czy na pewno chcesz zatwierdzić częściowe wydanie dla zlecenia ${selectedOrder.taskNumber || `#${selectedOrder.id}`}?`)) return;
+    try {
+      await completionService.approvePartialIssue(selectedOrder.id);
+      setActionMsg('✅ Częściowe wydanie zatwierdzone');
+      await loadOrders();
+      const refreshed = await completionService.getOrder(selectedOrder.id);
+      setSelectedOrder(refreshed.data);
+    } catch (err) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setActionMsg('❌ ' + (e.response?.data?.message || 'Błąd zatwierdzania'));
+    }
+  };
+
+  const handleReopenOrder = async () => {
+    if (!selectedOrder) return;
+    if (!window.confirm(`Czy na pewno chcesz ponownie otworzyć zlecenie ${selectedOrder.taskNumber || `#${selectedOrder.id}`} do dokończenia?`)) return;
+    try {
+      await completionService.reopenOrder(selectedOrder.id);
+      setActionMsg('🔄 Zlecenie ponownie otwarte');
+      await loadOrders();
+      const refreshed = await completionService.getOrder(selectedOrder.id);
+      setSelectedOrder(refreshed.data);
+    } catch (err) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setActionMsg('❌ ' + (e.response?.data?.message || 'Błąd ponownego otwierania'));
     }
   };
 
@@ -325,9 +406,9 @@ export const CompletionPage: React.FC = () => {
             {(() => {
               const filteredOrders = orders.filter(order => {
                 if (activeTab === 'active') {
-                  return ['CREATED', 'IN_PROGRESS', 'WAITING_DECISION', 'WAITING_FOR_MATERIALS'].includes(order.status);
+                  return ['CREATED', 'IN_PROGRESS', 'WAITING_DECISION', 'WAITING_FOR_MATERIALS', 'PARTIAL_PENDING_APPROVAL'].includes(order.status);
                 } else {
-                  return ['COMPLETED', 'CANCELLED'].includes(order.status);
+                  return ['COMPLETED', 'CANCELLED', 'PARTIAL_ISSUED'].includes(order.status);
                 }
               });
               return (
@@ -364,10 +445,10 @@ export const CompletionPage: React.FC = () => {
                             {getStatusLabel(order.status)}
                           </span>
                         </div>
-                        {order.status === 'COMPLETED' && order.completedAt && (
+                        {(order.status === 'COMPLETED' || order.status === 'PARTIAL_ISSUED') && order.completedAt && (
                           <div className="order-completed-info">
                             <span className="completed-by">
-                              ✓ {order.assignedTo?.firstName} {order.assignedTo?.lastName}
+                              ✓ {order.completedBy ? `${order.completedBy.firstName} ${order.completedBy.lastName}` : `${order.assignedTo?.firstName} ${order.assignedTo?.lastName}`}
                             </span>
                             <span className="completed-at">
                               {new Date(order.completedAt).toLocaleDateString('pl-PL', {
@@ -560,7 +641,7 @@ export const CompletionPage: React.FC = () => {
                 <button
                   className="btn btn-primary action-btn"
                   onClick={handleIssue}
-                  disabled={selectedOrder.status === 'COMPLETED' || selectedOrder.status === 'CANCELLED' || !canComplete}
+                  disabled={selectedOrder.status === 'COMPLETED' || selectedOrder.status === 'CANCELLED' || selectedOrder.status === 'PARTIAL_PENDING_APPROVAL' || selectedOrder.status === 'PARTIAL_ISSUED' || !canComplete}
                   title="Wydaj materiały"
                 >
                   ✅ Wydaj
@@ -568,15 +649,33 @@ export const CompletionPage: React.FC = () => {
                 <button
                   className="btn btn-secondary action-btn"
                   onClick={handleSave}
-                  disabled={saveState === 'saving' || selectedOrder.status === 'COMPLETED' || selectedOrder.status === 'CANCELLED'}
+                  disabled={saveState === 'saving' || selectedOrder.status === 'COMPLETED' || selectedOrder.status === 'CANCELLED' || selectedOrder.status === 'PARTIAL_PENDING_APPROVAL' || selectedOrder.status === 'PARTIAL_ISSUED'}
                   title="Zapisz postęp"
                 >
                   {saveState === 'saving' ? '⏳ Zapisuje...' : '💾 Zapisz'}
                 </button>
+                {selectedOrder.status === 'PARTIAL_PENDING_APPROVAL' && canComplete && (
+                  <button
+                    className="btn btn-warning action-btn"
+                    onClick={handleApprovePartial}
+                    title="Zatwierdź częściowe wydanie (kierownik)"
+                  >
+                    ⚠️ Akceptuj wydanie częściowe
+                  </button>
+                )}
+                {selectedOrder.status === 'PARTIAL_ISSUED' && (
+                  <button
+                    className="btn btn-secondary action-btn"
+                    onClick={handleReopenOrder}
+                    title="Ponownie otwórz do dokończenia kompletacji"
+                  >
+                    🔄 Ponownie otwórz
+                  </button>
+                )}
                 <button
                   className="btn action-btn action-btn-cancel"
                   onClick={handleCancel}
-                  disabled={selectedOrder.status === 'COMPLETED' || selectedOrder.status === 'CANCELLED'}
+                  disabled={selectedOrder.status === 'COMPLETED' || selectedOrder.status === 'CANCELLED' || selectedOrder.status === 'PARTIAL_ISSUED'}
                   title="Anuluj zlecenie"
                 >
                   ❌ Anuluj
@@ -598,6 +697,17 @@ export const CompletionPage: React.FC = () => {
           patternsConfig={patternsConfig}
           onSave={(serials) => handleSaveSerials(scannerItem.id, serials)}
           onClose={() => setScannerItem(null)}
+        />
+      )}
+
+      {/* Partial Issue Modal */}
+      {selectedOrder && partialIssueModal.open && (
+        <PartialIssueModal
+          isOpen={partialIssueModal.open}
+          order={selectedOrder}
+          missingItems={partialIssueModal.missingItems}
+          onCancel={() => setPartialIssueModal({ open: false, missingItems: [] })}
+          onRequestPartial={handleRequestPartial}
         />
       )}
     </div>
