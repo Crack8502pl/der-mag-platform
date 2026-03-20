@@ -81,6 +81,20 @@ router.post(
   CompletionController.completeOrder
 );
 
+// Cancel order
+router.patch(
+  '/orders/:id/cancel',
+  requirePermission('completion', 'read'),
+  CompletionController.cancelOrder
+);
+
+// Save serial numbers for a completion item
+router.patch(
+  '/orders/:id/items/:itemId/serials',
+  requirePermission('completion', 'scan'),
+  CompletionController.saveItemSerials
+);
+
 // Create prefabrication task after completion
 router.post(
   '/orders/:id/create-prefab',

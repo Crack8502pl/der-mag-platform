@@ -9,9 +9,16 @@ import { WorkflowGeneratedBomItem } from '../entities/WorkflowGeneratedBomItem';
 import { Pallet } from '../entities/Pallet';
 import { Task } from '../entities/Task';
 import { TaskMaterial } from '../entities/TaskMaterial';
+import { MaterialStock } from '../entities/MaterialStock';
+import { SystemConfig } from '../entities/SystemConfig';
 import CompletionService from '../services/CompletionService';
 import NotificationService from '../services/NotificationService';
 import { serverLogger } from '../utils/logger';
+
+/** Resolve the planned/expected quantity for a completion item from multiple possible sources */
+function resolvePlannedQty(item: CompletionItem): number {
+  return Number(item.taskMaterial?.plannedQuantity ?? item.bomItem?.quantity ?? item.expectedQuantity ?? 0);
+}
 
 export class CompletionController {
   /**
@@ -96,6 +103,8 @@ export class CompletionController {
         .leftJoinAndSelect('order.items', 'items')
         .leftJoinAndSelect('items.bomItem', 'bomItem')
         .leftJoinAndSelect('bomItem.templateItem', 'templateItem')
+        .leftJoinAndSelect('items.taskMaterial', 'taskMaterial')
+        .leftJoinAndSelect('taskMaterial.bomTemplate', 'bomTemplate')
         .leftJoinAndSelect('items.pallet', 'pallet')
         .where('order.id = :id', { id })
         .getOne();
@@ -108,6 +117,47 @@ export class CompletionController {
         return;
       }
 
+      // Collect part numbers to look up stock data
+      const partNumbers = order.items
+        .map(item => item.taskMaterial?.bomTemplate?.catalogNumber || item.taskMaterial?.bomTemplate?.partNumber || item.bomItem?.partNumber)
+        .filter((pn): pn is string => !!pn);
+
+      const stockMap: Record<string, { quantityAvailable: number; warehouseLocation: string | null }> = {};
+      if (partNumbers.length > 0) {
+        const materialStockRepo = AppDataSource.getRepository(MaterialStock);
+        const stocks = await materialStockRepo.createQueryBuilder('stock')
+          .where('stock.partNumber IN (:...partNumbers)', { partNumbers })
+          .getMany();
+        for (const stock of stocks) {
+          stockMap[stock.partNumber] = {
+            quantityAvailable: Number(stock.quantityAvailable),
+            warehouseLocation: stock.warehouseLocation || null
+          };
+        }
+      }
+
+      // Enrich items with resolved fields for the BOM table
+      const enrichedItems = order.items.map((item, index) => {
+        const catalogNumber =
+          item.taskMaterial?.bomTemplate?.catalogNumber ||
+          item.taskMaterial?.bomTemplate?.partNumber ||
+          item.bomItem?.partNumber ||
+          null;
+        const stock = catalogNumber ? stockMap[catalogNumber] : null;
+        return {
+          ...item,
+          lp: index + 1,
+          materialName: item.taskMaterial?.materialName || item.bomItem?.itemName || '',
+          catalogNumber,
+          plannedQuantity: resolvePlannedQty(item),
+          stockQuantity: stock?.quantityAvailable ?? null,
+          warehouseLocation: stock?.warehouseLocation ?? null,
+          requiresSerialNumber: !!(item.taskMaterial?.requiresSerialNumber || item.taskMaterial?.bomTemplate?.isSerialized || item.bomItem?.templateItem?.requiresSerialNumber),
+          isSerialized: !!(item.taskMaterial?.requiresSerialNumber || item.taskMaterial?.bomTemplate?.isSerialized || item.bomItem?.templateItem?.requiresSerialNumber),
+          serialNumbers: Array.isArray(item.taskMaterial?.serialNumbers) ? item.taskMaterial?.serialNumbers ?? [] : []
+        };
+      });
+
       // Calculate progress
       const totalItems = order.items.length;
       const scannedItems = order.items.filter(item => item.status === CompletionItemStatus.SCANNED).length;
@@ -118,6 +168,7 @@ export class CompletionController {
         success: true,
         data: {
           ...order,
+          items: enrichedItems,
           progress: {
             totalItems,
             scannedItems,
@@ -688,6 +739,172 @@ export class CompletionController {
         success: false,
         message: error instanceof Error ? error.message : 'Błąd tworzenia zadania prefabrykacji'
       });
+    }
+  }
+
+  /**
+   * PATCH /api/completion/orders/:id/cancel
+   * Cancel a completion order
+   */
+  static async cancelOrder(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const completionOrderRepo = AppDataSource.getRepository(CompletionOrder);
+
+      const order = await completionOrderRepo.findOne({
+        where: { id: parseInt(id) }
+      });
+
+      if (!order) {
+        res.status(404).json({ success: false, message: 'Zlecenie kompletacji nie znalezione' });
+        return;
+      }
+
+      if (order.status === CompletionOrderStatus.COMPLETED) {
+        res.status(400).json({ success: false, message: 'Nie można anulować zakończonego zlecenia' });
+        return;
+      }
+
+      order.status = CompletionOrderStatus.CANCELLED;
+      await completionOrderRepo.save(order);
+
+      res.json({ success: true, message: 'Zlecenie anulowane', data: order });
+    } catch (error) {
+      serverLogger.error(`Error cancelling order: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ success: false, message: 'Błąd serwera podczas anulowania zlecenia' });
+    }
+  }
+
+  /**
+   * PATCH /api/completion/orders/:id/items/:itemId/serials
+   * Save serial numbers for a completion item
+   */
+  static async saveItemSerials(req: Request, res: Response): Promise<void> {
+    try {
+      const { id, itemId } = req.params;
+      const { serialNumbers } = req.body;
+      const userId = req.userId;
+
+      if (!Array.isArray(serialNumbers)) {
+        res.status(400).json({ success: false, message: 'serialNumbers musi być tablicą' });
+        return;
+      }
+
+      const completionItemRepo = AppDataSource.getRepository(CompletionItem);
+      const taskMaterialRepo = AppDataSource.getRepository(TaskMaterial);
+
+      const item = await completionItemRepo.findOne({
+        where: { id: parseInt(itemId), completionOrderId: parseInt(id) },
+        relations: ['taskMaterial', 'bomItem']
+      });
+
+      if (!item) {
+        res.status(404).json({ success: false, message: 'Pozycja kompletacji nie znaleziona' });
+        return;
+      }
+
+      const expectedQty = resolvePlannedQty(item);
+      const uniqueSerials = [...new Set(serialNumbers.map((s: string) => s.trim()).filter(Boolean))];
+
+      // Update taskMaterial serialNumbers if exists
+      if (item.taskMaterial) {
+        item.taskMaterial.serialNumbers = uniqueSerials;
+        item.taskMaterial.usedQuantity = uniqueSerials.length;
+        await taskMaterialRepo.save(item.taskMaterial);
+      }
+
+      // Update the completion item
+      item.scannedQuantity = uniqueSerials.length;
+      item.scannedBy = userId!;
+      item.scannedAt = new Date();
+
+      if (uniqueSerials.length >= expectedQty && expectedQty > 0) {
+        item.status = CompletionItemStatus.SCANNED;
+      } else if (uniqueSerials.length > 0) {
+        item.status = CompletionItemStatus.PARTIAL;
+      } else {
+        item.status = CompletionItemStatus.PENDING;
+      }
+
+      if (uniqueSerials.length > 0) {
+        item.serialNumber = uniqueSerials[0];
+      }
+
+      await completionItemRepo.save(item);
+
+      res.json({
+        success: true,
+        message: 'Numery seryjne zapisane',
+        data: { itemId: item.id, serialNumbers: uniqueSerials, scannedQuantity: uniqueSerials.length }
+      });
+    } catch (error) {
+      serverLogger.error(`Error saving item serials: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ success: false, message: 'Błąd serwera podczas zapisywania numerów seryjnych' });
+    }
+  }
+
+  /**
+   * GET /api/admin/config/serial-patterns
+   * Get serial number validation patterns (admin only)
+   */
+  static async getSerialPatterns(req: Request, res: Response): Promise<void> {
+    try {
+      const systemConfigRepo = AppDataSource.getRepository(SystemConfig);
+      const config = await systemConfigRepo.findOne({ where: { key: 'serial_number_patterns' } });
+
+      let patterns = { patterns: [], stripPrefixes: [] };
+      if (config) {
+        try {
+          patterns = JSON.parse(config.value);
+        } catch {
+          serverLogger.error('Invalid serial patterns configuration in database – using defaults');
+        }
+      }
+
+      res.json({ success: true, data: patterns });
+    } catch (error) {
+      serverLogger.error(`Error getting serial patterns: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ success: false, message: 'Błąd pobierania wzorców numerów seryjnych' });
+    }
+  }
+
+  /**
+   * PUT /api/admin/config/serial-patterns
+   * Update serial number validation patterns (admin only)
+   */
+  static async setSerialPatterns(req: Request, res: Response): Promise<void> {
+    try {
+      const { patterns, stripPrefixes } = req.body;
+      const userId = req.userId;
+
+      if (!Array.isArray(patterns) || !Array.isArray(stripPrefixes)) {
+        res.status(400).json({ success: false, message: 'patterns i stripPrefixes muszą być tablicami' });
+        return;
+      }
+
+      const systemConfigRepo = AppDataSource.getRepository(SystemConfig);
+      let config = await systemConfigRepo.findOne({ where: { key: 'serial_number_patterns' } });
+
+      const value = JSON.stringify({ patterns, stripPrefixes });
+
+      if (config) {
+        config.value = value;
+        config.updatedById = userId!;
+      } else {
+        config = systemConfigRepo.create({
+          key: 'serial_number_patterns',
+          value,
+          category: 'completion',
+          updatedById: userId
+        });
+      }
+
+      await systemConfigRepo.save(config);
+
+      res.json({ success: true, message: 'Wzorce numerów seryjnych zapisane', data: { patterns, stripPrefixes } });
+    } catch (error) {
+      serverLogger.error(`Error setting serial patterns: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ success: false, message: 'Błąd zapisywania wzorców numerów seryjnych' });
     }
   }
 }

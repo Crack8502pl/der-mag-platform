@@ -51,9 +51,20 @@ export interface CompletionItem {
   serialNumber?: string;
   palletId?: number;
   scannedQuantity: number;
+  expectedQuantity?: number;
   scannedBy?: number;
   scannedAt?: string;
   notes?: string;
+  // Enriched fields returned by the new getOrder endpoint
+  lp?: number;
+  materialName?: string;
+  catalogNumber?: string | null;
+  plannedQuantity?: number;
+  stockQuantity?: number | null;
+  warehouseLocation?: string | null;
+  requiresSerialNumber?: boolean;
+  isSerialized?: boolean;
+  serialNumbers?: string[];
 }
 
 export interface Pallet {
@@ -136,4 +147,22 @@ export interface ScanResult {
   timestamp: Date;
   success: boolean;
   itemName?: string;
+}
+
+export interface SerialPattern {
+  id: string;
+  name: string;
+  pattern: string;
+  description?: string;
+}
+
+export interface StripPrefix {
+  id: string;
+  prefix: string;
+  description?: string;
+}
+
+export interface SerialPatternsConfig {
+  patterns: SerialPattern[];
+  stripPrefixes: StripPrefix[];
 }

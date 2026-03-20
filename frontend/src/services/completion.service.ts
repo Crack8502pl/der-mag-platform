@@ -8,7 +8,8 @@ import type {
   ScanItemResponse,
   ReportMissingRequest,
   AssignPalletRequest,
-  MakeDecisionRequest
+  MakeDecisionRequest,
+  SerialPatternsConfig
 } from '../types/completion.types';
 
 class CompletionService {
@@ -87,6 +88,48 @@ class CompletionService {
   async completeOrder(orderId: number) {
     const response = await api.post<{ success: boolean; message: string }>(
       `/completion/orders/${orderId}/complete`
+    );
+    return response.data;
+  }
+
+  /**
+   * Cancel the order
+   */
+  async cancelOrder(orderId: number) {
+    const response = await api.patch<{ success: boolean; message: string }>(
+      `/completion/orders/${orderId}/cancel`
+    );
+    return response.data;
+  }
+
+  /**
+   * Save serial numbers for a completion item
+   */
+  async saveItemSerials(orderId: number, itemId: number, serialNumbers: string[]) {
+    const response = await api.patch<{ success: boolean; message: string; data: { itemId: number; serialNumbers: string[]; scannedQuantity: number } }>(
+      `/completion/orders/${orderId}/items/${itemId}/serials`,
+      { serialNumbers }
+    );
+    return response.data;
+  }
+
+  /**
+   * Get serial number validation patterns (admin)
+   */
+  async getSerialPatterns() {
+    const response = await api.get<{ success: boolean; data: SerialPatternsConfig }>(
+      `/admin/config/serial-patterns`
+    );
+    return response.data;
+  }
+
+  /**
+   * Update serial number validation patterns (admin)
+   */
+  async setSerialPatterns(config: SerialPatternsConfig) {
+    const response = await api.put<{ success: boolean; message: string; data: SerialPatternsConfig }>(
+      `/admin/config/serial-patterns`,
+      config
     );
     return response.data;
   }
