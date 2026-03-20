@@ -55,6 +55,8 @@ export const createMockCompletionItem = (overrides: Partial<CompletionItem> = {}
     scannedBy: null as any,
     scannedAt: null as any,
     notes: null as any,
+    warehouseStock: null,
+    warehouseStockId: null,
     // New fields for completion page redesign
     lp: 1,
     materialName: '',

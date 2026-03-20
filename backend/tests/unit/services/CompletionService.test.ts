@@ -537,4 +537,175 @@ describe('CompletionService', () => {
       expect(result).toBe(prefabTask);
     });
   });
+
+  // -------------------------------------------------------------------------
+  describe('enrichItemsWithWarehouseData', () => {
+    let mockWarehouseStockRepo: any;
+    let mockWarehouseQB: any;
+
+    beforeEach(() => {
+      const { createMockQueryBuilder } = require('../../mocks/database.mock');
+      mockWarehouseQB = createMockQueryBuilder();
+      mockWarehouseQB.getMany.mockResolvedValue([]);
+      mockWarehouseStockRepo = createMockRepository();
+      mockWarehouseStockRepo.createQueryBuilder = jest.fn().mockReturnValue(mockWarehouseQB);
+
+      (AppDataSource.getRepository as jest.Mock).mockImplementation((entity) => {
+        const { WarehouseStock } = require('../../../src/entities/WarehouseStock');
+        if (entity === CompletionOrder) return mockOrderRepo;
+        if (entity === CompletionItem) return mockItemRepo;
+        if (entity === WarehouseStock) return mockWarehouseStockRepo;
+        return createMockRepository();
+      });
+    });
+
+    it('should return items unchanged when no warehouse data found', async () => {
+      const item = createMockCompletionItem({ id: 1, catalogNumber: null });
+      const result = await service.enrichItemsWithWarehouseData([item]);
+      expect(result).toHaveLength(1);
+      expect(result[0].stockQuantity).toBeNull();
+      expect(result[0].warehouseStockId).toBeNull();
+    });
+
+    it('should map warehouse fields when catalogNumber matches', async () => {
+      const warehouseEntry = {
+        id: 10,
+        catalogNumber: 'CAT-001',
+        materialName: 'Czujka dymu',
+        quantityAvailable: 12,
+        warehouseLocation: 'A-01-02',
+        isSerialized: true,
+      };
+      mockWarehouseQB.getMany.mockResolvedValueOnce([warehouseEntry]).mockResolvedValueOnce([]);
+
+      const item = createMockCompletionItem({
+        taskMaterial: { bomTemplate: { catalogNumber: 'CAT-001' } } as any,
+      });
+      const result = await service.enrichItemsWithWarehouseData([item]);
+
+      expect(result[0].warehouseStockId).toBe(10);
+      expect(result[0].stockQuantity).toBe(12);
+      expect(result[0].warehouseLocation).toBe('A-01-02');
+      expect(result[0].isSerialized).toBe(true);
+    });
+
+    it('should fall back to materialName match when catalogNumber not found', async () => {
+      const warehouseEntry = {
+        id: 20,
+        catalogNumber: 'WST-002',
+        materialName: 'Moduł IO',
+        quantityAvailable: 3,
+        warehouseLocation: 'B-02-15',
+        isSerialized: false,
+      };
+      // No catalogNumber on item, so only material name query runs (one getMany call)
+      mockWarehouseQB.getMany.mockResolvedValueOnce([warehouseEntry]);
+
+      const item = createMockCompletionItem({
+        taskMaterial: { materialName: 'Moduł IO', bomTemplate: null } as any,
+      });
+      const result = await service.enrichItemsWithWarehouseData([item]);
+
+      expect(result[0].warehouseStockId).toBe(20);
+      expect(result[0].stockQuantity).toBe(3);
+      expect(result[0].catalogNumber).toBe('WST-002');
+    });
+
+    it('should return empty array unchanged', async () => {
+      const result = await service.enrichItemsWithWarehouseData([]);
+      expect(result).toEqual([]);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  describe('recalculateReservations', () => {
+    let mockWarehouseStockRepo: any;
+    let mockWarehouseQB: any;
+    let mockItemQB: any;
+
+    beforeEach(() => {
+      const { createMockQueryBuilder } = require('../../mocks/database.mock');
+      mockWarehouseQB = createMockQueryBuilder();
+      mockItemQB = createMockQueryBuilder();
+
+      mockWarehouseStockRepo = createMockRepository();
+      mockWarehouseStockRepo.findOne = jest.fn();
+      mockWarehouseStockRepo.save = jest.fn().mockResolvedValue({});
+
+      mockItemRepo.createQueryBuilder = jest.fn().mockReturnValue(mockItemQB);
+      mockItemQB.select = jest.fn().mockReturnThis();
+      mockItemQB.innerJoin = jest.fn().mockReturnThis();
+      mockItemQB.where = jest.fn().mockReturnThis();
+      mockItemQB.andWhere = jest.fn().mockReturnThis();
+      mockItemQB.getRawOne = jest.fn().mockResolvedValue({ total: '7' });
+
+      (AppDataSource.getRepository as jest.Mock).mockImplementation((entity) => {
+        const { WarehouseStock } = require('../../../src/entities/WarehouseStock');
+        if (entity === CompletionOrder) return mockOrderRepo;
+        if (entity === CompletionItem) return mockItemRepo;
+        if (entity === WarehouseStock) return mockWarehouseStockRepo;
+        return createMockRepository();
+      });
+    });
+
+    it('should do nothing when stock not found', async () => {
+      mockWarehouseStockRepo.findOne.mockResolvedValue(null);
+      await service.recalculateReservations(99);
+      expect(mockWarehouseStockRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should update quantity_reserved with sum from active orders', async () => {
+      const stock = { id: 5, catalogNumber: 'CAT-001', quantityReserved: 0 };
+      mockWarehouseStockRepo.findOne.mockResolvedValue(stock);
+
+      await service.recalculateReservations(5);
+
+      expect(stock.quantityReserved).toBe(7);
+      expect(mockWarehouseStockRepo.save).toHaveBeenCalledWith(stock);
+    });
+
+    it('should set quantity_reserved to 0 when no active orders', async () => {
+      const stock = { id: 5, catalogNumber: 'CAT-001', quantityReserved: 5 };
+      mockWarehouseStockRepo.findOne.mockResolvedValue(stock);
+      mockItemQB.getRawOne.mockResolvedValue({ total: '0' });
+
+      await service.recalculateReservations(5);
+
+      expect(stock.quantityReserved).toBe(0);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  describe('recalculateAllReservationsForOrder', () => {
+    it('should call recalculateReservations for each unique warehouseStockId', async () => {
+      const items = [
+        createMockCompletionItem({ id: 1, warehouseStockId: 10 }),
+        createMockCompletionItem({ id: 2, warehouseStockId: 20 }),
+        createMockCompletionItem({ id: 3, warehouseStockId: 10 }), // duplicate
+        createMockCompletionItem({ id: 4, warehouseStockId: null }),
+      ];
+      mockItemRepo.find.mockResolvedValue(items);
+
+      const recalcSpy = jest.spyOn(service, 'recalculateReservations').mockResolvedValue(undefined);
+
+      await service.recalculateAllReservationsForOrder(1);
+
+      expect(recalcSpy).toHaveBeenCalledTimes(2);
+      expect(recalcSpy).toHaveBeenCalledWith(10);
+      expect(recalcSpy).toHaveBeenCalledWith(20);
+    });
+
+    it('should not call recalculateReservations when no items have warehouseStockId', async () => {
+      const items = [
+        createMockCompletionItem({ id: 1, warehouseStockId: null }),
+      ];
+      mockItemRepo.find.mockResolvedValue(items);
+
+      const recalcSpy = jest.spyOn(service, 'recalculateReservations').mockResolvedValue(undefined);
+
+      await service.recalculateAllReservationsForOrder(1);
+
+      expect(recalcSpy).not.toHaveBeenCalled();
+    });
+  });
 });

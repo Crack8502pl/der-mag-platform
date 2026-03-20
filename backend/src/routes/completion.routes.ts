@@ -102,4 +102,11 @@ router.post(
   CompletionController.createPrefabTask
 );
 
+// Update warehouse location for a completion item
+router.patch(
+  '/orders/:id/items/:itemId/warehouse-location',
+  requirePermission('completion', 'scan'),
+  CompletionController.updateWarehouseLocation
+);
+
 export default router;
