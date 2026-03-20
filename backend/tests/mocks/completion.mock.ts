@@ -55,6 +55,16 @@ export const createMockCompletionItem = (overrides: Partial<CompletionItem> = {}
     scannedBy: null as any,
     scannedAt: null as any,
     notes: null as any,
+    // New fields for completion page redesign
+    lp: 1,
+    materialName: '',
+    catalogNumber: null as any,
+    plannedQuantity: 10,
+    stockQuantity: null as any,
+    warehouseLocation: null as any,
+    requiresSerialNumber: false,
+    isSerialized: false,
+    serialNumbers: [],
     ...overrides,
   };
   return item;
