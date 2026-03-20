@@ -152,6 +152,7 @@ export class CompletionController {
       }
 
       // Enrich items with resolved fields for the BOM table
+      const newWarehouseLinks: { itemId: number; stockId: number }[] = [];
       const enrichedItems = order.items.map((item, index) => {
         const catalogNumber =
           item.taskMaterial?.bomTemplate?.catalogNumber ||
@@ -168,6 +169,10 @@ export class CompletionController {
           item.taskMaterial?.bomTemplate?.isSerialized ||
           item.bomItem?.templateItem?.requiresSerialNumber
         );
+        // Track newly discovered warehouse stock links for persistence
+        if (stock && !item.warehouseStockId) {
+          newWarehouseLinks.push({ itemId: item.id, stockId: stock.id });
+        }
         return {
           ...item,
           lp: index + 1,
@@ -182,6 +187,22 @@ export class CompletionController {
           serialNumbers: Array.isArray(item.taskMaterial?.serialNumbers) ? item.taskMaterial?.serialNumbers ?? [] : []
         };
       });
+
+      // Persist newly discovered warehouse stock links (fire-and-forget, does not block response)
+      if (newWarehouseLinks.length > 0) {
+        const completionItemRepo = AppDataSource.getRepository(CompletionItem);
+        Promise.allSettled(
+          newWarehouseLinks.map(({ itemId, stockId }) =>
+            completionItemRepo.update(itemId, { warehouseStockId: stockId })
+          )
+        ).then(results => {
+          results.forEach((result, i) => {
+            if (result.status === 'rejected') {
+              serverLogger.warn(`Nie udało się zapisać warehouseStockId dla pozycji #${newWarehouseLinks[i].itemId}: ${result.reason}`);
+            }
+          });
+        });
+      }
 
       // Calculate progress
       const totalItems = order.items.length;
