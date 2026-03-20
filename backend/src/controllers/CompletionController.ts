@@ -9,7 +9,7 @@ import { WorkflowGeneratedBomItem } from '../entities/WorkflowGeneratedBomItem';
 import { Pallet } from '../entities/Pallet';
 import { Task } from '../entities/Task';
 import { TaskMaterial } from '../entities/TaskMaterial';
-import { MaterialStock } from '../entities/MaterialStock';
+import { WarehouseStock } from '../entities/WarehouseStock';
 import { SystemConfig } from '../entities/SystemConfig';
 import CompletionService from '../services/CompletionService';
 import NotificationService from '../services/NotificationService';
@@ -117,22 +117,37 @@ export class CompletionController {
         return;
       }
 
-      // Collect part numbers to look up stock data
-      const partNumbers = order.items
+      // Collect catalog numbers and material names for WarehouseStock lookup
+      const catalogNumbers = order.items
         .map(item => item.taskMaterial?.bomTemplate?.catalogNumber || item.taskMaterial?.bomTemplate?.partNumber || item.bomItem?.partNumber)
-        .filter((pn): pn is string => !!pn);
+        .filter((cn): cn is string => !!cn);
 
-      const stockMap: Record<string, { quantityAvailable: number; warehouseLocation: string | null }> = {};
-      if (partNumbers.length > 0) {
-        const materialStockRepo = AppDataSource.getRepository(MaterialStock);
-        const stocks = await materialStockRepo.createQueryBuilder('stock')
-          .where('stock.partNumber IN (:...partNumbers)', { partNumbers })
+      const materialNames = order.items
+        .map(item => item.taskMaterial?.materialName || item.bomItem?.itemName)
+        .filter((mn): mn is string => !!mn);
+
+      const stockByCatalog: Record<string, WarehouseStock> = {};
+      const stockByName: Record<string, WarehouseStock> = {};
+
+      if (catalogNumbers.length > 0) {
+        const warehouseStockRepo = AppDataSource.getRepository(WarehouseStock);
+        const stocks = await warehouseStockRepo.createQueryBuilder('ws')
+          .where('ws.catalogNumber IN (:...catalogNumbers)', { catalogNumbers })
           .getMany();
-        for (const stock of stocks) {
-          stockMap[stock.partNumber] = {
-            quantityAvailable: Number(stock.quantityAvailable),
-            warehouseLocation: stock.warehouseLocation || null
-          };
+        for (const s of stocks) {
+          stockByCatalog[s.catalogNumber] = s;
+        }
+      }
+
+      if (materialNames.length > 0) {
+        const warehouseStockRepo = AppDataSource.getRepository(WarehouseStock);
+        const stocks = await warehouseStockRepo.createQueryBuilder('ws')
+          .where('ws.materialName IN (:...materialNames)', { materialNames })
+          .getMany();
+        for (const s of stocks) {
+          if (!stockByName[s.materialName]) {
+            stockByName[s.materialName] = s;
+          }
         }
       }
 
@@ -143,17 +158,27 @@ export class CompletionController {
           item.taskMaterial?.bomTemplate?.partNumber ||
           item.bomItem?.partNumber ||
           null;
-        const stock = catalogNumber ? stockMap[catalogNumber] : null;
+        const materialName = item.taskMaterial?.materialName || item.bomItem?.itemName || null;
+        const stock =
+          (catalogNumber ? stockByCatalog[catalogNumber] : null) ||
+          (materialName ? stockByName[materialName] : null) ||
+          null;
+        const requiresSerial = !!(
+          item.taskMaterial?.requiresSerialNumber ||
+          item.taskMaterial?.bomTemplate?.isSerialized ||
+          item.bomItem?.templateItem?.requiresSerialNumber
+        );
         return {
           ...item,
           lp: index + 1,
-          materialName: item.taskMaterial?.materialName || item.bomItem?.itemName || '',
-          catalogNumber,
+          materialName: materialName || '',
+          catalogNumber: catalogNumber ?? (stock?.catalogNumber ?? null),
+          warehouseStockId: stock?.id ?? item.warehouseStockId ?? null,
           plannedQuantity: resolvePlannedQty(item),
-          stockQuantity: stock?.quantityAvailable ?? null,
+          stockQuantity: stock != null ? Number(stock.quantityAvailable) : null,
           warehouseLocation: stock?.warehouseLocation ?? null,
-          requiresSerialNumber: !!(item.taskMaterial?.requiresSerialNumber || item.taskMaterial?.bomTemplate?.isSerialized || item.bomItem?.templateItem?.requiresSerialNumber),
-          isSerialized: !!(item.taskMaterial?.requiresSerialNumber || item.taskMaterial?.bomTemplate?.isSerialized || item.bomItem?.templateItem?.requiresSerialNumber),
+          requiresSerialNumber: requiresSerial,
+          isSerialized: stock?.isSerialized ?? requiresSerial,
           serialNumbers: Array.isArray(item.taskMaterial?.serialNumbers) ? item.taskMaterial?.serialNumbers ?? [] : []
         };
       });
@@ -540,6 +565,13 @@ export class CompletionController {
 
       await completionOrderRepo.save(order);
 
+      // Przelicz rezerwacje po zakończeniu zlecenia
+      try {
+        await CompletionService.recalculateAllReservationsForOrder(order.id);
+      } catch (reservationError) {
+        serverLogger.warn(`Nie udało się przeliczyć rezerwacji po zakończeniu zlecenia #${order.id}: ${reservationError}`);
+      }
+
       res.json({
         success: true,
         message: 'Zlecenie kompletacji zakończone',
@@ -768,6 +800,13 @@ export class CompletionController {
       order.status = CompletionOrderStatus.CANCELLED;
       await completionOrderRepo.save(order);
 
+      // Przelicz rezerwacje po anulowaniu zlecenia
+      try {
+        await CompletionService.recalculateAllReservationsForOrder(order.id);
+      } catch (reservationError) {
+        serverLogger.warn(`Nie udało się przeliczyć rezerwacji po anulowaniu zlecenia #${order.id}: ${reservationError}`);
+      }
+
       res.json({ success: true, message: 'Zlecenie anulowane', data: order });
     } catch (error) {
       serverLogger.error(`Error cancelling order: ${error instanceof Error ? error.message : String(error)}`);
@@ -905,6 +944,57 @@ export class CompletionController {
     } catch (error) {
       serverLogger.error(`Error setting serial patterns: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({ success: false, message: 'Błąd zapisywania wzorców numerów seryjnych' });
+    }
+  }
+
+  /**
+   * PATCH /api/completion/orders/:id/items/:itemId/warehouse-location
+   * Update warehouse location for a completion item in WarehouseStock
+   */
+  static async updateWarehouseLocation(req: Request, res: Response): Promise<void> {
+    try {
+      const { id, itemId } = req.params;
+      const { location } = req.body;
+
+      if (typeof location !== 'string') {
+        res.status(400).json({ success: false, message: 'Pole location jest wymagane' });
+        return;
+      }
+
+      const completionItemRepo = AppDataSource.getRepository(CompletionItem);
+      const warehouseStockRepo = AppDataSource.getRepository(WarehouseStock);
+
+      const item = await completionItemRepo.findOne({
+        where: { id: parseInt(itemId), completionOrderId: parseInt(id) }
+      });
+
+      if (!item) {
+        res.status(404).json({ success: false, message: 'Pozycja kompletacji nie znaleziona' });
+        return;
+      }
+
+      if (!item.warehouseStockId) {
+        res.status(404).json({ success: false, message: 'Pozycja nie jest powiązana z magazynem' });
+        return;
+      }
+
+      const stock = await warehouseStockRepo.findOne({ where: { id: item.warehouseStockId } });
+      if (!stock) {
+        res.status(404).json({ success: false, message: 'Pozycja magazynowa nie znaleziona' });
+        return;
+      }
+
+      stock.warehouseLocation = location.trim() || null as any;
+      await warehouseStockRepo.save(stock);
+
+      res.json({
+        success: true,
+        message: 'Lokalizacja zaktualizowana',
+        data: { warehouseStockId: stock.id, warehouseLocation: stock.warehouseLocation }
+      });
+    } catch (error) {
+      serverLogger.error(`Error updating warehouse location: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ success: false, message: 'Błąd aktualizacji lokalizacji' });
     }
   }
 }

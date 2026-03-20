@@ -6,6 +6,7 @@ import { CompletionOrder } from './CompletionOrder';
 import { WorkflowGeneratedBomItem } from './WorkflowGeneratedBomItem';
 import { TaskMaterial } from './TaskMaterial';
 import { Pallet } from './Pallet';
+import { WarehouseStock } from './WarehouseStock';
 
 export enum CompletionItemStatus {
   PENDING = 'PENDING',
@@ -77,6 +78,13 @@ export class CompletionItem {
 
   @Column({ type: 'text', nullable: true })
   notes: string;
+
+  @ManyToOne(() => WarehouseStock, { nullable: true })
+  @JoinColumn({ name: 'warehouse_stock_id' })
+  warehouseStock: WarehouseStock | null;
+
+  @Column({ name: 'warehouse_stock_id', type: 'int', nullable: true })
+  warehouseStockId: number | null;
 
   // Virtual fields resolved at query time (not stored in DB)
   lp?: number;

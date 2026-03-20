@@ -15,6 +15,7 @@ import { serverLogger } from '../utils/logger';
 import NotificationService from './NotificationService';
 import { TaskMaterial } from '../entities/TaskMaterial';
 import { Task } from '../entities/Task';
+import { WarehouseStock } from '../entities/WarehouseStock';
 
 export interface CreateCompletionOrderParams {
   subsystemId: number;
@@ -129,6 +130,13 @@ export class CompletionService {
 
     await completionItemRepo.save(items);
 
+    // Przelicz rezerwacje w magazynie dla nowego zlecenia
+    try {
+      await this.recalculateAllReservationsForOrder(order.id);
+    } catch (reservationError) {
+      serverLogger.warn(`Nie udało się przeliczyć rezerwacji dla zlecenia #${order.id}: ${reservationError}`);
+    }
+
     // Aktualizuj status podsystemu
     subsystem.status = SubsystemStatus.IN_COMPLETION;
     await subsystemRepo.save(subsystem);
@@ -212,6 +220,13 @@ export class CompletionService {
     }
 
     await completionItemRepo.save(items);
+
+    // Przelicz rezerwacje w magazynie dla nowego zlecenia
+    try {
+      await this.recalculateAllReservationsForOrder(order.id);
+    } catch (reservationError) {
+      serverLogger.warn(`Nie udało się przeliczyć rezerwacji dla zlecenia #${order.id}: ${reservationError}`);
+    }
 
     // Aktualizuj status podsystemu
     subsystem.status = SubsystemStatus.IN_COMPLETION;
@@ -510,6 +525,15 @@ export class CompletionService {
 
     serverLogger.info(`Zatwierdzono kompletację zlecenia #${order.id} (${params.partial ? 'częściowa' : 'pełna'})`);
 
+    // Przelicz rezerwacje po zmianie statusu na COMPLETED lub WAITING_DECISION
+    if (order.status === CompletionOrderStatus.COMPLETED) {
+      try {
+        await this.recalculateAllReservationsForOrder(order.id);
+      } catch (reservationError) {
+        serverLogger.warn(`Nie udało się przeliczyć rezerwacji dla zlecenia #${order.id}: ${reservationError}`);
+      }
+    }
+
     // Synchronizuj status zadania
     if (order.taskNumber) {
       try {
@@ -679,6 +703,140 @@ export class CompletionService {
     }
 
     return await queryBuilder.getMany();
+  }
+
+  /**
+   * Wzbogaca pozycje kompletacji o dane z WarehouseStock.
+   * Dopasowanie: catalogNumber → WarehouseStock.catalogNumber, fallback po materialName.
+   */
+  async enrichItemsWithWarehouseData(items: CompletionItem[]): Promise<CompletionItem[]> {
+    if (items.length === 0) return items;
+
+    const warehouseStockRepo = AppDataSource.getRepository(WarehouseStock);
+
+    // Collect catalog numbers and material names for lookup
+    const catalogNumbers = items
+      .map(item =>
+        item.taskMaterial?.bomTemplate?.catalogNumber ||
+        item.taskMaterial?.bomTemplate?.partNumber ||
+        item.bomItem?.partNumber ||
+        null
+      )
+      .filter((cn): cn is string => !!cn);
+
+    const materialNames = items
+      .map(item => item.taskMaterial?.materialName || item.bomItem?.itemName || null)
+      .filter((mn): mn is string => !!mn);
+
+    const stocksByCatalog: Record<string, WarehouseStock> = {};
+    const stocksByName: Record<string, WarehouseStock> = {};
+
+    if (catalogNumbers.length > 0) {
+      const stocks = await warehouseStockRepo
+        .createQueryBuilder('ws')
+        .where('ws.catalogNumber IN (:...catalogNumbers)', { catalogNumbers })
+        .getMany();
+      for (const s of stocks) {
+        stocksByCatalog[s.catalogNumber] = s;
+      }
+    }
+
+    if (materialNames.length > 0) {
+      const stocks = await warehouseStockRepo
+        .createQueryBuilder('ws')
+        .where('ws.materialName IN (:...materialNames)', { materialNames })
+        .getMany();
+      for (const s of stocks) {
+        if (!stocksByName[s.materialName]) {
+          stocksByName[s.materialName] = s;
+        }
+      }
+    }
+
+    return items.map(item => {
+      const catalogNumber =
+        item.taskMaterial?.bomTemplate?.catalogNumber ||
+        item.taskMaterial?.bomTemplate?.partNumber ||
+        item.bomItem?.partNumber ||
+        null;
+      const materialName = item.taskMaterial?.materialName || item.bomItem?.itemName || null;
+
+      const stock =
+        (catalogNumber ? stocksByCatalog[catalogNumber] : null) ||
+        (materialName ? stocksByName[materialName] : null) ||
+        null;
+
+      if (stock) {
+        item.warehouseStockId = stock.id;
+        item.catalogNumber = catalogNumber ?? stock.catalogNumber;
+        item.stockQuantity = Number(stock.quantityAvailable);
+        item.warehouseLocation = stock.warehouseLocation ?? null;
+        item.isSerialized = stock.isSerialized;
+      } else {
+        item.warehouseStockId = null;
+        item.catalogNumber = catalogNumber;
+        item.stockQuantity = null;
+        item.warehouseLocation = null;
+      }
+
+      return item;
+    });
+  }
+
+  /**
+   * Przelicza pole quantity_reserved w WarehouseStock dla danego materiału.
+   * Sumuje expectedQuantity ze wszystkich aktywnych zleceń kompletacji.
+   */
+  async recalculateReservations(warehouseStockId: number): Promise<void> {
+    const warehouseStockRepo = AppDataSource.getRepository(WarehouseStock);
+    const completionItemRepo = AppDataSource.getRepository(CompletionItem);
+
+    const stock = await warehouseStockRepo.findOne({ where: { id: warehouseStockId } });
+    if (!stock) return;
+
+    const activeStatuses = [
+      CompletionOrderStatus.CREATED,
+      CompletionOrderStatus.IN_PROGRESS,
+      CompletionOrderStatus.WAITING_DECISION
+    ] as string[];
+
+    const result = await completionItemRepo
+      .createQueryBuilder('ci')
+      .select('COALESCE(SUM(ci.expectedQuantity), 0)', 'total')
+      .innerJoin('ci.completionOrder', 'co')
+      .where('co.status IN (:...statuses)', { statuses: activeStatuses })
+      .andWhere('ci.warehouseStockId = :stockId', { stockId: warehouseStockId })
+      .getRawOne<{ total: string }>();
+
+    const reserved = Number(result?.total ?? 0);
+    stock.quantityReserved = reserved;
+    await warehouseStockRepo.save(stock);
+
+    serverLogger.info(`Zaktualizowano rezerwacje dla ${stock.catalogNumber}: ${reserved}`);
+  }
+
+  /**
+   * Przelicza rezerwacje dla wszystkich materiałów powiązanych z danym zleceniem.
+   */
+  async recalculateAllReservationsForOrder(orderId: number): Promise<void> {
+    const completionItemRepo = AppDataSource.getRepository(CompletionItem);
+
+    const items = await completionItemRepo.find({
+      where: { completionOrderId: orderId },
+      relations: ['completionOrder']
+    });
+
+    // Collect unique warehouseStockIds
+    const stockIds = new Set<number>();
+    for (const item of items) {
+      if (item.warehouseStockId) {
+        stockIds.add(item.warehouseStockId);
+      }
+    }
+
+    for (const stockId of stockIds) {
+      await this.recalculateReservations(stockId);
+    }
   }
 }
 

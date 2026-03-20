@@ -1,7 +1,7 @@
 // src/components/completion/CompletionPage.tsx
 // Main completion page - sidebar with task list + central BOM table
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { BackButton } from '../common/BackButton';
 import completionService from '../../services/completion.service';
@@ -52,6 +52,9 @@ export const CompletionPage: React.FC = () => {
 
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [actionMsg, setActionMsg] = useState('');
+  // Inline location edit state: itemId -> current edit value
+  const [editingLocation, setEditingLocation] = useState<Record<number, string>>({});
+  const locationInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   const canScan = hasPermission('completion', 'scan');
   const canComplete = hasPermission('completion', 'complete');
@@ -192,6 +195,46 @@ export const CompletionPage: React.FC = () => {
 
   const getPlannedQuantity = (item: CompletionItem): number =>
     Number(item.plannedQuantity ?? item.bomItem?.quantity ?? item.expectedQuantity ?? 0);
+
+  const getStockClass = (item: CompletionItem): string => {
+    const stock = item.stockQuantity;
+    if (stock == null) return '';
+    const planned = getPlannedQuantity(item);
+    if (stock === 0) return 'stock-zero';
+    if (planned > 0 && stock < planned * 0.5) return 'stock-low';
+    if (planned > 0 && stock < planned) return 'stock-partial';
+    return 'stock-ok';
+  };
+
+  const handleLocationEdit = (item: CompletionItem) => {
+    setEditingLocation(prev => ({ ...prev, [item.id]: item.warehouseLocation ?? '' }));
+    setTimeout(() => locationInputRefs.current[item.id]?.focus(), 50);
+  };
+
+  const handleLocationSave = async (item: CompletionItem, orderId: number) => {
+    const newLocation = editingLocation[item.id] ?? '';
+    setEditingLocation(prev => {
+      const next = { ...prev };
+      delete next[item.id];
+      return next;
+    });
+    if (newLocation === (item.warehouseLocation ?? '')) return;
+    try {
+      await completionService.updateWarehouseLocation(orderId, item.id, newLocation);
+      // Update the local state
+      setSelectedOrder(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          items: prev.items.map(i =>
+            i.id === item.id ? { ...i, warehouseLocation: newLocation || null } : i
+          )
+        };
+      });
+    } catch {
+      setActionMsg('❌ Błąd aktualizacji lokalizacji');
+    }
+  };
 
   return (
     <div className="completion-page">
@@ -364,10 +407,39 @@ export const CompletionPage: React.FC = () => {
                             {item.catalogNumber || item.bomItem?.templateItem?.partNumber || '—'}
                           </td>
                           <td className="bom-qty-bom">{planned || '—'}</td>
-                          <td className={`bom-qty-stock${item.stockQuantity != null && item.stockQuantity < planned ? ' stock-low' : ''}`}>
-                            {item.stockQuantity != null ? item.stockQuantity : '—'}
+                          <td className={`bom-qty-stock ${getStockClass(item)}`}>
+                            {item.stockQuantity != null ? (
+                              <>
+                                {item.stockQuantity}
+                                {item.stockQuantity === 0 ? ' ❌' : item.stockQuantity < planned ? ' ⚠️' : ' ✓'}
+                              </>
+                            ) : '—'}
                           </td>
-                          <td className="bom-location">{item.warehouseLocation || '—'}</td>
+                          <td className="bom-location">
+                            {item.id in editingLocation ? (
+                              <input
+                                ref={el => { locationInputRefs.current[item.id] = el; }}
+                                className="location-input"
+                                value={editingLocation[item.id]}
+                                onChange={e => setEditingLocation(prev => ({ ...prev, [item.id]: e.target.value }))}
+                                onBlur={() => handleLocationSave(item, selectedOrder.id)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                                  if (e.key === 'Escape') setEditingLocation(prev => { const n = { ...prev }; delete n[item.id]; return n; });
+                                }}
+                                disabled={selectedOrder.status === 'COMPLETED' || selectedOrder.status === 'CANCELLED'}
+                              />
+                            ) : (
+                              <span
+                                className={`location-display${item.warehouseStockId ? ' location-editable' : ''}`}
+                                onClick={() => item.warehouseStockId ? handleLocationEdit(item) : undefined}
+                                title={item.warehouseStockId ? 'Kliknij aby edytować lokalizację' : undefined}
+                              >
+                                {item.warehouseLocation || '—'}
+                                {item.warehouseStockId && selectedOrder.status !== 'COMPLETED' && selectedOrder.status !== 'CANCELLED' && ' ✏️'}
+                              </span>
+                            )}
+                          </td>
                           <td className="bom-serial">
                             {isSerial ? (
                               <div className="serial-cell">

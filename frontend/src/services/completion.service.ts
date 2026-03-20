@@ -114,6 +114,16 @@ class CompletionService {
   }
 
   /**
+   * Update warehouse location for a completion item
+   */
+  async updateWarehouseLocation(orderId: number, itemId: number, location: string): Promise<void> {
+    await api.patch(
+      `/completion/orders/${orderId}/items/${itemId}/warehouse-location`,
+      { location }
+    );
+  }
+
+  /**
    * Get serial number validation patterns (admin)
    */
   async getSerialPatterns() {

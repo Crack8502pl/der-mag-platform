@@ -65,6 +65,7 @@ export interface CompletionItem {
   requiresSerialNumber?: boolean;
   isSerialized?: boolean;
   serialNumbers?: string[];
+  warehouseStockId?: number | null;
 }
 
 export interface Pallet {
