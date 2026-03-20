@@ -12,7 +12,12 @@ interface User {
   lastName: string;
   phone?: string;
   employeeCode?: string;
-  roleId: number;
+  roleId?: number;
+  role?: {
+    id: number;
+    name: string;
+    description: string;
+  };
 }
 
 interface Role {
@@ -40,7 +45,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
     email: user.email,
     phone: user.phone || '',
     employeeCode: user.employeeCode || '',
-    roleId: user.roleId,
+    roleId: user.roleId ?? user.role?.id ?? 0,
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -78,7 +83,8 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
       });
 
       // Update role if changed
-      if (Number(formData.roleId) !== user.roleId) {
+      const originalRoleId = user.roleId ?? user.role?.id;
+      if (originalRoleId !== undefined && Number(formData.roleId) !== originalRoleId) {
         await api.put(`/users/${user.id}/role`, { roleId: Number(formData.roleId) });
       }
 
