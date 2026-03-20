@@ -165,8 +165,8 @@ describe('CompletionController', () => {
   // -------------------------------------------------------------------------
   describe('getOrder', () => {
     it('should return order with progress', async () => {
-      const scannedItem = createMockCompletionItem({ status: CompletionItemStatus.SCANNED });
-      const missingItem = createMockCompletionItem({ id: 2, status: CompletionItemStatus.MISSING });
+      const scannedItem = createMockCompletionItem({ status: CompletionItemStatus.SCANNED, lp: 1 });
+      const missingItem = createMockCompletionItem({ id: 2, status: CompletionItemStatus.MISSING, lp: 2 });
       const order = createMockCompletionOrder({ items: [scannedItem, missingItem] });
 
       mockQueryBuilder.getOne.mockResolvedValue(order);

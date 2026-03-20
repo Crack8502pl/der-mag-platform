@@ -77,4 +77,15 @@ export class CompletionItem {
 
   @Column({ type: 'text', nullable: true })
   notes: string;
+
+  // Virtual fields resolved at query time (not stored in DB)
+  lp?: number;
+  materialName?: string;
+  catalogNumber?: string | null;
+  plannedQuantity?: number;
+  stockQuantity?: number | null;
+  warehouseLocation?: string | null;
+  requiresSerialNumber?: boolean;
+  isSerialized?: boolean;
+  serialNumbers?: string[];
 }
