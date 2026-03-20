@@ -424,8 +424,15 @@ export const CompletionPage: React.FC = () => {
                                 onChange={e => setEditingLocation(prev => ({ ...prev, [item.id]: e.target.value }))}
                                 onBlur={() => handleLocationSave(item, selectedOrder.id)}
                                 onKeyDown={e => {
-                                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                                  if (e.key === 'Escape') setEditingLocation(prev => { const n = { ...prev }; delete n[item.id]; return n; });
+                                  if (e.key === 'Enter') {
+                                    (e.target as HTMLInputElement).blur();
+                                  } else if (e.key === 'Escape') {
+                                    setEditingLocation(prev => {
+                                      const next = { ...prev };
+                                      delete next[item.id];
+                                      return next;
+                                    });
+                                  }
                                 }}
                                 disabled={selectedOrder.status === 'COMPLETED' || selectedOrder.status === 'CANCELLED'}
                               />

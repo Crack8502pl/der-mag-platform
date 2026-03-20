@@ -984,7 +984,7 @@ export class CompletionController {
         return;
       }
 
-      stock.warehouseLocation = location.trim() || null as any;
+      stock.warehouseLocation = (location.trim() || null) as unknown as string;
       await warehouseStockRepo.save(stock);
 
       res.json({
