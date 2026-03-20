@@ -809,6 +809,8 @@ export class UserController {
       const { id } = req.params;
       const { roleId } = req.body;
 
+      console.log(`🔄 changeRole called: userId=${id}, newRoleId=${roleId}`);
+
       if (!roleId) {
         res.status(400).json({
           success: false,
@@ -819,6 +821,23 @@ export class UserController {
       }
 
       const userRepository = AppDataSource.getRepository(User);
+      const roleRepository = AppDataSource.getRepository(Role);
+
+      // Sprawdź czy nowa rola istnieje
+      const newRole = await roleRepository.findOne({
+        where: { id: Number(roleId) }
+      });
+
+      if (!newRole) {
+        console.error(`❌ Role with id ${roleId} not found`);
+        res.status(404).json({
+          success: false,
+          error: 'ROLE_NOT_FOUND',
+          message: 'Rola nie została znaleziona'
+        });
+        return;
+      }
+
       const user = await userRepository.findOne({
         where: { id: Number(id), deletedAt: IsNull() },
         relations: ['role']
@@ -833,8 +852,27 @@ export class UserController {
         return;
       }
 
+      const oldRoleId = user.roleId;
+      const oldRoleName = user.role?.name;
+      console.log(`📝 Changing role: userId=${id}, oldRoleId=${oldRoleId} (${oldRoleName}), newRoleId=${roleId} (${newRole.name})`);
+
+      // Sprawdź czy rola się faktycznie zmienia
+      if (oldRoleId === Number(roleId)) {
+        console.log(`ℹ️ Role unchanged for user ${id}`);
+        res.json({
+          success: true,
+          data: user,
+          message: 'Rola użytkownika nie uległa zmianie'
+        });
+        return;
+      }
+
+      // Ustaw zarówno roleId jak i relację role
       user.roleId = Number(roleId);
+      user.role = newRole;
+
       await userRepository.save(user);
+      console.log(`✅ Role changed successfully for user ${id}: ${oldRoleName} (${oldRoleId}) -> ${newRole.name} (${roleId})`);
 
       // Reload user with role relation
       const updatedUser = await userRepository.findOne({
