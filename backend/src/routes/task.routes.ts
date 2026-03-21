@@ -10,6 +10,7 @@ const router = Router();
 
 router.get('/', authenticate, TaskController.list);
 router.get('/my', authenticate, TaskController.myTasks);
+router.get('/with-gps', authenticate, TaskController.getTasksWithGps);
 router.get('/:taskNumber', authenticate, TaskController.get);
 router.post('/', authenticate, authorize('admin', 'manager', 'coordinator'), validateDto(CreateTaskDto), TaskController.create);
 router.put('/:taskNumber', authenticate, authorize('admin', 'manager', 'coordinator'), validateDto(UpdateTaskDto), TaskController.update);
