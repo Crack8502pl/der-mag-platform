@@ -100,6 +100,8 @@ export class CompletionController {
       const order = await completionOrderRepo
         .createQueryBuilder('order')
         .leftJoinAndSelect('order.subsystem', 'subsystem')
+        .leftJoinAndSelect('subsystem.contract', 'contract')
+        .leftJoinAndSelect('contract.projectManager', 'projectManager')
         .leftJoinAndSelect('order.generatedBom', 'generatedBom')
         .leftJoinAndSelect('order.assignedTo', 'assignedTo')
         .leftJoinAndSelect('order.completedBy', 'completedBy')
@@ -330,6 +332,15 @@ export class CompletionController {
 
       await completionItemRepo.save(matchingItem);
 
+      // Dynamically recalculate warehouse reservations for the scanned item
+      if (matchingItem.warehouseStockId) {
+        try {
+          await CompletionService.recalculateReservations(matchingItem.warehouseStockId);
+        } catch (reservationError) {
+          serverLogger.warn(`Nie udało się przeliczyć rezerwacji dla pozycji #${matchingItem.id}: ${reservationError}`);
+        }
+      }
+
       // Update order status
       if (order.status === CompletionOrderStatus.CREATED) {
         order.status = CompletionOrderStatus.IN_PROGRESS;
@@ -400,6 +411,15 @@ export class CompletionController {
       item.notes = notes || 'Brak materiału';
       
       await completionItemRepo.save(item);
+
+      // Dynamically recalculate warehouse reservations for the missing item
+      if (item.warehouseStockId) {
+        try {
+          await CompletionService.recalculateReservations(item.warehouseStockId);
+        } catch (reservationError) {
+          serverLogger.warn(`Nie udało się przeliczyć rezerwacji dla pozycji #${item.id}: ${reservationError}`);
+        }
+      }
 
       res.json({
         success: true,

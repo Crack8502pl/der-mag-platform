@@ -500,6 +500,23 @@ export const CompletionPage: React.FC = () => {
                   {selectedOrder.subsystem?.name && (
                     <p className="order-subsystem-name">{selectedOrder.subsystem.name}</p>
                   )}
+                  {selectedOrder.subsystem?.contract && (
+                    <div className="order-contract-info">
+                      <p className="order-contract-number">
+                        <strong>Kontrakt:</strong> <code>{selectedOrder.subsystem.contract.contractNumber}</code>
+                      </p>
+                      <p className="order-contract-name">
+                        <strong>Nazwa:</strong> {selectedOrder.subsystem.contract.customName}
+                      </p>
+                      <p className="order-contract-manager">
+                        <strong>Kierownik:</strong> {
+                          selectedOrder.subsystem.contract.projectManager
+                            ? `${selectedOrder.subsystem.contract.projectManager.firstName} ${selectedOrder.subsystem.contract.projectManager.lastName}`
+                            : selectedOrder.subsystem.contract.managerCode || 'N/A'
+                        }
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div className="order-progress-summary">
                   <div className="order-progress-bar-wrap">

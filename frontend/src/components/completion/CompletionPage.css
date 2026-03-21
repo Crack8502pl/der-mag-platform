@@ -959,3 +959,34 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Informacje o kontrakcie w headerze */
+.order-contract-info {
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--primary);
+}
+
+.order-contract-info p {
+  margin: 0.25rem 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.order-contract-number code {
+  background: var(--bg-tertiary);
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-xs);
+  font-family: monospace;
+  color: var(--primary);
+}
+
+.order-contract-name {
+  font-weight: 500;
+}
+
+.order-contract-manager {
+  color: var(--text-muted);
+}
