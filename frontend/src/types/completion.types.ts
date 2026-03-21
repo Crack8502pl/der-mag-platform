@@ -107,6 +107,18 @@ export interface CompletionOrder {
   subsystem?: {
     id: number;
     name: string;
+    contract?: {
+      id: number;
+      contractNumber: string;
+      customName: string;
+      managerCode?: string;
+      projectManager?: {
+        id: number;
+        firstName: string;
+        lastName: string;
+        username: string;
+      };
+    };
   };
   assignedTo?: {
     id: number;
