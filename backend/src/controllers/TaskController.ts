@@ -831,4 +831,42 @@ export class TaskController {
       });
     }
   }
+
+  static async getTasksWithGps(req: Request, res: Response): Promise<void> {
+    try {
+      const taskRepository = AppDataSource.getRepository(Task);
+
+      const tasks = await taskRepository
+        .createQueryBuilder('task')
+        .leftJoinAndSelect('task.taskType', 'taskType')
+        .leftJoinAndSelect('task.contract', 'contract')
+        .where('task.gpsLatitude IS NOT NULL')
+        .andWhere('task.gpsLongitude IS NOT NULL')
+        .andWhere('task.deletedAt IS NULL')
+        .orderBy('task.createdAt', 'DESC')
+        .getMany();
+
+      res.json({
+        success: true,
+        data: tasks.map(task => ({
+          id: task.id,
+          taskNumber: task.taskNumber,
+          title: task.title,
+          status: task.status,
+          location: task.location,
+          gpsLatitude: task.gpsLatitude,
+          gpsLongitude: task.gpsLongitude,
+          googleMapsUrl: task.googleMapsUrl,
+          taskType: task.taskType?.name,
+          contractNumber: task.contract?.contractNumber
+        }))
+      });
+    } catch (error: any) {
+      serverLogger.error('Błąd pobierania zadań z GPS:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Błąd serwera'
+      });
+    }
+  }
 }

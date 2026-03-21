@@ -42,6 +42,8 @@ import bomTemplateDependencyRuleRoutes from './bomTemplateDependencyRule.routes'
 import symfoniaIntegrationRoutes from './symfoniaIntegration.routes';
 // Symfonia warehouse stock sync routes
 import symfoniaSyncRoutes from './symfoniaSync.routes';
+// Google Maps routes
+import mapsRoutes from './maps.routes';
 
 const router = Router();
 
@@ -96,6 +98,9 @@ router.use('/admin/symfonia-integration', symfoniaIntegrationRoutes);
 
 // Symfonia warehouse stock sync routes (admin only)
 router.use('/admin/symfonia-sync', symfoniaSyncRoutes);
+
+// Google Maps routes
+router.use('/maps', mapsRoutes);
 
 // Admin routes
 router.use('/admin', adminRoutes);

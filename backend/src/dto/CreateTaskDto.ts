@@ -3,6 +3,7 @@
 
 import { IsString, IsNotEmpty, IsNumber, IsOptional, IsDateString, MaxLength, Min, Max } from 'class-validator';
 
+
 export class CreateTaskDto {
   @IsString({ message: 'Tytuł musi być ciągiem znaków' })
   @IsNotEmpty({ message: 'Tytuł jest wymagany' })
@@ -61,4 +62,21 @@ export class CreateTaskDto {
   @Min(0, { message: 'Priorytet nie może być mniejszy niż 0' })
   @Max(5, { message: 'Priorytet nie może być większy niż 5' })
   priority?: number;
+
+  @IsNumber({}, { message: 'Szerokość geograficzna musi być liczbą' })
+  @IsOptional()
+  @Min(-90, { message: 'Szerokość geograficzna musi być >= -90' })
+  @Max(90, { message: 'Szerokość geograficzna musi być <= 90' })
+  gpsLatitude?: number;
+
+  @IsNumber({}, { message: 'Długość geograficzna musi być liczbą' })
+  @IsOptional()
+  @Min(-180, { message: 'Długość geograficzna musi być >= -180' })
+  @Max(180, { message: 'Długość geograficzna musi być <= 180' })
+  gpsLongitude?: number;
+
+  @IsString({ message: 'Link Google Maps musi być ciągiem znaków' })
+  @IsOptional()
+  @MaxLength(500, { message: 'Link Google Maps może mieć maksymalnie 500 znaków' })
+  googleMapsUrl?: string;
 }
