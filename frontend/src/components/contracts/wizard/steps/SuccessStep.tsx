@@ -10,7 +10,7 @@ interface Props {
   wizardData: WizardData;
   generatedTasks: GeneratedTask[];
   onClose: () => void;
-  onViewContract?: () => void;
+  onRequestShipping?: () => void;
 }
 
 export const SuccessStep: React.FC<Props> = ({
@@ -18,7 +18,7 @@ export const SuccessStep: React.FC<Props> = ({
   wizardData,
   generatedTasks,
   onClose,
-  onViewContract
+  onRequestShipping
 }) => {
   const tasksBySubsystem = wizardData.subsystems.map((subsystem) => {
     const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
@@ -26,11 +26,12 @@ export const SuccessStep: React.FC<Props> = ({
     return { config, tasks };
   });
 
-  const handleViewContract = () => {
-    if (onViewContract) {
-      onViewContract();
+  const handleConfigureAndShip = () => {
+    if (onRequestShipping) {
+      onRequestShipping();
+    } else {
+      onClose();
     }
-    onClose();
   };
 
   return (
@@ -53,9 +54,9 @@ export const SuccessStep: React.FC<Props> = ({
         </button>
         <button 
           className="btn btn-primary" 
-          onClick={handleViewContract}
+          onClick={handleConfigureAndShip}
         >
-          🔧 Konfiguruj
+          📦 Zleć wysyłkę
         </button>
       </div>
     </div>

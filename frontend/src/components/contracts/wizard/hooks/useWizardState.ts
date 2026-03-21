@@ -154,6 +154,13 @@ export const useWizardState = ({
    */
   const initializeTaskDetails = (subsystemIndex: number) => {
     const subsystem = wizardData.subsystems[subsystemIndex];
+
+    // ⚠️ Do not overwrite taskDetails for existing subsystems that already have tasks
+    if (subsystem.isExisting && subsystem.taskDetails && subsystem.taskDetails.length > 0) {
+      console.log(`⚠️ Skipping initializeTaskDetails for existing subsystem ${subsystem.type} - already has ${subsystem.taskDetails.length} tasks`);
+      return;
+    }
+
     const taskDetails: TaskDetail[] = [];
     const simpleParams = subsystem.params as Record<string, number | boolean>;
     

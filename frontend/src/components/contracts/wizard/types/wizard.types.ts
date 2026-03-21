@@ -9,6 +9,7 @@ export interface WizardProps {
   onSuccess: () => void;
   editMode?: boolean;
   contractToEdit?: Contract;
+  onRequestShipping?: (contractId: number) => void;
 }
 
 export interface TaskDetail {
