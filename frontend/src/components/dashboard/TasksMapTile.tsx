@@ -1,7 +1,7 @@
 // src/components/dashboard/TasksMapTile.tsx
 // Kafelek mapy zadań z lokalizacjami GPS - Leaflet + OpenStreetMap
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -60,30 +60,30 @@ export const TasksMapTile: React.FC = () => {
   const [expanded, setExpanded] = useState(false);
   const { openNavigation, openLocation } = useGoogleMaps();
 
-  useEffect(() => {
-    const fetchTasks = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await api.get<{ success: boolean; data: TaskWithGps[] }>('/tasks/with-gps');
-        if (response.data.success) {
-          setTasks(response.data.data.map(t => ({
-            ...t,
-            gpsLatitude: Number(t.gpsLatitude),
-            gpsLongitude: Number(t.gpsLongitude),
-          })));
-        } else {
-          setError('Nie udało się pobrać zadań z GPS');
-        }
-      } catch (err: any) {
-        setError(err.response?.data?.message || 'Błąd pobierania zadań z GPS');
-      } finally {
-        setLoading(false);
+  const fetchTasks = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.get<{ success: boolean; data: TaskWithGps[] }>('/tasks/with-gps');
+      if (response.data.success) {
+        setTasks(response.data.data.map(t => ({
+          ...t,
+          gpsLatitude: Number(t.gpsLatitude),
+          gpsLongitude: Number(t.gpsLongitude),
+        })));
+      } else {
+        setError('Nie udało się pobrać zadań z GPS');
       }
-    };
-
-    fetchTasks();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Błąd pobierania zadań z GPS');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
 
   const handleNavigate = (task: TaskWithGps) => {
     openNavigation({ lat: task.gpsLatitude, lon: task.gpsLongitude });
@@ -129,24 +129,7 @@ export const TasksMapTile: React.FC = () => {
             <p className="error-text">{error}</p>
             <button
               className="btn btn-secondary"
-              onClick={() => {
-                setLoading(true);
-                setError(null);
-                api.get<{ success: boolean; data: TaskWithGps[] }>('/tasks/with-gps')
-                  .then(res => {
-                    if (res.data.success) {
-                      setTasks(res.data.data.map(t => ({
-                        ...t,
-                        gpsLatitude: Number(t.gpsLatitude),
-                        gpsLongitude: Number(t.gpsLongitude),
-                      })));
-                    } else {
-                      setError('Nie udało się pobrać zadań z GPS');
-                    }
-                  })
-                  .catch((err: any) => setError(err.response?.data?.message || 'Błąd pobierania zadań'))
-                  .finally(() => setLoading(false));
-              }}
+              onClick={fetchTasks}
             >
               Spróbuj ponownie
             </button>
