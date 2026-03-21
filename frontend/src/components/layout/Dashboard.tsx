@@ -7,6 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { usePermissions } from '../../hooks/usePermissions';
 import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
+import { TasksMapTile } from '../dashboard';
 import './Dashboard.css';
 
 interface ModuleCard {
@@ -321,6 +322,13 @@ export const Dashboard: React.FC = () => {
           {getOrderedCards().map((card, index) => 
             renderCard(card, index, isPersonalizeMode)
           )}
+        </div>
+      )}
+
+      {/* Kafelek mapy zadań z GPS */}
+      {hasPermission('tasks', 'read') && (
+        <div className="dashboard-map-section">
+          <TasksMapTile />
         </div>
       )}
     </div>
