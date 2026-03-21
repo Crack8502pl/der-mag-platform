@@ -107,7 +107,7 @@ export const TasksMapTile: React.FC = () => {
   return (
     <div className={tileClassNames}>
       <div className="tile-header">
-        <ModuleIcon name="map" emoji={MODULE_ICONS.map} size={24} alt="Mapa Zadań" />
+        <ModuleIcon name="mapa" emoji={MODULE_ICONS.mapa} size={24} alt="Mapa Zadań" />
         <span className="tile-title">Mapa Zadań</span>
         {!loading && !error && (
           <span className="tile-count">{tasks.length} lokalizacji</span>

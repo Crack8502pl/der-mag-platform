@@ -127,7 +127,7 @@ export const TasksMapPage: React.FC = () => {
           </button>
           <BackButton />
           <div className="map-header-title">
-            <ModuleIcon name="map" emoji={MODULE_ICONS.map} size={24} alt="Mapa zadań" />
+            <ModuleIcon name="mapa" emoji={MODULE_ICONS.mapa} size={24} alt="Mapa zadań" />
             <h1>MAPA ZADAŃ</h1>
           </div>
         </div>
@@ -187,7 +187,7 @@ export const TasksMapPage: React.FC = () => {
           <div className="map-container">
             {!loading && !error && tasks.length === 0 && (
               <div className="map-empty-state">
-                <ModuleIcon name="map" emoji={MODULE_ICONS.map} size={64} alt="Mapa" />
+                <ModuleIcon name="mapa" emoji={MODULE_ICONS.mapa} size={64} alt="Mapa" />
                 <h2>Brak zadań z GPS</h2>
                 <p>Dodaj współrzędne GPS do zadań, aby zobaczyć je na mapie.</p>
               </div>

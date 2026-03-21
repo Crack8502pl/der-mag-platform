@@ -58,9 +58,10 @@ if (isProduction && !disableCSP) {
           "'self'",
           "data:",
           "blob:",
-          "https://*.tile.openstreetmap.org", // OpenStreetMap tiles
-          "https://*.openstreetmap.org",       // OSM domain
-          "https://unpkg.com"                  // Leaflet marker icons (fallback)
+          "https://*.tile.openstreetmap.org",  // OpenStreetMap tiles
+          "https://*.openstreetmap.org",        // OSM domain
+          "https://*.basemaps.cartocdn.com",    // Carto Dark basemap tiles
+          "https://unpkg.com"                   // Leaflet marker icons (fallback)
         ],
         connectSrc: [
           "'self'",
