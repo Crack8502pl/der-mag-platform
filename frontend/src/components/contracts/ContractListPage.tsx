@@ -466,6 +466,10 @@ export const ContractListPage: React.FC = () => {
         <ContractWizardModal
           onClose={() => setShowWizardModal(false)}
           onSuccess={handleContractCreated}
+          onRequestShipping={(contractId) => {
+            setShowWizardModal(false);
+            navigate(`/contracts/${contractId}`);
+          }}
         />
       )}
     </div>
