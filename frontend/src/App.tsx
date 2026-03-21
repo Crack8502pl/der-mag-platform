@@ -38,6 +38,7 @@ import { ContractListPage } from './components/contracts/ContractListPage';
 import { ContractDetailPage } from './components/contracts/ContractDetailPage';
 import { WarehouseStockPage } from './components/modules/WarehouseStockPage';
 import { BrigadeListPage } from './components/brigades/BrigadeListPage';
+import { TasksMapPage } from './components/map/TasksMapPage';
 import { useAuth } from './hooks/useAuth';
 import { useTokenExpirationWarning } from './hooks/useTokenExpirationWarning';
 import { TokenExpirationModal } from './components/common/TokenExpirationModal';
@@ -305,6 +306,18 @@ function App() {
             <ProtectedRoute>
               <RoleBasedRoute requiredPermission={{ module: 'completion', action: 'scan' }}>
                 <CompletionScannerPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Map Route */}
+        <Route
+          path="/map"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'tasks', action: 'read' }}>
+                <TasksMapPage />
               </RoleBasedRoute>
             </ProtectedRoute>
           }

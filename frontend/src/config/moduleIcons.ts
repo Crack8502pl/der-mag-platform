@@ -18,4 +18,5 @@ export const MODULE_ICONS: Record<string, string> = {
   admin: '🛡️',
   dashboard: '📊',
   logout: '🚪',
+  map: '🗺️',
 };
