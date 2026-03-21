@@ -7,6 +7,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { api } from '../../services/api';
 import { useGoogleMaps } from '../../hooks/useGoogleMaps';
+import { ModuleIcon } from '../common/ModuleIcon';
+import { MODULE_ICONS } from '../../config/moduleIcons';
 import './TasksMapTile.css';
 
 // Fix dla ikon Leaflet (znany problem z bundlerami webpack/vite)
@@ -103,7 +105,7 @@ export const TasksMapTile: React.FC = () => {
   return (
     <div className={tileClassNames}>
       <div className="tile-header">
-        <span className="tile-icon">🗺️</span>
+        <ModuleIcon name="map" emoji={MODULE_ICONS.map} size={24} alt="Mapa Zadań" />
         <span className="tile-title">Mapa Zadań</span>
         {!loading && !error && (
           <span className="tile-count">{tasks.length} lokalizacji</span>
