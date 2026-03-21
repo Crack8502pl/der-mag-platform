@@ -126,7 +126,19 @@ export const useGoogleMaps = () => {
    */
   const formatCoordinates = useCallback(
     (coordinates: GPSCoordinates, precision = 6): string => {
-      return `${coordinates.lat.toFixed(precision)}, ${coordinates.lon.toFixed(precision)}`;
+      if (!coordinates || coordinates.lat == null || coordinates.lon == null) {
+        return 'Brak współrzędnych';
+      }
+
+      // PostgreSQL DECIMAL columns may be returned as strings by TypeORM
+      const lat = Number(coordinates.lat);
+      const lon = Number(coordinates.lon);
+
+      if (isNaN(lat) || isNaN(lon)) {
+        return 'Nieprawidłowe współrzędne';
+      }
+
+      return `${lat.toFixed(precision)}, ${lon.toFixed(precision)}`;
     },
     []
   );

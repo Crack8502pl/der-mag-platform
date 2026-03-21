@@ -854,8 +854,8 @@ export class TaskController {
           title: task.title,
           status: task.status,
           location: task.location,
-          gpsLatitude: task.gpsLatitude,
-          gpsLongitude: task.gpsLongitude,
+          gpsLatitude: task.gpsLatitude != null ? (isNaN(Number(task.gpsLatitude)) ? null : Number(task.gpsLatitude)) : null,
+          gpsLongitude: task.gpsLongitude != null ? (isNaN(Number(task.gpsLongitude)) ? null : Number(task.gpsLongitude)) : null,
           googleMapsUrl: task.googleMapsUrl,
           taskType: task.taskType?.name,
           contractNumber: task.contract?.contractNumber
