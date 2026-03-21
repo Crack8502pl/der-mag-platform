@@ -9,6 +9,9 @@ export const GenericConfigStep: React.FC<SubsystemConfigStepProps> = ({
 }) => {
   const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
 
+  // Hide IP Pool field for SMOKIP - these subsystems manage IP addresses per CUID
+  const hideIpPool = subsystem.type === 'SMOKIP_A' || subsystem.type === 'SMOKIP_B';
+
   const updateParams = (paramName: string, value: number | boolean | string) => {
     const params = (subsystem.params || {}) as Record<string, number | boolean | string>;
     const newParams = { ...params, [paramName]: value };
@@ -38,7 +41,8 @@ export const GenericConfigStep: React.FC<SubsystemConfigStepProps> = ({
         </div>
       )}
 
-      {/* IP Pool Field */}
+      {/* IP Pool Field - hidden for SMOKIP subsystems */}
+      {!hideIpPool && (
       <div className="form-group">
         <label>Pula adresowa IP (opcjonalnie)</label>
         <input
@@ -51,6 +55,7 @@ export const GenericConfigStep: React.FC<SubsystemConfigStepProps> = ({
           Format CIDR (np. 192.168.1.0/24). Każdy podsystem musi mieć unikalną pulę.
         </small>
       </div>
+      )}
 
       {/* Dynamic Fields from Config */}
       {config.fields.map((field) => {

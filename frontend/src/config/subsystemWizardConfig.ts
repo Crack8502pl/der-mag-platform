@@ -94,7 +94,6 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
       { name: 'hasLCS', label: '1.4 LCS (obecny)', type: 'checkbox' },
       { name: 'hasCUID', label: '1.5 CUID (obecny)', type: 'checkbox' },
       { name: 'gatewayIP', label: 'Gateway IP', type: 'text', optional: true },
-      { name: 'ipPool', label: 'Pula adresowa IP', type: 'text', optional: true },
       { name: 'subnetMask', label: 'Subnet Mask', type: 'text', optional: true }
     ]
   },
@@ -106,7 +105,6 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
       { name: 'hasLCS', label: '1.4 LCS (obecny)', type: 'checkbox' },
       { name: 'hasCUID', label: '1.5 CUID (obecny)', type: 'checkbox' },
       { name: 'gatewayIP', label: 'Gateway IP', type: 'text', optional: true },
-      { name: 'ipPool', label: 'Pula adresowa IP', type: 'text', optional: true },
       { name: 'subnetMask', label: 'Subnet Mask', type: 'text', optional: true }
     ]
   },

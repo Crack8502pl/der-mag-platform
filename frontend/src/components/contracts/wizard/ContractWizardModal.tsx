@@ -38,13 +38,15 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
   onClose, 
   onSuccess, 
   editMode = false,
-  contractToEdit
+  contractToEdit,
+  onRequestShipping
 }) => {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
+  const [createdContractId, setCreatedContractId] = useState<number | null>(null);
   
   // Initialize wizard state using custom hook
   const {
@@ -127,7 +129,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     // Initialize taskDetails for SMOKIP when leaving config step
     if (stepInfo.type === 'config' && stepInfo.subsystemIndex !== undefined) {
       const subsystem = wizardData.subsystems[stepInfo.subsystemIndex];
-      if ((subsystem.type === 'SMOKIP_A' || subsystem.type === 'SMOKIP_B') && 
+      if ((subsystem.type === 'SMOKIP_A' || subsystem.type === 'SMOKIP_B') &&
           (!subsystem.taskDetails || subsystem.taskDetails.length === 0)) {
         initializeTaskDetails(stepInfo.subsystemIndex);
       }
@@ -309,6 +311,11 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         
         console.log('✅ Contract created:', response);
         
+        // Store created contract ID for the shipping callback
+        if (response.id) {
+          setCreatedContractId(response.id);
+        }
+        
         // Update generated tasks with actual task numbers from backend
         const createdSubsystems = response.subsystems || [];
         const fetchedTasks: GeneratedTask[] = createdSubsystems.flatMap((subsystem) => 
@@ -478,6 +485,11 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
             onSuccess();
             onClose();
           }}
+          onRequestShipping={onRequestShipping && createdContractId ? () => {
+            onRequestShipping(createdContractId);
+            onSuccess();
+            onClose();
+          } : undefined}
         />
       )
     };

@@ -47,7 +47,7 @@ export const buildTaskNameFromDetails = (
   detail: TaskDetail,
   liniaKolejowa?: string
 ): string => {
-  const lk = liniaKolejowa || '';
+  const lk = detail.liniaKolejowa || liniaKolejowa || '';
   const prefix = lk ? `${lk} | ` : '';
   
   if (taskType === 'PRZEJAZD_KAT_A' && detail.kilometraz && detail.kategoria) {
