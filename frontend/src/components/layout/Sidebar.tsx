@@ -27,7 +27,7 @@ export const Sidebar: React.FC = () => {
     { label: 'Kontrakty', path: '/contracts', icon: <ModuleIcon name="contracts" emoji={MODULE_ICONS.contracts} size={20} />, module: 'contracts', action: 'read' },
     { label: 'Podsystemy', path: '/subsystems', icon: <ModuleIcon name="subsystems" emoji={MODULE_ICONS.subsystems} size={20} />, module: 'subsystems', action: 'read' },
     { label: 'Zadania', path: '/tasks', icon: <ModuleIcon name="tasks" emoji={MODULE_ICONS.tasks} size={20} />, module: 'tasks', action: 'read' },
-    { label: 'Mapa', path: '/map', icon: <ModuleIcon name="map" emoji={MODULE_ICONS.map} size={20} />, module: 'tasks', action: 'read' },
+    { label: 'Mapa', path: '/map', icon: <ModuleIcon name="mapa" emoji={MODULE_ICONS.mapa} size={20} />, module: 'tasks', action: 'read' },
     { label: 'Brygady', path: '/brigades', icon: <ModuleIcon name="brigades" emoji={MODULE_ICONS.brigades} size={20} />, module: 'brigades', action: 'read' },
     { label: 'Kompletacja', path: '/completion', icon: <ModuleIcon name="completion" emoji={MODULE_ICONS.completion} size={20} />, module: 'completion', action: 'read' },
     { label: 'Prefabrykacja', path: '/prefabrication', icon: <ModuleIcon name="prefabrication" emoji={MODULE_ICONS.prefabrication} size={20} />, module: 'prefabrication', action: 'read' },
