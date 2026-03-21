@@ -161,5 +161,16 @@ describe('GoogleMapsService', () => {
       await service.parseAnyUrl('https://www.google.com/maps?q=52.2297,21.0122');
       expect(spy).toHaveBeenCalled();
     });
+
+    it('should call resolveShortUrl for shortened URL', async () => {
+      const spy = jest.spyOn(service as any, 'resolveShortUrl').mockResolvedValue({
+        coordinates: { lat: 52.2297, lon: 21.0122 },
+        isShortened: true,
+        parseMethod: 'redirect',
+      });
+
+      await service.parseAnyUrl('https://goo.gl/maps/xyz');
+      expect(spy).toHaveBeenCalledWith('https://goo.gl/maps/xyz');
+    });
   });
 });

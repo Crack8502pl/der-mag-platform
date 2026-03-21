@@ -284,4 +284,46 @@ describe('ServiceTaskController', () => {
       expect(res.status).toHaveBeenCalledWith(500);
     });
   });
+
+  describe('assignBrigade', () => {
+    it('should assign brigade and return success', async () => {
+      const mockTask = { id: 1, brigadeId: 5, status: 'ASSIGNED' };
+      mockServiceTaskService.assignBrigade = jest.fn().mockResolvedValue(mockTask);
+      req = createMockRequest({ user: { id: 1 } });
+      req.params = { id: '1' };
+      req.body = { brigadeId: 5 };
+
+      await controller.assignBrigade(req as Request, res as Response);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, data: mockTask }));
+    });
+
+    it('should return 401 when not authenticated', async () => {
+      req = createMockRequest({ user: undefined });
+      req.params = { id: '1' };
+      req.body = { brigadeId: 5 };
+
+      await controller.assignBrigade(req as Request, res as Response);
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
+    it('should return 400 when brigadeId is missing', async () => {
+      req = createMockRequest({ user: { id: 1 } });
+      req.params = { id: '1' };
+      req.body = {};
+
+      await controller.assignBrigade(req as Request, res as Response);
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+  });
+
+  describe('getStatistics', () => {
+    it('should return statistics', async () => {
+      const mockStats = { total: 10, byStatus: { CREATED: 5 }, byVariant: { INTERVENTION: 3 } };
+      mockServiceTaskService.getStatistics = jest.fn().mockResolvedValue(mockStats);
+
+      await controller.getStatistics(req as Request, res as Response);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, data: mockStats }));
+    });
+  });
 });

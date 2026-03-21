@@ -487,4 +487,233 @@ describe('ContractController', () => {
       });
     });
   });
+
+  describe('getContract', () => {
+    it('should return contract by id (200)', async () => {
+      const mockContract = { id: 1, contractNumber: 'R0000001_A', customName: 'Test' };
+      mockContractService.getContractById = jest.fn().mockResolvedValue(mockContract);
+      req.params = { id: '1' };
+
+      await contractController.getContract(req as Request, res as Response);
+
+      expect(mockContractService.getContractById).toHaveBeenCalledWith(1);
+      expect(res.json).toHaveBeenCalledWith({ success: true, data: mockContract });
+    });
+
+    it('should return 404 when contract not found', async () => {
+      mockContractService.getContractById = jest.fn().mockResolvedValue(null);
+      req.params = { id: '999' };
+
+      await contractController.getContract(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ success: false, message: 'Kontrakt nie znaleziony' });
+    });
+
+    it('should return 500 on error', async () => {
+      mockContractService.getContractById = jest.fn().mockRejectedValue(new Error('DB error'));
+      req.params = { id: '1' };
+
+      await contractController.getContract(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
+    });
+  });
+
+  describe('createContract', () => {
+    it('should create contract and return 201', async () => {
+      const mockContract = { id: 1, contractNumber: 'R0000001_A', customName: 'Test' };
+      mockContractService.createContract = jest.fn().mockResolvedValue(mockContract);
+
+      req.body = {
+        customName: 'Test',
+        orderDate: '2026-01-06',
+        managerCode: 'ABC',
+        projectManagerId: 1,
+      };
+
+      await contractController.createContract(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, data: mockContract }));
+    });
+
+    it('should return 400 when required fields are missing', async () => {
+      req.body = { customName: 'Test' };
+
+      await contractController.createContract(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
+    });
+
+    it('should return 400 when managerCode is too long', async () => {
+      req.body = {
+        customName: 'Test',
+        orderDate: '2026-01-06',
+        managerCode: 'TOOLONG',
+        projectManagerId: 1,
+      };
+
+      await contractController.createContract(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, message: 'Kod kierownika może mieć maksymalnie 5 znaków' }));
+    });
+
+    it('should return 400 on service error', async () => {
+      mockContractService.createContract = jest.fn().mockRejectedValue(new Error('Duplicate'));
+      req.body = {
+        customName: 'Test',
+        orderDate: '2026-01-06',
+        managerCode: 'ABC',
+        projectManagerId: 1,
+      };
+
+      await contractController.createContract(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, error: 'Duplicate' }));
+    });
+  });
+
+  describe('updateContract', () => {
+    it('should update contract and return 200', async () => {
+      const mockContract = { id: 1, contractNumber: 'R0000001_A', customName: 'Updated' };
+      mockContractService.updateContract = jest.fn().mockResolvedValue(mockContract);
+      req.params = { id: '1' };
+      req.body = { customName: 'Updated' };
+
+      await contractController.updateContract(req as Request, res as Response);
+
+      expect(mockContractService.updateContract).toHaveBeenCalledWith(1, { customName: 'Updated' });
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, data: mockContract }));
+    });
+
+    it('should return 400 on error', async () => {
+      mockContractService.updateContract = jest.fn().mockRejectedValue(new Error('Not found'));
+      req.params = { id: '99' };
+      req.body = {};
+
+      await contractController.updateContract(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
+    });
+  });
+
+  describe('deleteContract', () => {
+    it('should delete contract and return 200', async () => {
+      mockContractService.deleteContract = jest.fn().mockResolvedValue(undefined);
+      req.params = { id: '1' };
+
+      await contractController.deleteContract(req as Request, res as Response);
+
+      expect(mockContractService.deleteContract).toHaveBeenCalledWith(1);
+      expect(res.json).toHaveBeenCalledWith({ success: true, message: 'Kontrakt usunięty pomyślnie' });
+    });
+
+    it('should return 400 on error', async () => {
+      mockContractService.deleteContract = jest.fn().mockRejectedValue(new Error('Has subsystems'));
+      req.params = { id: '1' };
+
+      await contractController.deleteContract(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
+    });
+  });
+
+  describe('approveContract', () => {
+    it('should approve contract and return 200', async () => {
+      const mockContract = { id: 1, status: 'APPROVED' };
+      mockContractService.approveContract = jest.fn().mockResolvedValue(mockContract);
+      req.params = { id: '1' };
+      (req as any).userId = 5;
+
+      await contractController.approveContract(req as Request, res as Response);
+
+      expect(mockContractService.approveContract).toHaveBeenCalledWith(1, 5);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, data: mockContract }));
+    });
+
+    it('should return 400 on error', async () => {
+      mockContractService.approveContract = jest.fn().mockRejectedValue(new Error('Already approved'));
+      req.params = { id: '1' };
+
+      await contractController.approveContract(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
+    });
+  });
+
+  describe('importContracts', () => {
+    it('should import contracts and return results', async () => {
+      mockContractService.createContract = jest.fn().mockResolvedValue({ id: 1 });
+      req.body = {
+        contracts: [
+          { customName: 'C1', orderDate: '2026-01-01', managerCode: 'A', projectManagerId: 1 },
+          { customName: 'C2', orderDate: '2026-01-02', managerCode: 'B', projectManagerId: 2 },
+        ],
+      };
+
+      await contractController.importContracts(req as Request, res as Response);
+
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        data: { imported: 2, errors: [] },
+      });
+    });
+
+    it('should return 400 when body is not an array', async () => {
+      req.body = { contracts: 'not-array' };
+
+      await contractController.importContracts(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
+    });
+
+    it('should collect errors for failed imports', async () => {
+      mockContractService.createContract = jest.fn()
+        .mockResolvedValueOnce({ id: 1 })
+        .mockRejectedValueOnce(new Error('Duplicate'));
+
+      req.body = {
+        contracts: [
+          { customName: 'C1', orderDate: '2026-01-01', managerCode: 'A', projectManagerId: 1 },
+          { customName: 'C2', orderDate: '2026-01-02', managerCode: 'B', projectManagerId: 2 },
+        ],
+      };
+
+      await contractController.importContracts(req as Request, res as Response);
+
+      const jsonArg = (res.json as jest.Mock).mock.calls[0][0];
+      expect(jsonArg.data.imported).toBe(1);
+      expect(jsonArg.data.errors).toHaveLength(1);
+      expect(jsonArg.data.errors[0].error).toBe('Duplicate');
+    });
+  });
+
+  describe('getStats', () => {
+    it('should return stats (200)', async () => {
+      const mockStats = { total: 5, byStatus: { CREATED: 3, APPROVED: 2 } };
+      mockContractService.getStats = jest.fn().mockResolvedValue(mockStats);
+
+      await contractController.getStats(req as Request, res as Response);
+
+      expect(res.json).toHaveBeenCalledWith({ success: true, data: mockStats });
+    });
+
+    it('should return 500 on error', async () => {
+      mockContractService.getStats = jest.fn().mockRejectedValue(new Error('DB error'));
+
+      await contractController.getStats(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
+    });
+  });
 });

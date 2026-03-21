@@ -542,4 +542,256 @@ describe('TaskController', () => {
       }));
     });
   });
+
+  describe('myTasks', () => {
+    it('should return tasks for the current user', async () => {
+      const mockAssignmentRepository = createMockRepository<TaskAssignment>();
+      (AppDataSource.getRepository as jest.Mock).mockImplementation((entity) => {
+        if (entity === TaskAssignment) return mockAssignmentRepository;
+        return mockTaskRepository;
+      });
+
+      const mockTasks = [{ id: 1, taskNumber: 'T001', deletedAt: null }] as any[];
+      mockAssignmentRepository.find = jest.fn().mockResolvedValue(
+        mockTasks.map(t => ({ task: t }))
+      );
+
+      req = createMockRequest({ userId: 42 });
+
+      await TaskController.myTasks(req as Request, res as Response);
+
+      expect(mockAssignmentRepository.find).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 42 } })
+      );
+      expect(res.json).toHaveBeenCalledWith({ success: true, data: mockTasks });
+    });
+
+    it('should return 500 on error', async () => {
+      (AppDataSource.getRepository as jest.Mock).mockImplementation(() => {
+        throw new Error('DB error');
+      });
+
+      req = createMockRequest({ userId: 1 });
+
+      await TaskController.myTasks(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+  });
+
+  describe('create', () => {
+    let mockUserRepository: any;
+    let mockTaskTypeRepository: any;
+
+    beforeEach(() => {
+      mockUserRepository = createMockRepository<User>();
+      mockTaskTypeRepository = createMockRepository();
+
+      (AppDataSource.getRepository as jest.Mock).mockImplementation((entity) => {
+        if (entity === User) return mockUserRepository;
+        if (entity.name === 'TaskType' || entity === require('../../../src/entities/TaskType').TaskType) return mockTaskTypeRepository;
+        return mockTaskRepository;
+      });
+
+      req = createMockRequest({ userId: 1 });
+    });
+
+    it('should return 403 when user has no role', async () => {
+      mockUserRepository.findOne.mockResolvedValue({ id: 1, role: null });
+      req.body = { taskTypeId: 1 };
+
+      await TaskController.create(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+    });
+
+    it('should return 403 when coordinator tries to create non-SERWIS task', async () => {
+      mockUserRepository.findOne.mockResolvedValue({ id: 1, role: { name: 'coordinator' } });
+      mockTaskTypeRepository.findOne = jest.fn().mockResolvedValue({ id: 1, code: 'SMW', active: true });
+      req.body = { taskTypeId: 1 };
+
+      await TaskController.create(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, allowedTypes: ['SERWIS'] }));
+    });
+
+    it('should create task successfully for admin', async () => {
+      mockUserRepository.findOne.mockResolvedValue({ id: 1, role: { name: 'admin' } });
+      const mockTask = { id: 1, taskNumber: 'T001', title: 'Test Task', taskType: { name: 'SMW' } };
+      const { TaskService: MockTaskService } = require('../../../src/services/TaskService');
+      MockTaskService.createTask = jest.fn().mockResolvedValue(mockTask);
+      mockUserRepository.find = jest.fn().mockResolvedValue([]);
+
+      req.body = { taskTypeId: 1, title: 'Test Task' };
+
+      await TaskController.create(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    });
+  });
+
+  describe('updateStatus', () => {
+    it('should update task status successfully (200)', async () => {
+      const mockTask = { id: 1, taskNumber: 'T001', status: 'in_progress' };
+      const { TaskService: MockTaskService } = require('../../../src/services/TaskService');
+      MockTaskService.updateTaskStatus = jest.fn().mockResolvedValue(mockTask);
+
+      const mockTaskRepository2 = createMockRepository<Task>();
+      const mockAssignmentRepository = createMockRepository<TaskAssignment>();
+      mockTaskRepository2.findOne = jest.fn().mockResolvedValue(null);
+      mockAssignmentRepository.find = jest.fn().mockResolvedValue([]);
+
+      (AppDataSource.getRepository as jest.Mock).mockReturnValue(mockTaskRepository2);
+
+      req = createMockRequest({ userId: 1 });
+      req.params = { taskNumber: 'T001' };
+      req.body = { status: 'in_progress' };
+
+      await TaskController.updateStatus(req as Request, res as Response);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    });
+
+    it('should return 500 when task not found', async () => {
+      const { TaskService: MockTaskService } = require('../../../src/services/TaskService');
+      MockTaskService.updateTaskStatus = jest.fn().mockRejectedValue(new Error('Zadanie nie znalezione'));
+
+      req = createMockRequest({ userId: 1 });
+      req.params = { taskNumber: 'NOTEXIST' };
+      req.body = { status: 'in_progress' };
+
+      await TaskController.updateStatus(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+  });
+
+  describe('delete', () => {
+    it('should soft-delete task and return 200', async () => {
+      const mockTask = { id: 1, taskNumber: 'T001', deletedAt: null };
+      mockTaskRepository.findOne.mockResolvedValue(mockTask);
+      mockTaskRepository.save.mockResolvedValue({ ...mockTask, deletedAt: new Date() });
+
+      req.params = { taskNumber: 'T001' };
+
+      await TaskController.delete(req as Request, res as Response);
+
+      expect(mockTaskRepository.save).toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    });
+
+    it('should return 404 when task not found', async () => {
+      mockTaskRepository.findOne.mockResolvedValue(null);
+      req.params = { taskNumber: 'NOTEXIST' };
+
+      await TaskController.delete(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+  });
+
+  describe('assign', () => {
+    let mockAssignmentRepository: any;
+    let mockUserRepository: any;
+
+    beforeEach(() => {
+      mockAssignmentRepository = createMockRepository<TaskAssignment>();
+      mockUserRepository = createMockRepository<User>();
+
+      (AppDataSource.getRepository as jest.Mock).mockImplementation((entity) => {
+        if (entity === TaskAssignment) return mockAssignmentRepository;
+        if (entity === User) return mockUserRepository;
+        return mockTaskRepository;
+      });
+    });
+
+    it('should assign users to task and return 200', async () => {
+      const mockTask = { id: 1, taskNumber: 'T001', deletedAt: null, title: 'Test', taskType: { name: 'SMW' } };
+      mockTaskRepository.findOne.mockResolvedValue(mockTask);
+      mockAssignmentRepository.findOne = jest.fn().mockResolvedValue(null);
+      mockAssignmentRepository.create = jest.fn().mockReturnValue({ taskId: 1, userId: 2 });
+      mockAssignmentRepository.save = jest.fn().mockResolvedValue({ taskId: 1, userId: 2 });
+      mockUserRepository.findOne = jest.fn().mockResolvedValue({ id: 2, email: 'user@test.com' });
+
+      req.params = { taskNumber: 'T001' };
+      req.body = { userIds: [2] };
+      req = { ...req, userId: 1 } as any;
+
+      await TaskController.assign(req as Request, res as Response);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    });
+
+    it('should return 404 when task not found', async () => {
+      mockTaskRepository.findOne.mockResolvedValue(null);
+      req.params = { taskNumber: 'NOTEXIST' };
+      req.body = { userIds: [1] };
+
+      await TaskController.assign(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+  });
+
+  describe('getTaskTypes', () => {
+    it('should return all active task types', async () => {
+      const mockTaskTypeRepository = createMockRepository();
+      mockTaskTypeRepository.find = jest.fn().mockResolvedValue([
+        { id: 1, name: 'SMW', code: 'SMW', active: true },
+        { id: 2, name: 'SERWIS', code: 'SERWIS', active: true },
+      ]);
+
+      (AppDataSource.getRepository as jest.Mock).mockReturnValue(mockTaskTypeRepository);
+
+      await TaskController.getTaskTypes(req as Request, res as Response);
+
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        data: expect.arrayContaining([
+          expect.objectContaining({ name: 'SMW' }),
+        ]),
+      });
+    });
+
+    it('should return empty array when no active task types', async () => {
+      const mockTaskTypeRepository = createMockRepository();
+      mockTaskTypeRepository.find = jest.fn().mockResolvedValue([]);
+      (AppDataSource.getRepository as jest.Mock).mockReturnValue(mockTaskTypeRepository);
+
+      await TaskController.getTaskTypes(req as Request, res as Response);
+
+      expect(res.json).toHaveBeenCalledWith({ success: true, data: [] });
+    });
+  });
+
+  describe('getTasksWithGps', () => {
+    it('should return tasks that have GPS coordinates', async () => {
+      const mockQueryBuilder = createMockQueryBuilder<Task>();
+      const mockTasks = [
+        {
+          id: 1, taskNumber: 'T001', title: 'GPS Task',
+          status: 'in_progress', location: 'Warsaw',
+          gpsLatitude: 52.2297, gpsLongitude: 21.0122,
+          googleMapsUrl: 'https://maps.google.com/?q=52.2297,21.0122',
+          taskType: { name: 'SMW' },
+          contract: { contractNumber: 'R0000001_A' },
+        },
+      ] as any[];
+      mockQueryBuilder.getMany.mockResolvedValue(mockTasks);
+      mockTaskRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
+      (AppDataSource.getRepository as jest.Mock).mockReturnValue(mockTaskRepository);
+
+      await TaskController.getTasksWithGps(req as Request, res as Response);
+
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        data: expect.arrayContaining([
+          expect.objectContaining({ gpsLatitude: 52.2297, gpsLongitude: 21.0122 }),
+        ]),
+      });
+    });
+  });
 });

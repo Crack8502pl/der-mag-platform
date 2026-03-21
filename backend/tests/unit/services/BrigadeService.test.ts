@@ -320,4 +320,43 @@ describe('BrigadeService', () => {
       expect(mockQb.andWhere).toHaveBeenCalledWith('member.active = :active', { active: true });
     });
   });
+
+  describe('getUserBrigades', () => {
+    it('should return brigades for a user', async () => {
+      const mockMembers = [
+        { id: 1, userId: 5, active: true, brigade: { id: 1, name: 'Brygada 1' } },
+      ];
+      mockMemberRepository.find.mockResolvedValue(mockMembers);
+
+      const result = await service.getUserBrigades(5);
+      expect(result).toHaveLength(1);
+      expect(mockMemberRepository.find).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 5, active: true } })
+      );
+    });
+  });
+
+  describe('getBrigadeStatistics', () => {
+    it('should return statistics for a brigade', async () => {
+      const mockBrigade = {
+        id: 1,
+        members: [
+          { id: 1, active: true },
+          { id: 2, active: false },
+        ],
+        serviceTasks: [{ id: 1 }, { id: 2 }, { id: 3 }],
+      };
+      mockBrigadeRepository.findOne.mockResolvedValue(mockBrigade);
+
+      const result = await service.getBrigadeStatistics(1);
+      expect(result.totalMembers).toBe(2);
+      expect(result.activeMembers).toBe(1);
+      expect(result.tasksCount).toBe(3);
+    });
+
+    it('should throw when brigade not found', async () => {
+      mockBrigadeRepository.findOne.mockResolvedValue(null);
+      await expect(service.getBrigadeStatistics(99)).rejects.toThrow('Brygada nie znaleziona');
+    });
+  });
 });

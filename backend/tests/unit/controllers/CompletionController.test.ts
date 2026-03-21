@@ -1038,4 +1038,85 @@ describe('CompletionController', () => {
       });
     });
   });
+
+  describe('cancelOrder', () => {
+    it('should cancel an order successfully', async () => {
+      const order = createMockCompletionOrder({ status: CompletionOrderStatus.CREATED });
+      mockOrderRepo.findOne.mockResolvedValue(order);
+      mockOrderRepo.save.mockResolvedValue({ ...order, status: CompletionOrderStatus.CANCELLED });
+      (CompletionService.recalculateAllReservationsForOrder as jest.Mock) = jest.fn().mockResolvedValue(undefined);
+
+      req.params = { id: '1' };
+
+      await CompletionController.cancelOrder(req as Request, res as Response);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    });
+
+    it('should return 404 when order not found', async () => {
+      mockOrderRepo.findOne.mockResolvedValue(null);
+      req.params = { id: '99' };
+
+      await CompletionController.cancelOrder(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+
+    it('should return 400 when order is already completed', async () => {
+      const order = createMockCompletionOrder({ status: CompletionOrderStatus.COMPLETED });
+      mockOrderRepo.findOne.mockResolvedValue(order);
+      req.params = { id: '1' };
+
+      await CompletionController.cancelOrder(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+  });
+
+  describe('getCompletedOrders', () => {
+    it('should return completed orders', async () => {
+      const orders = [createMockCompletionOrder({ status: CompletionOrderStatus.COMPLETED })];
+      (CompletionService.getCompletedOrders as jest.Mock) = jest.fn().mockResolvedValue(orders);
+
+      req.query = {};
+
+      await CompletionController.getCompletedOrders(req as Request, res as Response);
+
+      expect(res.json).toHaveBeenCalledWith({ success: true, data: orders });
+    });
+
+    it('should apply assignedTo and subsystemId filters', async () => {
+      (CompletionService.getCompletedOrders as jest.Mock) = jest.fn().mockResolvedValue([]);
+
+      req.query = { assignedTo: '5', subsystemId: '10' };
+
+      await CompletionController.getCompletedOrders(req as Request, res as Response);
+
+      expect(CompletionService.getCompletedOrders).toHaveBeenCalledWith(
+        expect.objectContaining({ assignedToId: 5, subsystemId: 10 })
+      );
+    });
+  });
+
+  describe('saveIssuedQuantities', () => {
+    it('should save issued quantities successfully', async () => {
+      (CompletionService.saveIssuedQuantities as jest.Mock) = jest.fn().mockResolvedValue(undefined);
+
+      req.params = { id: '1' };
+      req.body = { quantities: { 1: 3, 2: 5 } };
+
+      await CompletionController.saveIssuedQuantities(req as Request, res as Response);
+
+      expect(res.json).toHaveBeenCalledWith({ success: true, message: 'Ilości wydane zapisane' });
+    });
+
+    it('should return 400 when quantities is missing', async () => {
+      req.params = { id: '1' };
+      req.body = {};
+
+      await CompletionController.saveIssuedQuantities(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+  });
 });

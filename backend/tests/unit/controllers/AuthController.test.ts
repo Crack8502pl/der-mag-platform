@@ -12,12 +12,31 @@ import { createMockRepository, createMockQueryBuilder } from '../../mocks/databa
 jest.mock('../../../src/config/database', () => ({
   AppDataSource: {
     getRepository: jest.fn(),
+    createQueryRunner: jest.fn(() => ({
+      connect: jest.fn(),
+      hasTable: jest.fn().mockResolvedValue(false),
+      release: jest.fn(),
+    })),
   },
 }));
 
 jest.mock('../../../src/config/jwt');
 jest.mock('uuid', () => ({
   v4: jest.fn(() => 'test-uuid-1234')
+}));
+
+jest.mock('../../../src/services/EmailService', () => ({
+  __esModule: true,
+  default: {
+    sendPasswordChangedEmail: jest.fn().mockResolvedValue(undefined),
+    initialize: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+jest.mock('../../../src/services/NotificationService', () => ({
+  NotificationService: {
+    sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
+  },
 }));
 
 describe('AuthController', () => {
@@ -429,6 +448,129 @@ describe('AuthController', () => {
         success: false,
         message: 'Użytkownik nie znaleziony',
       });
+    });
+  });
+
+  describe('POST /api/auth/logout-all', () => {
+    it('should revoke all sessions for authenticated user', async () => {
+      mockRefreshTokenRepository.update = jest.fn().mockResolvedValue({ affected: 3 });
+      req = createMockRequest({ userId: 1 });
+
+      await AuthController.logoutAll(req as Request, res as Response);
+
+      expect(mockRefreshTokenRepository.update).toHaveBeenCalledWith(
+        { userId: 1, revoked: false },
+        expect.objectContaining({ revoked: true })
+      );
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+        data: { revokedCount: 3 },
+      }));
+    });
+
+    it('should return 401 when no userId', async () => {
+      req = createMockRequest({ userId: undefined });
+
+      await AuthController.logoutAll(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+  });
+
+  describe('GET /api/auth/sessions', () => {
+    it('should return active sessions for user', async () => {
+      const future = new Date(Date.now() + 1000 * 60 * 60);
+      const sessions = [
+        { tokenId: 'tok1', ipAddress: '127.0.0.1', userAgent: 'Chrome', createdAt: new Date(), expiresAt: future },
+      ];
+      mockRefreshTokenRepository.find = jest.fn().mockResolvedValue(sessions);
+      req = createMockRequest({ userId: 1 });
+
+      await AuthController.getActiveSessions(req as Request, res as Response);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({ count: 1 }),
+      }));
+    });
+
+    it('should return 401 when no userId', async () => {
+      req = createMockRequest({ userId: undefined });
+
+      await AuthController.getActiveSessions(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+  });
+
+  describe('POST /api/auth/change-password', () => {
+    it('should change password successfully', async () => {
+      const mockUser = { id: 1, username: 'user1', email: 'user@test.com', firstName: 'Test', password: 'old', forcePasswordChange: false, role: { name: 'user' }, save: jest.fn() };
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockUserRepository.save.mockResolvedValue(mockUser);
+
+      req = createMockRequest({ userId: 1 });
+      req.body = { newPassword: 'NewPass123', confirmPassword: 'NewPass123' };
+
+      await AuthController.changePassword(req as Request, res as Response);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    });
+
+    it('should return 400 when passwords do not match', async () => {
+      req = createMockRequest({ userId: 1 });
+      req.body = { newPassword: 'Pass1', confirmPassword: 'Pass2' };
+
+      await AuthController.changePassword(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Hasła nie są identyczne' }));
+    });
+
+    it('should return 404 when user not found', async () => {
+      mockUserRepository.findOne.mockResolvedValue(null);
+      req = createMockRequest({ userId: 99 });
+      req.body = { newPassword: 'Pass1', confirmPassword: 'Pass1' };
+
+      await AuthController.changePassword(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+  });
+
+  describe('POST /api/auth/forgot-password', () => {
+    it('should return success even when user not found (security)', async () => {
+      const mockQueryBuilder = createMockQueryBuilder();
+      mockQueryBuilder.getOne.mockResolvedValue(null);
+      mockUserRepository.createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder);
+
+      req.body = { emailOrUsername: 'unknown@test.com' };
+
+      await AuthController.forgotPassword(req as Request, res as Response);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    });
+
+    it('should return 400 when identifier is missing', async () => {
+      req.body = {};
+
+      await AuthController.forgotPassword(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('should reset password when user found', async () => {
+      const mockUser = { id: 1, username: 'user1', email: 'user@test.com', firstName: 'Test', password: 'old', forcePasswordChange: false };
+      const mockQueryBuilder = createMockQueryBuilder();
+      mockQueryBuilder.getOne.mockResolvedValue(mockUser);
+      mockUserRepository.createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder);
+      mockUserRepository.save.mockResolvedValue(mockUser);
+
+      req.body = { emailOrUsername: 'user1' };
+
+      await AuthController.forgotPassword(req as Request, res as Response);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
     });
   });
 });
