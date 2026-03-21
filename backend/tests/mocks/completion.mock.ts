@@ -27,6 +27,8 @@ export const createMockCompletionOrder = (overrides: Partial<CompletionOrder> = 
     pallets: [],
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     completedAt: null as any,
+    completedById: null,
+    completedBy: null as any,
     ...overrides,
   };
   return order;
@@ -47,6 +49,7 @@ export const createMockCompletionItem = (overrides: Partial<CompletionItem> = {}
     taskMaterialId: null,
     expectedQuantity: 10,
     scannedQuantity: 0,
+    issuedQuantity: 0,
     status: CompletionItemStatus.PENDING,
     scannedBarcode: null as any,
     serialNumber: null as any,

@@ -534,4 +534,137 @@ describe('BomSubsystemTemplateService', () => {
       );
     });
   });
+
+  describe('getAllTemplates', () => {
+    it('should return all templates', async () => {
+      const mockQueryBuilder = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([
+          { id: 1, templateName: 'Template 1', items: [] },
+          { id: 2, templateName: 'Template 2', items: [] },
+        ]),
+      };
+
+      const mockBomGroupRepository = createMockRepository();
+      mockBomGroupRepository.find = jest.fn().mockResolvedValue([]);
+
+      mockTemplateRepository.createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder);
+      (AppDataSource.getRepository as jest.Mock).mockImplementation((entity: any) => {
+        if (entity === BomSubsystemTemplate || entity?.name === 'BomSubsystemTemplate') {
+          return mockTemplateRepository;
+        }
+        return mockBomGroupRepository;
+      });
+
+      const result = await BomSubsystemTemplateService.getAllTemplates();
+      expect(result).toHaveLength(2);
+    });
+
+    it('should apply subsystemType filter', async () => {
+      const mockQueryBuilder = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([]),
+      };
+      mockTemplateRepository.createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder);
+      const mockBomGroupRepository = createMockRepository();
+      mockBomGroupRepository.find = jest.fn().mockResolvedValue([]);
+      (AppDataSource.getRepository as jest.Mock).mockImplementation((entity: any) => {
+        if (entity === BomSubsystemTemplate || entity?.name === 'BomSubsystemTemplate') {
+          return mockTemplateRepository;
+        }
+        return mockBomGroupRepository;
+      });
+
+      await BomSubsystemTemplateService.getAllTemplates({ subsystemType: 'SMW' as any });
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'template.subsystemType = :subsystemType',
+        expect.anything()
+      );
+    });
+  });
+
+  describe('getTemplateById', () => {
+    it('should return template when found', async () => {
+      const mockTemplate = { id: 1, templateName: 'Template 1', items: [] };
+      mockTemplateRepository.findOne.mockResolvedValue(mockTemplate);
+      const mockBomGroupRepository = createMockRepository();
+      mockBomGroupRepository.find = jest.fn().mockResolvedValue([]);
+      (AppDataSource.getRepository as jest.Mock).mockImplementation((entity: any) => {
+        if (entity === BomSubsystemTemplate || entity?.name === 'BomSubsystemTemplate') {
+          return mockTemplateRepository;
+        }
+        return mockBomGroupRepository;
+      });
+
+      const result = await BomSubsystemTemplateService.getTemplateById(1);
+      expect(result).toEqual(mockTemplate);
+    });
+
+    it('should return null when not found', async () => {
+      mockTemplateRepository.findOne.mockResolvedValue(null);
+      const mockBomGroupRepository = createMockRepository();
+      mockBomGroupRepository.find = jest.fn().mockResolvedValue([]);
+      (AppDataSource.getRepository as jest.Mock).mockImplementation((entity: any) => {
+        if (entity === BomSubsystemTemplate || entity?.name === 'BomSubsystemTemplate') {
+          return mockTemplateRepository;
+        }
+        return mockBomGroupRepository;
+      });
+
+      const result = await BomSubsystemTemplateService.getTemplateById(99);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('createTemplate', () => {
+    it('should create a new template', async () => {
+      const mockTemplate = { id: 1, templateName: 'New Template', items: [] };
+      mockTemplateRepository.create.mockReturnValue(mockTemplate);
+      mockTemplateRepository.save.mockResolvedValue(mockTemplate);
+
+      const result = await BomSubsystemTemplateService.createTemplate({
+        templateName: 'New Template',
+        subsystemType: 'SMW' as any,
+        createdById: 1,
+        items: [
+          { materialName: 'Cable', catalogNumber: 'CAT001', defaultQuantity: 2 },
+        ],
+      } as any);
+
+      expect(result).toEqual(mockTemplate);
+      expect(mockTemplateRepository.save).toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteTemplate', () => {
+    it('should deactivate template (soft delete)', async () => {
+      const mockTemplate = { id: 1, isActive: true };
+      mockTemplateRepository.findOne.mockResolvedValue(mockTemplate);
+      mockTemplateRepository.save.mockResolvedValue({ ...mockTemplate, isActive: false });
+
+      await BomSubsystemTemplateService.deleteTemplate(1);
+      expect(mockTemplateRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ isActive: false })
+      );
+    });
+
+    it('should throw when template not found', async () => {
+      mockTemplateRepository.findOne.mockResolvedValue(null);
+      await expect(BomSubsystemTemplateService.deleteTemplate(99)).rejects.toThrow('Template not found');
+    });
+  });
+
+  describe('generateCsvTemplate', () => {
+    it('should return a CSV template string', () => {
+      const result = BomSubsystemTemplateService.generateCsvTemplate();
+      expect(typeof result).toBe('string');
+      expect(result.length).toBeGreaterThan(0);
+    });
+  });
 });

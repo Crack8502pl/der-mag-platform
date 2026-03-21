@@ -158,4 +158,44 @@ describe('MetricsService', () => {
       expect(result).toEqual([]);
     });
   });
+
+  describe('getUserStats', () => {
+    it('should return stats for a user', async () => {
+      const mockQb = createMockQueryBuilder<Task>();
+      mockAssignmentRepository.count = jest.fn().mockResolvedValue(5);
+      mockAssignmentRepository.find = jest.fn().mockResolvedValue([
+        { userId: 1, taskId: 10 },
+        { userId: 1, taskId: 20 },
+      ]);
+      mockTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockQb);
+      mockQb.getCount.mockResolvedValueOnce(2).mockResolvedValueOnce(1);
+
+      const result = await MetricsService.getUserStats(1);
+      expect(result.assignedTasks).toBe(5);
+      expect(result.completedTasks).toBe(2);
+    });
+
+    it('should return zeroed stats when user has no assignments', async () => {
+      mockAssignmentRepository.count = jest.fn().mockResolvedValue(0);
+      mockAssignmentRepository.find = jest.fn().mockResolvedValue([]);
+
+      const result = await MetricsService.getUserStats(1);
+      expect(result.assignedTasks).toBe(0);
+      expect(result.completedTasks).toBe(0);
+    });
+  });
+
+  describe('getDailyStats', () => {
+    it('should return daily stats for last 30 days', async () => {
+      const mockQb = createMockQueryBuilder<Task>();
+      mockQb.getRawMany = jest.fn().mockResolvedValue([
+        { date: '2025-01-01', count: '3' },
+        { date: '2025-01-02', count: '5' },
+      ]);
+      mockTaskRepository.createQueryBuilder = jest.fn().mockReturnValue(mockQb);
+
+      const result = await MetricsService.getDailyStats(30);
+      expect(result).toHaveLength(2);
+    });
+  });
 });

@@ -280,4 +280,177 @@ describe('ContractService', () => {
       });
     });
   });
+
+  describe('generateContractNumber', () => {
+    it('should generate first contract number R0000001_A when no contracts exist', async () => {
+      mockQueryBuilder.getOne.mockResolvedValue(null);
+      mockContractRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
+      const result = await contractService.generateContractNumber();
+      expect(result).toBe('R0000001_A');
+    });
+
+    it('should increment existing contract number', async () => {
+      mockQueryBuilder.getOne.mockResolvedValue({ contractNumber: 'R0000005_A' });
+      mockContractRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
+      const result = await contractService.generateContractNumber();
+      expect(result).toBe('R0000006_A');
+    });
+  });
+
+  describe('createContract', () => {
+    it('should create a contract with generated number', async () => {
+      mockQueryBuilder.getOne.mockResolvedValue(null);
+      mockContractRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      mockContractRepository.findOne.mockResolvedValue(null);
+
+      const mockUser = { id: 1, username: 'manager' };
+      const mockContract = { id: 1, contractNumber: 'R0000001_A', customName: 'Test', status: 'CREATED' };
+      mockContractRepository.create.mockReturnValue(mockContract);
+      mockContractRepository.save.mockResolvedValue(mockContract);
+
+      const mockUserRepository = createMockRepository();
+      mockUserRepository.findOne = jest.fn().mockResolvedValue(mockUser);
+      (AppDataSource.getRepository as jest.Mock).mockImplementation((entity) => {
+        if (entity.name === 'User' || (entity && entity.toString().includes('User'))) {
+          return mockUserRepository;
+        }
+        return mockContractRepository;
+      });
+
+      const result = await contractService.createContract({
+        customName: 'Test',
+        orderDate: new Date('2026-01-01'),
+        managerCode: 'ABC',
+        projectManagerId: 1,
+      });
+
+      expect(result).toEqual(mockContract);
+    });
+
+    it('should throw on duplicate contract number', async () => {
+      mockQueryBuilder.getOne.mockResolvedValue(null);
+      mockContractRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      mockContractRepository.findOne.mockResolvedValue({ id: 1, contractNumber: 'R0000001_A' });
+
+      await expect(
+        contractService.createContract({
+          contractNumber: 'R0000001_A',
+          customName: 'Test',
+          orderDate: new Date('2026-01-01'),
+          managerCode: 'ABC',
+          projectManagerId: 1,
+        })
+      ).rejects.toThrow('już istnieje');
+    });
+  });
+
+  describe('getContractById', () => {
+    it('should return a contract when found', async () => {
+      const mockContract = { id: 1, contractNumber: 'R0000001_A' };
+      mockContractRepository.findOne.mockResolvedValue(mockContract);
+
+      const result = await contractService.getContractById(1);
+      expect(result).toEqual(mockContract);
+    });
+
+    it('should return null when not found', async () => {
+      mockContractRepository.findOne.mockResolvedValue(null);
+
+      const result = await contractService.getContractById(99);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getContractByNumber', () => {
+    it('should return a contract by number', async () => {
+      const mockContract = { id: 1, contractNumber: 'R0000001_A' };
+      mockContractRepository.findOne.mockResolvedValue(mockContract);
+
+      const result = await contractService.getContractByNumber('R0000001_A');
+      expect(result).toEqual(mockContract);
+    });
+
+    it('should return null when not found', async () => {
+      mockContractRepository.findOne.mockResolvedValue(null);
+
+      const result = await contractService.getContractByNumber('R9999999_Z');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('updateContract', () => {
+    it('should update and return the contract', async () => {
+      const existing = { id: 1, contractNumber: 'R0000001_A', customName: 'Old', subsystems: [] };
+      const updated = { ...existing, customName: 'New' };
+      mockContractRepository.findOne.mockResolvedValue(existing);
+      mockContractRepository.save.mockResolvedValue(updated);
+
+      const result = await contractService.updateContract(1, { customName: 'New' } as any);
+      expect(result.customName).toBe('New');
+    });
+
+    it('should throw when contract not found', async () => {
+      mockContractRepository.findOne.mockResolvedValue(null);
+
+      await expect(contractService.updateContract(99, {} as any)).rejects.toThrow('Kontrakt nie znaleziony');
+    });
+  });
+
+  describe('approveContract', () => {
+    it('should approve a contract in CREATED status', async () => {
+      const existing = { id: 1, contractNumber: 'R0000001_A', status: 'CREATED', subsystems: [] };
+      const approved = { ...existing, status: 'APPROVED' };
+      mockContractRepository.findOne.mockResolvedValue(existing);
+      mockContractRepository.save.mockResolvedValue(approved);
+
+      const result = await contractService.approveContract(1);
+      expect(result.status).toBe('APPROVED');
+    });
+
+    it('should throw when contract status is not CREATED', async () => {
+      mockContractRepository.findOne.mockResolvedValue({ id: 1, status: 'APPROVED', subsystems: [] });
+
+      await expect(contractService.approveContract(1)).rejects.toThrow('CREATED');
+    });
+
+    it('should throw when contract not found', async () => {
+      mockContractRepository.findOne.mockResolvedValue(null);
+
+      await expect(contractService.approveContract(99)).rejects.toThrow('Kontrakt nie znaleziony');
+    });
+  });
+
+  describe('deleteContract', () => {
+    it('should delete a contract with no subsystems', async () => {
+      const contract = { id: 1, contractNumber: 'R0000001_A', subsystems: [] };
+      mockContractRepository.findOne.mockResolvedValue(contract);
+      mockContractRepository.remove.mockResolvedValue(undefined);
+
+      await expect(contractService.deleteContract(1)).resolves.toBeUndefined();
+      expect(mockContractRepository.remove).toHaveBeenCalledWith(contract);
+    });
+
+    it('should throw when contract not found', async () => {
+      mockContractRepository.findOne.mockResolvedValue(null);
+
+      await expect(contractService.deleteContract(99)).rejects.toThrow('Kontrakt nie znaleziony');
+    });
+  });
+
+  describe('getStats', () => {
+    it('should return contract stats grouped by status', async () => {
+      mockContractRepository.find.mockResolvedValue([
+        { status: 'CREATED' },
+        { status: 'CREATED' },
+        { status: 'APPROVED' },
+      ]);
+
+      const result = await contractService.getStats();
+      expect(result.total).toBe(3);
+      expect(result.byStatus['CREATED']).toBe(2);
+      expect(result.byStatus['APPROVED']).toBe(1);
+    });
+  });
 });

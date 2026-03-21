@@ -151,4 +151,93 @@ describe('BomTriggerService', () => {
       expect(actions[0]).toHaveProperty('description');
     });
   });
+
+  describe('updateTrigger', () => {
+    it('should update an existing trigger', async () => {
+      const mockTrigger = { id: 1, name: 'Old Name', isActive: true };
+      const updatedTrigger = { ...mockTrigger, name: 'New Name' };
+      mockTriggerRepository.findOne.mockResolvedValue(mockTrigger);
+      mockTriggerRepository.save.mockResolvedValue(updatedTrigger);
+
+      const result = await BomTriggerService.updateTrigger(1, { name: 'New Name' } as any);
+      expect(result.name).toBe('New Name');
+    });
+
+    it('should throw when trigger not found', async () => {
+      mockTriggerRepository.findOne.mockResolvedValue(null);
+
+      await expect(BomTriggerService.updateTrigger(99, {} as any)).rejects.toThrow(
+        'Trigger nie znaleziony'
+      );
+    });
+  });
+
+  describe('deleteTrigger', () => {
+    it('should deactivate trigger (soft delete)', async () => {
+      const mockTrigger = { id: 1, isActive: true };
+      mockTriggerRepository.findOne.mockResolvedValue(mockTrigger);
+      mockTriggerRepository.save.mockResolvedValue({ ...mockTrigger, isActive: false });
+
+      await BomTriggerService.deleteTrigger(1);
+      expect(mockTriggerRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ isActive: false })
+      );
+    });
+
+    it('should throw when trigger not found', async () => {
+      mockTriggerRepository.findOne.mockResolvedValue(null);
+
+      await expect(BomTriggerService.deleteTrigger(99)).rejects.toThrow('Trigger nie znaleziony');
+    });
+  });
+
+  describe('executeTriggers', () => {
+    it('should execute all active triggers matching the event', async () => {
+      const mockTrigger = {
+        id: 1,
+        triggerEvent: 'ON_STATUS_CHANGE',
+        isActive: true,
+        triggerCondition: null,
+        triggerAction: 'NOTIFY',
+        actionParams: {},
+        name: 'Test Trigger',
+      };
+      mockTriggerRepository.find = jest.fn().mockResolvedValue([mockTrigger]);
+      mockLogRepository.create = jest.fn().mockReturnValue({});
+      mockLogRepository.save = jest.fn().mockResolvedValue({});
+
+      // Mock the private executeNotify method via spying on the email call
+      jest.spyOn(BomTriggerService as any, 'executeNotify').mockResolvedValue(undefined);
+
+      await BomTriggerService.executeTriggers('ON_STATUS_CHANGE' as any, { taskId: 1, status: 'completed' });
+
+      // Should not throw
+    });
+
+    it('should handle empty triggers list gracefully', async () => {
+      mockTriggerRepository.find = jest.fn().mockResolvedValue([]);
+
+      await expect(
+        BomTriggerService.executeTriggers('ON_STATUS_CHANGE' as any, {})
+      ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('getTriggerLogs', () => {
+    it('should return trigger logs', async () => {
+      const mockLogs = [{ id: 1, triggerId: 1 }, { id: 2, triggerId: 1 }];
+      mockLogRepository.find = jest.fn().mockResolvedValue(mockLogs);
+
+      const result = await BomTriggerService.getTriggerLogs(1, 10);
+      expect(result).toHaveLength(2);
+    });
+
+    it('should return all logs when no triggerId provided', async () => {
+      const mockLogs = [{ id: 1 }, { id: 2 }, { id: 3 }];
+      mockLogRepository.find = jest.fn().mockResolvedValue(mockLogs);
+
+      const result = await BomTriggerService.getTriggerLogs();
+      expect(result).toHaveLength(3);
+    });
+  });
 });
