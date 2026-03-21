@@ -5,6 +5,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import taskService from '../../services/task.service';
 import { BOMConfigModal } from './BOMConfigModal';
 import { SMOKConfigModal } from './SMOKConfigModal';
+import { LocationPicker } from '../common/LocationPicker';
+import type { GPSCoordinates } from '../../hooks/useGoogleMaps';
 import type { Task, TaskType, UpdateTaskDto } from '../../types/task.types';
 
 interface Props {
@@ -22,7 +24,10 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
     location: task.location || '',
     client: task.client || '',
     contractNumber: task.contractNumber || '',
-    priority: task.priority || 0
+    priority: task.priority || 0,
+    googleMapsUrl: task.googleMapsUrl || '',
+    gpsLatitude: task.gpsLatitude ?? null,
+    gpsLongitude: task.gpsLongitude ?? null,
   });
 
   const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);
@@ -186,6 +191,33 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
                 onChange={(e) => handleChange('location', e.target.value)}
                 placeholder="Np. Warszawa, ul. Marszałkowska 1"
               />
+            </div>
+
+            <div className="form-group">
+              <label>Link Google Maps / GPS</label>
+              <LocationPicker
+                googleMapsUrl={formData.googleMapsUrl || ''}
+                value={
+                  formData.gpsLatitude != null && formData.gpsLongitude != null
+                    ? { lat: formData.gpsLatitude, lon: formData.gpsLongitude }
+                    : null
+                }
+                onChange={(coords: GPSCoordinates | null) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    gpsLatitude: coords?.lat ?? null,
+                    gpsLongitude: coords?.lon ?? null,
+                  }));
+                }}
+                onGoogleMapsUrlChange={(url: string) => {
+                  setFormData(prev => ({ ...prev, googleMapsUrl: url }));
+                }}
+                placeholder="Wklej link Google Maps lub współrzędne GPS"
+                showNavigationButton={true}
+              />
+              <small className="form-help">
+                Obsługiwane: pełny link Google Maps, skrócony link (maps.app.goo.gl), współrzędne (52.2297, 21.0122)
+              </small>
             </div>
 
             <div className="form-group">
