@@ -93,6 +93,24 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
   const getCurrentStepInfo = () => getStepInfo(currentStep);
 
+  const getValidationHint = (): string => {
+    const stepInfo = getCurrentStepInfo();
+
+    if (stepInfo.type === 'basic') {
+      if (!wizardData.customName) return 'Podaj nazwę kontraktu';
+      if (!wizardData.orderDate) return 'Wybierz datę zamówienia';
+      if (!wizardData.projectManagerId) return 'Wybierz kierownika projektu';
+      if (!wizardData.managerCode || wizardData.managerCode.length < 1) return 'Podaj kod kierownika (1-5 znaków)';
+    }
+    if (stepInfo.type === 'selection') {
+      return 'Wybierz co najmniej jeden podsystem';
+    }
+    if (stepInfo.type === 'details') {
+      return 'Uzupełnij wymagane pola zadań';
+    }
+    return '';
+  };
+
   const handleNextStep = () => {
     const stepInfo = getCurrentStepInfo();
     
@@ -500,13 +518,18 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
             )}
             <div className="footer-spacer"></div>
             {stepInfo.type !== 'preview' && (
-              <button 
-                className="btn btn-primary" 
-                onClick={handleNextStep}
-                disabled={!canProceed()}
-              >
-                Dalej →
-              </button>
+              <div className="next-button-container">
+                <button 
+                  className="btn btn-primary" 
+                  onClick={handleNextStep}
+                  disabled={!canProceed()}
+                >
+                  Dalej →
+                </button>
+                {!canProceed() && getValidationHint() && (
+                  <span className="validation-hint">⚠️ {getValidationHint()}</span>
+                )}
+              </div>
             )}
             {stepInfo.type === 'preview' && (
               <button 

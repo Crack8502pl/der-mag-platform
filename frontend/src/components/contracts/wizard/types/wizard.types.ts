@@ -19,6 +19,9 @@ export interface TaskDetail {
   nazwa?: string;
   miejscowosc?: string;
   smwCabinets?: Array<{ type: string; name: string }>;
+  liniaKolejowa?: string;
+  gpsLatitude?: string;
+  gpsLongitude?: string;
 }
 
 export interface SubsystemWizardData {
