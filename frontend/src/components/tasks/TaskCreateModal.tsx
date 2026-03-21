@@ -3,6 +3,8 @@
 
 import React, { useState, useEffect } from 'react';
 import taskService from '../../services/task.service';
+import { LocationPicker } from '../common/LocationPicker';
+import type { GPSCoordinates } from '../../hooks/useGoogleMaps';
 import type { TaskType, CreateTaskDto } from '../../types/task.types';
 
 interface Props {
@@ -19,7 +21,10 @@ export const TaskCreateModal: React.FC<Props> = ({ onClose, onSuccess }) => {
     location: '',
     client: '',
     contractNumber: '',
-    priority: 2 // DEFAULT: Normalny
+    priority: 2, // DEFAULT: Normalny
+    googleMapsUrl: '',
+    gpsLatitude: null,
+    gpsLongitude: null,
   });
 
   const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);
@@ -129,6 +134,33 @@ export const TaskCreateModal: React.FC<Props> = ({ onClose, onSuccess }) => {
                 onChange={(e) => handleChange('location', e.target.value)}
                 placeholder="Np. Warszawa, ul. Marszałkowska 1"
               />
+            </div>
+
+            <div className="form-group">
+              <label>Link Google Maps / GPS</label>
+              <LocationPicker
+                googleMapsUrl={formData.googleMapsUrl || ''}
+                value={
+                  formData.gpsLatitude != null && formData.gpsLongitude != null
+                    ? { lat: formData.gpsLatitude, lon: formData.gpsLongitude }
+                    : null
+                }
+                onChange={(coords: GPSCoordinates | null) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    gpsLatitude: coords?.lat ?? null,
+                    gpsLongitude: coords?.lon ?? null,
+                  }));
+                }}
+                onGoogleMapsUrlChange={(url: string) => {
+                  setFormData(prev => ({ ...prev, googleMapsUrl: url }));
+                }}
+                placeholder="Wklej link Google Maps lub współrzędne GPS"
+                showNavigationButton={false}
+              />
+              <small className="form-help">
+                Obsługiwane: pełny link Google Maps, skrócony link (maps.app.goo.gl), współrzędne (52.2297, 21.0122)
+              </small>
             </div>
 
             <div className="form-group">

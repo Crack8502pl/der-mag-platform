@@ -49,6 +49,9 @@ export interface Task {
   assignments?: TaskAssignment[];
   createdAt: string;
   updatedAt: string;
+  gpsLatitude?: number | null;
+  gpsLongitude?: number | null;
+  googleMapsUrl?: string | null;
 }
 
 export interface CreateTaskDto {
@@ -65,6 +68,9 @@ export interface CreateTaskDto {
   plannedEndDate?: Date;
   priority?: number;
   metadata?: Record<string, any>;
+  gpsLatitude?: number | null;
+  gpsLongitude?: number | null;
+  googleMapsUrl?: string | null;
 }
 
 export interface UpdateTaskDto {
@@ -83,6 +89,9 @@ export interface UpdateTaskDto {
   actualEndDate?: Date;
   priority?: number;
   metadata?: Record<string, any>;
+  gpsLatitude?: number | null;
+  gpsLongitude?: number | null;
+  googleMapsUrl?: string | null;
 }
 
 export interface TaskFilters {
