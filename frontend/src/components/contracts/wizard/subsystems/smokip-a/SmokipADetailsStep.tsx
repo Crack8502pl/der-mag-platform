@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { SubsystemWizardData, TaskDetail } from '../../types/wizard.types';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../../config/subsystemWizardConfig';
-import { OPTIONAL_KILOMETRAZ_HELP } from '../../utils/validation';
+import { OPTIONAL_KILOMETRAZ_HELP, formatLiniaKolejowa } from '../../utils/validation';
+import { useGoogleMaps } from '../../../../../hooks/useGoogleMaps';
 
 interface SmokipADetailsStepProps {
   subsystem: SubsystemWizardData;
@@ -27,6 +28,84 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
 }) => {
   const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
   const taskDetails = subsystem.taskDetails || [];
+  const { parseUrl, parseUrlLocal, loading: gpsLoading } = useGoogleMaps();
+  const [gpsInputValues, setGpsInputValues] = useState<Record<number, string>>({});
+
+  const handleGpsInputChange = async (taskIndex: number, value: string) => {
+    setGpsInputValues(prev => ({ ...prev, [taskIndex]: value }));
+
+    if (value.includes('google.com/maps') || value.includes('goo.gl/maps') || value.includes('maps.app.goo.gl')) {
+      try {
+        const localResult = parseUrlLocal(value);
+        if (localResult) {
+          onUpdateTask(subsystemIndex, taskIndex, {
+            gpsLatitude: localResult.lat.toFixed(6),
+            gpsLongitude: localResult.lon.toFixed(6)
+          });
+          return;
+        }
+        const result = await parseUrl(value);
+        if (result?.coordinates) {
+          onUpdateTask(subsystemIndex, taskIndex, {
+            gpsLatitude: result.coordinates.lat.toFixed(6),
+            gpsLongitude: result.coordinates.lon.toFixed(6)
+          });
+        }
+      } catch (err) {
+        console.error('Błąd parsowania linku Google Maps:', err);
+      }
+    } else if (value.match(/^[-0-9.]+\s*,\s*[-0-9.]+$/)) {
+      const parts = value.split(',').map(s => s.trim());
+      if (parts.length === 2) {
+        const lat = parseFloat(parts[0]);
+        const lon = parseFloat(parts[1]);
+        if (!isNaN(lat) && !isNaN(lon)) {
+          onUpdateTask(subsystemIndex, taskIndex, {
+            gpsLatitude: lat.toFixed(6),
+            gpsLongitude: lon.toFixed(6)
+          });
+        }
+      }
+    }
+  };
+
+  const handleGetCurrentLocation = (taskIndex: number) => {
+    if (!navigator.geolocation) {
+      alert('Geolokalizacja nie jest wspierana przez tę przeglądarkę');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        onUpdateTask(subsystemIndex, taskIndex, {
+          gpsLatitude: position.coords.latitude.toFixed(6),
+          gpsLongitude: position.coords.longitude.toFixed(6)
+        });
+        setGpsInputValues(prev => ({ ...prev, [taskIndex]: '' }));
+      },
+      (error) => {
+        const msg = error.code === error.PERMISSION_DENIED
+          ? 'Brak uprawnień do geolokalizacji. Zezwól na dostęp do lokalizacji w ustawieniach przeglądarki.'
+          : error.code === error.POSITION_UNAVAILABLE
+            ? 'Lokalizacja jest niedostępna. Spróbuj ponownie.'
+            : 'Nie udało się pobrać lokalizacji. Spróbuj ponownie.';
+        alert(msg);
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
+  const handleLiniaKolejowaBlur = (taskIndex: number, value: string) => {
+    if (value.trim()) {
+      const formatted = formatLiniaKolejowa(value);
+      onUpdateTask(subsystemIndex, taskIndex, { liniaKolejowa: formatted });
+    }
+  };
+
+  const openInGoogleMaps = (lat: string, lon: string) => {
+    if (lat && lon) {
+      window.open(`https://www.google.com/maps?q=${lat},${lon}`, '_blank');
+    }
+  };
 
   const describedTasks = taskDetails.filter(detail => {
     if (detail.taskType === 'PRZEJAZD_KAT_A') {
@@ -57,6 +136,71 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
               >
                 🗑️
               </button>
+            </div>
+
+            <div className="task-fields task-fields-common">
+              <div className="form-group">
+                <label>Linia kolejowa <span className="text-muted">(opcjonalne)</span></label>
+                <input
+                  type="text"
+                  placeholder="np. LK-221, E-20"
+                  value={detail.liniaKolejowa || ''}
+                  onChange={(e) => onUpdateTask(subsystemIndex, idx, { liniaKolejowa: e.target.value })}
+                  onBlur={(e) => handleLiniaKolejowaBlur(idx, e.target.value)}
+                />
+                <small className="form-help">Format: LK-XXX lub E-XX (auto-normalizacja)</small>
+              </div>
+
+              <div className="form-group">
+                <label>Lokalizacja GPS <span className="text-muted">(opcjonalne)</span></label>
+                <div className="gps-input-wrapper">
+                  <input
+                    type="text"
+                    placeholder="Wklej link Google Maps lub współrzędne (lat, lon)"
+                    value={gpsInputValues[idx] || ''}
+                    onChange={(e) => handleGpsInputChange(idx, e.target.value)}
+                    className="gps-url-input"
+                  />
+                  <button
+                    type="button"
+                    className="btn-icon btn-gps"
+                    onClick={() => handleGetCurrentLocation(idx)}
+                    title="Użyj aktualnej lokalizacji"
+                    disabled={gpsLoading}
+                  >
+                    📍
+                  </button>
+                </div>
+                {(detail.gpsLatitude || detail.gpsLongitude) && (
+                  <div className="gps-coordinates-display">
+                    <span className="gps-coords">
+                      📌 {detail.gpsLatitude}, {detail.gpsLongitude}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn-link"
+                      onClick={() => openInGoogleMaps(detail.gpsLatitude!, detail.gpsLongitude!)}
+                      title="Otwórz w Google Maps"
+                    >
+                      🗺️ Otwórz mapę
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-link btn-danger-link"
+                      onClick={() => {
+                        onUpdateTask(subsystemIndex, idx, { gpsLatitude: undefined, gpsLongitude: undefined });
+                        setGpsInputValues(prev => ({ ...prev, [idx]: '' }));
+                      }}
+                      title="Usuń lokalizację"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+                <small className="form-help">
+                  Obsługiwane formaty: link Google Maps (także skrócony), współrzędne "52.2297, 21.0122"
+                </small>
+              </div>
             </div>
 
             {detail.taskType === 'PRZEJAZD_KAT_A' && (
