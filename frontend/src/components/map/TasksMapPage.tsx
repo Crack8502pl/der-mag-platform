@@ -8,6 +8,7 @@ import 'leaflet/dist/leaflet.css';
 import { BackButton } from '../common/BackButton';
 import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
+import { getTileProvider } from '../../config/mapConfig';
 import { api } from '../../services/api';
 import './TasksMapPage.css';
 
@@ -77,6 +78,7 @@ export const TasksMapPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile());
   const [selectedTask, setSelectedTask] = useState<TaskWithGps | null>(null);
+  const tileProvider = getTileProvider();
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -198,8 +200,9 @@ export const TasksMapPage: React.FC = () => {
                 scrollWheelZoom
               >
                 <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution={tileProvider.attribution}
+                  url={tileProvider.url}
+                  maxZoom={tileProvider.maxZoom}
                 />
                 <FlyToTask task={selectedTask} />
                 <FitAllMarkers tasks={tasks} selectedTask={selectedTask} />

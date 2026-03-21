@@ -44,6 +44,8 @@ import symfoniaIntegrationRoutes from './symfoniaIntegration.routes';
 import symfoniaSyncRoutes from './symfoniaSync.routes';
 // Google Maps routes
 import mapsRoutes from './maps.routes';
+// Tile proxy routes
+import tilesRoutes from './tiles.routes';
 
 const router = Router();
 
@@ -101,6 +103,9 @@ router.use('/admin/symfonia-sync', symfoniaSyncRoutes);
 
 // Google Maps routes
 router.use('/maps', mapsRoutes);
+
+// Tile proxy routes
+router.use('/tiles', tilesRoutes);
 
 // Admin routes
 router.use('/admin', adminRoutes);
