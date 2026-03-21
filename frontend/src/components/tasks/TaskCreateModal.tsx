@@ -142,7 +142,7 @@ export const TaskCreateModal: React.FC<Props> = ({ onClose, onSuccess }) => {
                 googleMapsUrl={formData.googleMapsUrl || ''}
                 value={
                   formData.gpsLatitude != null && formData.gpsLongitude != null
-                    ? { lat: formData.gpsLatitude, lon: formData.gpsLongitude }
+                    ? { lat: Number(formData.gpsLatitude), lon: Number(formData.gpsLongitude) }
                     : null
                 }
                 onChange={(coords: GPSCoordinates | null) => {
