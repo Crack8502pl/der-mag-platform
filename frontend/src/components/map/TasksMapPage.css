@@ -5,9 +5,10 @@
 .map-page {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
   background: var(--bg-dark);
   color: var(--text-primary);
+  overflow: hidden;
 }
 
 /* Header - sticky, orange border bottom */
@@ -82,7 +83,7 @@
   flex: 1;
   min-height: 0;
   position: relative;
-  height: calc(100vh - 65px);
+  overflow: hidden;
 }
 
 /* Sidebar */
