@@ -474,6 +474,90 @@ a:hover {
   background: rgba(88,166,255,0.25);
 }
 
+.gps-input-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.gps-input-wrapper .gps-url-input {
+  flex: 1;
+}
+
+.gps-input-wrapper .btn-gps {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  background: rgba(88,166,255,0.15);
+  border: 1px solid rgba(88,166,255,0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gps-input-wrapper .btn-gps:hover:not(:disabled) {
+  background: rgba(88,166,255,0.25);
+}
+
+.gps-input-wrapper .btn-gps:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gps-coordinates-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(46, 160, 67, 0.1);
+  border: 1px solid rgba(46, 160, 67, 0.2);
+  border-radius: 6px;
+  flex-wrap: wrap;
+}
+
+.gps-coordinates-display .gps-coords {
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #3fb950;
+}
+
+.gps-coordinates-display .btn-link {
+  background: none;
+  border: none;
+  color: #58a6ff;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.gps-coordinates-display .btn-link:hover {
+  background: rgba(88, 166, 255, 0.15);
+}
+
+.gps-coordinates-display .btn-danger-link {
+  color: #f85149;
+}
+
+.gps-coordinates-display .btn-danger-link:hover {
+  background: rgba(248, 81, 73, 0.15);
+}
+
+.modal-wizard .task-fields-common .form-group {
+  margin-bottom: 12px;
+}
+
+.modal-wizard .task-fields-common .form-group:last-child {
+  margin-bottom: 0;
+}
+
 .wizard-success {
   text-align: center;
   padding: 40px 24px;
