@@ -173,4 +173,29 @@ describe('GoogleMapsService', () => {
       expect(spy).toHaveBeenCalledWith('https://goo.gl/maps/xyz');
     });
   });
+
+  describe('calculateDistance', () => {
+    it('should calculate distance between two points', () => {
+      const point1 = { lat: 52.2297, lon: 21.0122 }; // Warsaw
+      const point2 = { lat: 50.0614, lon: 19.9366 }; // Krakow
+      const distance = service.calculateDistance(point1, point2);
+      // Warsaw to Krakow is approximately 251 km
+      expect(distance).toBeGreaterThan(240);
+      expect(distance).toBeLessThan(260);
+    });
+
+    it('should return 0 for same point', () => {
+      const point = { lat: 52.2297, lon: 21.0122 };
+      const distance = service.calculateDistance(point, point);
+      expect(distance).toBe(0);
+    });
+
+    it('should calculate symmetric distance', () => {
+      const point1 = { lat: 52.2297, lon: 21.0122 };
+      const point2 = { lat: 50.0614, lon: 19.9366 };
+      const d1 = service.calculateDistance(point1, point2);
+      const d2 = service.calculateDistance(point2, point1);
+      expect(Math.abs(d1 - d2)).toBeLessThan(0.001);
+    });
+  });
 });
