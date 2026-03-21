@@ -47,6 +47,16 @@ export class GoogleMapsService {
       }
     }
 
+    // Format: /data=...!3d{lat}!4d{lon} (most precise coordinates from place data)
+    const dataMatch = url.match(/!3d([-\d.]+)!4d([-\d.]+)/);
+    if (dataMatch) {
+      const lat = parseFloat(dataMatch[1]);
+      const lon = parseFloat(dataMatch[2]);
+      if (this.validateCoordinates(lat, lon)) {
+        return { lat, lon };
+      }
+    }
+
     // Format: /@lat,lon,zoom or /@lat,lon (place and direct @)
     const atMatch = url.match(/@([-\d.]+),([-\d.]+)/);
     if (atMatch) {
@@ -77,6 +87,16 @@ export class GoogleMapsService {
       const lon = parseFloat(queryMatch[2]);
       if (this.validateCoordinates(lat, lon)) {
         return { coordinates: { lat, lon }, originalUrl: url, isShortened: shortened, parseMethod: 'query' };
+      }
+    }
+
+    // Format: /data=...!3d{lat}!4d{lon} (most precise coordinates from place data)
+    const dataMatch = url.match(/!3d([-\d.]+)!4d([-\d.]+)/);
+    if (dataMatch) {
+      const lat = parseFloat(dataMatch[1]);
+      const lon = parseFloat(dataMatch[2]);
+      if (this.validateCoordinates(lat, lon)) {
+        return { coordinates: { lat, lon }, originalUrl: url, isShortened: shortened, parseMethod: 'place' };
       }
     }
 
