@@ -9,6 +9,7 @@ import { api } from '../../services/api';
 import { useGoogleMaps } from '../../hooks/useGoogleMaps';
 import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
+import { getTileProvider } from '../../config/mapConfig';
 import './TasksMapTile.css';
 
 // Fix dla ikon Leaflet (znany problem z bundlerami webpack/vite)
@@ -61,6 +62,7 @@ export const TasksMapTile: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const { openNavigation, openLocation } = useGoogleMaps();
+  const tileProvider = getTileProvider();
 
   const fetchTasks = useCallback(async () => {
     setLoading(true);
@@ -152,8 +154,9 @@ export const TasksMapTile: React.FC = () => {
             scrollWheelZoom={expanded}
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution={tileProvider.attribution}
+              url={tileProvider.url}
+              maxZoom={tileProvider.maxZoom}
             />
             <FitBounds tasks={tasks} />
             {tasks.map(task => (

@@ -61,3 +61,6 @@ backups/*.sql.gz
 
 # SSL Certificates (generated locally)
 certs/*.pem
+
+# Tile cache
+tile-cache/
