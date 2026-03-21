@@ -49,13 +49,13 @@ export const SuccessStep: React.FC<Props> = ({
       <p><strong>Łącznie: {generatedTasks.length} zadań</strong></p>
       <div className="success-actions">
         <button className="btn btn-secondary" onClick={onClose}>
-          Zamknij
+          Zakończ bez konfiguracji
         </button>
         <button 
           className="btn btn-primary" 
           onClick={handleViewContract}
         >
-          Przejdź do kontraktu
+          🔧 Konfiguruj
         </button>
       </div>
     </div>

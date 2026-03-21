@@ -20,6 +20,7 @@ export interface WizardField {
   label: string;
   type: 'number' | 'text' | 'checkbox';
   dependsOn?: string;
+  optional?: boolean;
 }
 
 export interface SubsystemConfig {
@@ -90,12 +91,11 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
       { name: 'przejazdyKatA', label: '1.1 Ilość przejazdów Kat A', type: 'number' },
       { name: 'iloscSKP', label: '1.2 Ilość SKP', type: 'number' },
       { name: 'iloscNastawni', label: '1.3 Ilość Nastawni', type: 'number' },
-      { name: 'hasLCS', label: '1.4 LCS', type: 'checkbox' },
-      { name: 'lcsMonitory', label: 'Ilość monitorów LCS', type: 'number', dependsOn: 'hasLCS' },
-      { name: 'lcsStanowiska', label: 'Ilość stanowisk LCS', type: 'number', dependsOn: 'hasLCS' },
-      { name: 'hasCUID', label: '1.5 CUID (obecny/nieobecny)', type: 'checkbox' },
-      { name: 'gatewayIP', label: 'Gateway IP', type: 'text' },
-      { name: 'subnetMask', label: 'Subnet Mask', type: 'text' }
+      { name: 'hasLCS', label: '1.4 LCS (obecny)', type: 'checkbox' },
+      { name: 'hasCUID', label: '1.5 CUID (obecny)', type: 'checkbox' },
+      { name: 'gatewayIP', label: 'Gateway IP', type: 'text', optional: true },
+      { name: 'ipPool', label: 'Pula adresowa IP', type: 'text', optional: true },
+      { name: 'subnetMask', label: 'Subnet Mask', type: 'text', optional: true }
     ]
   },
   'SMOKIP_B': {
@@ -103,12 +103,11 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
     fields: [
       { name: 'przejazdyKatB', label: '1.1 Ilość przejazdów Kat B', type: 'number' },
       { name: 'iloscNastawni', label: '1.3 Ilość Nastawni', type: 'number' },
-      { name: 'hasLCS', label: '1.4 LCS', type: 'checkbox' },
-      { name: 'lcsMonitory', label: 'Ilość monitorów LCS', type: 'number', dependsOn: 'hasLCS' },
-      { name: 'lcsStanowiska', label: 'Ilość stanowisk LCS', type: 'number', dependsOn: 'hasLCS' },
-      { name: 'hasCUID', label: '1.5 CUID (obecny/nieobecny)', type: 'checkbox' },
-      { name: 'gatewayIP', label: 'Gateway IP', type: 'text' },
-      { name: 'subnetMask', label: 'Subnet Mask', type: 'text' }
+      { name: 'hasLCS', label: '1.4 LCS (obecny)', type: 'checkbox' },
+      { name: 'hasCUID', label: '1.5 CUID (obecny)', type: 'checkbox' },
+      { name: 'gatewayIP', label: 'Gateway IP', type: 'text', optional: true },
+      { name: 'ipPool', label: 'Pula adresowa IP', type: 'text', optional: true },
+      { name: 'subnetMask', label: 'Subnet Mask', type: 'text', optional: true }
     ]
   },
   'SKD': {

@@ -310,3 +310,213 @@ a:hover {
   margin-bottom: 0;
   font-weight: 500;
 }
+
+/* ============================================================
+   WIZARD MODAL - DELIKATNIEJSZY WYGLĄD
+   ============================================================ */
+
+.modal-wizard {
+  background: #1a1d21;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  max-width: 800px;
+}
+
+.modal-wizard .wizard-step-content {
+  padding: 24px;
+}
+
+.modal-wizard .wizard-step-content h3 {
+  color: #fff;
+  font-weight: 500;
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+}
+
+.modal-wizard .form-group {
+  margin-bottom: 18px;
+}
+
+.modal-wizard .form-group label {
+  color: rgba(255,255,255,0.85);
+  font-weight: 400;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.modal-wizard input,
+.modal-wizard select {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  color: #fff;
+  padding: 10px 14px;
+  width: 100%;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-size: 0.95rem;
+}
+
+.modal-wizard input:focus,
+.modal-wizard select:focus {
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 3px rgba(88,166,255,0.15);
+  outline: none;
+}
+
+.modal-wizard input::placeholder {
+  color: rgba(255,255,255,0.4);
+}
+
+.modal-wizard .task-detail-item {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.modal-wizard .task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.modal-wizard .task-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.modal-wizard .task-fields-common {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed rgba(255,255,255,0.1);
+}
+
+.modal-wizard .btn {
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+}
+
+.modal-wizard .btn-primary {
+  background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+  border: none;
+  color: #fff;
+}
+
+.modal-wizard .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2ea043 0%, #3fb950 100%);
+}
+
+.modal-wizard .btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-wizard .btn-secondary {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+}
+
+.modal-wizard .btn-secondary:hover {
+  background: rgba(255,255,255,0.12);
+}
+
+.next-button-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.validation-hint {
+  font-size: 0.8rem;
+  color: #f85149;
+  font-style: italic;
+}
+
+.gps-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.gps-input-group input {
+  flex: 1;
+}
+
+.gps-input-group .btn-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  background: rgba(88,166,255,0.15);
+  border: 1px solid rgba(88,166,255,0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gps-input-group .btn-icon:hover {
+  background: rgba(88,166,255,0.25);
+}
+
+.wizard-success {
+  text-align: center;
+  padding: 40px 24px;
+}
+
+.wizard-success .success-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+}
+
+.wizard-success .success-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.modal-wizard .form-help {
+  display: block;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.5);
+  margin-top: 4px;
+}
+
+.modal-wizard .detected-subsystem {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(46, 160, 67, 0.15);
+  border: 1px solid rgba(46, 160, 67, 0.3);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #3fb950;
+}
+
+.modal-wizard .optional-fields-section {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px dashed rgba(255,255,255,0.15);
+}
+
+.modal-wizard .optional-fields-section h4 {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.6);
+  font-weight: 400;
+  margin-bottom: 12px;
+}
