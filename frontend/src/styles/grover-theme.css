@@ -582,6 +582,19 @@ a:hover {
   margin-top: 4px;
 }
 
+/* Required field indicator */
+.required {
+  color: #f85149;
+  font-weight: 500;
+  margin-left: 2px;
+}
+
+.modal-wizard .form-group label .text-muted {
+  font-weight: 400;
+  font-size: 0.85em;
+  color: rgba(255,255,255,0.5);
+}
+
 .modal-wizard .detected-subsystem {
   margin-top: 8px;
   padding: 8px 12px;

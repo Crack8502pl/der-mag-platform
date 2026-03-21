@@ -206,7 +206,7 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
             {detail.taskType === 'PRZEJAZD_KAT_A' && (
               <div className="task-fields">
                 <div className="form-group">
-                  <label>Kilometraż *</label>
+                  <label>Kilometraż <span className="required">*</span></label>
                   <input
                     type="text"
                     placeholder="123456"
@@ -217,7 +217,7 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
                   />
                 </div>
                 <div className="form-group">
-                  <label>Kategoria *</label>
+                  <label>Kategoria <span className="required">*</span></label>
                   <select
                     value={detail.kategoria || 'KAT A'}
                     onChange={(e) => onUpdateTask(subsystemIndex, idx, {
@@ -236,7 +236,7 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
             {detail.taskType === 'SKP' && (
               <div className="task-fields">
                 <div className="form-group">
-                  <label>Kilometraż *</label>
+                  <label>Kilometraż <span className="required">*</span></label>
                   <input
                     type="text"
                     placeholder="123456"
@@ -320,22 +320,24 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
             {detail.taskType === 'CUID' && (
               <div className="task-fields">
                 <div className="form-group">
-                  <label>Nazwa</label>
+                  <label>Nazwa <span className="text-muted">(opcjonalnie)</span></label>
                   <input
                     type="text"
-                    placeholder="Nazwa CUID"
+                    placeholder="Pozostaw puste aby skopiować z LCS"
                     value={detail.nazwa || ''}
                     onChange={(e) => onUpdateTask(subsystemIndex, idx, { nazwa: e.target.value })}
                   />
+                  <small className="form-help">Jeśli puste, nazwa zostanie pobrana z LCS</small>
                 </div>
                 <div className="form-group">
-                  <label>Miejscowość</label>
+                  <label>Miejscowość <span className="text-muted">(opcjonalnie)</span></label>
                   <input
                     type="text"
-                    placeholder="Miejscowość"
+                    placeholder="Pozostaw puste aby skopiować z LCS"
                     value={detail.miejscowosc || ''}
                     onChange={(e) => onUpdateTask(subsystemIndex, idx, { miejscowosc: e.target.value })}
                   />
+                  <small className="form-help">Jeśli puste, miejscowość zostanie pobrana z LCS</small>
                 </div>
               </div>
             )}

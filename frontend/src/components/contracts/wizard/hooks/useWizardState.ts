@@ -313,9 +313,9 @@ export const useWizardState = ({
     // Validate required fields for each task type
     for (const detail of subsystem.taskDetails) {
       if (detail.taskType === 'PRZEJAZD_KAT_A' || detail.taskType === 'PRZEJAZD_KAT_B') {
-        if (!detail.kilometraz || !detail.kategoria) return false;
+        if (!detail.kilometraz?.trim() || !detail.kategoria) return false;
       } else if (detail.taskType === 'SKP') {
-        if (!detail.kilometraz) return false;
+        if (!detail.kilometraz?.trim()) return false;
       }
       // For NASTAWNIA, LCS, CUID - allow empty fields (optional)
     }
