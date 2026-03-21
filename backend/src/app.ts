@@ -54,7 +54,14 @@ if (isProduction && !disableCSP) {
           "'self'", 
           "'unsafe-inline'" // 🆕 Allow inline styles
         ],
-        imgSrc: ["'self'", "data:", "blob:"],
+        imgSrc: [
+          "'self'",
+          "data:",
+          "blob:",
+          "https://*.tile.openstreetmap.org", // OpenStreetMap tiles
+          "https://*.openstreetmap.org",       // OSM domain
+          "https://unpkg.com"                  // Leaflet marker icons (fallback)
+        ],
         connectSrc: [
           "'self'",
           "ws:", // 🆕 Allow WebSocket for Vite HMR
