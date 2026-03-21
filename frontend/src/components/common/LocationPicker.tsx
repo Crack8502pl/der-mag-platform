@@ -2,7 +2,8 @@
 // Komponent do wprowadzania i wyświetlania lokalizacji GPS
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { useGoogleMaps, GPSCoordinates } from '../../hooks/useGoogleMaps';
+import { useGoogleMaps } from '../../hooks/useGoogleMaps';
+import type { GPSCoordinates } from '../../hooks/useGoogleMaps';
 import './LocationPicker.css';
 
 interface LocationPickerProps {

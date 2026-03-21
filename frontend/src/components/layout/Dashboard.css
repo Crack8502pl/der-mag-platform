@@ -169,3 +169,8 @@
   margin: 0;
 }
 
+
+/* Sekcja kafelka mapy */
+.dashboard-map-section {
+  margin-top: 24px;
+}
