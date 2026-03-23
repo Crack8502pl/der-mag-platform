@@ -1,0 +1,76 @@
+.pool-form-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.pool-form-modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 480px;
+  padding: 24px;
+}
+
+.pool-form-modal h2 {
+  color: var(--text-primary);
+  margin: 0 0 20px;
+  font-size: 18px;
+}
+
+.pool-form-field {
+  margin-bottom: 16px;
+}
+
+.pool-form-field label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.pool-form-field input,
+.pool-form-field select,
+.pool-form-field textarea {
+  width: 100%;
+  background: var(--bg-primary, var(--bg-secondary));
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 8px 12px;
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.pool-form-field input:focus,
+.pool-form-field select:focus,
+.pool-form-field textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.pool-form-field textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.pool-form-error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.pool-form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}

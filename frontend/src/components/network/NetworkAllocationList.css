@@ -1,0 +1,115 @@
+.allocation-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.allocation-filter-input {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.allocation-filter-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.allocation-table-wrapper {
+  overflow-x: auto;
+}
+
+.allocation-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.allocation-table th {
+  text-align: left;
+  padding: 10px 12px;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border-color);
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--bg-secondary);
+}
+
+.allocation-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.allocation-table tr:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.allocation-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.allocation-badge-smokip {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.allocation-badge-cmokip {
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.allocation-badge-other {
+  background: rgba(156, 163, 175, 0.15);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.allocation-network-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.allocation-network-info code {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.allocation-usage {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.allocation-usage-bar {
+  height: 6px;
+  background: var(--bg-primary, var(--bg-secondary));
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.allocation-usage-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.allocation-usage-fill.green { background: #22c55e; }
+.allocation-usage-fill.blue { background: #3b82f6; }
+.allocation-usage-fill.orange { background: #f97316; }
+.allocation-usage-fill.red { background: #ef4444; }
