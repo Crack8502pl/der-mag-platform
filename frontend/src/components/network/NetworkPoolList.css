@@ -1,0 +1,117 @@
+.pool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pool-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  transition: border-color 0.2s;
+}
+
+.pool-card:hover {
+  border-color: var(--primary-color);
+}
+
+.pool-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pool-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pool-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.pool-cidr {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-family: monospace;
+  background: var(--bg-tertiary, var(--bg-secondary));
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+}
+
+.pool-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+.pool-badge-active {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.pool-badge-inactive {
+  background: rgba(156, 163, 175, 0.15);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.pool-priority {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.pool-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pool-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.pool-utilization {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pool-utilization-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.pool-progress-bar {
+  height: 8px;
+  background: var(--bg-primary, var(--bg-secondary));
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.pool-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.pool-progress-fill.green { background: #22c55e; }
+.pool-progress-fill.blue { background: #3b82f6; }
+.pool-progress-fill.orange { background: #f97316; }
+.pool-progress-fill.red { background: #ef4444; }

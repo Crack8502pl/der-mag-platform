@@ -1,0 +1,78 @@
+.assign-form-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.assign-form-modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 480px;
+  padding: 24px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.assign-form-modal h2 {
+  color: var(--text-primary);
+  margin: 0 0 20px;
+  font-size: 18px;
+}
+
+.assign-form-field {
+  margin-bottom: 16px;
+}
+
+.assign-form-field label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.assign-form-field input,
+.assign-form-field select,
+.assign-form-field textarea {
+  width: 100%;
+  background: var(--bg-primary, var(--bg-secondary));
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 8px 12px;
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.assign-form-field input:focus,
+.assign-form-field select:focus,
+.assign-form-field textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.assign-form-field textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+.assign-form-error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.assign-form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
