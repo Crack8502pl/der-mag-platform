@@ -18,10 +18,12 @@ function getUsageColor(pct: number): string {
 }
 
 function calcUsage(pool: NetworkPool): number {
-  if (!pool.allocations || pool.allocations.length === 0) return 0;
-  const usedHosts = pool.allocations.reduce((s, a) => s + (a.usedHosts || 0), 0);
-  const totalHosts = pool.allocations.reduce((s, a) => s + (a.totalHosts || 0), 0);
-  if (totalHosts === 0) return 0;
+  // Prefer aggregated host statistics on the pool itself rather than relying on
+  // the `allocations` relation, which may not be loaded for list views.
+  const poolWithStats = pool as any;
+  const usedHosts: number = typeof poolWithStats.usedHosts === 'number' ? poolWithStats.usedHosts : 0;
+  const totalHosts: number = typeof poolWithStats.totalHosts === 'number' ? poolWithStats.totalHosts : 0;
+  if (!totalHosts || usedHosts <= 0) return 0;
   return Math.round((usedHosts / totalHosts) * 100);
 }
 
