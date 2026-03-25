@@ -37,7 +37,7 @@ import { SettingsPage } from './components/modules/SettingsPage';
 import { ContractListPage } from './components/contracts/ContractListPage';
 import { ContractDetailPage } from './components/contracts/ContractDetailPage';
 import { WarehouseStockPage } from './components/modules/WarehouseStockPage';
-import { BrigadeListPage } from './components/brigades/BrigadeListPage';
+import { BrigadesPage } from './components/brigades/BrigadesPage';
 import { TasksMapPage } from './components/map/TasksMapPage';
 import { useAuth } from './hooks/useAuth';
 import { useTokenExpirationWarning } from './hooks/useTokenExpirationWarning';
@@ -283,7 +283,7 @@ function App() {
           element={
             <ProtectedRoute>
               <RoleBasedRoute requiredPermission={{ module: 'brigades', action: 'read' }}>
-                <BrigadeListPage />
+                <BrigadesPage />
               </RoleBasedRoute>
             </ProtectedRoute>
           }

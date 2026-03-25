@@ -1,0 +1,286 @@
+/* BrigadesPage.css - Styles for the new brigades module layout */
+
+/* ─── Page Layout ─────────────────────────────────────────────────────── */
+
+.brigades-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg-dark, #1a1a1a);
+  color: var(--text-primary);
+}
+
+.brigades-page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  background: var(--bg-card, #252525);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.module-header-inline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.module-header-inline h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ─── Layout: Sidebar + Main ──────────────────────────────────────────── */
+
+.brigades-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: calc(100vh - 72px);
+}
+
+/* ─── Sidebar ─────────────────────────────────────────────────────────── */
+
+.brigades-sidebar {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 200px;
+  min-width: 200px;
+  background: var(--bg-card, #252525);
+  border-right: 1px solid var(--border-color);
+  transition: width 0.25s ease, min-width 0.25s ease;
+  overflow: hidden;
+  padding: 12px 0;
+}
+
+.brigades-sidebar.collapsed {
+  width: 56px;
+  min-width: 56px;
+}
+
+.brigades-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px;
+}
+
+.brigades-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  text-align: left;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.brigades-sidebar-item:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.05));
+  color: var(--text-primary);
+}
+
+.brigades-sidebar-item.active {
+  background: rgba(255, 107, 53, 0.15);
+  color: var(--primary-color, #ff6b35);
+  border-left: 3px solid var(--primary-color, #ff6b35);
+}
+
+.brigades-sidebar-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  width: 22px;
+  text-align: center;
+}
+
+.brigades-sidebar-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── Toggle Button ───────────────────────────────────────────────────── */
+
+.brigades-sidebar-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 8px);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.brigades-sidebar-toggle:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.05));
+  color: var(--text-primary);
+}
+
+.toggle-icon {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.toggle-label {
+  overflow: hidden;
+}
+
+/* ─── Main Content ────────────────────────────────────────────────────── */
+
+.brigades-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background: var(--bg-dark, #1a1a1a);
+}
+
+.brigades-tab-content {
+  width: 100%;
+}
+
+/* ─── Schedule Columns ────────────────────────────────────────────────── */
+
+.schedule-columns {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+  min-height: 400px;
+}
+
+.schedule-column {
+  min-width: 220px;
+  flex: 1;
+  background: var(--bg-card, #252525);
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 280px);
+}
+
+.schedule-column-unassigned .schedule-column-header {
+  background: rgba(255, 107, 53, 0.12);
+  border-bottom-color: rgba(255, 107, 53, 0.3);
+}
+
+.schedule-column-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  font-weight: 600;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border-color);
+  border-radius: var(--radius-lg, 12px) var(--radius-lg, 12px) 0 0;
+  background: var(--bg-secondary, #2e2e2e);
+  flex-wrap: wrap;
+}
+
+.schedule-column-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schedule-task-card {
+  background: var(--bg-dark, #1a1a1a);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 8px);
+  padding: 10px 12px;
+}
+
+.schedule-task-number {
+  font-size: 11px;
+  color: var(--primary-color, #ff6b35);
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.schedule-task-title {
+  font-size: 13px;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.schedule-task-status {
+  font-size: 11px;
+}
+
+.schedule-empty {
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: center;
+  padding: 20px 0;
+}
+
+/* ─── Modal animation ─────────────────────────────────────────────────── */
+
+@keyframes brigadeModalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.brigade-modal-animate {
+  animation: brigadeModalIn 0.18s ease-out;
+}
+
+/* ─── Responsive ──────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .brigades-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 200;
+    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .brigades-sidebar.collapsed {
+    width: 0;
+    min-width: 0;
+    padding: 0;
+  }
+
+  .brigades-main {
+    padding: 16px;
+  }
+
+  .schedule-columns {
+    flex-direction: column;
+  }
+
+  .schedule-column {
+    min-width: unset;
+    max-height: 300px;
+  }
+}
