@@ -476,22 +476,25 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           onPrev={handlePrevStep}
         />
       ),
-      success: () => (
-        <SuccessStep
-          contractNumber={wizardData.contractNumber}
-          wizardData={wizardData}
-          generatedTasks={generatedTasks}
-          onClose={() => {
-            onSuccess();
-            onClose();
-          }}
-          onRequestShipping={onRequestShipping && createdContractId ? () => {
-            onRequestShipping(createdContractId);
-            onSuccess();
-            onClose();
-          } : undefined}
-        />
-      )
+      success: () => {
+        const contractId = createdContractId || contractToEdit?.id;
+        return (
+          <SuccessStep
+            contractNumber={wizardData.contractNumber}
+            wizardData={wizardData}
+            generatedTasks={generatedTasks}
+            onClose={() => {
+              onSuccess();
+              onClose();
+            }}
+            onRequestShipping={onRequestShipping && contractId ? () => {
+              onSuccess();
+              onClose();
+              onRequestShipping(contractId);
+            } : undefined}
+          />
+        );
+      }
     };
     
     return stepComponents[stepInfo.type]?.() || null;

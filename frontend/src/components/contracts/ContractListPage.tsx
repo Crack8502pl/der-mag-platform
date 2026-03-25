@@ -452,6 +452,9 @@ export const ContractListPage: React.FC = () => {
           contractToEdit={editingContract}
           onClose={() => setEditingContract(null)}
           onSuccess={handleContractUpdated}
+          onRequestShipping={(contractId) => {
+            navigate(`/contracts/${contractId}`);
+          }}
         />
       )}
 
