@@ -488,9 +488,9 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
               onClose();
             }}
             onRequestShipping={onRequestShipping && contractId ? () => {
-              onRequestShipping(contractId);
               onSuccess();
               onClose();
+              onRequestShipping(contractId);
             } : undefined}
           />
         );
