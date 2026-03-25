@@ -1,9 +1,9 @@
-// src/components/brigades/BrigadeCreateModal.tsx
+// src/components/brigades/modals/BrigadeCreateModal.tsx
 // Modal for creating a new brigade - with click outside and Escape key support
 
 import React, { useState, useEffect, useCallback } from 'react';
-import brigadeService from '../../services/brigade.service';
-import type { CreateBrigadeDto } from '../../types/brigade.types';
+import brigadeService from '../../../services/brigade.service';
+import type { CreateBrigadeDto } from '../../../types/brigade.types';
 
 interface BrigadeCreateModalProps {
   onClose: () => void;
@@ -34,7 +34,7 @@ export const BrigadeCreateModal: React.FC<BrigadeCreateModalProps> = ({ onClose,
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.code || !formData.name) {
       setError('Kod i nazwa są wymagane');
       return;
