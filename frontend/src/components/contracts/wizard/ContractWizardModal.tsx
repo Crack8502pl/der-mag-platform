@@ -129,9 +129,32 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     // Initialize taskDetails for SMOKIP when leaving config step
     if (stepInfo.type === 'config' && stepInfo.subsystemIndex !== undefined) {
       const subsystem = wizardData.subsystems[stepInfo.subsystemIndex];
-      if ((subsystem.type === 'SMOKIP_A' || subsystem.type === 'SMOKIP_B') &&
-          (!subsystem.taskDetails || subsystem.taskDetails.length === 0)) {
-        initializeTaskDetails(stepInfo.subsystemIndex);
+      if (subsystem.type === 'SMOKIP_A' || subsystem.type === 'SMOKIP_B') {
+        const params = subsystem.params as Record<string, number | boolean>;
+
+        // Calculate expected task count from current config params
+        let expectedTaskCount = 0;
+        if (subsystem.type === 'SMOKIP_A') {
+          expectedTaskCount += (typeof params.przejazdyKatA === 'number' ? params.przejazdyKatA : 0);
+          expectedTaskCount += (typeof params.iloscSKP === 'number' ? params.iloscSKP : 0);
+          expectedTaskCount += (typeof params.iloscNastawni === 'number' ? params.iloscNastawni : 0);
+          if (params.hasLCS) expectedTaskCount += 1;
+          if (params.hasCUID) expectedTaskCount += 1;
+        } else if (subsystem.type === 'SMOKIP_B') {
+          expectedTaskCount += (typeof params.przejazdyKatB === 'number' ? params.przejazdyKatB : 0);
+          expectedTaskCount += (typeof params.iloscNastawni === 'number' ? params.iloscNastawni : 0);
+          if (params.hasLCS) expectedTaskCount += 1;
+          if (params.hasCUID) expectedTaskCount += 1;
+        }
+
+        const currentTaskCount = subsystem.taskDetails?.length || 0;
+
+        // Initialize when there are no tasks yet, or when a new (non-existing) subsystem's
+        // config has changed so its expected task count no longer matches the current list.
+        // Existing (DB-backed) subsystems keep their tasks; user can add/remove manually.
+        if (currentTaskCount === 0 || (!subsystem.isExisting && expectedTaskCount !== currentTaskCount)) {
+          initializeTaskDetails(stepInfo.subsystemIndex);
+        }
       }
     }
     
