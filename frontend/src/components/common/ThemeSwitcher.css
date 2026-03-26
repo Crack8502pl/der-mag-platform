@@ -1,0 +1,75 @@
+/* src/components/common/ThemeSwitcher.css */
+/* Theme switcher dropdown styles */
+
+.theme-switcher {
+  position: relative;
+  display: inline-block;
+}
+
+.theme-switcher__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.theme-switcher__toggle:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.theme-switcher__label {
+  font-size: 0.75rem;
+}
+
+.theme-switcher__arrow {
+  font-size: 0.6rem;
+  opacity: 0.6;
+}
+
+.theme-switcher__dropdown {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  margin: 0;
+  padding: 4px 0;
+  min-width: 150px;
+  z-index: 1000;
+}
+
+.theme-switcher__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  transition: background 0.15s;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+
+.theme-switcher__option:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.theme-switcher__option--active {
+  color: var(--primary-color);
+  font-weight: 600;
+}

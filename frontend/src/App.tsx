@@ -43,7 +43,9 @@ import { useAuth } from './hooks/useAuth';
 import { useTokenExpirationWarning } from './hooks/useTokenExpirationWarning';
 import { TokenExpirationModal } from './components/common/TokenExpirationModal';
 import { TokenTimerWidget } from './components/common/TokenTimerWidget';
+import { ThemeProvider } from './contexts/ThemeContext';
 import './styles/grover-theme.css';
+import './styles/husky-theme.css';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -82,6 +84,7 @@ function App() {
   } = useTokenExpirationWarning();
 
   return (
+    <ThemeProvider>
     <BrowserRouter>
       {/* ✅ DODAJ: Zegarek widoczny tylko dla zalogowanych użytkowników */}
       {isAuthenticated && <TokenTimerWidget />}
@@ -440,6 +443,7 @@ function App() {
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
+    </ThemeProvider>
   );
 }
 
