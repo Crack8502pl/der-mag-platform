@@ -107,11 +107,17 @@ app.use(cors({
       return callback(null, true);
     }
     
+    // 🆕 Pozwól na wewnętrzne domeny (.lan, .local, .internal, .home, .corp, .intranet, .private)
+    const isInternalDomain = /^https?:\/\/[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?\.(lan|local|internal|home|corp|intranet|private)(:[1-9]\d{0,4})?$/.test(origin);
+    if (isInternalDomain) {
+      return callback(null, true);
+    }
+    
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // 🆕 Explicit methods
-  allowedHeaders: ['Content-Type', 'Authorization'] // 🆕 Explicit headers
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'] // 🆕 Explicit headers (X-CSRF-Token required by AuthController)
 }));
 
 // 🆕 Handle preflight requests
