@@ -255,4 +255,46 @@ export class PrefabricationController {
       });
     }
   }
+
+  /**
+   * GET /api/prefabrication/validate/:subsystemId
+   * Walidacja gotowości do prefabrykacji dla podsystemu
+   */
+  static async validatePrefabricationReadiness(req: Request, res: Response): Promise<void> {
+    try {
+      const subsystemId = parseInt(req.params.subsystemId, 10);
+
+      if (isNaN(subsystemId)) {
+        res.status(400).json({
+          success: false,
+          message: 'Nieprawidłowe ID podsystemu'
+        });
+        return;
+      }
+
+      const validation = await PrefabricationService.validatePrefabricationReadiness(subsystemId);
+
+      res.json({
+        success: true,
+        data: validation
+      });
+    } catch (error) {
+      console.error('Błąd walidacji prefabrykacji:', error);
+
+      let status = 500;
+      let message = 'Błąd walidacji';
+
+      if (error instanceof Error) {
+        message = error.message;
+        if (error.message.toLowerCase().includes('nie znaleziony')) {
+          status = 404;
+        }
+      }
+
+      res.status(status).json({
+        success: false,
+        message
+      });
+    }
+  }
 }
