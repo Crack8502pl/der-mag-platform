@@ -7,6 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { usePermissions } from '../../hooks/usePermissions';
 import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
+import { ThemeSwitcher } from '../common/ThemeSwitcher';
 import './Sidebar.css';
 
 interface MenuItem {
@@ -97,6 +98,7 @@ export const Sidebar: React.FC = () => {
       </nav>
 
       <div className="sidebar-footer">
+        <ThemeSwitcher />
         <button onClick={handleLogout} className="btn btn-secondary logout-button">
           <span className="sidebar-icon"><ModuleIcon name="logout" emoji={MODULE_ICONS.logout} size={20} /></span>
           <span>Wyloguj</span>

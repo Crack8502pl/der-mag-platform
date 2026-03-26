@@ -1,6 +1,7 @@
 // src/routes/user.routes.ts
 import { Router, Request, Response } from 'express';
 import { UserController } from '../controllers/UserController';
+import { UserPreferencesController } from '../controllers/UserPreferencesController';
 import { authenticate, authorize } from '../middleware/auth';
 import { AppDataSource } from '../config/database';
 import { User } from '../entities/User';
@@ -129,5 +130,11 @@ router.get('/:id/permissions', authenticate, authorize('admin'), UserController.
 
 // User self-service: change own password
 router.post('/change-password', authenticate, UserController.changePassword);
+
+// User preferences routes (self-service)
+router.get('/me/preferences', authenticate, UserPreferencesController.getPreferences);
+router.put('/me/preferences', authenticate, UserPreferencesController.updatePreferences);
+router.put('/me/profile', authenticate, UserPreferencesController.updateProfile);
+router.put('/me/password', authenticate, UserPreferencesController.changePassword);
 
 export default router;

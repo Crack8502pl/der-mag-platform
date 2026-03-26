@@ -1,0 +1,154 @@
+/* src/styles/husky-theme.css */
+/* Husky Theme - Light mode for Grover Platform */
+
+:root[data-theme="husky"] {
+  /* Primary Colors */
+  --primary-color: #2563EB;
+  --primary-hover: #1D4ED8;
+  --primary-light: #3B82F6;
+  --primary-dark: #1E40AF;
+
+  /* Background Colors */
+  --bg-dark: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-hover: #F1F5F9;
+  --bg-input: #FFFFFF;
+  --bg-secondary: #FFFFFF;
+  --bg-light: #F8FAFC;
+
+  /* Text Colors */
+  --text-primary: #1E293B;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+  --text-dark: #1E293B;
+  --text-light: #64748B;
+
+  /* Border Colors */
+  --border-color: #E2E8F0;
+  --border-light: #CBD5E1;
+  --border-light-gray: #E2E8F0;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+
+  /* Status Colors */
+  --success: #10B981;
+  --error: #EF4444;
+  --warning: #F59E0B;
+  --info: #3B82F6;
+  --danger: #EF4444;
+  --danger-hover: #DC2626;
+  --danger-light: #FEE2E2;
+  --success-light: #D1FAE5;
+
+  /* Semantic Status Badge Colors */
+  --status-success: #10B981;
+  --status-warning: #F59E0B;
+
+  /* Action Colors */
+  --action-hover: #F1F5F9;
+}
+
+/* Override body/root background for husky theme */
+:root[data-theme="husky"] body {
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+}
+
+/* Sidebar adjustments for husky theme */
+:root[data-theme="husky"] .sidebar {
+  background-color: #1E293B;
+  border-right: 1px solid #334155;
+}
+
+:root[data-theme="husky"] .sidebar .sidebar-header {
+  background-color: #1E293B;
+  border-bottom: 1px solid #334155;
+}
+
+:root[data-theme="husky"] .sidebar .sidebar-nav a {
+  color: #CBD5E1;
+}
+
+:root[data-theme="husky"] .sidebar .sidebar-nav a:hover,
+:root[data-theme="husky"] .sidebar .sidebar-nav a.active {
+  background-color: #334155;
+  color: #F8FAFC;
+}
+
+/* Cards in husky theme */
+:root[data-theme="husky"] .card,
+:root[data-theme="husky"] .module-content {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Input fields */
+:root[data-theme="husky"] input,
+:root[data-theme="husky"] select,
+:root[data-theme="husky"] textarea {
+  background-color: var(--bg-input);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+:root[data-theme="husky"] input:focus,
+:root[data-theme="husky"] select:focus,
+:root[data-theme="husky"] textarea:focus {
+  border-color: var(--primary-color);
+  outline-color: var(--primary-color);
+}
+
+/* Buttons */
+:root[data-theme="husky"] .btn-primary {
+  background-color: var(--primary-color);
+  color: #FFFFFF;
+}
+
+:root[data-theme="husky"] .btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+/* Tables */
+:root[data-theme="husky"] table th {
+  background-color: #F1F5F9;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border-color);
+}
+
+:root[data-theme="husky"] table td {
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+:root[data-theme="husky"] table tr:hover td {
+  background-color: var(--bg-hover);
+}
+
+/* Modal/overlay */
+:root[data-theme="husky"] .modal-content {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+/* Scrollbar */
+:root[data-theme="husky"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+:root[data-theme="husky"] ::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+
+:root[data-theme="husky"] ::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+
+:root[data-theme="husky"] ::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
