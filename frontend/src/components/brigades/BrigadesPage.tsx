@@ -28,7 +28,7 @@ export const BrigadesPage: React.FC = () => {
         <BackButton to="/dashboard" />
         <div className="module-header-inline">
           <ModuleIcon name="brigades" emoji={MODULE_ICONS.brigades} size={32} />
-          <h1>👷 {TAB_TITLES[activeTab]}</h1>
+          <h1>{TAB_TITLES[activeTab]}</h1>
         </div>
       </div>
 
@@ -39,6 +39,16 @@ export const BrigadesPage: React.FC = () => {
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
         />
+
+        {sidebarCollapsed && (
+          <button
+            className="brigades-sidebar-toggle-mobile"
+            onClick={() => setSidebarCollapsed(false)}
+            title="Otwórz menu"
+          >
+            ☰
+          </button>
+        )}
 
         <main className="brigades-main">
           {activeTab === 'brigades' && <BrigadesTabContent />}

@@ -53,7 +53,7 @@ export const BrigadeCreateModal: React.FC<BrigadeCreateModalProps> = ({ onClose,
   };
 
   return (
-    <div className="brigade-modal" onClick={onClose}>
+    <div className="brigade-modal">
       <div className="brigade-modal-content brigade-modal-animate" onClick={(e) => e.stopPropagation()}>
         <div className="brigade-modal-header">
           <h2>➕ Nowa Brygada</h2>
