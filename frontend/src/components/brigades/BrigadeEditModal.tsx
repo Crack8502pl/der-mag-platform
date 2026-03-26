@@ -42,7 +42,7 @@ export const BrigadeEditModal: React.FC<BrigadeEditModalProps> = ({ brigade, onC
   };
 
   return (
-    <div className="brigade-modal" onClick={onClose}>
+    <div className="brigade-modal">
       <div className="brigade-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="brigade-modal-header">
           <h2>✏️ Edytuj Brygadę</h2>

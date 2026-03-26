@@ -84,7 +84,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
   };
 
   return (
-    <div className="brigade-modal" onClick={onClose}>
+    <div className="brigade-modal">
       <div className="brigade-modal-content brigade-modal-animate" onClick={(e) => e.stopPropagation()}>
         <div className="brigade-modal-header">
           <h2>📋 Przypisz zadanie do brygady</h2>

@@ -54,7 +54,7 @@ export const BrigadeMembersModal: React.FC<BrigadeMembersModalProps> = ({ brigad
         adminService.getAllUsers(),
       ]);
       setMembers(membersData);
-      setUsers(usersData.filter(u => u.active));
+      setUsers(usersData.filter(u => u.active && u.role?.name === 'Worker'));
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd pobierania danych');
     } finally {
@@ -148,7 +148,7 @@ export const BrigadeMembersModal: React.FC<BrigadeMembersModalProps> = ({ brigad
   );
 
   return (
-    <div className="brigade-modal" onClick={onClose}>
+    <div className="brigade-modal">
       <div className="brigade-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="brigade-modal-header">
           <h2>👥 Członkowie Brygady: {brigade.name}</h2>

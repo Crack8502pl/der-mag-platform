@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import api from '../../../services/api';
+import brigadeService from '../../../services/brigade.service';
 
 interface Worker {
   id: number;
@@ -34,10 +35,30 @@ export const WorkersTab: React.FC = () => {
     try {
       setLoading(true);
       setError('');
-      const response = await api.get('/users', { params: { role: 'worker', limit: 200 } });
+
+      // Pobierz pracowników
+      const response = await api.get('/users', { params: { role: 'Worker', limit: 200 } });
       const data = response.data.data || response.data;
       const users = Array.isArray(data) ? data : data?.users || [];
-      setWorkers(users);
+
+      // Pobierz wszystkie brygady z członkami
+      const brigadesResponse = await brigadeService.getAll({ active: true, limit: 100 });
+      const brigades = brigadesResponse.brigades || [];
+
+      // Mapuj pracowników z ich brygadami
+      const workersWithBrigades = users.map((user: Worker) => {
+        const memberBrigade = brigades.find(b =>
+          b.members?.some(m => m.userId === user.id && m.active)
+        );
+        return {
+          ...user,
+          brigade: memberBrigade
+            ? { id: memberBrigade.id, code: memberBrigade.code, name: memberBrigade.name }
+            : null,
+        };
+      });
+
+      setWorkers(workersWithBrigades);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd pobierania pracowników');
       setWorkers([]);
@@ -114,6 +135,7 @@ export const WorkersTab: React.FC = () => {
                 <th>Email</th>
                 <th>Telefon</th>
                 <th>Przypisana brygada</th>
+                <th>Urlop zaakceptowany</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -134,6 +156,10 @@ export const WorkersTab: React.FC = () => {
                     ) : (
                       <span style={{ color: 'var(--text-secondary)' }}>Nieprzypisany</span>
                     )}
+                  </td>
+                  <td>
+                    <span style={{ color: 'var(--text-secondary)' }}>—</span>
+                    {/* TODO: Dane z zewnętrznej bazy */}
                   </td>
                   <td>
                     <span className={`status-badge ${worker.active ? 'active' : 'inactive'}`}>
