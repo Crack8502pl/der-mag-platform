@@ -69,6 +69,8 @@ import { BrigadeMember } from '../entities/BrigadeMember';
 // Task BOM infrastructure (Phase 1)
 import { TaskGeneratedBom } from '../entities/TaskGeneratedBom';
 import { TaskGeneratedBomItem } from '../entities/TaskGeneratedBomItem';
+import { UserPreferences } from '../entities/UserPreferences';
+import { PushSubscription } from '../entities/PushSubscription';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -163,6 +165,9 @@ export const AppDataSource = new DataSource({
     // Task BOM infrastructure (Phase 1)
     TaskGeneratedBom,
     TaskGeneratedBomItem,
+    // User Preferences & Push Subscriptions
+    UserPreferences,
+    PushSubscription,
   ],
   subscribers: [],
   migrations: [],
