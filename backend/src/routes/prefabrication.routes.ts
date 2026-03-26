@@ -11,6 +11,14 @@ const router = Router();
 // All routes require authentication
 router.use(authenticate);
 
+// Validate prefabrication readiness for a subsystem
+// NOTE: This route must be declared before /:id to avoid 'validate' being matched as an id
+router.get(
+  '/validate/:subsystemId',
+  requirePermission('prefabrication', 'read'),
+  PrefabricationController.validatePrefabricationReadiness
+);
+
 // List prefabrication tasks
 router.get(
   '/',

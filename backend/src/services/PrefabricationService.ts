@@ -8,7 +8,7 @@ import { DeviceIPAssignment, DeviceIPStatus } from '../entities/DeviceIPAssignme
 import { NetworkAllocation } from '../entities/NetworkAllocation';
 import { Subsystem, SubsystemStatus } from '../entities/Subsystem';
 import { SubsystemTaskService } from './SubsystemTaskService';
-import { TaskWorkflowStatus } from '../entities/SubsystemTask';
+import { SubsystemTask, TaskWorkflowStatus } from '../entities/SubsystemTask';
 
 export interface DeviceConfigurationParams {
   prefabTaskId: number;
@@ -41,6 +41,22 @@ export interface DeviceTableRow {
 }
 
 export class PrefabricationService {
+  /**
+   * Statusy zadań uznawane za "skonfigurowane" (BOM wygenerowany lub dalej w workflow)
+   */
+  static readonly CONFIGURED_TASK_STATUSES: TaskWorkflowStatus[] = [
+    TaskWorkflowStatus.BOM_GENERATED,
+    TaskWorkflowStatus.COMPLETION_ASSIGNED,
+    TaskWorkflowStatus.COMPLETION_IN_PROGRESS,
+    TaskWorkflowStatus.COMPLETION_COMPLETED,
+    TaskWorkflowStatus.PREFABRICATION_ASSIGNED,
+    TaskWorkflowStatus.PREFABRICATION_IN_PROGRESS,
+    TaskWorkflowStatus.PREFABRICATION_COMPLETED,
+    TaskWorkflowStatus.READY_FOR_DEPLOYMENT,
+    TaskWorkflowStatus.DEPLOYED,
+    TaskWorkflowStatus.VERIFIED
+  ];
+
   /**
    * Pobiera tabelę urządzeń do konfiguracji
    * Kolumny: LP, Nazwa, Model, TYP, SN, IP, Maska, Brama, NTP, Opis projektowy
@@ -371,6 +387,81 @@ export class PrefabricationService {
     }
 
     return await queryBuilder.getMany();
+  }
+
+  /**
+   * Walidacja gotowości do prefabrykacji
+   * WARUNEK KONIECZNY: Wszystkie zadania podsystemu muszą mieć status >= BOM_GENERATED
+   */
+  async validatePrefabricationReadiness(subsystemId: number): Promise<{
+    canStartPrefabrication: boolean;
+    allTasksConfigured: boolean;
+    totalSubsystemTasks: number;
+    configuredTasks: number;
+    missingTasks: Array<{
+      taskNumber: string;
+      taskName: string;
+      status: string;
+    }>;
+    ipDevicesCount: number;
+    message: string;
+  }> {
+    const subsystemRepo = AppDataSource.getRepository(Subsystem);
+    const taskRepo = AppDataSource.getRepository(SubsystemTask);
+    const networkAllocationRepo = AppDataSource.getRepository(NetworkAllocation);
+
+    const subsystem = await subsystemRepo.findOne({ where: { id: subsystemId } });
+    if (!subsystem) {
+      throw new Error('Podsystem nie znaleziony');
+    }
+
+    // Pobierz wszystkie zadania dla podsystemu
+    const allTasks = await taskRepo.find({ where: { subsystemId } });
+
+    // Statusy uznawane za "skonfigurowane" (BOM wygenerowany lub dalej)
+    const configuredStatuses = PrefabricationService.CONFIGURED_TASK_STATUSES;
+
+    const configuredTasksList = allTasks.filter(t => configuredStatuses.includes(t.status));
+    const missingTasks = allTasks
+      .filter(t => !configuredStatuses.includes(t.status))
+      .map(t => ({
+        taskNumber: t.taskNumber,
+        taskName: t.taskName,
+        status: t.status as string
+      }));
+
+    // Pobierz ilość urządzeń IP do zaadresowania
+    const networkAllocation = await networkAllocationRepo.findOne({
+      where: { subsystemId },
+      relations: ['deviceAssignments']
+    });
+
+    const ipDevicesCount = networkAllocation?.deviceAssignments?.length ?? 0;
+
+    const allTasksConfigured = allTasks.length > 0 && missingTasks.length === 0;
+    const hasIpDevices = ipDevicesCount > 0;
+    const canStartPrefabrication = allTasksConfigured && hasIpDevices;
+
+    let message = '';
+    if (allTasks.length === 0) {
+      message = 'Brak zadań w podsystemie.';
+    } else if (!allTasksConfigured) {
+      message = `Nie wszystkie zadania są skonfigurowane. Brakuje BOM dla ${missingTasks.length} zadań.`;
+    } else if (!hasIpDevices) {
+      message = 'Brak urządzeń IP do zaadresowania. Przypisz pulę adresów IP do podsystemu.';
+    } else {
+      message = `Gotowe do prefabrykacji. ${ipDevicesCount} urządzeń IP do skonfigurowania.`;
+    }
+
+    return {
+      canStartPrefabrication,
+      allTasksConfigured,
+      totalSubsystemTasks: allTasks.length,
+      configuredTasks: configuredTasksList.length,
+      missingTasks,
+      ipDevicesCount,
+      message
+    };
   }
 }
 
