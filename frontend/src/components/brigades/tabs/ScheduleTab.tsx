@@ -14,7 +14,8 @@ interface ServiceTask {
   status: string;
   brigadeId?: number | null;
   brigade?: { id: number; code: string; name: string } | null;
-  scheduledDate?: string | null;
+  plannedStartDate?: string | null;
+  plannedEndDate?: string | null;
 }
 
 const DAY_LABELS = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
@@ -141,8 +142,15 @@ export const ScheduleTab: React.FC = () => {
           {/* Weekly timeline view */}
           <div className="schedule-week-view">
             {weekDates.map((date, idx) => {
-              const dateStr = date.toISOString().split('T')[0];
-              const dayTasks = tasks.filter((t) => t.scheduledDate === dateStr);
+              const year = date.getFullYear();
+              const month = String(date.getMonth() + 1).padStart(2, '0');
+              const day = String(date.getDate()).padStart(2, '0');
+              const dateStr = `${year}-${month}-${day}`;
+              const dayTasks = tasks.filter((t) => {
+                if (!t.plannedStartDate) return false;
+                // Compare date portion only (plannedStartDate may be 'YYYY-MM-DD' or ISO timestamp)
+                return t.plannedStartDate.slice(0, 10) === dateStr;
+              });
               const timelineHeight = Math.max(60, dayTasks.length * 44 + 16);
 
               return (

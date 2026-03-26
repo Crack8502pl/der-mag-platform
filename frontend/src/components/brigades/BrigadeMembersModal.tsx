@@ -54,7 +54,7 @@ export const BrigadeMembersModal: React.FC<BrigadeMembersModalProps> = ({ brigad
         adminService.getAllUsers(),
       ]);
       setMembers(membersData);
-      setUsers(usersData.filter(u => u.active && u.role?.name === 'Worker'));
+      setUsers(usersData.filter(u => u.active && u.role?.name?.toLowerCase() === 'worker'));
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd pobierania danych');
     } finally {

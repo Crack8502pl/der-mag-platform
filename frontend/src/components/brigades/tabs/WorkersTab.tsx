@@ -37,7 +37,7 @@ export const WorkersTab: React.FC = () => {
       setError('');
 
       // Pobierz pracowników
-      const response = await api.get('/users', { params: { role: 'Worker', limit: 200 } });
+      const response = await api.get('/users', { params: { role: 'worker', limit: 200 } });
       const data = response.data.data || response.data;
       const users = Array.isArray(data) ? data : data?.users || [];
 
