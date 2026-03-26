@@ -5,7 +5,6 @@ import webpush from 'web-push';
 import { AppDataSource } from '../config/database';
 import { PushSubscription } from '../entities/PushSubscription';
 import { User } from '../entities/User';
-import { Role } from '../entities/Role';
 
 // Allowed push service domains for endpoint validation
 const ALLOWED_PUSH_DOMAINS = [
@@ -61,23 +60,10 @@ export class WebPushService {
 
     const repo = AppDataSource.getRepository(PushSubscription);
 
-    // Check device limit per user
-    const existingCount = await repo.count({ where: { userId } });
     const existingByEndpoint = await repo.findOne({ where: { endpoint: subscription.endpoint } });
 
-    if (!existingByEndpoint && existingCount >= MAX_DEVICES_PER_USER) {
-      // Remove the oldest subscription to make room
-      const oldest = await repo.findOne({
-        where: { userId },
-        order: { createdAt: 'ASC' }
-      });
-      if (oldest) {
-        await repo.delete(oldest.id);
-      }
-    }
-
     if (existingByEndpoint) {
-      // Update existing subscription
+      // Transfer ownership and update keys
       existingByEndpoint.userId = userId;
       existingByEndpoint.p256dh = subscription.keys.p256dh;
       existingByEndpoint.auth = subscription.keys.auth;
@@ -85,7 +71,30 @@ export class WebPushService {
         ? new Date(subscription.expirationTime)
         : null;
       await repo.save(existingByEndpoint);
+
+      // Enforce device limit after ownership transfer (don't count the just-transferred sub)
+      const userCount = await repo.count({ where: { userId } });
+      if (userCount > MAX_DEVICES_PER_USER) {
+        const oldest = await repo.findOne({
+          where: { userId },
+          order: { createdAt: 'ASC' }
+        });
+        if (oldest && oldest.id !== existingByEndpoint.id) {
+          await repo.delete(oldest.id);
+        }
+      }
     } else {
+      // New endpoint — check device limit first
+      const existingCount = await repo.count({ where: { userId } });
+      if (existingCount >= MAX_DEVICES_PER_USER) {
+        const oldest = await repo.findOne({
+          where: { userId },
+          order: { createdAt: 'ASC' }
+        });
+        if (oldest) {
+          await repo.delete(oldest.id);
+        }
+      }
       const newSub = repo.create({
         userId,
         endpoint: subscription.endpoint,

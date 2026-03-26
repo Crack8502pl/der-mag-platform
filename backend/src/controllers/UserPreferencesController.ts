@@ -205,7 +205,7 @@ export class UserPreferencesController {
       const hashedPassword = await bcrypt.hash(newPassword, 12);
       user.password = hashedPassword;
       user.forcePasswordChange = false;
-      (user as any).passwordChangedAt = new Date();
+      user.passwordChangedAt = new Date();
 
       await userRepo.save(user);
 

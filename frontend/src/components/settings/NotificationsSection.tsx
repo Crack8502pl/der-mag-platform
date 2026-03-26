@@ -41,13 +41,14 @@ export const NotificationsSection: React.FC<Props> = ({ preferences, onUpdate })
     if (isSubscribed) {
       const ok = await unsubscribe();
       if (ok) {
+        await api.put('/users/me/preferences', { pushNotifications: false }).catch(() => null);
         onUpdate?.({ pushNotifications: false });
       }
     } else {
       const ok = await subscribe();
       if (ok) {
-        onUpdate?.({ pushNotifications: true });
         await api.put('/users/me/preferences', { pushNotifications: true }).catch(() => null);
+        onUpdate?.({ pushNotifications: true });
       }
     }
   };

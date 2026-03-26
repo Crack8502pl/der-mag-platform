@@ -78,12 +78,10 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       <div className="settings-page">
-        <nav className="settings-tabs" role="tablist">
+        <nav className="settings-tabs">
           {TABS.map(tab => (
             <button
               key={tab.id}
-              role="tab"
-              aria-selected={activeTab === tab.id}
               className={`settings-tabs__btn${activeTab === tab.id ? ' settings-tabs__btn--active' : ''}`}
               onClick={() => setActiveTab(tab.id)}
               type="button"
@@ -99,32 +97,42 @@ export const SettingsPage: React.FC = () => {
         ) : (
           <>
             {activeTab === 'profile' && (
-              <ProfileSection initialData={profileData} />
+              <section aria-label="Profil użytkownika">
+                <ProfileSection initialData={profileData} />
+              </section>
             )}
             {activeTab === 'password' && (
-              <PasswordSection />
+              <section aria-label="Zmiana hasła">
+                <PasswordSection />
+              </section>
             )}
             {activeTab === 'appearance' && (
-              <AppearanceSection />
+              <section aria-label="Wygląd">
+                <AppearanceSection />
+              </section>
             )}
             {activeTab === 'notifications' && (
-              <NotificationsSection
-                preferences={{
-                  emailNotifications: preferences.emailNotifications,
-                  pushNotifications: preferences.pushNotifications,
-                  notificationSound: preferences.notificationSound
-                }}
-                onUpdate={handlePrefsUpdate}
-              />
+              <section aria-label="Powiadomienia">
+                <NotificationsSection
+                  preferences={{
+                    emailNotifications: preferences.emailNotifications,
+                    pushNotifications: preferences.pushNotifications,
+                    notificationSound: preferences.notificationSound
+                  }}
+                  onUpdate={handlePrefsUpdate}
+                />
+              </section>
             )}
             {activeTab === 'security' && (
-              <SecuritySection
-                preferences={{
-                  twoFactorEnabled: preferences.twoFactorEnabled,
-                  sessionTimeout: preferences.sessionTimeout
-                }}
-                onUpdate={handlePrefsUpdate}
-              />
+              <section aria-label="Bezpieczeństwo">
+                <SecuritySection
+                  preferences={{
+                    twoFactorEnabled: preferences.twoFactorEnabled,
+                    sessionTimeout: preferences.sessionTimeout
+                  }}
+                  onUpdate={handlePrefsUpdate}
+                />
+              </section>
             )}
           </>
         )}
