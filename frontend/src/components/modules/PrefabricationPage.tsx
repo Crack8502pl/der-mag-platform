@@ -51,6 +51,7 @@ export const PrefabricationPage: React.FC = () => {
   const loadTasks = async () => {
     try {
       setLoading(true);
+      setError('');
       const response = await api.get('/prefabrication?all=true');
       setTasks(response.data.data || []);
     } catch (err: unknown) {
@@ -65,6 +66,7 @@ export const PrefabricationPage: React.FC = () => {
     setSelectedTask(task);
     setValidation(null);
     setValidationLoading(true);
+    setError('');
     try {
       const response = await api.get(`/prefabrication/validate/${task.subsystem.id}`);
       setValidation(response.data.data);
@@ -199,8 +201,8 @@ export const PrefabricationPage: React.FC = () => {
 
         {/* Modal walidacji */}
         {selectedTask && (
-          <div className="modal-overlay" onClick={closeModal}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="prefab-modal-overlay" onClick={closeModal}>
+            <div className="prefab-modal-content" onClick={e => e.stopPropagation()}>
               <h3>Walidacja: {selectedTask.subsystem.subsystemNumber}</h3>
 
               {validationLoading ? (

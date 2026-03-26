@@ -280,9 +280,20 @@ export class PrefabricationController {
       });
     } catch (error) {
       console.error('Błąd walidacji prefabrykacji:', error);
-      res.status(400).json({
+
+      let status = 500;
+      let message = 'Błąd walidacji';
+
+      if (error instanceof Error) {
+        message = error.message;
+        if (error.message.toLowerCase().includes('nie znaleziony')) {
+          status = 404;
+        }
+      }
+
+      res.status(status).json({
         success: false,
-        message: error instanceof Error ? error.message : 'Błąd walidacji'
+        message
       });
     }
   }

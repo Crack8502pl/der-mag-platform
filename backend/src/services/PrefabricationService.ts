@@ -430,25 +430,30 @@ export class PrefabricationService {
         status: t.status as string
       }));
 
-    // Pobierz ilość urządzeń IP do zaadresowania
+    // Pobierz ilość urządzeń IP do zaadresowania (DB-side count, nie ładuj wszystkich wierszy)
     const networkAllocation = await networkAllocationRepo.findOne({
-      where: { subsystemId },
-      relations: ['deviceAssignments']
+      where: { subsystemId }
     });
 
-    const ipDevicesCount = networkAllocation?.deviceAssignments?.length ?? 0;
+    let ipDevicesCount = 0;
+    if (networkAllocation) {
+      const deviceIpAssignmentRepo = AppDataSource.getRepository(DeviceIPAssignment);
+      ipDevicesCount = await deviceIpAssignmentRepo.count({
+        where: { allocationId: networkAllocation.id }
+      });
+    }
 
     const allTasksConfigured = allTasks.length > 0 && missingTasks.length === 0;
-    const hasIpDevices = ipDevicesCount > 0;
-    const canStartPrefabrication = allTasksConfigured && hasIpDevices;
+    const hasIpPool = !!networkAllocation;
+    const canStartPrefabrication = allTasksConfigured && hasIpPool;
 
     let message = '';
     if (allTasks.length === 0) {
       message = 'Brak zadań w podsystemie.';
     } else if (!allTasksConfigured) {
-      message = `Nie wszystkie zadania są skonfigurowane. Brakuje BOM dla ${missingTasks.length} zadań.`;
-    } else if (!hasIpDevices) {
-      message = 'Brak urządzeń IP do zaadresowania. Przypisz pulę adresów IP do podsystemu.';
+      message = `Nie wszystkie zadania osiągnęły wymagany status konfiguracji. Liczba zadań nieskonfigurowanych: ${missingTasks.length}.`;
+    } else if (!hasIpPool) {
+      message = 'Brak przypisanej puli adresów IP do podsystemu. Przypisz alokację sieciową.';
     } else {
       message = `Gotowe do prefabrykacji. ${ipDevicesCount} urządzeń IP do skonfigurowania.`;
     }

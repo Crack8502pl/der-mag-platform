@@ -74,14 +74,14 @@
   margin-top: 2px;
 }
 
-/* Small buttons */
-.btn-sm {
+/* Small buttons (scoped to prefabrication page to avoid collision with other modules) */
+.module-page .btn-sm {
   padding: 6px 12px;
   font-size: 13px;
 }
 
 /* Modal Overlay */
-.modal-overlay {
+.prefab-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -94,7 +94,7 @@
   z-index: 1000;
 }
 
-.modal-content {
+.prefab-modal-content {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
@@ -104,7 +104,7 @@
   box-shadow: var(--shadow-lg);
 }
 
-.modal-content h3 {
+.prefab-modal-content h3 {
   color: var(--text-primary);
   font-size: 18px;
   font-weight: 600;
@@ -264,7 +264,7 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .modal-content {
+  .prefab-modal-content {
     padding: 20px;
     margin: 16px;
     width: calc(100% - 32px);
