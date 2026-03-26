@@ -194,8 +194,11 @@ export const CompletionPage: React.FC = () => {
     // Only if there are NO shortages - show confirm and issue
     if (!window.confirm(`Czy na pewno chcesz wydać materiały dla zlecenia ${selectedOrder.taskNumber || `#${selectedOrder.id}`}?`)) return;
     try {
-      // Save all serial numbers first
+      // 1. Save all serial numbers first
       await handleSave();
+      // 2. Save issued quantities for non-serialized items before completing
+      await completionService.saveIssuedQuantities(selectedOrder.id, localIssuedQty);
+      // 3. Complete the order
       await completionService.completeOrder(selectedOrder.id);
       setActionMsg('✅ Materiały wydane');
       await loadOrders();
