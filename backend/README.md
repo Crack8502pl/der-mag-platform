@@ -119,7 +119,7 @@ psql -U dermag_user -d dermag_platform -f scripts/migrations/20260106_update_tas
 
 ### 🔒 Encrypted Secrets Management
 
-Grover Platform używa **dotenv-vault** do bezpiecznego zarządzania wrażliwymi danymi. Zamiast trzymać hasła w plaintext, wszystkie secrets są szyfrowane.
+Grover Platform używa **@dotenvx/dotenvx** do bezpiecznego zarządzania wrażliwymi danymi. Zamiast trzymać hasła w plaintext, wszystkie secrets są szyfrowane.
 
 #### Quick Start
 
@@ -136,8 +136,8 @@ Wypełnij `.env` swoimi lokalnymi wartościami. Plik ten jest w `.gitignore` i n
 Jeśli projekt już ma skonfigurowany vault, otrzymasz od team leadera klucz development:
 
 ```bash
-# Dodaj klucz do swojego lokalnego .env:
-echo "DOTENV_VAULT_DEVELOPMENT_KEY=dotenv://:key_xxxxx" > .env
+# Dodaj klucz do swojego lokalnego .env.keys lub ustaw jako zmienną środowiskową:
+export DOTENV_PRIVATE_KEY="dotenv://:key_xxxxx"
 
 # Start aplikacji - automatycznie deszyfuje secrets:
 npm run dev
@@ -145,7 +145,8 @@ npm run dev
 
 #### Szczegółowa dokumentacja
 
-- 📖 **[Setup Guide](docs/ENCRYPTED_ENV_SETUP.md)** - Kompletna instrukcja konfiguracji
+- 📖 **[Migracja z dotenv-vault](docs/DOTENVX_MIGRATION_GUIDE.md)** - Instrukcja migracji
+- 📖 **[Setup Guide](docs/ENCRYPTED_ENV_SETUP.md)** - Stara dokumentacja (archiwalna)
 - 🔐 **[Security Guide](docs/SECURITY_SECRETS_GUIDE.md)** - Best practices i procedury
 
 ### Przykładowa konfiguracja `.env`:
@@ -663,7 +664,7 @@ curl -X POST http://localhost:3000/api/tasks \
 
 ### Bezpieczeństwo:
 
-- ✅ **Encrypted secrets** - dotenv-vault AES-256-GCM encryption
+- ✅ **Encrypted secrets** - @dotenvx/dotenvx AES-256-GCM encryption
 - ✅ **JWT token-based authentication**
 - ✅ **Bcrypt password hashing** (10 rounds)
 - ✅ **Helmet.js security headers**
@@ -675,19 +676,27 @@ curl -X POST http://localhost:3000/api/tasks \
 
 #### 🔐 Secrets Management
 
-System używa zaszyfrowanych zmiennych środowiskowych:
+System używa **@dotenvx/dotenvx** do zaszyfrowanego zarządzania zmiennymi środowiskowymi:
 
 ```bash
-# Helper scripts do zarządzania vault:
-npm run env:init    # Inicjalizacja vault (pierwszy raz)
-npm run env:push    # Push lokalnego .env do vault
-npm run env:pull    # Pull z vault do lokalnego .env
-npm run env:build   # Build zaszyfrowanego .env.vault
-npm run env:keys    # Pokaż klucze deszyfrujące
+# Szyfrowanie secrets
+npm run env:encrypt
+
+# Deszyfrowanie secrets
+npm run env:decrypt
+
+# Uruchomienie z auto-decrypt
+npm run dev
+
+# Ustawienie nowej zmiennej
+npm run env:set NEW_VAR=value
+
+# Sprawdzenie wartości
+npm run env:get DB_HOST
 ```
 
-**Dokumentacja bezpieczeństwa:**
-- 📖 [Encrypted Environment Setup](docs/ENCRYPTED_ENV_SETUP.md)
+**Dokumentacja:**
+- 📖 [Migracja z dotenv-vault](docs/DOTENVX_MIGRATION_GUIDE.md)
 - 🔐 [Security & Secrets Guide](docs/SECURITY_SECRETS_GUIDE.md)
 
 ### Wydajność:

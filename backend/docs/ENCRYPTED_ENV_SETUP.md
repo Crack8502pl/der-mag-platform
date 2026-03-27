@@ -1,3 +1,10 @@
+> ⚠️ **UWAGA: Migracja na @dotenvx/dotenvx**
+> 
+> Ten dokument opisuje stary system (dotenv-vault). 
+> Projekt został zmigrowany na @dotenvx/dotenvx.
+> 
+> **Nowa dokumentacja:** [DOTENVX_MIGRATION_GUIDE.md](./DOTENVX_MIGRATION_GUIDE.md)
+
 # 🔒 Encrypted Environment Variables Setup
 
 ## Spis treści
