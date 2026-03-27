@@ -21,6 +21,7 @@ module.exports = {
       statements: 50
     }
   },
+  globalSetup: '<rootDir>/tests/globalSetup.ts',
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1'
