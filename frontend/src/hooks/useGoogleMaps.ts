@@ -67,6 +67,16 @@ export const useGoogleMaps = () => {
       }
     }
 
+    // Format: /maps/search/LAT,LON or /maps/search/LAT,+LON
+    const searchMatch = url.match(/\/maps\/search\/([-0-9.]+),\+?([-0-9.]+)/);
+    if (searchMatch) {
+      const lat = parseFloat(searchMatch[1]);
+      const lon = parseFloat(searchMatch[2]);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        return { lat, lon };
+      }
+    }
+
     // Format: plain coordinates "LAT, LON"
     const coordMatch = url.trim().match(/^([-0-9.]+)\s*,\s*([-0-9.]+)$/);
     if (coordMatch) {
