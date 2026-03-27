@@ -5,6 +5,10 @@ module.exports = {
   testMatch: ['**/*.test.ts'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   coverageProvider: 'v8',
+
+  // Load glob polyfill BEFORE test environment setup
+  setupFiles: ['<rootDir>/tests/jestGlobPolyfill.js'],
+
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/index.ts',
