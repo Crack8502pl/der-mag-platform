@@ -130,6 +130,10 @@ const BarChart: React.FC<{ data: number[] }> = ({ data }) => {
 
 // Interwał auto-odświeżania (ms)
 const AUTO_REFRESH_INTERVAL_MS = 30000;
+
+// ============================================================
+// Główny komponent
+// ============================================================
 export const HoneypotDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<HoneypotStats | null>(null);
@@ -145,6 +149,7 @@ export const HoneypotDashboardPage: React.FC = () => {
   const LOGS_PER_PAGE = 10;
 
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const notificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ============================================================
   // Ładowanie danych
@@ -174,6 +179,7 @@ export const HoneypotDashboardPage: React.FC = () => {
     autoRefreshRef.current = setInterval(loadData, AUTO_REFRESH_INTERVAL_MS);
     return () => {
       if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
+      if (notificationTimerRef.current) clearTimeout(notificationTimerRef.current);
     };
   }, [loadData]);
 
@@ -182,7 +188,8 @@ export const HoneypotDashboardPage: React.FC = () => {
   // ============================================================
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
-    setTimeout(() => setNotification(null), 4000);
+    if (notificationTimerRef.current) clearTimeout(notificationTimerRef.current);
+    notificationTimerRef.current = setTimeout(() => setNotification(null), 4000);
   };
 
   const handleExport = async (format: 'json' | 'csv') => {

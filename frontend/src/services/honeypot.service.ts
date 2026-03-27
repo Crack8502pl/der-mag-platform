@@ -47,7 +47,7 @@ class HoneypotServiceClass {
       responseType: 'blob',
     });
     const filename = `honeypot-logs-${new Date().toISOString().slice(0, 10)}.${format}`;
-    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const url = window.URL.createObjectURL(response.data);
     const link = document.createElement('a');
     link.href = url;
     link.setAttribute('download', filename);

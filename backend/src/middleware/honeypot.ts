@@ -12,9 +12,15 @@ import { serverLogger } from '../utils/logger';
 const HONEYPOT_LOG_DIR = path.join(__dirname, '../../../logs/honeypot');
 const HONEYPOT_LOG_FILE = path.join(HONEYPOT_LOG_DIR, 'scanner_detection.log');
 
-// Inicjalizacja katalogu logów
-if (!fs.existsSync(HONEYPOT_LOG_DIR)) {
-  fs.mkdirSync(HONEYPOT_LOG_DIR, { recursive: true });
+// Inicjalizacja katalogu logów - nie blokuje startu aplikacji przy błędzie
+let fileLoggingEnabled = true;
+try {
+  if (!fs.existsSync(HONEYPOT_LOG_DIR)) {
+    fs.mkdirSync(HONEYPOT_LOG_DIR, { recursive: true });
+  }
+} catch (error) {
+  fileLoggingEnabled = false;
+  serverLogger.error('Nie udało się zainicjalizować katalogu logów honeypota', error);
 }
 
 // ============================================================
@@ -216,15 +222,14 @@ function detectScanner(userAgent: string | undefined): ScannerSignature | null {
 }
 
 // ============================================================
-// Zapis do pliku logu honeypota
+// Zapis do pliku logu honeypota (asynchroniczny)
 // ============================================================
 function writeToHoneypotLog(entry: object): void {
-  try {
-    const line = JSON.stringify({ ...entry, timestamp: new Date().toISOString() }) + '\n';
-    fs.appendFileSync(HONEYPOT_LOG_FILE, line);
-  } catch (error) {
+  if (!fileLoggingEnabled) return;
+  const line = JSON.stringify({ ...entry, timestamp: new Date().toISOString() }) + '\n';
+  fs.promises.appendFile(HONEYPOT_LOG_FILE, line).catch((error) => {
     serverLogger.error('Błąd zapisu logu honeypota:', error);
-  }
+  });
 }
 
 // ============================================================
@@ -309,12 +314,20 @@ export const honeypotMiddleware = (req: Request, res: Response, next: NextFuncti
     'unknown';
 
   // Zbierz nagłówki (bez wrażliwych)
+  const sensitiveHeaderNames = new Set<string>([
+    'authorization',
+    'cookie',
+    'x-csrf-token',
+    'x-xsrf-token',
+    'x-access-token',
+    'x-refresh-token',
+    'x-api-key',
+  ]);
   const safeHeaders: Record<string, string> = {};
   for (const [key, val] of Object.entries(req.headers)) {
+    if (sensitiveHeaderNames.has(key.toLowerCase())) continue;
     if (typeof val === 'string') safeHeaders[key] = val;
   }
-  delete safeHeaders['authorization'];
-  delete safeHeaders['cookie'];
 
   const logEntry = {
     ip,
@@ -345,7 +358,7 @@ export const honeypotMiddleware = (req: Request, res: Response, next: NextFuncti
         ? String(req.body)
         : (req.body && Object.keys(req.body).length > 0 ? JSON.stringify(req.body) : null),
     threatLevel,
-  }).catch(err => serverLogger.error('Honeypot DB log error:', err));
+  });
 
   serverLogger.warn(
     `🍯 Honeypot hit: ${ip} | ${req.method} ${reqPath} | Scanner: ${detectedScanner?.name || 'none'} | Level: ${threatLevel}`
@@ -361,16 +374,4 @@ export const honeypotMiddleware = (req: Request, res: Response, next: NextFuncti
       .set('Content-Type', fakeResponse.contentType)
       .send(fakeResponse.body);
   }, delay);
-};
-
-/**
- * Handler honeypot path - zwraca fałszywą odpowiedź dla znanych ścieżek-pułapek.
- * Używany razem z express router dla jawnych honeypot paths.
- */
-export const honeypotPathHandler = (req: Request, res: Response): void => {
-  const fakeResponse = getFakeResponse(req.path);
-  res
-    .status(fakeResponse.status)
-    .set('Content-Type', fakeResponse.contentType)
-    .send(fakeResponse.body);
 };

@@ -76,54 +76,93 @@ export class HoneypotService {
     const since = new Date();
     since.setDate(since.getDate() - days);
 
-    const logs = await repo.find({
-      where: { createdAt: MoreThan(since) },
-      select: ['id', 'ip', 'detectedScanner', 'threatLevel', 'path', 'createdAt'],
-    });
-
-    // Unikalne IP
-    const uniqueIPsSet = new Set(logs.map(l => l.ip));
-
-    // Ostatnie 24h
     const last24h = new Date();
     last24h.setHours(last24h.getHours() - 24);
-    const recentLogs = logs.filter(l => l.createdAt > last24h);
+
+    // Całkowita liczba trafień w zadanym okresie
+    const totalHits = await repo.count({
+      where: { createdAt: MoreThan(since) },
+    });
+
+    // Liczba unikalnych IP w zadanym okresie
+    const uniqueIPsRaw = await repo
+      .createQueryBuilder('log')
+      .select('COUNT(DISTINCT log.ip)', 'count')
+      .where('log.createdAt > :since', { since })
+      .getRawOne<{ count: string }>();
+    const uniqueIPs = uniqueIPsRaw ? Number(uniqueIPsRaw.count) : 0;
+
+    // Liczba trafień w ostatnich 24 godzinach
+    const last24hHits = await repo.count({
+      where: { createdAt: MoreThan(last24h) },
+    });
 
     // Rozkład skanerów
+    const scannerRows = await repo
+      .createQueryBuilder('log')
+      .select('log.detectedScanner', 'scanner')
+      .addSelect('COUNT(*)', 'count')
+      .where('log.createdAt > :since', { since })
+      .groupBy('log.detectedScanner')
+      .getRawMany<{ scanner: string | null; count: string }>();
+
     const scannerBreakdown: Record<string, number> = {};
-    for (const log of logs) {
-      const scanner = log.detectedScanner || 'Nieznany';
-      scannerBreakdown[scanner] = (scannerBreakdown[scanner] || 0) + 1;
+    for (const row of scannerRows) {
+      const key = row.scanner ?? 'Nieznany';
+      scannerBreakdown[key] = Number(row.count);
     }
 
     // Rozkład poziomów zagrożeń
+    const threatRows = await repo
+      .createQueryBuilder('log')
+      .select('log.threatLevel', 'level')
+      .addSelect('COUNT(*)', 'count')
+      .where('log.createdAt > :since', { since })
+      .groupBy('log.threatLevel')
+      .getRawMany<{ level: string; count: string }>();
+
     const threatLevelBreakdown: Record<string, number> = {};
-    for (const log of logs) {
-      const level = log.threatLevel;
-      threatLevelBreakdown[level] = (threatLevelBreakdown[level] || 0) + 1;
+    for (const row of threatRows) {
+      threatLevelBreakdown[row.level] = Number(row.count);
     }
 
     // Najczęściej atakowane ścieżki (top 10)
-    const pathCount: Record<string, number> = {};
-    for (const log of logs) {
-      pathCount[log.path] = (pathCount[log.path] || 0) + 1;
-    }
-    const topTargetedPaths = Object.entries(pathCount)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 10)
-      .map(([path, count]) => ({ path, count }));
+    const topPathRows = await repo
+      .createQueryBuilder('log')
+      .select('log.path', 'path')
+      .addSelect('COUNT(*)', 'count')
+      .where('log.createdAt > :since', { since })
+      .groupBy('log.path')
+      .orderBy('count', 'DESC')
+      .limit(10)
+      .getRawMany<{ path: string; count: string }>();
 
-    // Rozkład godzinowy (24 godziny)
+    const topTargetedPaths = topPathRows.map(row => ({
+      path: row.path,
+      count: Number(row.count),
+    }));
+
+    // Rozkład godzinowy (24 godziny) dla ostatnich 24h
     const hourlyDistribution = new Array(24).fill(0);
-    for (const log of recentLogs) {
-      const hour = log.createdAt.getHours();
-      hourlyDistribution[hour]++;
+    const hourlyRows = await repo
+      .createQueryBuilder('log')
+      .select('EXTRACT(HOUR FROM log.createdAt)', 'hour')
+      .addSelect('COUNT(*)', 'count')
+      .where('log.createdAt > :last24h', { last24h })
+      .groupBy('hour')
+      .getRawMany<{ hour: string | number; count: string }>();
+
+    for (const row of hourlyRows) {
+      const hourIndex = Number(row.hour);
+      if (hourIndex >= 0 && hourIndex < 24) {
+        hourlyDistribution[hourIndex] = Number(row.count);
+      }
     }
 
     return {
-      totalHits: logs.length,
-      uniqueIPs: uniqueIPsSet.size,
-      last24h: recentLogs.length,
+      totalHits,
+      uniqueIPs,
+      last24h: last24hHits,
       scannerBreakdown,
       threatLevelBreakdown,
       topTargetedPaths,
@@ -143,30 +182,33 @@ export class HoneypotService {
       .addSelect('COUNT(*)', 'hitCount')
       .addSelect('MAX(log.createdAt)', 'lastSeen')
       .addSelect('MAX(log.threatLevel)', 'maxThreatLevel')
+      .addSelect(
+        'ARRAY_AGG(DISTINCT log.detectedScanner) FILTER (WHERE log.detectedScanner IS NOT NULL)',
+        'scanners'
+      )
       .groupBy('log.ip')
       .having('COUNT(*) >= :minHits', { minHits })
       .orderBy('"hitCount"', 'DESC')
       .getRawMany();
 
-    // Dla każdego IP pobierz unikalne skanery
-    const suspiciousIPs: SuspiciousIP[] = [];
-    for (const row of result) {
-      const scanners = await repo
-        .createQueryBuilder('log')
-        .select('DISTINCT log.detectedScanner', 'scanner')
-        .where('log.ip = :ip AND log.detectedScanner IS NOT NULL', { ip: row.ip })
-        .getRawMany();
+    return result.map((row: any) => {
+      // Upewnij się, że scanners jest tablicą stringów
+      const scannersArray: string[] = Array.isArray(row.scanners)
+        ? row.scanners.filter(Boolean)
+        : String(row.scanners ?? '')
+            .replace(/[{}]/g, '')
+            .split(',')
+            .map((s: string) => s.trim())
+            .filter(Boolean);
 
-      suspiciousIPs.push({
+      return {
         ip: row.ip,
         hitCount: parseInt(row.hitCount, 10),
-        scanners: scanners.map((s: any) => s.scanner).filter(Boolean),
+        scanners: scannersArray,
         lastSeen: new Date(row.lastSeen),
         threatLevel: row.maxThreatLevel || ThreatLevel.LOW,
-      });
-    }
-
-    return suspiciousIPs;
+      };
+    });
   }
 
   /**
@@ -208,6 +250,19 @@ export class HoneypotService {
       return JSON.stringify(logs, null, 2);
     }
 
+    // RFC4180 CSV escaping - opakowuje pole w cudzysłowy jeśli zawiera separator,
+    // cudzysłów lub nową linię; podwaja cudzysłowy wewnątrz; neutralizuje formuły CSV.
+    const escapeCsvField = (value: unknown): string => {
+      const str = value === null || value === undefined ? '' : String(value);
+      // Neutralizacja CSV injection (=, +, -, @, TAB, CR)
+      const sanitized = /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+      // Opakowuj w cudzysłowy jeśli zawiera przecinek, cudzysłów lub nową linię
+      if (/[",\n\r]/.test(sanitized)) {
+        return `"${sanitized.replace(/"/g, '""')}"`;
+      }
+      return sanitized;
+    };
+
     // Format CSV
     const headers = [
       'id', 'ip', 'userAgent', 'method', 'path',
@@ -217,19 +272,18 @@ export class HoneypotService {
     const rows = logs.map(log => [
       log.id,
       log.ip,
-      (log.userAgent || '').replace(/,/g, ';'),
+      log.userAgent,
       log.method,
       log.path,
-      log.detectedScanner || '',
-      log.honeypotType || '',
+      log.detectedScanner,
+      log.honeypotType,
       log.threatLevel,
-      (log.queryParams || '').replace(/,/g, ';'),
+      log.queryParams,
       log.createdAt.toISOString(),
       log.reviewed,
-    ]);
+    ].map(escapeCsvField).join(','));
 
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    return csv;
+    return [headers.join(','), ...rows].join('\n');
   }
 
   /**

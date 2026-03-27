@@ -41,7 +41,21 @@ export class HoneypotController {
   static async getLogs(req: Request, res: Response): Promise<void> {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
-      const threatLevel = req.query.threatLevel as ThreatLevel | undefined;
+
+      const rawThreatLevel = req.query.threatLevel as string | undefined;
+      let threatLevel: ThreatLevel | undefined;
+      if (rawThreatLevel !== undefined) {
+        const allowedThreatLevels = Object.values(ThreatLevel) as string[];
+        if (!allowedThreatLevels.includes(rawThreatLevel)) {
+          res.status(400).json({
+            success: false,
+            message: 'Nieprawidłowy parametr threatLevel',
+          });
+          return;
+        }
+        threatLevel = rawThreatLevel as ThreatLevel;
+      }
+
       const logs = await HoneypotService.getRecentLogs(limit, threatLevel);
       res.json({ success: true, data: logs });
     } catch (error) {

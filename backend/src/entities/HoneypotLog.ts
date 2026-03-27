@@ -57,6 +57,7 @@ export class HoneypotLog {
     name: 'threat_level',
     type: 'enum',
     enum: ThreatLevel,
+    enumName: 'threat_level_enum',
     default: ThreatLevel.LOW,
   })
   threatLevel: ThreatLevel;
