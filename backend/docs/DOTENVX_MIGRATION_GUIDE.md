@@ -67,8 +67,8 @@ npx dotenvx run -- npm run start
 
 ### Dodawanie nowych secrets:
 ```bash
-# Dodaj do .env
-echo "NEW_SECRET=value" > .env
+# Ustaw nową zmienną (bezpieczne - nie nadpisuje innych wartości)
+npm run env:set NEW_SECRET=value
 
 # Zaszyfruj
 npm run env:encrypt
