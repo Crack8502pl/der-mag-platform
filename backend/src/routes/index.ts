@@ -48,6 +48,8 @@ import mapsRoutes from './maps.routes';
 import tilesRoutes from './tiles.routes';
 // Push notification routes
 import pushRoutes from './push.routes';
+// Honeypot routes
+import honeypotRoutes from './honeypot.routes';
 
 const router = Router();
 
@@ -111,6 +113,9 @@ router.use('/tiles', tilesRoutes);
 
 // Push notification routes
 router.use('/push', pushRoutes);
+
+// Honeypot admin routes
+router.use('/admin/honeypot', honeypotRoutes);
 
 // Admin routes
 router.use('/admin', adminRoutes);

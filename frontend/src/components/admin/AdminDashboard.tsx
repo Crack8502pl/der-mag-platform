@@ -89,6 +89,13 @@ export const AdminDashboard: React.FC = () => {
       adminOnly: true,
     },
     {
+      title: 'Honeypot Monitor 🍯',
+      description: 'Monitoruj próby skanowania i wykrywaj zagrożenia',
+      icon: '🍯',
+      path: '/admin/honeypot',
+      adminOnly: true,
+    },
+    {
       title: 'Seed Database 🌱',
       description: 'Zresetuj i zainicjalizuj bazę danych testowymi danymi',
       icon: '🗄️',

@@ -11,6 +11,7 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import fs from 'fs';
 import routes from './routes';
+import { honeypotMiddleware } from './middleware/honeypot';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { noCacheHeaders } from './middleware/noCacheHeaders';
 import { RATE_LIMIT } from './config/constants';
@@ -290,6 +291,9 @@ if (enableApiTester) {
   app.use('/test', express.static(path.join(__dirname, '../public')));
   serverLogger.info('🧪 Test interface dostępny na: /test/api-tester.html');
 }
+
+// Honeypot middleware - wykrywanie skanerów (przed głównymi routami)
+app.use(honeypotMiddleware);
 
 // API routes (MUSZĄ być przed serwowaniem frontendu)
 app.use('/api', noCacheHeaders);
