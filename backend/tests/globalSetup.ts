@@ -1,12 +1,10 @@
-// Polyfill dla glob.sync (kompatybilność glob@11 z Jest)
-import { globSync } from 'glob';
-
-const glob = require('glob');
+// Polyfill for glob.sync (glob@11 compatibility with Jest)
+// Use require() directly to patch the CommonJS module cache so all consumers see the fix
+const glob = require('glob') as { sync?: Function; globSync: Function };
 if (!glob.sync) {
-  glob.sync = globSync;
+  glob.sync = glob.globSync;
 }
 
 export default async function globalSetup() {
-  // Polyfill został zastosowany w czasie importu modułu
-  console.log('Global setup: glob.sync polyfill applied for glob@11 compatibility');
+  // Polyfill is applied at module import time via the require() cache patch above
 }
