@@ -16,7 +16,7 @@ export interface ParsedGoogleMapsUrl {
   originalUrl: string;
   resolvedUrl?: string;
   isShortened: boolean;
-  parseMethod: 'query' | 'at-sign' | 'place' | 'redirect' | 'none';
+  parseMethod: 'query' | 'search' | 'at-sign' | 'place' | 'redirect' | 'none';
 }
 
 export class GoogleMapsService {
@@ -42,6 +42,16 @@ export class GoogleMapsService {
     if (queryMatch) {
       const lat = parseFloat(queryMatch[1]);
       const lon = parseFloat(queryMatch[2]);
+      if (this.validateCoordinates(lat, lon)) {
+        return { lat, lon };
+      }
+    }
+
+    // Format: /maps/search/lat,lon or /maps/search/lat,+lon
+    const searchMatch = url.match(/\/maps\/search\/([-\d.]+),\+?([-\d.]+)/);
+    if (searchMatch) {
+      const lat = parseFloat(searchMatch[1]);
+      const lon = parseFloat(searchMatch[2]);
       if (this.validateCoordinates(lat, lon)) {
         return { lat, lon };
       }
@@ -87,6 +97,16 @@ export class GoogleMapsService {
       const lon = parseFloat(queryMatch[2]);
       if (this.validateCoordinates(lat, lon)) {
         return { coordinates: { lat, lon }, originalUrl: url, isShortened: shortened, parseMethod: 'query' };
+      }
+    }
+
+    // Format: /maps/search/lat,lon or /maps/search/lat,+lon
+    const searchMatch = url.match(/\/maps\/search\/([-\d.]+),\+?([-\d.]+)/);
+    if (searchMatch) {
+      const lat = parseFloat(searchMatch[1]);
+      const lon = parseFloat(searchMatch[2]);
+      if (this.validateCoordinates(lat, lon)) {
+        return { coordinates: { lat, lon }, originalUrl: url, isShortened: shortened, parseMethod: 'search' };
       }
     }
 
