@@ -173,7 +173,7 @@ const SyncSection: React.FC<SyncSectionProps> = ({
               className="btn btn-primary"
               onClick={handleFullSync}
               disabled={isLoading}
-              title="Pełna synchronizacja — tworzy i aktualizuje wszystkie rekordy"
+              title="Pełna synchronizacja — aktualizuje stan magazynowy istniejących, pobiera nowe wpisy"
             >
               {syncLoading === 'full' ? '⏳ Synchronizuję...' : '🔄 Pełna synchronizacja'}
             </button>
@@ -181,7 +181,7 @@ const SyncSection: React.FC<SyncSectionProps> = ({
               className="btn btn-secondary"
               onClick={handleQuickSync}
               disabled={isLoading}
-              title="Szybka synchronizacja — aktualizuje tylko statusy"
+              title="Szybka synchronizacja — aktualizuje tylko stan magazynowy istniejących rekordów"
             >
               {syncLoading === 'quick' ? '⏳ Synchronizuję...' : '⚡ Szybka synchronizacja'}
             </button>
@@ -412,8 +412,8 @@ export const SymfoniaSyncPage: React.FC = () => {
           title="Magazyn"
           description={
             <>
-              🔄 <strong>Pełna synchronizacja</strong> — pobiera kartotekę towarów (TW), stany (SM) i ruchy (MZ). Tworzy/aktualizuje wszystkie rekordy.<br />
-              ⚡ <strong>Szybka synchronizacja</strong> — aktualizuje tylko ilości stanów magazynowych. Uruchamiana też automatycznie co godzinę przez CRON.
+              🔄 <strong>Pełna synchronizacja</strong> — sprawdza istniejące rekordy w PostgreSQL i aktualizuje tylko stan magazynowy z MSSQL (z automatyczną reaktywacją / OUT_OF_STOCK na podstawie zmiany ilości). Pobiera nowe wpisy. W logu zapisuje informację o nowych wpisach.<br />
+              ⚡ <strong>Szybka synchronizacja</strong> — sprawdza istniejące rekordy w PostgreSQL i aktualizuje tylko stan magazynowy z MSSQL (z automatyczną reaktywacją / OUT_OF_STOCK na podstawie zmiany ilości). Nie pobiera nowych wpisów. W logu zapisuje pominięte wpisy. Uruchamiana automatycznie co godzinę przez CRON.
             </>
           }
           progressEventUrl="/admin/symfonia-sync/progress"
@@ -431,8 +431,8 @@ export const SymfoniaSyncPage: React.FC = () => {
           title="Kontrakty"
           description={
             <>
-              🔄 <strong>Pełna synchronizacja</strong> — pobiera kontrakty z tabeli [SSCommon].[STElements] (ElementKindId=128). Tworzy/aktualizuje wszystkie rekordy w tabeli contracts. Sprawdza zmiany kierowników. Uruchamiana automatycznie co 3 godziny przez CRON.<br />
-              ⚡ <strong>Szybka synchronizacja</strong> — aktualizuje statusy i kierowników kontraktów. Uruchamiana automatycznie co godzinę przez CRON.
+              🔄 <strong>Pełna synchronizacja</strong> — pobiera kontrakty z tabeli [SSCommon].[STElements] (ElementKindId=128). Tworzy nowe rekordy. Sprawdza zmiany kierowników i jeśli wystąpiły modyfikuje. Status nie zmieniany przy istniejących. Uruchamiana automatycznie co 3 godziny przez CRON.<br />
+              ⚡ <strong>Szybka synchronizacja</strong> — aktualizuje tylko kierowników kontraktów. Nie dokonuje zmiany statusu. W logu zapisuje informację o pominiętych danych z MSSQL. Uruchamiana automatycznie co godzinę przez CRON.
             </>
           }
           progressEventUrl="/admin/symfonia-sync/contracts/progress"

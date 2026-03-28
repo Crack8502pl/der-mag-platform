@@ -156,6 +156,8 @@ export class SymfoniaSyncService {
       stats.updated = upsertStats.updated;
       stats.skipped = upsertStats.skipped;
       stats.errors = upsertStats.errors;
+      stats.reactivated = upsertStats.reactivated;
+      stats.outOfStock = upsertStats.outOfStock;
 
       const completedAt = new Date();
       const result: SyncResult = {
@@ -357,18 +359,24 @@ export class SymfoniaSyncService {
   }
 
   /**
-   * Zapisuje do PostgreSQL (upsert) - pełna synchronizacja z batch processing
+   * Zapisuje do PostgreSQL (upsert) - pełna synchronizacja z batch processing.
+   * Dla istniejących rekordów aktualizuje TYLKO stan magazynowy (quantityInStock)
+   * wraz z logiką reaktywacji/OUT_OF_STOCK opartą na zmianie ilości.
+   * Dla nowych rekordów tworzy pełny wpis.
    */
   private static async upsertToWarehouseStock(
     data: SymfoniaProduct[],
     errors: SyncError[],
     onProgress?: ProgressCallback
-  ): Promise<{ created: number; updated: number; skipped: number; errors: number }> {
+  ): Promise<{ created: number; updated: number; skipped: number; errors: number; reactivated: number; outOfStock: number }> {
     const stockRepo = AppDataSource.getRepository(WarehouseStock);
+    const historyRepo = AppDataSource.getRepository(WarehouseStockHistory);
     let created = 0;
     let updated = 0;
     let skipped = 0;
     let errorCount = 0;
+    let reactivated = 0;
+    let outOfStock = 0;
 
     // Deduplicate: remove duplicate catalogNumbers from input data (last one wins)
     const uniqueData = new Map<string, SymfoniaProduct>();
@@ -426,35 +434,73 @@ export class SymfoniaSyncService {
 
           const existing = existingMap.get(item.catalogNumber);
 
-          // Mapowanie typks → materialType
-          const materialType = MaterialType.COMPONENT;
-
-          // Mapowanie aktywny → status
-          const status = item.isActive ? StockStatus.ACTIVE : StockStatus.DISCONTINUED;
-
-          // Metadata z Symfonii (JSONB)
-          const technicalSpecs = {
-            symfonia_tw_id: item.symfoniaTwId,
-            last_guid: item.lastGuid,
-            warehouse_id: item.warehouseId,
-            barcode: item.barcode,
-            stock_value: item.stockValue,
-          };
-
           if (existing) {
-            existing.materialName = item.materialName || existing.materialName;
-            existing.unit = item.unit || existing.unit;
-            existing.materialType = materialType;
-            existing.minStockLevel = item.minStockLevel ?? existing.minStockLevel;
-            existing.maxStockLevel = item.maxStockLevel ?? existing.maxStockLevel;
-            existing.quantityInStock = item.quantityInStock;
-            existing.unitPrice = item.unitPrice ?? existing.unitPrice;
-            existing.warehouseLocation = item.warehouseId ?? existing.warehouseLocation;
-            existing.status = status;
-            existing.technicalSpecs = { ...existing.technicalSpecs, ...technicalSpecs };
+            // Aktualizacja istniejącego rekordu - stan magazynowy oraz automatyczna zmiana statusu
+            // wyłącznie na podstawie zmiany ilości (reaktywacja / OUT_OF_STOCK).
+            const oldQuantity = existing.quantityInStock;
+            const newQuantity = item.quantityInStock;
+            const oldStatus = existing.status;
+
+            existing.quantityInStock = newQuantity;
+
+            // REAKTYWACJA: jeśli stan wzrósł > 0 (z 0) i towar był DISCONTINUED lub OUT_OF_STOCK
+            if (newQuantity > 0 && oldQuantity === 0 && (oldStatus === StockStatus.DISCONTINUED || oldStatus === StockStatus.OUT_OF_STOCK)) {
+              existing.status = StockStatus.ACTIVE;
+              existing.isActive = true;
+              reactivated++;
+
+              const historyEntry = historyRepo.create({
+                warehouseStockId: existing.id,
+                operationType: StockOperationType.STATUS_CHANGE,
+                quantityBefore: oldQuantity,
+                quantityAfter: newQuantity,
+                details: {
+                  reason: 'AUTO_REACTIVATION',
+                  message: 'Automatyczna reaktywacja - stan wzrósł > 0',
+                  previousStatus: oldStatus,
+                  newStatus: StockStatus.ACTIVE,
+                  source: 'symfonia_sync',
+                },
+                notes: 'Automatyczna reaktywacja przez synchronizację Symfonia',
+              });
+              await historyRepo.save(historyEntry);
+            }
+            // OUT_OF_STOCK: jeśli stan spadł do 0 (z wartości > 0) i towar był ACTIVE
+            else if (newQuantity === 0 && oldQuantity > 0 && oldStatus === StockStatus.ACTIVE) {
+              existing.status = StockStatus.OUT_OF_STOCK;
+              outOfStock++;
+
+              const historyEntry = historyRepo.create({
+                warehouseStockId: existing.id,
+                operationType: StockOperationType.STATUS_CHANGE,
+                quantityBefore: oldQuantity,
+                quantityAfter: newQuantity,
+                details: {
+                  reason: 'ZERO_STOCK',
+                  message: 'Stan spadł do 0',
+                  previousStatus: oldStatus,
+                  newStatus: StockStatus.OUT_OF_STOCK,
+                  source: 'symfonia_sync',
+                },
+                notes: 'Automatyczna zmiana statusu - stan = 0',
+              });
+              await historyRepo.save(historyEntry);
+            }
+
             await stockRepo.save(existing);
             updated++;
           } else {
+            // Nowy wpis - tworzony z pełnymi danymi
+            const materialType = MaterialType.COMPONENT;
+            const status = item.isActive ? StockStatus.ACTIVE : StockStatus.DISCONTINUED;
+            const technicalSpecs = {
+              symfonia_tw_id: item.symfoniaTwId,
+              last_guid: item.lastGuid,
+              warehouse_id: item.warehouseId,
+              barcode: item.barcode,
+              stock_value: item.stockValue,
+            };
+
             const stock = stockRepo.create({
               catalogNumber: item.catalogNumber,
               materialName: item.materialName || item.catalogNumber,
@@ -470,6 +516,7 @@ export class SymfoniaSyncService {
               technicalSpecs,
             });
             await stockRepo.save(stock);
+            warehouseSyncLogger.info(`➕ Nowy wpis: ${item.catalogNumber} — ${item.materialName}`);
             created++;
           }
         } catch (error) {
@@ -480,7 +527,11 @@ export class SymfoniaSyncService {
       }
     }
 
-    return { created, updated, skipped, errors: errorCount };
+    if (created > 0) {
+      warehouseSyncLogger.info(`✅ Pełna synchronizacja: dodano ${created} nowych wpisów`);
+    }
+
+    return { created, updated, skipped, errors: errorCount, reactivated, outOfStock };
   }
 
   /**
@@ -508,6 +559,7 @@ export class SymfoniaSyncService {
         const existing = await stockRepo.findOne({ where: { catalogNumber: item.catalogNumber } });
 
         if (!existing) {
+          warehouseSyncLogger.info(`⏭️ Pominięto (brak w PostgreSQL): ${item.catalogNumber}`);
           skipped++;
           continue;
         }
@@ -517,9 +569,6 @@ export class SymfoniaSyncService {
         const oldStatus = existing.status;
 
         existing.quantityInStock = newQuantity;
-        if (item.warehouseId) {
-          existing.warehouseLocation = item.warehouseId;
-        }
 
         // REAKTYWACJA: jeśli stan wzrósł > 0 (z 0) i towar był DISCONTINUED lub OUT_OF_STOCK
         if (newQuantity > 0 && oldQuantity === 0 && (oldStatus === StockStatus.DISCONTINUED || oldStatus === StockStatus.OUT_OF_STOCK)) {
