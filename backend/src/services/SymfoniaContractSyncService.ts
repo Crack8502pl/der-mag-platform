@@ -428,11 +428,11 @@ export class SymfoniaContractSyncService {
       for (const { item, contractNumber, employeeCodes } of batchWithNumbers) {
         try {
           if (!contractNumber) {
+            contractsSyncLogger.info(`⏭️ Pominięto (brak numeru kontraktu): shortcut="${item.shortcut}"`);
             skipped++;
             continue;
           }
 
-          const status = item.active ? ContractStatus.PENDING_CONFIGURATION : ContractStatus.INACTIVE;
           const managerCode = employeeCodes.length > 0 ? employeeCodes[0] : null;
           const projectManager = managerCode ? userMap.get(managerCode) : null;
 
@@ -450,14 +450,21 @@ export class SymfoniaContractSyncService {
           const existing = existingMap.get(contractNumber);
 
           if (existing) {
-            existing.customName = item.title || existing.customName;
-            existing.managerCode = managerCode;
-            existing.projectManagerId = projectManager ? projectManager.id : null;
-            existing.status = status;
-            existing.technicalSpecs = { ...existing.technicalSpecs, ...technicalSpecs };
-            await contractRepo.save(existing);
-            updated++;
+            // Aktualizacja istniejącego rekordu - TYLKO kierownicy. Status pozostaje bez zmian.
+            const managerChanged =
+              existing.managerCode !== managerCode ||
+              existing.projectManagerId !== (projectManager?.id ?? null);
+
+            if (managerChanged) {
+              existing.managerCode = managerCode;
+              existing.projectManagerId = projectManager ? projectManager.id : null;
+              await contractRepo.save(existing);
+              updated++;
+            } else {
+              skipped++;
+            }
           } else {
+            const status = item.active ? ContractStatus.PENDING_CONFIGURATION : ContractStatus.INACTIVE;
             const contract = contractRepo.create({
               contractNumber,
               customName: item.title || contractNumber,
@@ -468,6 +475,7 @@ export class SymfoniaContractSyncService {
               technicalSpecs,
             });
             await contractRepo.save(contract);
+            contractsSyncLogger.info(`➕ Nowy kontrakt: ${contractNumber} — ${item.title}`);
             created++;
           }
         } catch (error) {
@@ -482,7 +490,8 @@ export class SymfoniaContractSyncService {
   }
 
   /**
-   * Aktualizuje tylko statusy Active kontraktów (szybka synchronizacja)
+   * Aktualizuje tylko kierowników kontraktów (szybka synchronizacja).
+   * NIE zmienia statusów kontraktów.
    */
   private static async updateStatusesOnly(
     data: SymfoniaContractRecord[],
@@ -533,47 +542,31 @@ export class SymfoniaContractSyncService {
       userMap = new Map(users.filter((u) => u.employeeCode).map((u) => [u.employeeCode as string, u]));
     }
 
-    const userConfiguredStatuses: ContractStatus[] = [
-      ContractStatus.CREATED,
-      ContractStatus.APPROVED,
-      ContractStatus.IN_PROGRESS,
-      ContractStatus.COMPLETED,
-      ContractStatus.CANCELLED,
-    ];
-
     for (const { item, contractNumber, employeeCodes } of items) {
       try {
         if (!contractNumber) {
+          contractsSyncLogger.info(`⏭️ Pominięto z MSSQL (brak numeru kontraktu): shortcut="${item.shortcut}"`);
           skipped++;
           continue;
         }
 
         const existing = existingMap.get(contractNumber);
         if (!existing) {
+          contractsSyncLogger.info(`⏭️ Pominięto z MSSQL (brak w PostgreSQL): ${contractNumber}`);
           skipped++;
           continue;
         }
 
-        const newStatus = item.active ? ContractStatus.PENDING_CONFIGURATION : ContractStatus.INACTIVE;
         const managerCode = employeeCodes.length > 0 ? employeeCodes[0] : null;
         const projectManager = managerCode ? userMap.get(managerCode) : null;
-
-        const statusChanged =
-          existing.status !== newStatus &&
-          (!userConfiguredStatuses.includes(existing.status) || newStatus === ContractStatus.INACTIVE);
 
         const managerChanged =
           existing.managerCode !== managerCode ||
           existing.projectManagerId !== (projectManager?.id ?? null);
 
-        if (statusChanged || managerChanged) {
-          if (statusChanged) {
-            existing.status = newStatus;
-          }
-          if (managerChanged) {
-            existing.managerCode = managerCode;
-            existing.projectManagerId = projectManager?.id ?? null;
-          }
+        if (managerChanged) {
+          existing.managerCode = managerCode;
+          existing.projectManagerId = projectManager?.id ?? null;
           await contractRepo.save(existing);
           updated++;
         } else {
