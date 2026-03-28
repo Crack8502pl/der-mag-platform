@@ -4,7 +4,7 @@
 import { AppDataSource } from '../config/database';
 import { Contract, ContractStatus } from '../entities/Contract';
 import { User } from '../entities/User';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 
 export class ContractService {
   private contractRepository: Repository<Contract>;
@@ -176,6 +176,100 @@ export class ContractService {
       updatedAt: 'contract.updatedAt'
     };
 
+    const sortBy = options?.sortBy || 'createdAt';
+    const sortOrder = options?.sortOrder || 'DESC';
+    const page = Math.max(1, options?.page || 1);
+    const limit = Math.min(100, Math.max(1, options?.limit || 20));
+    const skip = (page - 1) * limit;
+
+    if (sortBy === 'subsystemsCount') {
+      // Use leftJoin + GROUP BY + COUNT to avoid SELECT DISTINCT / ORDER BY conflict in PostgreSQL
+      const query = this.contractRepository
+        .createQueryBuilder('contract')
+        .leftJoin('contract.projectManager', 'projectManager')
+        .addSelect([
+          'projectManager.id',
+          'projectManager.firstName',
+          'projectManager.lastName',
+          'projectManager.email'
+        ])
+        .leftJoin('contract.subsystems', 'subsystems')
+        .groupBy('contract.id')
+        .addGroupBy('projectManager.id');
+
+      if (filters?.status) {
+        query.andWhere('contract.status = :status', { status: filters.status });
+      }
+
+      if (filters?.projectManagerId) {
+        query.andWhere('contract.projectManagerId = :projectManagerId', {
+          projectManagerId: filters.projectManagerId
+        });
+      }
+
+      if (filters?.search) {
+        const searchLower = filters.search.toLowerCase();
+        query.andWhere(
+          '(LOWER(contract.contractNumber) LIKE :search OR LOWER(contract.customName) LIKE :search OR LOWER(contract.managerCode) LIKE :search)',
+          { search: `%${searchLower}%` }
+        );
+      }
+
+      query.orderBy('COUNT(subsystems.id)', sortOrder);
+
+      // Build a separate count query to get the total number of matching contracts
+      const countQuery = this.contractRepository
+        .createQueryBuilder('contract')
+        .leftJoin('contract.subsystems', 'subsystems')
+        .select('COUNT(DISTINCT contract.id)', 'cnt');
+
+      if (filters?.status) {
+        countQuery.andWhere('contract.status = :status', { status: filters.status });
+      }
+      if (filters?.projectManagerId) {
+        countQuery.andWhere('contract.projectManagerId = :projectManagerId', {
+          projectManagerId: filters.projectManagerId
+        });
+      }
+      if (filters?.search) {
+        const searchLower = filters.search.toLowerCase();
+        countQuery.andWhere(
+          '(LOWER(contract.contractNumber) LIKE :search OR LOWER(contract.customName) LIKE :search OR LOWER(contract.managerCode) LIKE :search)',
+          { search: `%${searchLower}%` }
+        );
+      }
+
+      const countResult = await countQuery.getRawOne<{ cnt: string }>();
+      const total = parseInt(countResult?.cnt ?? '0', 10);
+
+      const contracts = await query
+        .skip(skip)
+        .take(limit)
+        .getMany();
+
+      // Batch load subsystems for all fetched contracts in a single query
+      if (contracts.length > 0) {
+        const contractIds = contracts.map(c => c.id);
+        const contractsWithSubsystems = await this.contractRepository.find({
+          where: { id: In(contractIds) },
+          relations: ['subsystems']
+        });
+        const subsystemsMap = new Map(contractsWithSubsystems.map(c => [c.id, c.subsystems]));
+        for (const contract of contracts) {
+          contract.subsystems = subsystemsMap.get(contract.id) ?? [];
+        }
+      }
+
+      return {
+        contracts,
+        total,
+        page,
+        limit,
+        totalPages: limit > 0 ? Math.ceil(total / limit) : 0
+      };
+    }
+
+    // Standard sorting
     const query = this.contractRepository
       .createQueryBuilder('contract')
       .leftJoinAndSelect('contract.projectManager', 'projectManager')
@@ -199,25 +293,8 @@ export class ContractService {
       );
     }
 
-    // Sorting with validation
-    const sortBy = options?.sortBy || 'createdAt';
-    const sortOrder = options?.sortOrder || 'DESC';
-    if (sortBy === 'subsystemsCount') {
-      query
-        .addSelect(
-          `(SELECT COUNT(*) FROM subsystems WHERE subsystems.contract_id = contract.id)`,
-          'subsystemsCount'
-        )
-        .orderBy('"subsystemsCount"', sortOrder);
-    } else {
-      const sortColumn = columnMap[sortBy] || 'contract.createdAt';
-      query.orderBy(sortColumn, sortOrder);
-    }
-
-    // Pagination
-    const page = Math.max(1, options?.page || 1);
-    const limit = Math.min(100, Math.max(1, options?.limit || 20));
-    const skip = (page - 1) * limit;
+    const sortColumn = columnMap[sortBy] || 'contract.createdAt';
+    query.orderBy(sortColumn, sortOrder);
 
     const [contracts, total] = await query
       .skip(skip)
