@@ -1,10 +1,7 @@
-// Polyfill for glob.sync (glob@11 compatibility with Jest)
-// Use require() directly to patch the CommonJS module cache so all consumers see the fix
-const glob = require('glob') as { sync?: Function; globSync: Function };
-if (!glob.sync) {
-  glob.sync = glob.globSync;
-}
+// tests/globalSetup.ts
+// Global setup for Jest tests
 
 export default async function globalSetup() {
-  // Polyfill is applied at module import time via the require() cache patch above
+  // Global setup logic can be added here if needed
+  // Note: glob polyfill is now in jestGlobPolyfill.js (loaded via setupFiles)
 }

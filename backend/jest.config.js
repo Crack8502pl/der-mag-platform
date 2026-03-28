@@ -1,3 +1,11 @@
+// Polyfill glob.sync in the main Jest process (used by CoverageReporter._checkThreshold)
+// glob@11 exports globSync instead of sync; this must run here so it is applied before
+// reporters are initialised — setupFiles only runs inside test-environment worker processes.
+const glob = require('glob');
+if (typeof glob.sync !== 'function' && typeof glob.globSync === 'function') {
+  glob.sync = glob.globSync;
+}
+
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
@@ -5,6 +13,10 @@ module.exports = {
   testMatch: ['**/*.test.ts'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   coverageProvider: 'v8',
+
+  // Load glob polyfill BEFORE test environment setup
+  setupFiles: ['<rootDir>/tests/jestGlobPolyfill.js'],
+
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/index.ts',
