@@ -458,7 +458,6 @@ export class SymfoniaContractSyncService {
             if (managerChanged) {
               existing.managerCode = managerCode;
               existing.projectManagerId = projectManager ? projectManager.id : null;
-              existing.technicalSpecs = { ...existing.technicalSpecs, ...technicalSpecs };
               await contractRepo.save(existing);
               updated++;
             } else {

@@ -437,8 +437,8 @@ export class SymfoniaSyncService {
           if (existing) {
             // Aktualizacja istniejącego rekordu - stan magazynowy oraz automatyczna zmiana statusu
             // wyłącznie na podstawie zmiany ilości (reaktywacja / OUT_OF_STOCK).
-            const oldQuantity = existing.quantityInStock;
-            const newQuantity = item.quantityInStock;
+            const oldQuantity = Number(existing.quantityInStock);
+            const newQuantity = Number(item.quantityInStock);
             const oldStatus = existing.status;
 
             existing.quantityInStock = newQuantity;
@@ -564,8 +564,8 @@ export class SymfoniaSyncService {
           continue;
         }
 
-        const oldQuantity = existing.quantityInStock;
-        const newQuantity = item.quantityInStock;
+        const oldQuantity = Number(existing.quantityInStock);
+        const newQuantity = Number(item.quantityInStock);
         const oldStatus = existing.status;
 
         existing.quantityInStock = newQuantity;
