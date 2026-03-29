@@ -184,18 +184,11 @@ export class ContractService {
 
     if (sortBy === 'subsystemsCount') {
       // Use leftJoin + GROUP BY + COUNT to avoid SELECT DISTINCT / ORDER BY conflict in PostgreSQL
+      // Don't select projectManager here - load it later to avoid GROUP BY issues
       const query = this.contractRepository
         .createQueryBuilder('contract')
-        .leftJoin('contract.projectManager', 'projectManager')
-        .addSelect([
-          'projectManager.id',
-          'projectManager.firstName',
-          'projectManager.lastName',
-          'projectManager.email'
-        ])
         .leftJoin('contract.subsystems', 'subsystems')
-        .groupBy('contract.id')
-        .addGroupBy('projectManager.id');
+        .groupBy('contract.id');
 
       if (filters?.status) {
         query.andWhere('contract.status = :status', { status: filters.status });
@@ -220,7 +213,6 @@ export class ContractService {
       // Build a separate count query to get the total number of matching contracts
       const countQuery = this.contractRepository
         .createQueryBuilder('contract')
-        .leftJoin('contract.subsystems', 'subsystems')
         .select('COUNT(DISTINCT contract.id)', 'cnt');
 
       if (filters?.status) {
@@ -247,16 +239,20 @@ export class ContractService {
         .take(limit)
         .getMany();
 
-      // Batch load subsystems for all fetched contracts in a single query
+      // Batch load projectManager and subsystems for all fetched contracts in a single query
       if (contracts.length > 0) {
         const contractIds = contracts.map(c => c.id);
-        const contractsWithSubsystems = await this.contractRepository.find({
+        const contractsWithRelations = await this.contractRepository.find({
           where: { id: In(contractIds) },
-          relations: ['subsystems']
+          relations: ['projectManager', 'subsystems']
         });
-        const subsystemsMap = new Map(contractsWithSubsystems.map(c => [c.id, c.subsystems]));
+        const relationsMap = new Map(contractsWithRelations.map(c => [c.id, c]));
         for (const contract of contracts) {
-          contract.subsystems = subsystemsMap.get(contract.id) ?? [];
+          const fullContract = relationsMap.get(contract.id);
+          if (fullContract) {
+            contract.subsystems = fullContract.subsystems ?? [];
+            contract.projectManager = fullContract.projectManager;
+          }
         }
       }
 
