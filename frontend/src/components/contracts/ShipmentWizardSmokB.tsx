@@ -12,7 +12,7 @@ import './WizardStepIndicator.css';
 // ─── Typy zadań ──────────────────────────────────────────────────────────────
 
 const PRZEJAZD_TYPES = ['SMOKIP_B', 'PRZEJAZD_KAT_A', 'PRZEJAZD_KAT_B'];
-const LCS_ND_TYPES = ['LCS', 'ND'];
+const LCS_ND_TYPES = ['LCS', 'ND', 'NASTAWNIA'];
 
 type CabinetOption = 'SZAFA_TERENOWA' | 'SZAFA_WEWNETRZNA' | 'KONTENER' | '42U' | '24U';
 type PoleType = 'STALOWY' | 'KOMPOZYT' | 'INNY';
