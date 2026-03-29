@@ -1326,3 +1326,11 @@
   }
 }
 
+.task-substatus {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted, #888);
+  margin-top: 2px;
+  font-style: italic;
+}
+
