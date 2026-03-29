@@ -135,6 +135,11 @@ export interface BrigadePermissions {
   viewMembers?: boolean;
 }
 
+export interface CarsPermissions {
+  read?: boolean;
+  update?: boolean;
+}
+
 export interface RolePermissions {
   all?: boolean; // Admin - pełny dostęp
   dashboard?: DashboardPermissions;
@@ -154,6 +159,7 @@ export interface RolePermissions {
   notifications?: NotificationPermissions;
   warehouse_stock?: WarehouseStockPermissions;
   brigades?: BrigadePermissions;
+  cars?: CarsPermissions;
   [key: string]: any;
 }
 
@@ -175,7 +181,8 @@ export type PermissionModule =
   | 'documents'
   | 'notifications'
   | 'warehouse_stock'
-  | 'brigades';
+  | 'brigades'
+  | 'cars';
 
 export type PermissionAction = 
   | 'read'
