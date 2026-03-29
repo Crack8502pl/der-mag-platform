@@ -78,7 +78,8 @@ INSERT INTO roles (name, description, permissions, created_at, updated_at) VALUE
     "settings": {"read": true, "update": true},
     "photos": {"read": true},
     "documents": {"read": true, "create": true},
-    "notifications": {"receiveAlerts": true}
+    "notifications": {"receiveAlerts": true},
+    "cars": {"read": true, "update": true}
   }'::jsonb,
   CURRENT_TIMESTAMP,
   CURRENT_TIMESTAMP

@@ -42,8 +42,8 @@ export const CarsPage: React.FC = () => {
       setCars(prev => prev.map(c => (c.id === car.id ? updatedCar : c)));
       setSuccess(
         updatedCar.brigadeId
-          ? `✅ Utworzono brygadę: ${car.registration}`
-          : `✅ Odłączono brygadę od samochodu: ${car.registration}`
+          ? `✅ Utworzono brygadę: ${updatedCar.registration}`
+          : `✅ Odłączono brygadę od samochodu: ${updatedCar.registration}`
       );
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Błąd przy zmianie brygady');

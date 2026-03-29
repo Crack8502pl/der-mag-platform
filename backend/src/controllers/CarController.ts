@@ -36,7 +36,11 @@ export class CarController {
       res.json({ success: true, data: car });
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      res.status(500).json({ success: false, message: msg });
+      if (msg === 'Samochód nie znaleziony') {
+        res.status(404).json({ success: false, message: msg });
+      } else {
+        res.status(500).json({ success: false, message: msg });
+      }
     }
   }
 

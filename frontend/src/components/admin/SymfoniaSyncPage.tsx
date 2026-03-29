@@ -459,7 +459,7 @@ export const SymfoniaSyncPage: React.FC = () => {
               Uruchamiana automatycznie co 12 godzin przez CRON.
             </>
           }
-          progressEventUrl="/admin/cars/sync"
+          progressEventUrl="/admin/symfonia-sync/progress"
           onFullSync={async () => {
             const result = await carsService.sync();
             return {
@@ -482,7 +482,7 @@ export const SymfoniaSyncPage: React.FC = () => {
             const result = await carsService.sync();
             return {
               success: result.success,
-              syncType: 'full' as const,
+              syncType: 'quick' as const,
               startedAt: result.startedAt,
               completedAt: result.completedAt,
               duration: result.duration,
@@ -499,7 +499,7 @@ export const SymfoniaSyncPage: React.FC = () => {
           onLoadStatus={() => Promise.resolve({
             lastFullSync: null,
             lastQuickSync: null,
-            nextScheduledSync: '',
+            nextScheduledSync: null,
             isRunning: false,
             cronEnabled: true,
           })}

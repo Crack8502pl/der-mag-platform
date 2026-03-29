@@ -5,7 +5,10 @@
 import * as sql from 'mssql';
 import { AppDataSource } from '../config/database';
 import { Car } from '../entities/Car';
-import { Brigade } from '../entities/Brigade';
+import { BrigadeService } from './BrigadeService';
+
+// Guard against concurrent sync runs
+let isCarSyncRunning = false;
 
 export interface CarSyncResult {
   success: boolean;
@@ -92,6 +95,10 @@ export class SymfoniaCarSyncService {
    * Pełna synchronizacja samochodów z archiwizacją
    */
   static async syncCars(): Promise<CarSyncResult> {
+    if (isCarSyncRunning) {
+      throw new Error('Synchronizacja samochodów jest już uruchomiona');
+    }
+    isCarSyncRunning = true;
     const startedAt = new Date();
     const errors: Array<{ message: string }> = [];
     const stats: CarSyncResult['stats'] = {
@@ -144,11 +151,24 @@ export class SymfoniaCarSyncService {
           car.active = true;
           car.archivedAt = null;
           car.registration = parsed.registration;
+          car.symfoniaElementId = record.elementId;
           await carRepository.save(car);
           stats.updated++;
           console.log(`🚗 [CARS] Reaktywowano samochód: ${parsed.lp}`);
         } else {
-          stats.skipped++;
+          // Aktualizuj pola jeśli zmieniły się w Symfonii
+          const needsUpdate =
+            car.registration !== parsed.registration ||
+            car.symfoniaElementId !== record.elementId;
+
+          if (needsUpdate) {
+            car.registration = parsed.registration;
+            car.symfoniaElementId = record.elementId;
+            await carRepository.save(car);
+            stats.updated++;
+          } else {
+            stats.skipped++;
+          }
         }
       }
 
@@ -188,6 +208,8 @@ export class SymfoniaCarSyncService {
         stats: { ...stats, errors: stats.errors + 1 },
         errors,
       };
+    } finally {
+      isCarSyncRunning = false;
     }
   }
 
@@ -204,26 +226,25 @@ export class SymfoniaCarSyncService {
 
   /**
    * Przełącz brygadę dla samochodu (tworzenie/odłączanie)
+   * Używa BrigadeService.createBrigade() dla spójnej logiki tworzenia brygad.
    */
   static async toggleBrigade(carId: number, createBrigade: boolean): Promise<Car> {
     const carRepository = AppDataSource.getRepository(Car);
-    const brigadeRepository = AppDataSource.getRepository(Brigade);
+    const brigadeService = new BrigadeService();
 
     const car = await carRepository.findOne({ where: { id: carId } });
     if (!car) throw new Error('Samochód nie znaleziony');
 
     if (createBrigade && !car.brigadeId) {
-      // Sprawdź czy brygada o tym kodzie już istnieje
-      let brigade = await brigadeRepository.findOne({ where: { code: car.registration } });
+      let brigade = await brigadeService.getBrigadeByCode(car.registration);
 
       if (!brigade) {
-        brigade = brigadeRepository.create({
+        brigade = await brigadeService.createBrigade({
           code: car.registration,
           name: car.registration,
           description: '',
           active: true,
         });
-        await brigadeRepository.save(brigade);
         console.log(`👷 [CARS] Utworzono brygadę: ${car.registration}`);
       }
 
