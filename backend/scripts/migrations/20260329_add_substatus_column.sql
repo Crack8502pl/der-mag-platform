@@ -1,4 +1,7 @@
--- Add substatus column to subsystem_tasks table
+-- Migration: Add substatus column to subsystem_tasks
+-- Date: 2026-03-29
+-- Description: Adds substatus column to track shipment request state (e.g. wysyłka_zlecona)
+
 ALTER TABLE subsystem_tasks 
 ADD COLUMN IF NOT EXISTS substatus VARCHAR(50) DEFAULT NULL;
 

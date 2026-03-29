@@ -152,8 +152,9 @@ export class SubsystemTaskService {
 
     task.substatus = substatus;
     task.metadata = {
-      ...task.metadata,
-      ...additionalMetadata,
+      ...(task.metadata || {}),
+      ...(additionalMetadata || {}),
+      substatus,
     };
 
     return await this.taskRepository.save(task);

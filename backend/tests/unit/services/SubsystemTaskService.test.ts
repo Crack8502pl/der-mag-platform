@@ -171,6 +171,67 @@ describe('SubsystemTaskService', () => {
     });
   });
 
+  describe('updateSubstatus', () => {
+    it('should update substatus and merge metadata', async () => {
+      const mockTask = {
+        id: 1,
+        taskNumber: 'Z00010125',
+        substatus: null,
+        metadata: { existingKey: 'value' },
+      };
+      const updatedTask = {
+        ...mockTask,
+        substatus: 'wysyłka_zlecona',
+        metadata: { existingKey: 'value', shipmentTaskNumber: 'Z00020125', substatus: 'wysyłka_zlecona' },
+      };
+      mockTaskRepository.findOne.mockResolvedValue(mockTask);
+      mockTaskRepository.save.mockResolvedValue(updatedTask);
+
+      const result = await service.updateSubstatus(1, 'wysyłka_zlecona', {
+        shipmentTaskNumber: 'Z00020125',
+      });
+
+      expect(result.substatus).toBe('wysyłka_zlecona');
+      expect(mockTaskRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          substatus: 'wysyłka_zlecona',
+          metadata: expect.objectContaining({
+            substatus: 'wysyłka_zlecona',
+            shipmentTaskNumber: 'Z00020125',
+            existingKey: 'value',
+          }),
+        })
+      );
+    });
+
+    it('should clear substatus when null is passed', async () => {
+      const mockTask = {
+        id: 1,
+        taskNumber: 'Z00010125',
+        substatus: 'wysyłka_zlecona',
+        metadata: { substatus: 'wysyłka_zlecona' },
+      };
+      const updatedTask = { ...mockTask, substatus: null, metadata: { substatus: null } };
+      mockTaskRepository.findOne.mockResolvedValue(mockTask);
+      mockTaskRepository.save.mockResolvedValue(updatedTask);
+
+      const result = await service.updateSubstatus(1, null);
+
+      expect(mockTaskRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ substatus: null })
+      );
+      expect(result.substatus).toBeNull();
+    });
+
+    it('should throw when task not found', async () => {
+      mockTaskRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.updateSubstatus(99, 'wysyłka_zlecona')).rejects.toThrow(
+        'Zadanie nie znalezione'
+      );
+    });
+  });
+
   describe('generateTaskNumber (deprecated)', () => {
     it('should generate first task number for a subsystem', async () => {
       mockQueryBuilder.getOne.mockResolvedValue(null);

@@ -27,6 +27,7 @@ export enum TaskWorkflowStatus {
 @Index(['taskNumber'], { unique: true })
 @Index(['subsystemId'])
 @Index(['status'])
+@Index(['substatus'])
 export class SubsystemTask {
   @PrimaryGeneratedColumn()
   id: number;
