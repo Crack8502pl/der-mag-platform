@@ -7,8 +7,8 @@ import type {
   BomTemplateDependencyRuleCondition
 } from '../services/bomTemplateDependencyRule.service';
 
-type AggregationType = 'SUM' | 'COUNT' | 'MIN' | 'MAX' | 'PRODUCT' | 'FIRST';
-type MathOperation = 'NONE' | 'FLOOR_DIV' | 'MODULO' | 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'CEIL_DIV' | 'ROUND_DIV';
+type AggregationType = 'SUM' | 'COUNT' | 'MIN' | 'MAX' | 'PRODUCT' | 'FIRST' | 'SELECT_RECORDER' | 'SELECT_DISKS';
+type MathOperation = 'NONE' | 'FLOOR_DIV' | 'MODULO' | 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'CEIL_DIV' | 'ROUND_DIV' | 'CALCULATE_STORAGE';
 
 export class DependencyRuleEngine {
   /**
@@ -156,6 +156,12 @@ export class DependencyRuleEngine {
       case 'FIRST':
         return values[0];
 
+      case 'SELECT_RECORDER':
+      case 'SELECT_DISKS':
+        // DB-backed operations handled by the backend; return 0 on the client
+        console.warn(`Aggregation type '${aggregationType}' is handled server-side; returning 0 in client preview`);
+        return 0;
+
       default:
         return 0;
     }
@@ -199,6 +205,11 @@ export class DependencyRuleEngine {
 
       case 'MULTIPLY':
         return value * operand;
+
+      case 'CALCULATE_STORAGE':
+        // DB-backed operation handled by the backend; return value as-is on the client
+        console.warn(`Math operation 'CALCULATE_STORAGE' is handled server-side; returning input value in client preview`);
+        return value;
 
       default:
         return value;
