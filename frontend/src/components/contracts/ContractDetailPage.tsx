@@ -11,6 +11,7 @@ import { useAuth } from '../../hooks/useAuth';
 import type { Contract, Subsystem, SubsystemTask } from '../../services/contract.service';
 import api from '../../services/api';
 import { ShipmentWizardModal } from './ShipmentWizardModal';
+import { ShipmentWizardSmokB } from './ShipmentWizardSmokB';
 import { TaskStatusBadge } from '../tasks/TaskStatusBadge';
 import './ContractListPage.css';
 
@@ -323,14 +324,25 @@ export const ContractDetailPage: React.FC = () => {
       </div>
 
       {shipmentSubsystem && canCreateTasks && (
-        <ShipmentWizardModal
-          subsystem={shipmentSubsystem}
-          onClose={() => setShipmentSubsystem(null)}
-          onSuccess={() => {
-            setShipmentSubsystem(null);
-            loadContract();
-          }}
-        />
+        shipmentSubsystem.systemType === 'SMOKIP_B' ? (
+          <ShipmentWizardSmokB
+            subsystem={shipmentSubsystem}
+            onClose={() => setShipmentSubsystem(null)}
+            onSuccess={() => {
+              setShipmentSubsystem(null);
+              loadContract();
+            }}
+          />
+        ) : (
+          <ShipmentWizardModal
+            subsystem={shipmentSubsystem}
+            onClose={() => setShipmentSubsystem(null)}
+            onSuccess={() => {
+              setShipmentSubsystem(null);
+              loadContract();
+            }}
+          />
+        )
       )}
 
       {completionTask && (

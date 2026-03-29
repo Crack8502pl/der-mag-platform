@@ -9,6 +9,7 @@ import path from 'path';
 import app from './app';
 import { initializeDatabase } from './config/database';
 import { DatabaseSeeder } from './services/DatabaseSeeder';
+import { ShipmentBomTemplatesSeed } from './seeds/shipmentBomTemplates.seed';
 import EmailService from './services/EmailService';
 import EmailQueueService from './services/EmailQueueService';
 import NotificationSchedulerService from './services/NotificationSchedulerService';
@@ -32,6 +33,9 @@ const startServer = async () => {
 
     // Automatyczne seedowanie (tylko jeśli baza pusta)
     await DatabaseSeeder.seed();
+
+    // Seedowanie szablonów BOM dla kreatora wysyłki (idempotentne)
+    await ShipmentBomTemplatesSeed.seed();
 
     // Inicjalizacja systemu emaili
     serverLogger.info('📧 Inicjalizacja systemu emaili...');
