@@ -826,6 +826,12 @@ export class TaskController {
         }
       });
 
+      // Ustaw substatus 'wysyłka_zlecona' na oryginalnym zadaniu źródłowym
+      await subsystemTaskService.updateSubstatus(sourceTask.id, 'wysyłka_zlecona', {
+        shipmentTaskNumber: newTask.taskNumber,
+        shipmentRequestedAt: new Date().toISOString(),
+      });
+
       res.status(201).json({
         success: true,
         message: `Zadanie "${shipmentTaskName}" zostało utworzone`,

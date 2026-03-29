@@ -50,6 +50,9 @@ export class SubsystemTask {
   @Column({ name: 'status', type: 'varchar', length: 50, default: TaskWorkflowStatus.CREATED })
   status: TaskWorkflowStatus;
 
+  @Column({ name: 'substatus', type: 'varchar', length: 50, nullable: true })
+  substatus: string | null;
+
   // BOM tracking
   @Column({ name: 'bom_generated', type: 'boolean', default: false })
   bomGenerated: boolean;
