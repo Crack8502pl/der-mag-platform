@@ -72,6 +72,8 @@ import { TaskGeneratedBomItem } from '../entities/TaskGeneratedBomItem';
 import { UserPreferences } from '../entities/UserPreferences';
 import { PushSubscription } from '../entities/PushSubscription';
 import { HoneypotLog } from '../entities/HoneypotLog';
+// Cars
+import { Car } from '../entities/Car';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -171,6 +173,8 @@ export const AppDataSource = new DataSource({
     PushSubscription,
     // Honeypot logs
     HoneypotLog,
+    // Cars
+    Car,
   ],
   subscribers: [],
   migrations: [],

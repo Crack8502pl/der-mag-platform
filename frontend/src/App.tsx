@@ -40,6 +40,7 @@ import { ContractDetailPage } from './components/contracts/ContractDetailPage';
 import { WarehouseStockPage } from './components/modules/WarehouseStockPage';
 import { BrigadesPage } from './components/brigades/BrigadesPage';
 import { TasksMapPage } from './components/map/TasksMapPage';
+import { CarsPage } from './components/cars/CarsPage';
 import { useAuth } from './hooks/useAuth';
 import { useTokenExpirationWarning } from './hooks/useTokenExpirationWarning';
 import { TokenExpirationModal } from './components/common/TokenExpirationModal';
@@ -288,6 +289,18 @@ function App() {
             <ProtectedRoute>
               <RoleBasedRoute requiredPermission={{ module: 'brigades', action: 'read' }}>
                 <BrigadesPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Cars Routes */}
+        <Route
+          path="/cars"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'cars', action: 'read' }}>
+                <CarsPage />
               </RoleBasedRoute>
             </ProtectedRoute>
           }

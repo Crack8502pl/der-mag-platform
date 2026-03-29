@@ -327,6 +327,11 @@ export class RoleController {
           name: 'brigades',
           displayName: 'Brygady',
           actions: ['read', 'create', 'update', 'delete', 'assignMembers', 'viewMembers']
+        },
+        {
+          name: 'cars',
+          displayName: 'Samochody',
+          actions: ['read', 'update']
         }
       ];
 

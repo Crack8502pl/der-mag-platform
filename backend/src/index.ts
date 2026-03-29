@@ -16,6 +16,7 @@ import NotificationSchedulerService from './services/NotificationSchedulerServic
 import { startSymfoniaStockSyncJob, stopSymfoniaStockSyncJob } from './jobs/symfoniaStockSync.job';
 import { scheduleWarehouseCleanup, stopWarehouseCleanupJob } from './jobs/warehouseCleanupJob';
 import { startSymfoniaContractSyncJobs, stopSymfoniaContractSyncJobs } from './jobs/symfoniaContractSync.job';
+import { startSymfoniaCarSyncJob, stopSymfoniaCarSyncJob } from './jobs/symfoniaCarSync.job';
 import { serverLogger, overrideConsole } from './utils/logger';
 
 // Override console.* to redirect all logs to winston files
@@ -57,6 +58,10 @@ const startServer = async () => {
     // Inicjalizacja CRON czyszczenia magazynu
     serverLogger.info('🧹 Inicjalizacja automatycznego czyszczenia magazynu...');
     scheduleWarehouseCleanup();
+
+    // Inicjalizacja CRON synchronizacji samochodów
+    serverLogger.info('🚗 Inicjalizacja synchronizacji samochodów Symfonia...');
+    startSymfoniaCarSyncJob();
 
     // Start serwera z HTTPS lub HTTP
     if (USE_HTTPS) {
@@ -126,6 +131,7 @@ process.on('SIGTERM', async () => {
   NotificationSchedulerService.stopAll();
   stopSymfoniaStockSyncJob();
   stopSymfoniaContractSyncJobs();
+  stopSymfoniaCarSyncJob();
   stopWarehouseCleanupJob();
   await EmailQueueService.close();
   process.exit(0);
@@ -135,6 +141,7 @@ process.on('SIGINT', async () => {
   serverLogger.info('👋 SIGINT received, shutting down gracefully');
   stopSymfoniaStockSyncJob();
   stopSymfoniaContractSyncJobs();
+  stopSymfoniaCarSyncJob();
   stopWarehouseCleanupJob();
   await EmailQueueService.close();
   process.exit(0);

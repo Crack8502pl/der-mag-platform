@@ -5,6 +5,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import symfoniaSyncService, { type SyncResult, type SyncStatus, type SyncHistory, type SyncProgress } from '../../services/symfoniaSync.service';
 import { ModuleIcon } from '../common/ModuleIcon';
+import carsService from '../../services/cars.service';
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return '—';
@@ -362,7 +363,7 @@ const SyncSection: React.FC<SyncSectionProps> = ({
   );
 };
 
-type TabId = 'warehouse' | 'contracts';
+type TabId = 'warehouse' | 'contracts' | 'cars';
 
 export const SymfoniaSyncPage: React.FC = () => {
   const navigate = useNavigate();
@@ -404,6 +405,9 @@ export const SymfoniaSyncPage: React.FC = () => {
         <button style={tabStyle('contracts')} onClick={() => setActiveTab('contracts')}>
           📋 Kontrakty
         </button>
+        <button style={tabStyle('cars')} onClick={() => setActiveTab('cars')}>
+          🚗 Samochody
+        </button>
       </div>
 
       {/* Warehouse tab */}
@@ -441,6 +445,66 @@ export const SymfoniaSyncPage: React.FC = () => {
           onLoadStatus={() => symfoniaSyncService.getContractsStatus()}
           onLoadHistory={(limit) => symfoniaSyncService.getContractsHistory(limit)}
           cronLabel="CRON (pełna co 3h, szybka co 1h)"
+        />
+      )}
+
+      {/* Cars tab */}
+      {activeTab === 'cars' && (
+        <SyncSection
+          title="Samochody"
+          description={
+            <>
+              🚗 <strong>Synchronizacja samochodów</strong> — pobiera dane z tabeli [SSCommon].[STElements] (ElementKindId=128).
+              Parsuje wpisy w formacie &quot;S00144 Samochód CB144RX&quot;. Archiwizuje samochody usunięte z Symfonii.
+              Uruchamiana automatycznie co 12 godzin przez CRON.
+            </>
+          }
+          progressEventUrl="/admin/cars/sync"
+          onFullSync={async () => {
+            const result = await carsService.sync();
+            return {
+              success: result.success,
+              syncType: 'full' as const,
+              startedAt: result.startedAt,
+              completedAt: result.completedAt,
+              duration: result.duration,
+              stats: {
+                totalProcessed: result.stats.totalProcessed,
+                created: result.stats.created,
+                updated: result.stats.updated,
+                skipped: result.stats.skipped,
+                errors: result.stats.errors,
+              },
+              errors: result.errors,
+            };
+          }}
+          onQuickSync={async () => {
+            const result = await carsService.sync();
+            return {
+              success: result.success,
+              syncType: 'full' as const,
+              startedAt: result.startedAt,
+              completedAt: result.completedAt,
+              duration: result.duration,
+              stats: {
+                totalProcessed: result.stats.totalProcessed,
+                created: result.stats.created,
+                updated: result.stats.updated,
+                skipped: result.stats.skipped,
+                errors: result.stats.errors,
+              },
+              errors: result.errors,
+            };
+          }}
+          onLoadStatus={() => Promise.resolve({
+            lastFullSync: null,
+            lastQuickSync: null,
+            nextScheduledSync: '',
+            isRunning: false,
+            cronEnabled: true,
+          })}
+          onLoadHistory={() => Promise.resolve([])}
+          cronLabel="CRON (auto co 12h)"
         />
       )}
     </div>

@@ -102,7 +102,8 @@ export class DatabaseSeeder {
           settings: { read: true, update: true },
           photos: { read: true },
           documents: { read: true, create: true },
-          notifications: { receiveAlerts: true }
+          notifications: { receiveAlerts: true },
+          cars: { read: true, update: true }
         }
       },
       {
