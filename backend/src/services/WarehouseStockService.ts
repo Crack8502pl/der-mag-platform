@@ -12,6 +12,9 @@ import { Subsystem } from '../entities/Subsystem';
 import { Task } from '../entities/Task';
 import { Repository, ILike, In } from 'typeorm';
 
+// Słowa kluczowe, dla których stosuje się wyszukiwanie "zaczyna się od"
+const STARTS_WITH_SEARCH_TERMS = ['słup', 'slup'] as const;
+
 interface StockFilters {
   search?: string;
   category?: string;
@@ -145,10 +148,19 @@ export class WarehouseStockService {
 
     // Filtry
     if (filters.search) {
-      queryBuilder.andWhere(
-        '(stock.catalogNumber ILIKE :search OR stock.materialName ILIKE :search OR stock.description ILIKE :search)',
-        { search: `%${filters.search}%` }
-      );
+      const searchLower = filters.search.toLowerCase();
+      if ((STARTS_WITH_SEARCH_TERMS as readonly string[]).includes(searchLower)) {
+        // Specjalne wyszukiwanie dla słupów - tylko na początku nazwy
+        queryBuilder.andWhere(
+          'LOWER(stock.materialName) LIKE :searchStart',
+          { searchStart: 'słup%' }
+        );
+      } else {
+        queryBuilder.andWhere(
+          '(stock.catalogNumber ILIKE :search OR stock.materialName ILIKE :search OR stock.description ILIKE :search)',
+          { search: `%${filters.search}%` }
+        );
+      }
     }
 
     if (filters.category) {

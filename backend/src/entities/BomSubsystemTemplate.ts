@@ -27,7 +27,9 @@ export enum SubsystemType {
   SSP = 'SSP',
   LAN = 'LAN',
   OTK = 'OTK',
-  ZASILANIE = 'ZASILANIE'
+  ZASILANIE = 'ZASILANIE',
+  LCS = 'LCS',
+  ND = 'ND'
 }
 
 @Entity('bom_subsystem_templates')
