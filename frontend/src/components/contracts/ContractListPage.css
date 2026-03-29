@@ -1326,11 +1326,39 @@
   }
 }
 
+/* ─────────────────────────────────────────────────
+   Task Substatus Badge - Grover Theme
+   ───────────────────────────────────────────────── */
 .task-substatus {
-  display: block;
-  font-size: 11px;
-  color: var(--text-muted, #888);
-  margin-top: 2px;
-  font-style: italic;
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-secondary, #9ca3af);
+  background: var(--bg-input, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 4px);
+  margin-top: 4px;
+  text-transform: capitalize;
+  letter-spacing: 0.02em;
+}
+
+/* Specyficzne kolory dla różnych substatusów */
+.task-substatus--wysylka_zlecona {
+  background: rgba(66, 153, 225, 0.15);
+  color: var(--info, #4299e1);
+  border-color: var(--info, #4299e1);
+}
+
+.task-substatus--w_realizacji {
+  background: rgba(237, 137, 54, 0.15);
+  color: var(--warning, #ed8936);
+  border-color: var(--warning, #ed8936);
+}
+
+.task-substatus--zakonczone {
+  background: rgba(72, 187, 120, 0.15);
+  color: var(--success, #48bb78);
+  border-color: var(--success, #48bb78);
 }
 

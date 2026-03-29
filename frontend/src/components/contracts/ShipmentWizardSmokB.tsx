@@ -54,10 +54,16 @@ const formatPhone = (value: string): string => {
   return value;
 };
 
+const EXCLUDED_TASK_TYPES = ['KOMPLETACJA_WYSYLKI', 'KOMPLETACJA_SZAF'];
+
 const getEligibleTasks = (tasks: SubsystemTask[]): SubsystemTask[] =>
   tasks.filter((t) => {
+    // Wyklucz zadania kompletacji (nie wymagają wysyłki)
+    if (t.taskType && EXCLUDED_TASK_TYPES.includes(t.taskType.toUpperCase())) return false;
+    // Sprawdzenie substatusu - wyklucz już zlecone wysyłki
     const substatusFromMeta = t.metadata?.substatus;
-    return substatusFromMeta !== 'wysyłka_zlecona';
+    if (substatusFromMeta === 'wysyłka_zlecona') return false;
+    return true;
   });
 
 const isPrzejazdTask = (taskType: string): boolean =>

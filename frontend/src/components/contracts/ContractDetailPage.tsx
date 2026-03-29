@@ -308,7 +308,7 @@ export const ContractDetailPage: React.FC = () => {
                             >
                               <TaskStatusBadge status={actualStatus.toLowerCase()} />
                               {task.metadata?.substatus && (
-                                <span className="task-substatus">
+                                <span className={`task-substatus task-substatus--${task.metadata.substatus.replace(/ł/g, 'l').replace(/[^a-z0-9_]/gi, '').toLowerCase()}`}>
                                   {task.metadata.substatus.replace(/_/g, ' ')}
                                 </span>
                               )}
