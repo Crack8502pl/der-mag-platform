@@ -128,6 +128,14 @@ function parseEmployeeCodes(description: string): string[] {
   return matches || [];
 }
 
+/**
+ * Sprawdza czy shortcut pasuje do formatu samochodu (S\d+ Samochód ...).
+ * Takie wpisy powinny być ignorowane przez synchronizację kontraktów.
+ */
+function isCarEntry(shortcut: string): boolean {
+  return /^S\d+\s+Samoch[oó]d\s+/i.test(shortcut);
+}
+
 export class SymfoniaContractSyncService {
   /**
    * Subskrypcja na aktualizacje progressu synchronizacji
@@ -427,6 +435,11 @@ export class SymfoniaContractSyncService {
 
       for (const { item, contractNumber, employeeCodes } of batchWithNumbers) {
         try {
+          if (isCarEntry(item.shortcut)) {
+            // Cicho ignoruj wpisy pasujące do formatu samochodu
+            continue;
+          }
+
           if (!contractNumber) {
             contractsSyncLogger.info(`⏭️ Pominięto (brak numeru kontraktu): shortcut="${item.shortcut}"`);
             skipped++;
@@ -544,6 +557,11 @@ export class SymfoniaContractSyncService {
 
     for (const { item, contractNumber, employeeCodes } of items) {
       try {
+        if (isCarEntry(item.shortcut)) {
+          // Cicho ignoruj wpisy pasujące do formatu samochodu
+          continue;
+        }
+
         if (!contractNumber) {
           contractsSyncLogger.info(`⏭️ Pominięto z MSSQL (brak numeru kontraktu): shortcut="${item.shortcut}"`);
           skipped++;

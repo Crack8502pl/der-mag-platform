@@ -5,6 +5,7 @@
 import * as sql from 'mssql';
 import { AppDataSource } from '../config/database';
 import { Car } from '../entities/Car';
+import { MaterialImport } from '../entities/MaterialImport';
 import { BrigadeService } from './BrigadeService';
 
 // Guard against concurrent sync runs
@@ -25,6 +26,25 @@ export interface CarSyncResult {
     archived: number;
   };
   errors: Array<{ message: string }>;
+}
+
+export interface CarSyncStatus {
+  lastFullSync: Date | null;
+  lastQuickSync: Date | null;
+  nextScheduledSync: Date;
+  isRunning: boolean;
+  cronEnabled: boolean;
+}
+
+export interface CarSyncHistory {
+  id: number;
+  syncType: 'full' | 'quick';
+  triggeredBy: 'admin' | 'cron';
+  userId?: number;
+  startedAt: Date;
+  completedAt: Date;
+  status: 'success' | 'partial' | 'failed';
+  stats: object;
 }
 
 interface SymfoniaCarRecord {
@@ -94,7 +114,7 @@ export class SymfoniaCarSyncService {
   /**
    * Pełna synchronizacja samochodów z archiwizacją
    */
-  static async syncCars(): Promise<CarSyncResult> {
+  static async syncCars(userId?: number): Promise<CarSyncResult> {
     if (isCarSyncRunning) {
       throw new Error('Synchronizacja samochodów jest już uruchomiona');
     }
@@ -126,8 +146,8 @@ export class SymfoniaCarSyncService {
 
         const parsed = this.parseCarTitle(record.title);
         if (!parsed) {
-          errors.push({ message: `Nie można sparsować tytułu: "${record.title}"` });
-          stats.errors++;
+          // Cicho ignoruj wpisy niespełniające formatu samochodu
+          stats.skipped++;
           continue;
         }
 
@@ -185,7 +205,7 @@ export class SymfoniaCarSyncService {
       }
 
       const completedAt = new Date();
-      return {
+      const result: CarSyncResult = {
         success: stats.errors === 0,
         syncType: 'full',
         startedAt,
@@ -194,12 +214,14 @@ export class SymfoniaCarSyncService {
         stats,
         errors,
       };
+      await SymfoniaCarSyncService.logSync(result, userId, userId ? 'admin' : 'cron');
+      return result;
     } catch (error) {
       const completedAt = new Date();
       const msg = error instanceof Error ? error.message : String(error);
       errors.push({ message: msg });
       console.error(`❌ [CARS] Błąd synchronizacji: ${msg}`);
-      return {
+      const result: CarSyncResult = {
         success: false,
         syncType: 'full',
         startedAt,
@@ -208,6 +230,8 @@ export class SymfoniaCarSyncService {
         stats: { ...stats, errors: stats.errors + 1 },
         errors,
       };
+      await SymfoniaCarSyncService.logSync(result, userId, userId ? 'admin' : 'cron').catch(() => {});
+      return result;
     } finally {
       isCarSyncRunning = false;
     }
@@ -221,6 +245,105 @@ export class SymfoniaCarSyncService {
     return carRepository.find({
       where: { active: true },
       order: { symfoniaLp: 'ASC' },
+    });
+  }
+
+  /**
+   * Loguje wynik synchronizacji do tabeli material_imports
+   */
+  static async logSync(
+    result: CarSyncResult,
+    userId: number | undefined,
+    triggeredBy: 'admin' | 'cron'
+  ): Promise<void> {
+    try {
+      const importRepo = AppDataSource.getRepository(MaterialImport);
+      const timestamp = result.startedAt.toISOString().replace('T', ' ').substring(0, 19);
+      const syncStatus = result.success
+        ? 'completed'
+        : result.stats.errors > 0 && result.stats.errors < result.stats.totalProcessed
+          ? 'partial'
+          : 'failed';
+
+      const importLog = importRepo.create({
+        filename: `symfonia_cars_full-${result.startedAt.toISOString()}`,
+        status: syncStatus,
+        totalRows: result.stats.totalProcessed,
+        newItems: result.stats.created,
+        existingItems: result.stats.updated,
+        errorItems: result.stats.errors,
+        importedById: userId,
+        diffPreview: {
+          syncType: result.syncType,
+          triggeredBy,
+          duration: result.duration,
+          stats: result.stats,
+          errors: result.errors,
+          timestamp,
+        },
+      });
+
+      await importRepo.save(importLog);
+    } catch (err) {
+      console.error('❌ SymfoniaCarSyncService.logSync() ERROR:', err);
+    }
+  }
+
+  /**
+   * Zwraca status ostatniej synchronizacji samochodów
+   */
+  static async getStatus(): Promise<CarSyncStatus> {
+    const importRepo = AppDataSource.getRepository(MaterialImport);
+
+    const lastRecord = await importRepo
+      .createQueryBuilder('i')
+      .where("i.filename LIKE 'symfonia_cars_%'")
+      .orderBy('i.createdAt', 'DESC')
+      .getOne();
+
+    const now = new Date();
+    const nextSync = new Date(now);
+    nextSync.setMinutes(0, 0, 0);
+    nextSync.setHours(nextSync.getHours() + 12);
+
+    return {
+      lastFullSync: lastRecord?.createdAt ?? null,
+      lastQuickSync: null,
+      nextScheduledSync: nextSync,
+      isRunning: isCarSyncRunning,
+      cronEnabled: process.env.SYMFONIA_SYNC_ENABLED !== 'false',
+    };
+  }
+
+  /**
+   * Zwraca historię synchronizacji samochodów
+   */
+  static async getHistory(limit: number = 10): Promise<CarSyncHistory[]> {
+    const importRepo = AppDataSource.getRepository(MaterialImport);
+
+    const records = await importRepo
+      .createQueryBuilder('i')
+      .where("i.filename LIKE 'symfonia_cars_%'")
+      .orderBy('i.createdAt', 'DESC')
+      .take(limit)
+      .getMany();
+
+    return records.map((r) => {
+      const meta = (r.diffPreview as any) || {};
+      const importStatus = r.status === 'completed' ? 'success'
+        : r.status === 'partial' ? 'partial'
+        : 'failed';
+
+      return {
+        id: r.id,
+        syncType: 'full' as const,
+        triggeredBy: meta.triggeredBy || 'cron',
+        userId: r.importedById,
+        startedAt: r.createdAt,
+        completedAt: r.confirmedAt ?? r.createdAt,
+        status: importStatus as 'success' | 'partial' | 'failed',
+        stats: meta.stats || {},
+      };
     });
   }
 

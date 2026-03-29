@@ -18,6 +18,7 @@ export interface SyncResult {
     reactivated?: number;
     outOfStock?: number;
     deactivated?: number;
+    archived?: number;
   };
   errors?: Array<{ catalogNumber?: string; message: string }>;
 }
@@ -44,6 +45,7 @@ export interface SyncHistory {
     updated?: number;
     skipped?: number;
     errors?: number;
+    archived?: number;
   };
 }
 
@@ -99,6 +101,23 @@ export class SymfoniaSyncService {
 
   async getContractsHistory(limit: number = 10): Promise<SyncHistory[]> {
     const response = await api.get(`${BASE}/contracts/history`, { params: { limit } });
+    return response.data.data;
+  }
+
+  // ── Samochody (Cars) ──────────────────────────────────────────────────────
+
+  async carsSync(): Promise<SyncResult> {
+    const response = await api.post(`${BASE}/cars/sync`, {}, { timeout: 300000 }); // 5 minut
+    return response.data.data;
+  }
+
+  async getCarsStatus(): Promise<SyncStatus> {
+    const response = await api.get(`${BASE}/cars/status`);
+    return response.data.data;
+  }
+
+  async getCarsHistory(limit: number = 10): Promise<SyncHistory[]> {
+    const response = await api.get(`${BASE}/cars/history`, { params: { limit } });
     return response.data.data;
   }
 }
