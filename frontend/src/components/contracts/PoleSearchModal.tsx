@@ -8,7 +8,7 @@ interface WarehouseItem {
   id: number;
   catalogNumber: string;
   materialName: string;
-  quantityInStock: number;
+  quantityInStock: string | number;
   unit: string;
 }
 
@@ -75,19 +75,21 @@ export const PoleSearchModal: React.FC<PoleSearchModalProps> = ({ onSelect, onCl
           {!loading && items.length > 0 && (
             <div className="pole-search-results">
               {items.map((item) => (
-                <div
+                <button
                   key={item.id}
+                  type="button"
                   className={`pole-search-item${selected?.id === item.id ? ' selected' : ''}`}
                   onClick={() => setSelected(item)}
+                  aria-pressed={selected?.id === item.id}
                 >
                   <div>
                     <div className="pole-search-item-name">{item.materialName}</div>
                     <div className="pole-search-item-catalog">
-                      {item.catalogNumber} · Stan: {item.quantityInStock} {item.unit}
+                      {item.catalogNumber} · Stan: {Number(item.quantityInStock)} {item.unit}
                     </div>
                   </div>
-                  {selected?.id === item.id && <span>✓</span>}
-                </div>
+                  {selected?.id === item.id && <span aria-hidden="true">✓</span>}
+                </button>
               ))}
             </div>
           )}

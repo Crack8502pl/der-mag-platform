@@ -53,25 +53,26 @@ export class ShipmentBomTemplatesSeed {
     const templateRepository = AppDataSource.getRepository(BomSubsystemTemplate);
 
     for (const def of SHIPMENT_BOM_TEMPLATES) {
-      // Sprawdź czy szablon już istnieje
-      const existing = await templateRepository.findOne({
-        where: {
-          subsystemType: def.subsystemType,
-          taskVariant: def.taskVariant,
-        },
+      const template = templateRepository.create({
+        templateName: def.templateName,
+        subsystemType: def.subsystemType,
+        taskVariant: def.taskVariant,
+        description: `Pusty szablon BOM — wypełniany przez administratora`,
+        isActive: true,
+        version: 1,
+        items: [],
       });
 
-      if (!existing) {
-        const template = templateRepository.create({
-          templateName: def.templateName,
-          subsystemType: def.subsystemType,
-          taskVariant: def.taskVariant,
-          description: `Pusty szablon BOM — wypełniany przez administratora`,
-          isActive: true,
-          version: 1,
-          items: [],
-        });
-        await templateRepository.save(template);
+      // Wstaw atomowo — ignoruje konflikt na unikalnym kluczu (subsystemType, taskVariant, version)
+      const result = await templateRepository
+        .createQueryBuilder()
+        .insert()
+        .into(BomSubsystemTemplate)
+        .values(template)
+        .orIgnore()
+        .execute();
+
+      if (result.identifiers && result.identifiers.length > 0) {
         console.log(`Utworzono szablon BOM: ${def.templateName}`);
       }
     }

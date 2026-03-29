@@ -98,7 +98,10 @@ export const ShipmentWizardSmokB: React.FC<ShipmentWizardSmokBProps> = ({
       try {
         const state: WizardState = JSON.parse(saved);
         setCurrentStep(state.currentStep || 1);
-        setSelectedTasks(state.selectedTasks || []);
+        // Intersect saved selectedTasks with currently eligible tasks to drop any
+        // that got substatus='wysyłka_zlecona' since the state was saved
+        const eligibleNumbers = new Set(eligibleTasks.map((t) => t.taskNumber));
+        setSelectedTasks((state.selectedTasks || []).filter((n) => eligibleNumbers.has(n)));
         setDeliveryAddress(state.deliveryAddress || '');
         setContactPhone(state.contactPhone || '');
         setCabinetConfig(state.cabinetConfig || {});
@@ -188,11 +191,17 @@ export const ShipmentWizardSmokB: React.FC<ShipmentWizardSmokBProps> = ({
   // ── Finalizacja wysyłki ───────────────────────────────────────────────────
   const handleSubmit = async () => {
     setError('');
-    setLoading(true);
 
     const tasksToShip = eligibleTasks.filter((t) =>
       selectedTasks.includes(t.taskNumber)
     );
+
+    if (tasksToShip.length === 0) {
+      setError('Brak zadań do wysyłki. Zaznacz przynajmniej jedno zadanie.');
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const results = await Promise.allSettled(
@@ -480,7 +489,9 @@ export const ShipmentWizardSmokB: React.FC<ShipmentWizardSmokBProps> = ({
                 step={1}
                 value={config.quantity}
                 onChange={(e) => {
-                  const val = Math.max(0, Math.floor(Number(e.target.value)));
+                  const raw = Number(e.target.value);
+                  const safeNumber = Number.isNaN(raw) ? 0 : raw;
+                  const val = Math.max(0, Math.floor(safeNumber));
                   setPoleField(task.taskNumber, 'quantity', val);
                 }}
               />

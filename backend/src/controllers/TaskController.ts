@@ -751,7 +751,7 @@ export class TaskController {
   static async requestShipment(req: Request, res: Response): Promise<void> {
     try {
       const { taskNumber } = req.params;
-      const { deliveryAddress: rawDeliveryAddress, contactPhone: rawContactPhone } = req.body;
+      const { deliveryAddress: rawDeliveryAddress, contactPhone: rawContactPhone, cabinetType, poleQuantity, poleType, poleProductInfo } = req.body;
 
       // Validate types
       if (typeof rawDeliveryAddress !== 'string' || typeof rawContactPhone !== 'string') {
@@ -809,12 +809,20 @@ export class TaskController {
         taskType: 'KOMPLETACJA_WYSYLKI',
         // Metadata fields: deliveryAddress (string), contactPhone (string),
         // sourceTaskNumber (string) - reference to the originating task,
-        // sourceTaskType (string) - task type of the originating task
+        // sourceTaskType (string) - task type of the originating task,
+        // cabinetType (string | null) - typ szafy wybrany w kreatorze SMOKIP_B,
+        // poleQuantity (number | null) - ilość słupów,
+        // poleType (string | null) - rodzaj słupa (STALOWY/KOMPOZYT/INNY),
+        // poleProductInfo (string | null) - info o produkcie "catalogNumber | materialName"
         metadata: {
           deliveryAddress,
           contactPhone,
           sourceTaskNumber: taskNumber,
-          sourceTaskType: sourceTask.taskType
+          sourceTaskType: sourceTask.taskType,
+          cabinetType: typeof cabinetType === 'string' ? cabinetType : null,
+          poleQuantity: typeof poleQuantity === 'number' ? poleQuantity : null,
+          poleType: typeof poleType === 'string' ? poleType : null,
+          poleProductInfo: typeof poleProductInfo === 'string' ? poleProductInfo : null,
         }
       });
 

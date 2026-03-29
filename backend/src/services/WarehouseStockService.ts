@@ -150,10 +150,14 @@ export class WarehouseStockService {
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
       if ((STARTS_WITH_SEARCH_TERMS as readonly string[]).includes(searchLower)) {
-        // Specjalne wyszukiwanie dla słupów - tylko na początku nazwy
+        // Specjalne wyszukiwanie dla słupów - tylko na początku nazwy,
+        // z obsługą zarówno formy z polskimi znakami, jak i bez nich
         queryBuilder.andWhere(
-          'LOWER(stock.materialName) LIKE :searchStart',
-          { searchStart: 'słup%' }
+          '(LOWER(stock.materialName) LIKE :searchStartSlup OR LOWER(stock.materialName) LIKE :searchStartSlupNoAccent)',
+          {
+            searchStartSlup: 'słup%',
+            searchStartSlupNoAccent: 'slup%',
+          }
         );
       } else {
         queryBuilder.andWhere(

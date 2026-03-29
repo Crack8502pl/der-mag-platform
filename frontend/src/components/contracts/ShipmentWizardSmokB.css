@@ -222,8 +222,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-md, 16px);
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
   border-bottom: 1px solid var(--border-color, #333);
+  padding: var(--spacing-md, 16px);
   cursor: pointer;
   transition: background 0.15s;
 }
