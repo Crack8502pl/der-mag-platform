@@ -11,10 +11,17 @@ interface ShipmentWizardModalProps {
   onSuccess: () => void;
 }
 
-const NO_SHIPMENT_TYPES = ['NASTAWNIA', 'LCS', 'CUID'];
+const NO_SHIPMENT_TYPES = ['NASTAWNIA', 'LCS', 'CUID', 'KOMPLETACJA_WYSYLKI', 'KOMPLETACJA_SZAF'];
 
 const getEligibleTasks = (tasks: SubsystemTask[]): SubsystemTask[] =>
-  tasks.filter((t) => !NO_SHIPMENT_TYPES.includes(t.taskType));
+  tasks.filter((t) => {
+    // Wykluczenie typów które nie wymagają wysyłki lub są zadaniami kompletacji
+    if (t.taskType && NO_SHIPMENT_TYPES.includes(t.taskType.toUpperCase())) return false;
+    // Sprawdzenie substatusu - wyklucz już zlecone wysyłki
+    const substatus = t.metadata?.substatus;
+    if (substatus === 'wysyłka_zlecona') return false;
+    return true;
+  });
 
 export const ShipmentWizardModal: React.FC<ShipmentWizardModalProps> = ({
   subsystem,
