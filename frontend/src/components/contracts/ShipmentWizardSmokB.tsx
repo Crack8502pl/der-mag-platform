@@ -255,16 +255,20 @@ export const ShipmentWizardSmokB: React.FC<ShipmentWizardSmokBProps> = ({
     field: K,
     value: PoleConfig[string][K]
   ) => {
-    setPoleConfig((prev) => ({
-      ...prev,
-      [taskNumber]: {
+    setPoleConfig((prev) => {
+      const existing = prev[taskNumber] || {
         quantity: 0,
-        type: 'STALOWY',
+        type: 'STALOWY' as PoleType,
         productInfo: '',
-        ...(prev[taskNumber] || {}),
-        [field]: value,
-      },
-    }));
+      };
+      return {
+        ...prev,
+        [taskNumber]: {
+          ...existing,
+          [field]: value,
+        },
+      };
+    });
   };
 
   // ── Wybrane zadania kwalifikujące się ─────────────────────────────────────
