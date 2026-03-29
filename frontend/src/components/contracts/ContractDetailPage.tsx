@@ -8,9 +8,10 @@ import { ContractStatusBadge } from './ContractStatusBadge';
 import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
 import { useAuth } from '../../hooks/useAuth';
-import type { Contract, SubsystemTask } from '../../services/contract.service';
+import type { Contract, Subsystem, SubsystemTask } from '../../services/contract.service';
 import api from '../../services/api';
-import { ShipmentRequestModal } from './ShipmentRequestModal';
+import { ShipmentWizardModal } from './ShipmentWizardModal';
+import { TaskStatusBadge } from '../tasks/TaskStatusBadge';
 import './ContractListPage.css';
 
 interface UserOption {
@@ -27,12 +28,13 @@ export const ContractDetailPage: React.FC = () => {
   const [contract, setContract] = useState<Contract | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [shipmentTask, setShipmentTask] = useState<SubsystemTask | null>(null);
+  const [shipmentSubsystem, setShipmentSubsystem] = useState<Subsystem | null>(null);
   const [completionTask, setCompletionTask] = useState<SubsystemTask | null>(null);
   const [completionWorkers, setCompletionWorkers] = useState<UserOption[]>([]);
   const [selectedWorkerId, setSelectedWorkerId] = useState<number | ''>('');
   const [completionLoading, setCompletionLoading] = useState(false);
   const [completionError, setCompletionError] = useState('');
+  const [taskStatuses, setTaskStatuses] = useState<Map<string, string>>(new Map());
 
   const canCreateTasks =
     typeof hasPermission === 'function' ? hasPermission('tasks', 'create') : false;
@@ -50,12 +52,37 @@ export const ContractDetailPage: React.FC = () => {
       setError('');
       
       const response = await api.get(`/contracts/${id}`);
-      
-      setContract(response.data.data);
+      const data: Contract = response.data.data;
+      setContract(data);
+
+      if (data?.subsystems) {
+        const taskNumbers = data.subsystems
+          .flatMap((s) => s.tasks || [])
+          .map((t) => t.taskNumber);
+        if (taskNumbers.length > 0) {
+          syncTaskStatuses(taskNumbers);
+        }
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd pobierania kontraktu');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const syncTaskStatuses = async (taskNumbers: string[]) => {
+    try {
+      const response = await api.get('/tasks', {
+        params: { taskNumbers: taskNumbers.join(',') },
+      });
+      const statusMap = new Map<string, string>();
+      response.data.data?.forEach((task: any) => {
+        statusMap.set(task.taskNumber, task.status);
+      });
+      setTaskStatuses(statusMap);
+    } catch (error) {
+      // Non-critical — keep existing statuses from contract data
+      console.warn('Failed to sync task statuses', { error, taskNumbers });
     }
   };
 
@@ -68,20 +95,6 @@ export const ContractDetailPage: React.FC = () => {
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd zatwierdzania kontraktu');
     }
-  };
-
-  // Task types that do NOT get a shipment button
-  const NO_SHIPMENT_TYPES = ['NASTAWNIA', 'LCS', 'CUID'];
-
-  const canRequestShipment = (taskType: string): boolean => {
-    return !NO_SHIPMENT_TYPES.includes(taskType);
-  };
-
-  const getShipmentTaskName = (taskType: string): string => {
-    if (taskType === 'SZAFA_WEWNĘTRZNA') {
-      return 'Kompletacja szafy wewnętrznej';
-    }
-    return 'Kompletacja szafy przejazdowej';
   };
 
   const handleOpenCompletionModal = async (task: SubsystemTask) => {
@@ -232,7 +245,7 @@ export const ContractDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Subsystems Table - Nowy układ zgodny z grover-theme */}
+      {/* Subsystems Cards - grover/husky theme */}
       <div className="subsystems-card card">
         <div className="card-header">
           <h2>Podsystemy i Zadania</h2>
@@ -242,85 +255,79 @@ export const ContractDetailPage: React.FC = () => {
         </div>
         
         {(!contract.subsystems || contract.subsystems.length === 0) ? (
-          <div className="empty-state">
+          <div className="empty-state subsystem-empty">
             <p>Brak podsystemów dla tego kontraktu</p>
           </div>
         ) : (
-          <div className="subsystems-table-wrapper">
-            <table className="subsystems-table">
-              <thead>
-                <tr>
-                  <th colSpan={2} className="table-title">
-                    {contract.customName} - Struktura podsystemów
-                  </th>
-                </tr>
-                <tr>
-                  <th>Podsystem</th>
-                  <th>Zadania</th>
-                </tr>
-              </thead>
-              <tbody>
-                {contract.subsystems.map((subsystem) => (
-                  <tr key={subsystem.id}>
-                    <td className="subsystem-cell">
-                      <div className="subsystem-info">
-                        <code className="subsystem-number">{subsystem.subsystemNumber}</code>
-                        <span className="subsystem-type">{subsystem.systemType}</span>
-                        {subsystem.ipPool && (
-                          <span className="ip-pool-tag">🌐 {subsystem.ipPool}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="tasks-cell">
-                      {subsystem.tasks && subsystem.tasks.length > 0 ? (
-                        <ul className="tasks-list">
-                          {subsystem.tasks.map((task: SubsystemTask) => (
-                            <li key={task.id}>
-                              <code className="task-number">{task.taskNumber}</code>
+          <div className="subsystems-grid">
+            {contract.subsystems.map((subsystem) => (
+              <div key={subsystem.id} className="subsystem-card">
+                <div className="subsystem-card-header">
+                  <h3>
+                    <ModuleIcon
+                      name={MODULE_ICONS[subsystem.systemType.toLowerCase()] ? subsystem.systemType.toLowerCase() : 'subsystems'}
+                      emoji={MODULE_ICONS[subsystem.systemType.toLowerCase()] ?? MODULE_ICONS.subsystems}
+                      size={20}
+                    />
+                    <code>{subsystem.subsystemNumber}</code>
+                    <span className="subsystem-type">{subsystem.systemType}</span>
+                    {subsystem.ipPool && (
+                      <span className="ip-pool-badge">🌐 {subsystem.ipPool}</span>
+                    )}
+                  </h3>
+                  <div className="subsystem-card-actions">
+                    {canCreateTasks && (
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => setShipmentSubsystem(subsystem)}
+                      >
+                        📦 Kreator wysyłki
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="subsystem-card-body">
+                  {subsystem.tasks && subsystem.tasks.length > 0 ? (
+                    <ul className="subsystem-tasks-list">
+                      {subsystem.tasks.map((task: SubsystemTask) => {
+                        const actualStatus =
+                          taskStatuses.get(task.taskNumber) || task.status || 'CREATED';
+                        return (
+                          <li key={task.id} className="subsystem-task-item">
+                            <div className="task-info">
+                              <code>{task.taskNumber}</code>
                               <span className="task-name">{task.taskName}</span>
-                              <span className={`task-status task-status--${(task.status || 'created').toLowerCase()}`}>
-                                {task.status || 'CREATED'}
-                              </span>
-                              {canCreateTasks && canRequestShipment(task.taskType) && (
-                                <button
-                                  className="btn btn-secondary btn-sm"
-                                  title={`Zleć wysyłkę: ${getShipmentTaskName(task.taskType)}`}
-                                  onClick={() => setShipmentTask(task)}
-                                >
-                                  📦 Zleć wysyłkę
-                                </button>
-                              )}
-                              {canCreateCompletion && task.status === 'BOM_GENERATED' && task.bomId && !task.completionOrderId && (
-                                <button
-                                  className="btn btn-primary btn-sm"
-                                  title="Przekaż do kompletacji"
-                                  onClick={() => handleOpenCompletionModal(task)}
-                                >
-                                  ✅ Przekaż do kompletacji
-                                </button>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <span className="no-tasks-text">Brak zadań</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                            </div>
+                            <TaskStatusBadge status={actualStatus.toLowerCase()} />
+                            {canCreateCompletion && actualStatus.toUpperCase() === 'BOM_GENERATED' && task.bomId && !task.completionOrderId && (
+                              <button
+                                className="btn btn-primary btn-sm"
+                                title="Przekaż do kompletacji"
+                                onClick={() => handleOpenCompletionModal(task)}
+                              >
+                                ✅ Przekaż do kompletacji
+                              </button>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <div className="subsystem-empty">Brak zadań</div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {shipmentTask && canCreateTasks && (
-        <ShipmentRequestModal
-          task={shipmentTask}
-          shipmentTaskName={getShipmentTaskName(shipmentTask.taskType)}
-          onClose={() => setShipmentTask(null)}
+      {shipmentSubsystem && canCreateTasks && (
+        <ShipmentWizardModal
+          subsystem={shipmentSubsystem}
+          onClose={() => setShipmentSubsystem(null)}
           onSuccess={() => {
-            setShipmentTask(null);
+            setShipmentSubsystem(null);
             loadContract();
           }}
         />
