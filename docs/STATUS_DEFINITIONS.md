@@ -56,9 +56,14 @@ Pełna lista statusów używanych w systemie DER-MAG Platform.
 
 | Status | Opis (PL) | Description (EN) |
 |--------|-----------|------------------|
-| `pending` | Oczekuje | Pending |
-| `in_progress` | W trakcie | In Progress |
-| `completed` | Zakończona | Completed |
+| `CREATED` | Utworzone | Created |
+| `IN_PROGRESS` | W trakcie | In Progress |
+| `WAITING_FOR_MATERIALS` | Oczekuje na materiały | Waiting for Materials |
+| `WAITING_DECISION` | Oczekuje na decyzję | Waiting for Decision |
+| `PARTIAL_PENDING_APPROVAL` | Częściowa kompletacja – oczekuje na akceptację | Partial Completion – Pending Approval |
+| `PARTIAL_ISSUED` | Częściowa kompletacja – wydana | Partial Completion – Issued |
+| `COMPLETED` | Zakończona | Completed |
+| `CANCELLED` | Anulowane | Cancelled |
 
 ---
 

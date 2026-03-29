@@ -299,12 +299,20 @@ export const ContractDetailPage: React.FC = () => {
                               <code>{task.taskNumber}</code>
                               <span className="task-name">{task.taskName}</span>
                             </div>
-                            <TaskStatusBadge status={actualStatus.toLowerCase()} />
-                            {task.metadata?.substatus && (
-                              <span className="task-substatus">
-                                {task.metadata.substatus.replace(/_/g, ' ')}
-                              </span>
-                            )}
+                            <div
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'flex-start',
+                              }}
+                            >
+                              <TaskStatusBadge status={actualStatus.toLowerCase()} />
+                              {task.metadata?.substatus && (
+                                <span className="task-substatus">
+                                  {task.metadata.substatus.replace(/_/g, ' ')}
+                                </span>
+                              )}
+                            </div>
                             {canCreateCompletion && actualStatus.toUpperCase() === 'BOM_GENERATED' && task.bomId && !task.completionOrderId && (
                               <button
                                 className="btn btn-primary btn-sm"
