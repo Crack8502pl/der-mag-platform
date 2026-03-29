@@ -22,9 +22,15 @@ import type { BomGroup } from '../../services/bomGroup.service';
 import type { BomTemplateDependencyRule } from '../../services/bomTemplateDependencyRule.service';
 import { BomGroupsManageModal } from './BomGroupsManageModal';
 import { TemplateDependencyRuleModal } from './TemplateDependencyRuleModal';
+import recorderSpecificationService from '../../services/recorderSpecification.service';
+import diskSpecificationService from '../../services/diskSpecification.service';
+import type { RecorderSpecification } from '../../services/recorderSpecification.service';
+import type { DiskSpecification } from '../../services/diskSpecification.service';
+import { RecorderSpecificationModal } from './RecorderSpecificationModal';
+import { DiskSpecificationModal } from './DiskSpecificationModal';
 import '../../styles/grover-theme.css';
 
-type Tab = 'materials' | 'templates' | 'dependencies';
+type Tab = 'materials' | 'templates' | 'dependencies' | 'recorders' | 'disks';
 
 export const BOMBuilderPage: React.FC = () => {
   const navigate = useNavigate();
@@ -111,6 +117,28 @@ export const BOMBuilderPage: React.FC = () => {
           >
             🔗 Reguły zależności
           </button>
+          <button
+            className={`btn ${activeTab === 'recorders' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('recorders')}
+            style={{ 
+              borderRadius: '0',
+              borderBottom: activeTab === 'recorders' ? '2px solid var(--primary-color)' : 'none',
+              flex: 1
+            }}
+          >
+            🖥️ Rejestratory
+          </button>
+          <button
+            className={`btn ${activeTab === 'disks' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('disks')}
+            style={{ 
+              borderRadius: '0',
+              borderBottom: activeTab === 'disks' ? '2px solid var(--primary-color)' : 'none',
+              flex: 1
+            }}
+          >
+            💾 Dyski
+          </button>
         </div>
       </div>
 
@@ -123,6 +151,12 @@ export const BOMBuilderPage: React.FC = () => {
       )}
       {activeTab === 'dependencies' && (
         <DependenciesTab canCreate={canCreate} canUpdate={canUpdate} canDelete={canDelete} />
+      )}
+      {activeTab === 'recorders' && (
+        <RecordersTab canCreate={canCreate} canUpdate={canUpdate} canDelete={canDelete} />
+      )}
+      {activeTab === 'disks' && (
+        <DisksTab canCreate={canCreate} canUpdate={canUpdate} canDelete={canDelete} />
       )}
     </div>
   );
@@ -2241,3 +2275,266 @@ const RuleFormModal: React.FC<{
     </div>
   );
 };
+
+// ============================================================
+// RecordersTab - manage recorder specifications
+// ============================================================
+const RecordersTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete: boolean }> = ({ canCreate, canUpdate, canDelete }) => {
+  const [recorders, setRecorders] = useState<RecorderSpecification[]>([]);
+  const [warehouseItems, setWarehouseItems] = useState<WarehouseStock[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingRecorder, setEditingRecorder] = useState<RecorderSpecification | undefined>(undefined);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [recs, ws] = await Promise.all([
+        recorderSpecificationService.getAll(),
+        warehouseStockService.getAll({}, 1, 500)
+      ]);
+      setRecorders(recs);
+      setWarehouseItems(ws.data || []);
+    } catch (err) {
+      console.error('Error loading recorder specifications:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadData(); }, []);
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Czy na pewno usunąć tę specyfikację rejestratora?')) return;
+    try {
+      await recorderSpecificationService.delete(id);
+      await loadData();
+    } catch (err) {
+      console.error('Error deleting recorder specification:', err);
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h2 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '18px' }}>🖥️ Specyfikacje rejestratorów</h2>
+        {canCreate && (
+          <button className="btn btn-primary" onClick={() => { setEditingRecorder(undefined); setShowModal(true); }}>
+            ➕ Dodaj rejestrator
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+          <div style={{ fontSize: '32px', marginBottom: '12px' }}>⏳</div>
+          <p style={{ color: 'var(--text-secondary)' }}>Ładowanie...</p>
+        </div>
+      ) : recorders.length === 0 ? (
+        <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+          <div style={{ fontSize: '48px', marginBottom: '12px' }}>🖥️</div>
+          <p style={{ color: 'var(--text-secondary)' }}>Brak specyfikacji rejestratorów</p>
+          {canCreate && (
+            <button className="btn btn-primary" onClick={() => { setEditingRecorder(undefined); setShowModal(true); }} style={{ marginTop: '12px' }}>
+              ➕ Dodaj pierwszą specyfikację
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="card" style={{ overflow: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
+                {['Model', 'Kamery (min-max)', 'Sloty', 'Max TB', 'Produkt', 'Status', 'Akcje'].map(h => (
+                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {recorders.map(r => (
+                <tr key={r.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                  <td style={{ padding: '10px 14px', color: 'var(--text-primary)', fontWeight: 600 }}>{r.modelName}</td>
+                  <td style={{ padding: '10px 14px', color: 'var(--text-secondary)' }}>{r.minCameras}–{r.maxCameras}</td>
+                  <td style={{ padding: '10px 14px', color: 'var(--text-secondary)' }}>{r.diskSlots}</td>
+                  <td style={{ padding: '10px 14px', color: 'var(--text-secondary)' }}>{r.maxStorageTb ?? '–'}</td>
+                  <td style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                    {r.warehouseStock ? `[${r.warehouseStock.catalogNumber}] ${r.warehouseStock.materialName}` : '–'}
+                  </td>
+                  <td style={{ padding: '10px 14px' }}>
+                    <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '12px', background: r.isActive ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', color: r.isActive ? '#22c55e' : '#ef4444' }}>
+                      {r.isActive ? 'Aktywny' : 'Nieaktywny'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '10px 14px' }}>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      {canUpdate && (
+                        <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }} onClick={() => { setEditingRecorder(r); setShowModal(true); }}>
+                          ✏️
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button className="btn btn-danger" style={{ padding: '4px 10px', fontSize: '12px' }} onClick={() => handleDelete(r.id)}>
+                          🗑️
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {showModal && (
+        <RecorderSpecificationModal
+          recorder={editingRecorder}
+          warehouseItems={warehouseItems}
+          onClose={() => setShowModal(false)}
+          onSuccess={() => { setShowModal(false); loadData(); }}
+        />
+      )}
+    </div>
+  );
+};
+
+// ============================================================
+// DisksTab - manage disk specifications
+// ============================================================
+const DisksTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete: boolean }> = ({ canCreate, canUpdate, canDelete }) => {
+  const [disks, setDisks] = useState<DiskSpecification[]>([]);
+  const [recorders, setRecorders] = useState<RecorderSpecification[]>([]);
+  const [warehouseItems, setWarehouseItems] = useState<WarehouseStock[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingDisk, setEditingDisk] = useState<DiskSpecification | undefined>(undefined);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [d, recs, ws] = await Promise.all([
+        diskSpecificationService.getAll(),
+        recorderSpecificationService.getAll(),
+        warehouseStockService.getAll({}, 1, 500)
+      ]);
+      setDisks(d);
+      setRecorders(recs);
+      setWarehouseItems(ws.data || []);
+    } catch (err) {
+      console.error('Error loading disk specifications:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadData(); }, []);
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Czy na pewno usunąć tę specyfikację dysku?')) return;
+    try {
+      await diskSpecificationService.delete(id);
+      await loadData();
+    } catch (err) {
+      console.error('Error deleting disk specification:', err);
+    }
+  };
+
+  const diskTypeLabels: Record<string, string> = {
+    HDD_SURVEILLANCE: 'HDD Surveillance',
+    HDD_ENTERPRISE: 'HDD Enterprise',
+    SSD: 'SSD'
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h2 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '18px' }}>💾 Specyfikacje dysków</h2>
+        {canCreate && (
+          <button className="btn btn-primary" onClick={() => { setEditingDisk(undefined); setShowModal(true); }}>
+            ➕ Dodaj dysk
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+          <div style={{ fontSize: '32px', marginBottom: '12px' }}>⏳</div>
+          <p style={{ color: 'var(--text-secondary)' }}>Ładowanie...</p>
+        </div>
+      ) : disks.length === 0 ? (
+        <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+          <div style={{ fontSize: '48px', marginBottom: '12px' }}>💾</div>
+          <p style={{ color: 'var(--text-secondary)' }}>Brak specyfikacji dysków</p>
+          {canCreate && (
+            <button className="btn btn-primary" onClick={() => { setEditingDisk(undefined); setShowModal(true); }} style={{ marginTop: '12px' }}>
+              ➕ Dodaj pierwszą specyfikację
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="card" style={{ overflow: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
+                {['Pojemność', 'Typ', 'Priorytet', 'Produkt', 'Kompatybilność', 'Status', 'Akcje'].map(h => (
+                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {disks.map(d => {
+                const recNames = (d.compatibleRecorderIds as number[]).map(rid => {
+                  const rec = recorders.find(r => r.id === rid);
+                  return rec ? rec.modelName : `#${rid}`;
+                });
+                return (
+                  <tr key={d.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-primary)', fontWeight: 600 }}>{Number(d.capacityTb)} TB</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontSize: '13px' }}>{diskTypeLabels[d.diskType] || d.diskType}</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-secondary)' }}>{d.priority}</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                      {d.warehouseStock ? `[${d.warehouseStock.catalogNumber}] ${d.warehouseStock.materialName}` : '–'}
+                    </td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                      {recNames.length === 0 ? 'Wszystkie' : recNames.join(', ')}
+                    </td>
+                    <td style={{ padding: '10px 14px' }}>
+                      <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '12px', background: d.isActive ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', color: d.isActive ? '#22c55e' : '#ef4444' }}>
+                        {d.isActive ? 'Aktywny' : 'Nieaktywny'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '10px 14px' }}>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        {canUpdate && (
+                          <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }} onClick={() => { setEditingDisk(d); setShowModal(true); }}>
+                            ✏️
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button className="btn btn-danger" style={{ padding: '4px 10px', fontSize: '12px' }} onClick={() => handleDelete(d.id)}>
+                            🗑️
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {showModal && (
+        <DiskSpecificationModal
+          disk={editingDisk}
+          warehouseItems={warehouseItems}
+          recorders={recorders}
+          onClose={() => setShowModal(false)}
+          onSuccess={() => { setShowModal(false); loadData(); }}
+        />
+      )}
+    </div>
+  );
+};
+

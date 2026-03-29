@@ -42,6 +42,8 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
   const [mathOperation, setMathOperation] = useState<string>(rule?.mathOperation || 'NONE');
   const [mathOperand, setMathOperand] = useState<number | ''>(rule?.mathOperand || '');
   const [targetItemId, setTargetItemId] = useState<number | ''>(rule?.targetItemId || '');
+  const [storageDaysParam, setStorageDaysParam] = useState<string>(rule?.storageDaysParam || 'recordingDays');
+  const [storageBitrateMbps, setStorageBitrateMbps] = useState<number>(rule?.storageBitrateMbps ?? 4.0);
   
   const [inputs, setInputs] = useState<BomTemplateDependencyRuleInput[]>(
     rule?.inputs || []
@@ -151,6 +153,8 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
         mathOperand: mathOperand || undefined,
         targetItemId: Number(targetItemId),
         isActive,
+        storageDaysParam: mathOperation === 'CALCULATE_STORAGE' ? storageDaysParam : undefined,
+        storageBitrateMbps: mathOperation === 'CALCULATE_STORAGE' ? storageBitrateMbps : undefined,
         inputs: inputs.map(input => ({
           inputType: input.inputType,
           sourceItemId: input.sourceItemId || undefined,
@@ -490,6 +494,8 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
                   <option value="MAX">Maksimum</option>
                   <option value="PRODUCT">Iloczyn</option>
                   <option value="FIRST">Pierwsza wartość</option>
+                  <option value="SELECT_RECORDER">Wybierz rejestrator</option>
+                  <option value="SELECT_DISKS">Dobierz dyski</option>
                 </select>
               </div>
 
@@ -508,6 +514,7 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
                   <option value="MULTIPLY">Mnożenie</option>
                   <option value="CEIL_DIV">Dzielenie z zaokr. w górę</option>
                   <option value="ROUND_DIV">Dzielenie z zaokr.</option>
+                  <option value="CALCULATE_STORAGE">Oblicz pojemność dysków</option>
                 </select>
               </div>
 
@@ -519,11 +526,44 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
                   value={mathOperand}
                   onChange={(e) => setMathOperand(e.target.value ? Number(e.target.value) : '')}
                   step={0.1}
-                  disabled={mathOperation === 'NONE'}
-                  placeholder={mathOperation === 'NONE' ? 'N/A' : '0'}
+                  disabled={mathOperation === 'NONE' || mathOperation === 'CALCULATE_STORAGE'}
+                  placeholder={mathOperation === 'NONE' || mathOperation === 'CALCULATE_STORAGE' ? 'N/A' : '0'}
                 />
               </div>
             </div>
+
+            {mathOperation === 'CALCULATE_STORAGE' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px' }}>
+                <div>
+                  <label className="label">Parametr dni nagrywania</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={storageDaysParam}
+                    onChange={(e) => setStorageDaysParam(e.target.value)}
+                    placeholder="recordingDays"
+                  />
+                  <small style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>
+                    Nazwa parametru konfiguracji (domyślnie: recordingDays)
+                  </small>
+                </div>
+                <div>
+                  <label className="label">Bitrate (Mbps)</label>
+                  <input
+                    type="number"
+                    className="input"
+                    value={storageBitrateMbps}
+                    onChange={(e) => setStorageBitrateMbps(Number(e.target.value))}
+                    step={0.5}
+                    min={0.1}
+                    placeholder="4.0"
+                  />
+                  <small style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>
+                    Przepustowość na kamerę w Mbps (domyślnie: 4.0)
+                  </small>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Section 4: Conditions */}

@@ -58,6 +58,10 @@ export class BomTemplateDependencyRuleService {
     mathOperand?: number;
     targetItemId: number;
     isActive?: boolean;
+    targetWarehouseCategory?: string;
+    selectionCriteria?: Record<string, unknown>;
+    storageDaysParam?: string;
+    storageBitrateMbps?: number;
     inputs?: Array<{
       inputType: string;
       sourceItemId?: number;
@@ -95,7 +99,11 @@ export class BomTemplateDependencyRuleService {
         mathOperation: data.mathOperation as any,
         mathOperand: data.mathOperand || null,
         targetItemId: data.targetItemId,
-        isActive: data.isActive ?? true
+        isActive: data.isActive ?? true,
+        targetWarehouseCategory: data.targetWarehouseCategory || null,
+        selectionCriteria: data.selectionCriteria || null,
+        storageDaysParam: data.storageDaysParam || null,
+        storageBitrateMbps: data.storageBitrateMbps ?? 4.0
       });
 
       const savedRule = await ruleRepo.save(rule);
@@ -159,6 +167,10 @@ export class BomTemplateDependencyRuleService {
       mathOperand?: number;
       targetItemId?: number;
       isActive?: boolean;
+      targetWarehouseCategory?: string;
+      selectionCriteria?: Record<string, unknown>;
+      storageDaysParam?: string;
+      storageBitrateMbps?: number;
       inputs?: Array<{
         inputType: string;
         sourceItemId?: number;
@@ -202,6 +214,10 @@ export class BomTemplateDependencyRuleService {
       if (data.mathOperand !== undefined) rule.mathOperand = data.mathOperand || null;
       if (data.targetItemId !== undefined) rule.targetItemId = data.targetItemId;
       if (data.isActive !== undefined) rule.isActive = data.isActive;
+      if (data.targetWarehouseCategory !== undefined) rule.targetWarehouseCategory = data.targetWarehouseCategory || null;
+      if (data.selectionCriteria !== undefined) rule.selectionCriteria = data.selectionCriteria || null;
+      if (data.storageDaysParam !== undefined) rule.storageDaysParam = data.storageDaysParam || null;
+      if (data.storageBitrateMbps !== undefined) rule.storageBitrateMbps = data.storageBitrateMbps ?? 4.0;
 
       await ruleRepo.save(rule);
 

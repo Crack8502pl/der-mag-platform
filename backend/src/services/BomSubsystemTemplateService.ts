@@ -502,7 +502,7 @@ export class BomSubsystemTemplateService {
     const depRules = await BomTemplateDependencyRuleService.getRulesForTemplate(templateId);
     if (depRules.length > 0) {
       // Evaluate rules and get updated quantities
-      const updatedQuantities = DependencyRuleEngine.evaluate(
+      const updatedQuantities = await DependencyRuleEngine.evaluate(
         depRules,
         itemQuantities,
         configParams.selectedModels

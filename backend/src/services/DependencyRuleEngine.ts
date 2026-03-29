@@ -7,17 +7,22 @@ import { BomTemplateDependencyRuleCondition, ComparisonOperator } from '../entit
 
 export class DependencyRuleEngine {
   /**
-   * Evaluate dependency rules and compute quantities for target items
+   * Evaluate dependency rules and compute quantities for target items.
+   * This method is async to support rules that require database lookups
+   * (SELECT_RECORDER, SELECT_DISKS).
+   *
    * @param rules Array of rules to evaluate (should be loaded with inputs and conditions relations)
    * @param itemQuantities Map of item ID to current quantity
    * @param selectedModels Optional map of model selections (for camera models, etc.)
+   * @param configParams Optional configuration parameters (e.g. recordingDays)
    * @returns Updated map of item quantities including rule results
    */
-  static evaluate(
+  static async evaluate(
     rules: BomTemplateDependencyRule[],
     itemQuantities: Map<number, number>,
-    selectedModels?: Record<string, { checked: boolean; quantity?: number }>
-  ): Map<number, number> {
+    selectedModels?: Record<string, { checked: boolean; quantity?: number }>,
+    configParams?: Record<string, number>
+  ): Promise<Map<number, number>> {
     // Sort rules by evaluation_order ASC
     const sortedRules = [...rules]
       .filter(rule => rule.isActive)
@@ -37,17 +42,20 @@ export class DependencyRuleEngine {
           selectedModels
         );
 
-        // Step 2: Aggregate inputs
-        const aggregatedValue = this.aggregateValues(
+        // Step 2: Aggregate inputs (may be async for DB-backed aggregations)
+        const aggregatedValue = await this.aggregateValues(
           inputValues,
-          rule.aggregationType
+          rule.aggregationType,
+          rule
         );
 
         // Step 3: Apply math operation
         const mathResult = this.applyMathOperation(
           aggregatedValue,
           rule.mathOperation,
-          rule.mathOperand
+          rule.mathOperand,
+          rule,
+          configParams
         );
 
         // Step 4: Evaluate conditions (if any) or use math result directly
@@ -129,34 +137,79 @@ export class DependencyRuleEngine {
   }
 
   /**
-   * Aggregate input values based on aggregation type
+   * Aggregate input values based on aggregation type.
+   * DB-backed aggregation types (SELECT_RECORDER, SELECT_DISKS) are resolved here.
    */
-  private static aggregateValues(
+  private static async aggregateValues(
     values: number[],
-    aggregationType: AggregationType
-  ): number {
-    if (values.length === 0) {
-      return 0;
-    }
-
+    aggregationType: AggregationType,
+    rule: BomTemplateDependencyRule
+  ): Promise<number> {
     switch (aggregationType) {
       case AggregationType.SUM:
-        return values.reduce((sum, val) => sum + val, 0);
+        return values.length === 0 ? 0 : values.reduce((sum, val) => sum + val, 0);
 
       case AggregationType.COUNT:
         return values.length;
 
       case AggregationType.MIN:
-        return Math.min(...values);
+        return values.length === 0 ? 0 : Math.min(...values);
 
       case AggregationType.MAX:
-        return Math.max(...values);
+        return values.length === 0 ? 0 : Math.max(...values);
 
       case AggregationType.PRODUCT:
-        return values.reduce((product, val) => product * val, 1);
+        return values.length === 0 ? 0 : values.reduce((product, val) => product * val, 1);
 
       case AggregationType.FIRST:
-        return values[0];
+        return values.length === 0 ? 0 : values[0];
+
+      case AggregationType.SELECT_RECORDER: {
+        // First input value is the camera count
+        const cameraCount = values.length > 0 ? Math.round(values[0]) : 0;
+        if (cameraCount <= 0) return 0;
+
+        const { RecorderSelectionService } = await import('./RecorderSelectionService');
+        const recorder = await RecorderSelectionService.selectRecorder(cameraCount);
+        // Returns 1 if a recorder was found (quantity = 1 unit), 0 otherwise
+        return recorder ? 1 : 0;
+      }
+
+      case AggregationType.SELECT_DISKS: {
+        // values[0] = required storage in TB, values[1] = recorder warehouse_stock_id
+        const requiredTb = values.length > 0 ? values[0] : 0;
+        const recorderStockId = values.length > 1 ? Math.round(values[1]) : 0;
+
+        if (requiredTb <= 0) return 0;
+
+        // Look up recorder specification via warehouseStockId to get disk slots
+        const { RecorderSelectionService } = await import('./RecorderSelectionService');
+        const { DiskConfigurationService } = await import('./DiskConfigurationService');
+        const { AppDataSource } = await import('../config/database');
+        const { RecorderSpecification } = await import('../entities/RecorderSpecification');
+
+        let diskSlots = 1;
+        let recorderSpecId = 0;
+
+        if (recorderStockId > 0) {
+          const recorderSpec = await AppDataSource.getRepository(RecorderSpecification).findOne({
+            where: { warehouseStockId: recorderStockId, isActive: true }
+          });
+          if (recorderSpec) {
+            diskSlots = recorderSpec.diskSlots;
+            recorderSpecId = recorderSpec.id;
+          }
+        }
+
+        const diskSelections = await DiskConfigurationService.selectOptimalDisks(
+          requiredTb,
+          recorderSpecId,
+          diskSlots
+        );
+
+        // Return total number of disks (sum of all quantities)
+        return diskSelections.reduce((sum, s) => sum + s.quantity, 0);
+      }
 
       default:
         return 0;
@@ -164,15 +217,26 @@ export class DependencyRuleEngine {
   }
 
   /**
-   * Apply math operation to aggregated value
+   * Apply math operation to aggregated value.
+   * CALCULATE_STORAGE uses rule metadata and configParams for the formula.
    */
   private static applyMathOperation(
     value: number,
     operation: MathOperation,
-    operand: number | null
+    operand: number | null,
+    rule?: BomTemplateDependencyRule,
+    configParams?: Record<string, number>
   ): number {
     if (operation === MathOperation.NONE) {
       return value;
+    }
+
+    if (operation === MathOperation.CALCULATE_STORAGE) {
+      // Formula: (cameras × bitrate_mbps) × (days × 0.0108)
+      const bitrate = rule?.storageBitrateMbps != null ? Number(rule.storageBitrateMbps) : 4.0;
+      const daysParam = rule?.storageDaysParam || 'recordingDays';
+      const days = configParams?.[daysParam] ?? 14;
+      return value * bitrate * days * 0.0108;
     }
 
     if (operand === null || operand === undefined) {

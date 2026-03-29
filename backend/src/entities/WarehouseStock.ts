@@ -14,6 +14,10 @@ import {
 } from 'typeorm';
 import { User } from './User';
 
+// Forward declaration to avoid circular import — resolved at runtime by TypeORM
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type WarehouseStockRef = any;
+
 export enum MaterialType {
   CONSUMABLE = 'consumable',
   DEVICE = 'device',
@@ -182,6 +186,27 @@ export class WarehouseStock {
 
   @Column({ name: 'internal_notes', type: 'text', nullable: true })
   internalNotes: string;
+
+  // Successor / Predecessor product chain
+  @ManyToOne('WarehouseStock', { nullable: true })
+  @JoinColumn({ name: 'successor_id' })
+  successor: WarehouseStockRef | null;
+
+  @Column({ name: 'successor_id', nullable: true })
+  successorId: number | null;
+
+  @ManyToOne('WarehouseStock', { nullable: true })
+  @JoinColumn({ name: 'predecessor_id' })
+  predecessor: WarehouseStockRef | null;
+
+  @Column({ name: 'predecessor_id', nullable: true })
+  predecessorId: number | null;
+
+  @Column({ name: 'discontinued_date', type: 'timestamp', nullable: true })
+  discontinuedDate: Date | null;
+
+  @Column({ name: 'replacement_notes', type: 'text', nullable: true })
+  replacementNotes: string | null;
 
   // Audyt
   @ManyToOne(() => User, { nullable: true })

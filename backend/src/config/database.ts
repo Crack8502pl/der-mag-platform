@@ -74,6 +74,9 @@ import { PushSubscription } from '../entities/PushSubscription';
 import { HoneypotLog } from '../entities/HoneypotLog';
 // Cars
 import { Car } from '../entities/Car';
+// Recorder and Disk Specifications
+import { RecorderSpecification } from '../entities/RecorderSpecification';
+import { DiskSpecification } from '../entities/DiskSpecification';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -175,6 +178,9 @@ export const AppDataSource = new DataSource({
     HoneypotLog,
     // Cars
     Car,
+    // Recorder and Disk Specifications
+    RecorderSpecification,
+    DiskSpecification,
   ],
   subscribers: [],
   migrations: [],

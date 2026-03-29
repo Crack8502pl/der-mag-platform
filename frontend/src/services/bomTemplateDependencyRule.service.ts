@@ -10,11 +10,15 @@ export interface BomTemplateDependencyRule {
   ruleCode?: string | null;
   description?: string | null;
   evaluationOrder: number;
-  aggregationType: 'SUM' | 'COUNT' | 'MIN' | 'MAX' | 'PRODUCT' | 'FIRST';
-  mathOperation: 'NONE' | 'FLOOR_DIV' | 'MODULO' | 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'CEIL_DIV' | 'ROUND_DIV';
+  aggregationType: 'SUM' | 'COUNT' | 'MIN' | 'MAX' | 'PRODUCT' | 'FIRST' | 'SELECT_RECORDER' | 'SELECT_DISKS';
+  mathOperation: 'NONE' | 'FLOOR_DIV' | 'MODULO' | 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'CEIL_DIV' | 'ROUND_DIV' | 'CALCULATE_STORAGE';
   mathOperand?: number | null;
   targetItemId: number;
   isActive: boolean;
+  targetWarehouseCategory?: string | null;
+  selectionCriteria?: Record<string, unknown> | null;
+  storageDaysParam?: string | null;
+  storageBitrateMbps?: number;
   inputs?: BomTemplateDependencyRuleInput[];
   conditions?: BomTemplateDependencyRuleCondition[];
   targetItem?: any; // Full template item if loaded
@@ -57,6 +61,10 @@ export interface CreateRuleDto {
   mathOperand?: number;
   targetItemId: number;
   isActive?: boolean;
+  targetWarehouseCategory?: string;
+  selectionCriteria?: Record<string, unknown>;
+  storageDaysParam?: string;
+  storageBitrateMbps?: number;
   inputs?: Omit<BomTemplateDependencyRuleInput, 'id' | 'ruleId'>[];
   conditions?: Omit<BomTemplateDependencyRuleCondition, 'id' | 'ruleId'>[];
 }
