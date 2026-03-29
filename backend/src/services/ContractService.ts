@@ -183,86 +183,102 @@ export class ContractService {
     const skip = (page - 1) * limit;
 
     if (sortBy === 'subsystemsCount') {
-      // Use leftJoin + GROUP BY + COUNT to avoid SELECT DISTINCT / ORDER BY conflict in PostgreSQL
-      // Don't select projectManager here - load it later to avoid GROUP BY issues
-      const query = this.contractRepository
-        .createQueryBuilder('contract')
-        .leftJoin('contract.subsystems', 'subsystems')
-        .groupBy('contract.id');
+      try {
+        // Get sorted contract IDs using raw query to avoid TypeORM GROUP BY issues
+        const rawQuery = this.contractRepository
+          .createQueryBuilder('contract')
+          .select('contract.id', 'id')
+          .addSelect('COUNT(subsystems.id)', 'subsystemsCount')
+          .leftJoin('contract.subsystems', 'subsystems')
+          .groupBy('contract.id')
+          .orderBy('COUNT(subsystems.id)', sortOrder)
+          .offset(skip)
+          .limit(limit);
 
-      if (filters?.status) {
-        query.andWhere('contract.status = :status', { status: filters.status });
-      }
+        // Apply filters
+        if (filters?.status) {
+          rawQuery.andWhere('contract.status = :status', { status: filters.status });
+        }
+        if (filters?.projectManagerId) {
+          rawQuery.andWhere('contract.projectManagerId = :projectManagerId', {
+            projectManagerId: filters.projectManagerId
+          });
+        }
+        if (filters?.search) {
+          const searchLower = filters.search.toLowerCase();
+          rawQuery.andWhere(
+            '(LOWER(contract.contractNumber) LIKE :search OR LOWER(contract.customName) LIKE :search OR LOWER(contract.managerCode) LIKE :search)',
+            { search: `%${searchLower}%` }
+          );
+        }
 
-      if (filters?.projectManagerId) {
-        query.andWhere('contract.projectManagerId = :projectManagerId', {
-          projectManagerId: filters.projectManagerId
-        });
-      }
+        // Debug log
+        console.log('[ContractService.getAllContracts] subsystemsCount SQL:', rawQuery.getQuery());
 
-      if (filters?.search) {
-        const searchLower = filters.search.toLowerCase();
-        query.andWhere(
-          '(LOWER(contract.contractNumber) LIKE :search OR LOWER(contract.customName) LIKE :search OR LOWER(contract.managerCode) LIKE :search)',
-          { search: `%${searchLower}%` }
-        );
-      }
+        const rawResults = await rawQuery.getRawMany<{ id: number; subsystemsCount: string }>();
+        const sortedIds = rawResults.map(r => r.id);
 
-      query.orderBy('COUNT(subsystems.id)', sortOrder);
+        // Count query
+        const countQuery = this.contractRepository
+          .createQueryBuilder('contract')
+          .select('COUNT(*)', 'cnt');
 
-      // Build a separate count query to get the total number of matching contracts
-      const countQuery = this.contractRepository
-        .createQueryBuilder('contract')
-        .select('COUNT(DISTINCT contract.id)', 'cnt');
+        if (filters?.status) {
+          countQuery.andWhere('contract.status = :status', { status: filters.status });
+        }
+        if (filters?.projectManagerId) {
+          countQuery.andWhere('contract.projectManagerId = :projectManagerId', {
+            projectManagerId: filters.projectManagerId
+          });
+        }
+        if (filters?.search) {
+          const searchLower = filters.search.toLowerCase();
+          countQuery.andWhere(
+            '(LOWER(contract.contractNumber) LIKE :search OR LOWER(contract.customName) LIKE :search OR LOWER(contract.managerCode) LIKE :search)',
+            { search: `%${searchLower}%` }
+          );
+        }
 
-      if (filters?.status) {
-        countQuery.andWhere('contract.status = :status', { status: filters.status });
-      }
-      if (filters?.projectManagerId) {
-        countQuery.andWhere('contract.projectManagerId = :projectManagerId', {
-          projectManagerId: filters.projectManagerId
-        });
-      }
-      if (filters?.search) {
-        const searchLower = filters.search.toLowerCase();
-        countQuery.andWhere(
-          '(LOWER(contract.contractNumber) LIKE :search OR LOWER(contract.customName) LIKE :search OR LOWER(contract.managerCode) LIKE :search)',
-          { search: `%${searchLower}%` }
-        );
-      }
+        const countResult = await countQuery.getRawOne<{ cnt: string }>();
+        const total = parseInt(countResult?.cnt ?? '0', 10);
 
-      const countResult = await countQuery.getRawOne<{ cnt: string }>();
-      const total = parseInt(countResult?.cnt ?? '0', 10);
+        if (sortedIds.length === 0) {
+          return {
+            contracts: [],
+            total,
+            page,
+            limit,
+            totalPages: limit > 0 ? Math.ceil(total / limit) : 0
+          };
+        }
 
-      const contracts = await query
-        .skip(skip)
-        .take(limit)
-        .getMany();
-
-      // Batch load projectManager and subsystems for all fetched contracts in a single query
-      if (contracts.length > 0) {
-        const contractIds = contracts.map(c => c.id);
+        // Load full contracts with relations
         const contractsWithRelations = await this.contractRepository.find({
-          where: { id: In(contractIds) },
+          where: { id: In(sortedIds) },
           relations: ['projectManager', 'subsystems']
         });
-        const relationsMap = new Map(contractsWithRelations.map(c => [c.id, c]));
-        for (const contract of contracts) {
-          const fullContract = relationsMap.get(contract.id);
-          if (fullContract) {
-            contract.subsystems = fullContract.subsystems ?? [];
-            contract.projectManager = fullContract.projectManager;
-          }
-        }
-      }
 
-      return {
-        contracts,
-        total,
-        page,
-        limit,
-        totalPages: limit > 0 ? Math.ceil(total / limit) : 0
-      };
+        // Preserve the sort order from sortedIds
+        const contractsMap = new Map(contractsWithRelations.map(c => [c.id, c]));
+        const contracts = sortedIds
+          .map(id => contractsMap.get(id))
+          .filter((c): c is Contract => c !== undefined);
+
+        return {
+          contracts,
+          total,
+          page,
+          limit,
+          totalPages: limit > 0 ? Math.ceil(total / limit) : 0
+        };
+      } catch (error: any) {
+        console.error('❌ [ContractService.getAllContracts] subsystemsCount sorting failed:', {
+          message: error.message,
+          query: error.query,
+          stack: error.stack
+        });
+        throw error;
+      }
     }
 
     // Standard sorting

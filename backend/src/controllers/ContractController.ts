@@ -90,10 +90,25 @@ export class ContractController {
         }
       });
     } catch (error: any) {
+      // Pełne logowanie błędu dla debugowania
+      console.error('❌ [ContractController.getContracts] Error:', {
+        message: error.message,
+        stack: error.stack,
+        query: error.query,
+        parameters: error.parameters,
+        code: error.code,
+        detail: error.detail
+      });
+
       res.status(500).json({
         success: false,
         message: 'Błąd podczas pobierania kontraktów',
-        error: error.message
+        error: error.message,
+        ...(process.env.NODE_ENV === 'development' && {
+          sqlQuery: error.query,
+          detail: error.detail,
+          code: error.code
+        })
       });
     }
   };
