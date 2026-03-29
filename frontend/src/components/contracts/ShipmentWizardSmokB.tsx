@@ -6,6 +6,8 @@ import type { Subsystem, SubsystemTask } from '../../services/contract.service';
 import api from '../../services/api';
 import { PoleSearchModal } from './PoleSearchModal';
 import './ShipmentWizardSmokB.css';
+import './WizardStepIndicator.css';
+
 
 // ─── Typy zadań ──────────────────────────────────────────────────────────────
 
