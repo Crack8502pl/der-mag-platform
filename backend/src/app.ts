@@ -286,7 +286,7 @@ if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEBUG_ENDPOINTS 
 }
 
 // Serwowanie interfejsu testowego
-const enableApiTester = process.env.ENABLE_API_TESTER === 'true' || process.env.NODE_ENV !== 'production';
+const enableApiTester = process.env.ENABLE_API_TESTER === 'true';
 if (enableApiTester) {
   app.use('/test', express.static(path.join(__dirname, '../public')));
   serverLogger.info('🧪 Test interface dostępny na: /test/api-tester.html');
