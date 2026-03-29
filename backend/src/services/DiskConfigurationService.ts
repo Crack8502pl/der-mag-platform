@@ -16,8 +16,9 @@ export class DiskConfigurationService {
    * Calculate required storage in TB.
    * Formula: (cameras × bitrate_mbps) × (days × 0.0108)
    *
-   * 0.0108 comes from:
-   *   1 Mbps × 1 day = 86400 s × 1_000_000 bit/s / 8 / 1_000^4 ≈ 0.0108 TB
+   * The constant 0.0108 represents TB per (Mbps × day):
+   *   1 Mbps × 1 day = 1_000_000 bit/s × 86_400 s / 8 bytes/bit / 1_000_000_000_000 bytes/TB
+   *                  = 86_400_000_000 bytes / 1_000_000_000_000 = 0.0108 TB
    */
   static calculateRequiredStorage(
     cameraCount: number,
