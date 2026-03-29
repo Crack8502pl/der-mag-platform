@@ -80,8 +80,9 @@ export const ContractDetailPage: React.FC = () => {
         statusMap.set(task.taskNumber, task.status);
       });
       setTaskStatuses(statusMap);
-    } catch {
+    } catch (error) {
       // Non-critical — keep existing statuses from contract data
+      console.warn('Failed to sync task statuses', { error, taskNumbers });
     }
   };
 
@@ -263,7 +264,11 @@ export const ContractDetailPage: React.FC = () => {
               <div key={subsystem.id} className="subsystem-card">
                 <div className="subsystem-card-header">
                   <h3>
-                    <ModuleIcon name={subsystem.systemType.toLowerCase()} emoji="🔧" size={20} />
+                    <ModuleIcon
+                      name={MODULE_ICONS[subsystem.systemType.toLowerCase()] ? subsystem.systemType.toLowerCase() : 'subsystems'}
+                      emoji={MODULE_ICONS[subsystem.systemType.toLowerCase()] ?? MODULE_ICONS.subsystems}
+                      size={20}
+                    />
                     <code>{subsystem.subsystemNumber}</code>
                     <span className="subsystem-type">{subsystem.systemType}</span>
                     {subsystem.ipPool && (

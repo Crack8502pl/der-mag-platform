@@ -25,6 +25,7 @@ export const ShipmentWizardModal: React.FC<ShipmentWizardModalProps> = ({
   const [contactPhone, setContactPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [taskErrors, setTaskErrors] = useState<string[]>([]);
 
   const eligibleTasks = getEligibleTasks(subsystem.tasks || []);
 
@@ -47,7 +48,7 @@ export const ShipmentWizardModal: React.FC<ShipmentWizardModalProps> = ({
 
     try {
       setLoading(true);
-      await Promise.all(
+      const results = await Promise.allSettled(
         eligibleTasks.map((task) =>
           api.post(`/tasks/${task.taskNumber}/request-shipment`, {
             deliveryAddress: deliveryAddress.trim(),
@@ -55,7 +56,25 @@ export const ShipmentWizardModal: React.FC<ShipmentWizardModalProps> = ({
           })
         )
       );
-      onSuccess();
+
+      const failures = results
+        .map((result, i) =>
+          result.status === 'rejected'
+            ? `${eligibleTasks[i].taskNumber}: ${(result.reason as any)?.response?.data?.message || 'Błąd zlecania wysyłki'}`
+            : null
+        )
+        .filter((msg): msg is string => msg !== null);
+
+      if (failures.length > 0) {
+        setTaskErrors(failures);
+        // If some succeeded, still call onSuccess to refresh; show errors too
+        const successes = results.filter((r) => r.status === 'fulfilled').length;
+        if (successes > 0) {
+          onSuccess();
+        }
+      } else {
+        onSuccess();
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd zlecania wysyłki');
     } finally {
@@ -65,10 +84,16 @@ export const ShipmentWizardModal: React.FC<ShipmentWizardModalProps> = ({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="shipment-wizard-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
-          <h2>📦 Kreator wysyłki — {subsystem.subsystemNumber}</h2>
-          <button className="modal-close" onClick={onClose}>
+          <h2 id="shipment-wizard-title">📦 Kreator wysyłki — {subsystem.subsystemNumber}</h2>
+          <button className="modal-close" onClick={onClose} aria-label="Zamknij">
             ✕
           </button>
         </div>
@@ -98,6 +123,16 @@ export const ShipmentWizardModal: React.FC<ShipmentWizardModalProps> = ({
               </ul>
 
               {error && <div className="alert alert-error">{error}</div>}
+              {taskErrors.length > 0 && (
+                <div className="alert alert-error">
+                  <p>Niektóre wysyłki nie powiodły się:</p>
+                  <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                    {taskErrors.map((msg, i) => (
+                      <li key={i}>{msg}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <form onSubmit={handleSubmit}>
                 <div className="form-group">

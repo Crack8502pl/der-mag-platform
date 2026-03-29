@@ -1382,3 +1382,9 @@
   }
 }
 
+@media (max-width: 420px) {
+  .subsystems-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
