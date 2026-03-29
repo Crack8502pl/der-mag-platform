@@ -25,7 +25,7 @@ export interface SyncResult {
 export interface SyncStatus {
   lastFullSync: string | null;
   lastQuickSync: string | null;
-  nextScheduledSync: string;
+  nextScheduledSync: string | null;
   isRunning: boolean;
   cronEnabled: boolean;
 }

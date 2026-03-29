@@ -50,6 +50,13 @@ export class BrigadeService {
   }
 
   /**
+   * Get brigade by code
+   */
+  async getBrigadeByCode(code: string): Promise<Brigade | null> {
+    return await this.brigadeRepository.findOne({ where: { code } });
+  }
+
+  /**
    * Get all brigades with optional filters
    */
   async getBrigades(filters?: {

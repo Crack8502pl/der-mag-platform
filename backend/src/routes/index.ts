@@ -50,6 +50,8 @@ import tilesRoutes from './tiles.routes';
 import pushRoutes from './push.routes';
 // Honeypot routes
 import honeypotRoutes from './honeypot.routes';
+// Cars routes
+import carRoutes from './car.routes';
 
 const router = Router();
 
@@ -116,6 +118,14 @@ router.use('/push', pushRoutes);
 
 // Honeypot admin routes
 router.use('/admin/honeypot', honeypotRoutes);
+
+// Cars routes
+router.use('/cars', carRoutes);
+
+// Cars admin sync
+import { CarController } from '../controllers/CarController';
+import { requireAdmin } from '../middleware/permissions';
+router.post('/admin/cars/sync', authenticate, requireAdmin, CarController.syncCars);
 
 // Admin routes
 router.use('/admin', adminRoutes);

@@ -189,7 +189,15 @@ export interface BrigadePermissions {
 }
 
 /**
- * Struktura wszystkich uprawnień - 17 modułów
+ * Granularne uprawnienia dla samochodów
+ */
+export interface CarsPermissions {
+  read?: boolean;
+  update?: boolean;
+}
+
+/**
+ * Struktura wszystkich uprawnień - 18 modułów
  */
 export interface RolePermissions {
   all?: boolean; // Admin - pełny dostęp
@@ -210,6 +218,7 @@ export interface RolePermissions {
   notifications?: NotificationPermissions;
   warehouse_stock?: WarehouseStockPermissions;
   brigades?: BrigadePermissions;
+  cars?: CarsPermissions;
   // Zachowanie kompatybilności z istniejącymi uprawnieniami
   [key: string]: any;
 }

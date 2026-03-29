@@ -65,6 +65,7 @@ export const Dashboard: React.FC = () => {
     { title: 'Prefabrykacja', path: '/prefabrication', icon: <ModuleIcon name="prefabrication" emoji={MODULE_ICONS.prefabrication} size={48} />, module: 'prefabrication', action: 'read', description: 'Prefabrykacja urządzeń', group: 'execution' },
     { title: 'Sieć/IP', path: '/network', icon: <ModuleIcon name="network" emoji={MODULE_ICONS.network} size={48} />, module: 'network', action: 'read', description: 'Zarządzanie adresacją IP', group: 'resources' },
     { title: 'Magazyn', path: '/warehouse-stock', icon: <ModuleIcon name="warehouse" emoji={MODULE_ICONS.warehouse} size={48} />, module: 'warehouse_stock', action: 'read', description: 'Stany magazynowe', group: 'resources' },
+    { title: 'Samochody', path: '/cars', icon: <ModuleIcon name="cars" emoji={MODULE_ICONS.cars} size={48} />, module: 'cars', action: 'read', description: 'Lista samochodów firmowych', group: 'resources' },
     { title: 'Materiały BOM', path: '/bom', icon: <ModuleIcon name="bom" emoji={MODULE_ICONS.bom} size={48} />, module: 'bom', action: 'read', description: 'Szablony i materiały', group: 'resources' },
     { title: 'Urządzenia', path: '/devices', icon: <ModuleIcon name="devices" emoji={MODULE_ICONS.devices} size={48} />, module: 'devices', action: 'read', description: 'Rejestracja urządzeń', group: 'resources' },
     { title: 'Raporty', path: '/reports', icon: <ModuleIcon name="reports" emoji={MODULE_ICONS.reports} size={48} />, module: 'reports', action: 'read', description: 'Generowanie raportów', group: 'docs' },
