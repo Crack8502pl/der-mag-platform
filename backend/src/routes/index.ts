@@ -38,6 +38,9 @@ import bomSubsystemTemplateRoutes from './bomSubsystemTemplate.routes';
 import bomGroupRoutes from './bomGroup.routes';
 // BOM template dependency rule routes
 import bomTemplateDependencyRuleRoutes from './bomTemplateDependencyRule.routes';
+// Recorder and Disk Specification routes
+import recorderSpecificationRoutes from './recorderSpecification.routes';
+import diskSpecificationRoutes from './diskSpecification.routes';
 // Symfonia MSSQL integration routes
 import symfoniaIntegrationRoutes from './symfoniaIntegration.routes';
 // Symfonia warehouse stock sync routes
@@ -100,6 +103,10 @@ router.use('/bom-groups', bomGroupRoutes);
 
 // BOM template dependency rule routes
 router.use('/bom-template-dependency-rules', bomTemplateDependencyRuleRoutes);
+
+// Recorder and Disk Specification routes
+router.use('/recorder-specifications', recorderSpecificationRoutes);
+router.use('/disk-specifications', diskSpecificationRoutes);
 
 // Symfonia MSSQL integration routes (admin only)
 router.use('/admin/symfonia-integration', symfoniaIntegrationRoutes);

@@ -4,6 +4,7 @@
 import { Request, Response } from 'express';
 import { WarehouseStockService } from '../services/WarehouseStockService';
 import { StockStatus, MaterialType } from '../entities/WarehouseStock';
+import { ProductSuccessorService } from '../services/ProductSuccessorService';
 
 export class WarehouseStockController {
   private warehouseStockService: WarehouseStockService;
@@ -602,6 +603,108 @@ export class WarehouseStockController {
         message: 'Błąd podczas pobierania historii',
         error: error.message
       });
+    }
+  };
+
+  /**
+   * POST /api/warehouse-stock/:id/set-successor
+   * Ustaw następcę produktu
+   */
+  setSuccessor = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = parseInt(req.params.id);
+      const { successorId } = req.body;
+
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'Invalid productId' });
+        return;
+      }
+
+      const parsedSuccessorId = Number(successorId);
+      if (!Number.isInteger(parsedSuccessorId) || parsedSuccessorId <= 0) {
+        res.status(400).json({ success: false, message: 'Invalid successorId' });
+        return;
+      }
+
+      await ProductSuccessorService.setSuccessor(id, parsedSuccessorId);
+      res.json({ success: true, message: 'Successor set successfully' });
+    } catch (error: any) {
+      console.error('Error setting successor:', error);
+      res.status(error.message.includes('not found') ? 404 : 500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  };
+
+  /**
+   * DELETE /api/warehouse-stock/:id/set-successor
+   * Usuń następcę produktu
+   */
+  removeSuccessor = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'Invalid product ID' });
+        return;
+      }
+      await ProductSuccessorService.removeSuccessor(id);
+      res.json({ success: true, message: 'Successor removed successfully' });
+    } catch (error: any) {
+      console.error('Error removing successor:', error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
+
+  /**
+   * POST /api/warehouse-stock/:id/migrate-templates
+   * Migruj szablony BOM ze starego produktu do następcy
+   */
+  migrateTemplates = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'Invalid product ID' });
+        return;
+      }
+
+      // Fetch current product to find successorId
+      const product = await this.warehouseStockService.getById(id);
+      if (!product) {
+        res.status(404).json({ success: false, message: 'Product not found' });
+        return;
+      }
+
+      if (!product.successorId) {
+        res.status(400).json({ success: false, message: 'Product has no successor set' });
+        return;
+      }
+
+      const updatedCount = await ProductSuccessorService.migrateTemplates(id, product.successorId);
+      res.json({ success: true, data: { updatedCount }, message: `Migrated ${updatedCount} template mappings` });
+    } catch (error: any) {
+      console.error('Error migrating templates:', error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
+
+  /**
+   * GET /api/warehouse-stock/:id/lineage
+   * Pobierz historię produktu (poprzednicy i następcy)
+   */
+  getLineage = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'Invalid product ID' });
+        return;
+      }
+
+      const lineage = await ProductSuccessorService.getProductLineage(id);
+      res.json({ success: true, data: lineage });
+    } catch (error: any) {
+      console.error('Error fetching product lineage:', error);
+      res.status(500).json({ success: false, message: error.message });
     }
   };
 }

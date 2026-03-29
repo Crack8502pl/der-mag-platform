@@ -23,7 +23,9 @@ export enum AggregationType {
   MIN = 'MIN',
   MAX = 'MAX',
   PRODUCT = 'PRODUCT',
-  FIRST = 'FIRST'
+  FIRST = 'FIRST',
+  SELECT_RECORDER = 'SELECT_RECORDER',
+  SELECT_DISKS = 'SELECT_DISKS'
 }
 
 export enum MathOperation {
@@ -34,7 +36,8 @@ export enum MathOperation {
   SUBTRACT = 'SUBTRACT',
   MULTIPLY = 'MULTIPLY',
   CEIL_DIV = 'CEIL_DIV',
-  ROUND_DIV = 'ROUND_DIV'
+  ROUND_DIV = 'ROUND_DIV',
+  CALCULATE_STORAGE = 'CALCULATE_STORAGE'
 }
 
 @Entity('bom_template_dependency_rules')
@@ -93,6 +96,18 @@ export class BomTemplateDependencyRule {
 
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
+
+  @Column({ name: 'target_warehouse_category', type: 'varchar', length: 100, nullable: true })
+  targetWarehouseCategory: string | null;
+
+  @Column({ name: 'selection_criteria', type: 'jsonb', nullable: true })
+  selectionCriteria: Record<string, unknown> | null;
+
+  @Column({ name: 'storage_days_param', type: 'varchar', length: 100, nullable: true })
+  storageDaysParam: string | null;
+
+  @Column({ name: 'storage_bitrate_mbps', type: 'decimal', precision: 5, scale: 2, default: 4.0 })
+  storageBitrateMbps: number;
 
   @OneToMany(() => BomTemplateDependencyRuleInput, input => input.rule, {
     cascade: true

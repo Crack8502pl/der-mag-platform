@@ -70,4 +70,16 @@ router.post('/:id/map-bom', authenticate, requirePermission('warehouse_stock', '
 // POST /api/warehouse-stock/:id/map-workflow-bom - mapuj do workflow BOM item
 router.post('/:id/map-workflow-bom', authenticate, requirePermission('warehouse_stock', 'create'), controller.mapToWorkflowBom);
 
+// POST /api/warehouse-stock/:id/set-successor - ustaw następcę produktu
+router.post('/:id/set-successor', authenticate, requirePermission('warehouse_stock', 'update'), controller.setSuccessor);
+
+// DELETE /api/warehouse-stock/:id/set-successor - usuń następcę produktu
+router.delete('/:id/set-successor', authenticate, requirePermission('warehouse_stock', 'update'), controller.removeSuccessor);
+
+// POST /api/warehouse-stock/:id/migrate-templates - migruj szablony BOM do następcy
+router.post('/:id/migrate-templates', authenticate, requirePermission('warehouse_stock', 'update'), controller.migrateTemplates);
+
+// GET /api/warehouse-stock/:id/lineage - historia produktu
+router.get('/:id/lineage', authenticate, requirePermission('warehouse_stock', 'read'), controller.getLineage);
+
 export default router;
