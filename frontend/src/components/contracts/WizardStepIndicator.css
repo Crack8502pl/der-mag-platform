@@ -1,0 +1,162 @@
+/* WizardStepIndicator.css */
+/* Unified wizard step indicator styles for all wizards in the project */
+/* Supports two HTML structures:
+ *  1. .wizard-step-indicator (ShipmentWizardSmokB) - circles + connectors
+ *  2. .wizard-steps (ContractWizardModal) - circles + labels
+ */
+
+/* ── Structure 1: .wizard-step-indicator ─────────────────────────────────── */
+
+.wizard-step-indicator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  margin-bottom: var(--spacing-xl, 32px);
+}
+
+.wizard-step-indicator .wizard-step {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  background: #333;
+  color: #888;
+  border: 2px solid #444;
+  transition: background 0.25s, color 0.25s, border-color 0.25s;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.wizard-step-indicator .wizard-step.active {
+  background: #ff6b35;
+  color: #fff;
+  border-color: #ff6b35;
+}
+
+.wizard-step-indicator .wizard-step.completed {
+  background: #22c55e;
+  color: #fff;
+  border-color: #22c55e;
+}
+
+.wizard-step-connector {
+  flex: 0 0 40px;
+  height: 3px;
+  background: #444;
+  transition: background 0.25s;
+}
+
+.wizard-step-connector.completed {
+  background: #22c55e;
+}
+
+/* ── Structure 2: .wizard-steps ──────────────────────────────────────────── */
+
+.wizard-steps {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color, #333);
+}
+
+.wizard-steps .wizard-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+
+.wizard-steps .wizard-step::after {
+  content: '';
+  position: absolute;
+  top: 19px;
+  left: 50%;
+  width: 100%;
+  height: 3px;
+  background: #444;
+  transition: background 0.25s;
+}
+
+.wizard-steps .wizard-step:last-child::after {
+  display: none;
+}
+
+.wizard-steps .wizard-step.completed::after {
+  background: #22c55e;
+}
+
+.wizard-steps .step-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #333;
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  border: 2px solid #444;
+  transition: background 0.25s, color 0.25s, border-color 0.25s;
+  z-index: 1;
+  position: relative;
+}
+
+.wizard-steps .wizard-step.active .step-number {
+  background: #ff6b35;
+  color: #fff;
+  border-color: #ff6b35;
+}
+
+.wizard-steps .wizard-step.completed .step-number {
+  background: #22c55e;
+  color: #fff;
+  border-color: #22c55e;
+}
+
+.wizard-steps .step-label {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #888;
+  transition: color 0.25s;
+}
+
+.wizard-steps .wizard-step.active .step-label {
+  color: #ff6b35;
+  font-weight: bold;
+}
+
+.wizard-steps .wizard-step.completed .step-label {
+  color: #22c55e;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .wizard-step-indicator .wizard-step {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+
+  .wizard-step-connector {
+    flex: 0 0 24px;
+  }
+
+  .wizard-steps .step-number {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+
+  .wizard-steps .step-label {
+    font-size: 10px;
+  }
+}

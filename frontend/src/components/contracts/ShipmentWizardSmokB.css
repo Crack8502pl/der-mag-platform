@@ -6,54 +6,6 @@
   max-width: 700px;
 }
 
-/* ── Wskaźnik kroków ── */
-.wizard-step-indicator {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: var(--spacing-md, 16px);
-  margin-bottom: var(--spacing-xl, 32px);
-}
-
-.wizard-step {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 0.95rem;
-  background: var(--bg-secondary, #1e1e2e);
-  color: var(--text-secondary, #888);
-  border: 2px solid var(--border-color, #333);
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
-  flex-shrink: 0;
-}
-
-.wizard-step.active {
-  background: var(--primary-color, #ff6b35);
-  color: #fff;
-  border-color: var(--primary-color, #ff6b35);
-}
-
-.wizard-step.completed {
-  background: var(--success, #22c55e);
-  color: #fff;
-  border-color: var(--success, #22c55e);
-}
-
-.wizard-step-connector {
-  flex: 0 0 60px;
-  height: 2px;
-  background: var(--border-color, #333);
-  transition: background 0.2s;
-}
-
-.wizard-step-connector.completed {
-  background: var(--success, #22c55e);
-}
-
 /* ── Lista zadań (krok 1) ── */
 .task-selection-list {
   max-height: 300px;

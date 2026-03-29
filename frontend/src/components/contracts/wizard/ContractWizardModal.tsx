@@ -33,6 +33,8 @@ import { OtkConfigStep } from './subsystems/otk/OtkConfigStep';
 import { ZasilanieConfigStep } from './subsystems/zasilanie/ZasilanieConfigStep';
 
 import '../../../styles/grover-theme.css';
+import '../WizardStepIndicator.css';
+
 
 export const ContractWizardModal: React.FC<WizardProps> = ({ 
   onClose, 
