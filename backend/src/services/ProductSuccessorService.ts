@@ -124,28 +124,28 @@ export class ProductSuccessorService {
    * Remove successor relationship (and clears predecessor link on the successor).
    */
   static async removeSuccessor(productId: number): Promise<void> {
-    const repo = AppDataSource.getRepository(WarehouseStock);
-
-    const product = await repo.findOne({ where: { id: productId } });
-    if (!product) {
-      throw new Error(`Product with id ${productId} not found`);
-    }
-
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
+      const repo = queryRunner.manager.getRepository(WarehouseStock);
+
+      const product = await repo.findOne({ where: { id: productId } });
+      if (!product) {
+        throw new Error(`Product with id ${productId} not found`);
+      }
+
       if (product.successorId !== null) {
         const successor = await repo.findOne({ where: { id: product.successorId } });
         if (successor && successor.predecessorId === productId) {
           successor.predecessorId = null;
-          await queryRunner.manager.save(successor);
+          await repo.save(successor);
         }
       }
 
       product.successorId = null;
-      await queryRunner.manager.save(product);
+      await repo.save(product);
 
       await queryRunner.commitTransaction();
     } catch (error) {

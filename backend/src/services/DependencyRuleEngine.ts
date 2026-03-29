@@ -21,7 +21,7 @@ export class DependencyRuleEngine {
     rules: BomTemplateDependencyRule[],
     itemQuantities: Map<number, number>,
     selectedModels?: Record<string, { checked: boolean; quantity?: number }>,
-    configParams?: Record<string, number>
+    configParams?: Record<string, unknown>
   ): Promise<Map<number, number>> {
     // Sort rules by evaluation_order ASC
     const sortedRules = [...rules]
@@ -225,7 +225,7 @@ export class DependencyRuleEngine {
     operation: MathOperation,
     operand: number | null,
     rule?: BomTemplateDependencyRule,
-    configParams?: Record<string, number>
+    configParams?: Record<string, unknown>
   ): number {
     if (operation === MathOperation.NONE) {
       return value;
@@ -235,7 +235,10 @@ export class DependencyRuleEngine {
       // Formula: (cameras × bitrate_mbps) × (days × 0.0108)
       const bitrate = rule?.storageBitrateMbps != null ? Number(rule.storageBitrateMbps) : 4.0;
       const daysParam = rule?.storageDaysParam || 'recordingDays';
-      const days = configParams?.[daysParam] ?? 14;
+      const defaultDays = 14;
+      const rawDays = configParams ? configParams[daysParam] : undefined;
+      const coercedDays = rawDays !== undefined ? Number(rawDays) : defaultDays;
+      const days = Number.isFinite(coercedDays) && !Number.isNaN(coercedDays) ? coercedDays : defaultDays;
       return value * bitrate * days * 0.0108;
     }
 

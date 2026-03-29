@@ -505,7 +505,8 @@ export class BomSubsystemTemplateService {
       const updatedQuantities = await DependencyRuleEngine.evaluate(
         depRules,
         itemQuantities,
-        configParams.selectedModels
+        configParams.selectedModels,
+        configParams
       );
       
       // Update task materials with rule-computed quantities

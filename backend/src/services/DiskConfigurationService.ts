@@ -87,6 +87,12 @@ export class DiskConfigurationService {
       remaining -= totalTb;
     }
 
+    if (remaining > 0) {
+      // Not enough capacity could be allocated with the available slots/disks.
+      // Signal failure by returning no valid configuration.
+      return [];
+    }
+
     return selections;
   }
 

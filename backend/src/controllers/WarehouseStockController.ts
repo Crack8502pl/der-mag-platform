@@ -615,12 +615,18 @@ export class WarehouseStockController {
       const id = parseInt(req.params.id);
       const { successorId } = req.body;
 
-      if (isNaN(id) || !successorId) {
-        res.status(400).json({ success: false, message: 'Missing productId or successorId' });
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'Invalid productId' });
         return;
       }
 
-      await ProductSuccessorService.setSuccessor(id, Number(successorId));
+      const parsedSuccessorId = Number(successorId);
+      if (!Number.isInteger(parsedSuccessorId) || parsedSuccessorId <= 0) {
+        res.status(400).json({ success: false, message: 'Invalid successorId' });
+        return;
+      }
+
+      await ProductSuccessorService.setSuccessor(id, parsedSuccessorId);
       res.json({ success: true, message: 'Successor set successfully' });
     } catch (error: any) {
       console.error('Error setting successor:', error);

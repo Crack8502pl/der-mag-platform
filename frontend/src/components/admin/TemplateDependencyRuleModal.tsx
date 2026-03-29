@@ -43,7 +43,7 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
   const [mathOperand, setMathOperand] = useState<number | ''>(rule?.mathOperand || '');
   const [targetItemId, setTargetItemId] = useState<number | ''>(rule?.targetItemId || '');
   const [storageDaysParam, setStorageDaysParam] = useState<string>(rule?.storageDaysParam || 'recordingDays');
-  const [storageBitrateMbps, setStorageBitrateMbps] = useState<number>(rule?.storageBitrateMbps ?? 4.0);
+  const [storageBitrateMbps, setStorageBitrateMbps] = useState<number | ''>(rule?.storageBitrateMbps ?? 4.0);
   
   const [inputs, setInputs] = useState<BomTemplateDependencyRuleInput[]>(
     rule?.inputs || []
@@ -115,6 +115,9 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
     if (!ruleName.trim()) return 'Nazwa reguły jest wymagana';
     if (!targetItemId) return 'Należy wybrać pozycję docelową';
     if (inputs.length === 0) return 'Należy dodać co najmniej jedno wejście';
+    if (mathOperation === 'CALCULATE_STORAGE' && (storageBitrateMbps === '' || Number(storageBitrateMbps) <= 0)) {
+      return 'Bitrate musi być wartością większą od 0';
+    }
     
     for (let i = 0; i < inputs.length; i++) {
       const input = inputs[i];
@@ -154,7 +157,7 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
         targetItemId: Number(targetItemId),
         isActive,
         storageDaysParam: mathOperation === 'CALCULATE_STORAGE' ? storageDaysParam : undefined,
-        storageBitrateMbps: mathOperation === 'CALCULATE_STORAGE' ? storageBitrateMbps : undefined,
+        storageBitrateMbps: mathOperation === 'CALCULATE_STORAGE' ? (storageBitrateMbps !== '' ? Number(storageBitrateMbps) : 4.0) : undefined,
         inputs: inputs.map(input => ({
           inputType: input.inputType,
           sourceItemId: input.sourceItemId || undefined,
@@ -553,7 +556,7 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
                     type="number"
                     className="input"
                     value={storageBitrateMbps}
-                    onChange={(e) => setStorageBitrateMbps(Number(e.target.value))}
+                    onChange={(e) => setStorageBitrateMbps(e.target.value ? Number(e.target.value) : '')}
                     step={0.5}
                     min={0.1}
                     placeholder="4.0"
