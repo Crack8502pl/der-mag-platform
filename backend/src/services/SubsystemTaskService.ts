@@ -137,6 +137,30 @@ export class SubsystemTaskService {
   }
 
   /**
+   * Aktualizacja substatusu zadania
+   */
+  async updateSubstatus(
+    taskId: number,
+    substatus: string | null,
+    additionalMetadata?: Record<string, any>
+  ): Promise<SubsystemTask> {
+    const task = await this.taskRepository.findOne({ where: { id: taskId } });
+
+    if (!task) {
+      throw new Error('Zadanie nie znalezione');
+    }
+
+    task.substatus = substatus;
+    task.metadata = {
+      ...(task.metadata || {}),
+      ...(additionalMetadata || {}),
+      substatus,
+    };
+
+    return await this.taskRepository.save(task);
+  }
+
+  /**
    * Pobranie zadań dla podsystemu
    */
   async getTasksBySubsystem(subsystemId: number): Promise<SubsystemTask[]> {

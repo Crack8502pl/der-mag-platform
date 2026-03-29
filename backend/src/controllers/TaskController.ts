@@ -7,8 +7,8 @@ import { Task } from '../entities/Task';
 import { TaskType } from '../entities/TaskType';
 import { TaskService } from '../services/TaskService';
 import { TaskAssignment } from '../entities/TaskAssignment';
-import { SubsystemTask } from '../entities/SubsystemTask';
-import { SubsystemTaskService } from '../services/SubsystemTaskService';
+import { SubsystemTask, TaskWorkflowStatus } from '../entities/SubsystemTask';
+import { TaskNumberGenerator } from '../services/TaskNumberGenerator';
 import { PAGINATION } from '../config/constants';
 import EmailQueueService from '../services/EmailQueueService';
 import { EmailTemplate } from '../types/EmailTypes';
@@ -796,35 +796,91 @@ export class TaskController {
         return;
       }
 
+      // Blokada duplikatów - wysyłka już zlecona
+      if (sourceTask.substatus === 'wysyłka_zlecona') {
+        res.status(409).json({
+          success: false,
+          message: 'Wysyłka dla tego zadania została już zlecona'
+        });
+        return;
+      }
+
       // Determine shipment task name based on source task type
       const INTERNAL_CABINET_TYPE = 'SZAFA_WEWNĘTRZNA';
       const shipmentTaskName = sourceTask.taskType === INTERNAL_CABINET_TYPE
         ? 'Kompletacja szafy wewnętrznej'
         : 'Kompletacja szafy przejazdowej';
 
-      const subsystemTaskService = new SubsystemTaskService();
-      const newTask = await subsystemTaskService.createTask({
-        subsystemId: sourceTask.subsystemId,
-        taskName: shipmentTaskName,
-        taskType: 'KOMPLETACJA_WYSYLKI',
-        // Metadata fields: deliveryAddress (string), contactPhone (string),
-        // sourceTaskNumber (string) - reference to the originating task,
-        // sourceTaskType (string) - task type of the originating task,
-        // cabinetType (string | null) - typ szafy wybrany w kreatorze SMOKIP_B,
-        // poleQuantity (number | null) - ilość słupów,
-        // poleType (string | null) - rodzaj słupa (STALOWY/KOMPOZYT/INNY),
-        // poleProductInfo (string | null) - info o produkcie "catalogNumber | materialName"
-        metadata: {
-          deliveryAddress,
-          contactPhone,
-          sourceTaskNumber: taskNumber,
-          sourceTaskType: sourceTask.taskType,
-          cabinetType: typeof cabinetType === 'string' ? cabinetType : null,
-          poleQuantity: typeof poleQuantity === 'number' ? poleQuantity : null,
-          poleType: typeof poleType === 'string' ? poleType : null,
-          poleProductInfo: typeof poleProductInfo === 'string' ? poleProductInfo : null,
-        }
-      });
+      // Generate task number outside transaction (read-only)
+      const newTaskNumber = await TaskNumberGenerator.generate();
+
+      // Atomically create shipment task and update source task substatus
+      const queryRunner = AppDataSource.createQueryRunner();
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+
+      let newTask: SubsystemTask;
+      try {
+        const taskRepo = queryRunner.manager.getRepository(SubsystemTask);
+
+        // Create and save the new shipment task
+        const newTaskEntity = taskRepo.create({
+          subsystemId: sourceTask.subsystemId,
+          taskNumber: newTaskNumber,
+          taskName: shipmentTaskName,
+          taskType: 'KOMPLETACJA_WYSYLKI',
+          status: TaskWorkflowStatus.CREATED,
+          substatus: null,
+          // Metadata fields: deliveryAddress (string), contactPhone (string),
+          // sourceTaskNumber (string) - reference to the originating task,
+          // sourceTaskType (string) - task type of the originating task,
+          // cabinetType (string | null) - typ szafy wybrany w kreatorze SMOKIP_B,
+          // poleQuantity (number | null) - ilość słupów,
+          // poleType (string | null) - rodzaj słupa (STALOWY/KOMPOZYT/INNY),
+          // poleProductInfo (string | null) - info o produkcie "catalogNumber | materialName"
+          metadata: {
+            deliveryAddress,
+            contactPhone,
+            sourceTaskNumber: taskNumber,
+            sourceTaskType: sourceTask.taskType,
+            cabinetType: typeof cabinetType === 'string' ? cabinetType : null,
+            poleQuantity: typeof poleQuantity === 'number' ? poleQuantity : null,
+            poleType: typeof poleType === 'string' ? poleType : null,
+            poleProductInfo: typeof poleProductInfo === 'string' ? poleProductInfo : null,
+          },
+          bomGenerated: false,
+          bomId: null,
+          completionOrderId: null,
+          completionStartedAt: null,
+          completionCompletedAt: null,
+          prefabricationTaskId: null,
+          prefabricationStartedAt: null,
+          prefabricationCompletedAt: null,
+          deploymentScheduledAt: null,
+          deploymentCompletedAt: null,
+          verificationCompletedAt: null,
+          realizationStartedAt: null,
+          realizationCompletedAt: null,
+        });
+        newTask = await taskRepo.save(newTaskEntity);
+
+        // Update source task substatus (both column and metadata for frontend compatibility)
+        sourceTask.substatus = 'wysyłka_zlecona';
+        sourceTask.metadata = {
+          ...sourceTask.metadata,
+          substatus: 'wysyłka_zlecona',
+          shipmentTaskNumber: newTask.taskNumber,
+          shipmentRequestedAt: new Date().toISOString(),
+        };
+        await taskRepo.save(sourceTask);
+
+        await queryRunner.commitTransaction();
+      } catch (error) {
+        await queryRunner.rollbackTransaction();
+        throw error;
+      } finally {
+        await queryRunner.release();
+      }
 
       res.status(201).json({
         success: true,

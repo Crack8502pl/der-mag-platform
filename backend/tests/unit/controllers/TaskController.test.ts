@@ -14,11 +14,17 @@ import { createMockRepository, createMockQueryBuilder } from '../../mocks/databa
 jest.mock('../../../src/config/database', () => ({
   AppDataSource: {
     getRepository: jest.fn(),
+    createQueryRunner: jest.fn(),
   },
 }));
 
 jest.mock('../../../src/services/TaskService');
 jest.mock('../../../src/services/EmailQueueService');
+jest.mock('../../../src/services/TaskNumberGenerator', () => ({
+  TaskNumberGenerator: {
+    generate: jest.fn().mockResolvedValue('Z00020326'),
+  },
+}));
 
 describe('TaskController', () => {
   let mockTaskRepository: any;
@@ -792,6 +798,143 @@ describe('TaskController', () => {
           expect.objectContaining({ gpsLatitude: 52.2297, gpsLongitude: 21.0122 }),
         ]),
       });
+    });
+  });
+
+  describe('requestShipment', () => {
+    let mockSubsystemTaskRepo: any;
+    let mockQueryRunner: any;
+    let mockQrTaskRepo: any;
+
+    beforeEach(() => {
+      mockSubsystemTaskRepo = createMockRepository<SubsystemTask>();
+      mockQrTaskRepo = createMockRepository<SubsystemTask>();
+
+      mockQueryRunner = {
+        connect: jest.fn().mockResolvedValue(undefined),
+        startTransaction: jest.fn().mockResolvedValue(undefined),
+        commitTransaction: jest.fn().mockResolvedValue(undefined),
+        rollbackTransaction: jest.fn().mockResolvedValue(undefined),
+        release: jest.fn().mockResolvedValue(undefined),
+        manager: {
+          getRepository: jest.fn().mockReturnValue(mockQrTaskRepo),
+        },
+      };
+
+      (AppDataSource.getRepository as jest.Mock).mockReturnValue(mockSubsystemTaskRepo);
+      (AppDataSource.createQueryRunner as jest.Mock).mockReturnValue(mockQueryRunner);
+
+      req = createMockRequest();
+      req.params = { taskNumber: 'Z00010326' };
+      req.body = { deliveryAddress: 'Warszawa 00-001', contactPhone: '123456789' };
+    });
+
+    it('should create KOMPLETACJA_WYSYLKI task and set substatus on source task', async () => {
+      const sourceTask = {
+        id: 1,
+        taskNumber: 'Z00010326',
+        taskType: 'SMOKIP_A',
+        subsystemId: 10,
+        substatus: null,
+        metadata: {},
+      } as any;
+      const savedShipmentTask = { id: 2, taskNumber: 'Z00020326', taskType: 'KOMPLETACJA_WYSYLKI' } as any;
+
+      mockSubsystemTaskRepo.findOne.mockResolvedValue(sourceTask);
+      mockQrTaskRepo.create.mockReturnValue(savedShipmentTask);
+      mockQrTaskRepo.save.mockResolvedValue(savedShipmentTask);
+
+      await TaskController.requestShipment(req as Request, res as Response);
+
+      expect(mockQueryRunner.startTransaction).toHaveBeenCalled();
+      expect(mockQrTaskRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ taskType: 'KOMPLETACJA_WYSYLKI', taskNumber: 'Z00020326' })
+      );
+      expect(mockQrTaskRepo.save).toHaveBeenCalledTimes(2);
+      // Second save should update source task substatus
+      const secondSaveCall = mockQrTaskRepo.save.mock.calls[1][0];
+      expect(secondSaveCall.substatus).toBe('wysyłka_zlecona');
+      expect(secondSaveCall.metadata).toMatchObject({ substatus: 'wysyłka_zlecona' });
+      expect(mockQueryRunner.commitTransaction).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(201);
+    });
+
+    it('should return 409 when shipment already requested', async () => {
+      const sourceTask = {
+        id: 1,
+        taskNumber: 'Z00010326',
+        taskType: 'SMOKIP_A',
+        subsystemId: 10,
+        substatus: 'wysyłka_zlecona',
+        metadata: { substatus: 'wysyłka_zlecona' },
+      } as any;
+      mockSubsystemTaskRepo.findOne.mockResolvedValue(sourceTask);
+
+      await TaskController.requestShipment(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: false })
+      );
+      expect(mockQueryRunner.startTransaction).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 for task type that cannot request shipment', async () => {
+      const sourceTask = {
+        id: 1,
+        taskNumber: 'Z00010326',
+        taskType: 'KOMPLETACJA_WYSYLKI',
+        subsystemId: 10,
+        substatus: null,
+        metadata: {},
+      } as any;
+      mockSubsystemTaskRepo.findOne.mockResolvedValue(sourceTask);
+
+      await TaskController.requestShipment(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: false, message: 'Nie można zlecić wysyłki dla tego typu zadania' })
+      );
+    });
+
+    it('should return 404 when source task not found', async () => {
+      mockSubsystemTaskRepo.findOne.mockResolvedValue(null);
+
+      await TaskController.requestShipment(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: false, message: 'Zadanie nie znalezione' })
+      );
+    });
+
+    it('should return 400 when required fields are missing', async () => {
+      req.body = { deliveryAddress: '', contactPhone: '123456789' };
+
+      await TaskController.requestShipment(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('should rollback transaction on error and return 500', async () => {
+      const sourceTask = {
+        id: 1,
+        taskNumber: 'Z00010326',
+        taskType: 'SMOKIP_A',
+        subsystemId: 10,
+        substatus: null,
+        metadata: {},
+      } as any;
+      mockSubsystemTaskRepo.findOne.mockResolvedValue(sourceTask);
+      mockQrTaskRepo.create.mockReturnValue({});
+      mockQrTaskRepo.save.mockRejectedValue(new Error('DB error'));
+
+      await TaskController.requestShipment(req as Request, res as Response);
+
+      expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
+      expect(mockQueryRunner.release).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(500);
     });
   });
 });
