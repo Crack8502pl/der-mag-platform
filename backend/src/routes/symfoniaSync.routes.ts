@@ -5,6 +5,7 @@ import { Router } from 'express';
 import { authenticate, authorize } from '../middleware/auth';
 import { SymfoniaSyncController } from '../controllers/SymfoniaSyncController';
 import { SymfoniaContractSyncController } from '../controllers/SymfoniaContractSyncController';
+import { SymfoniaCarSyncController } from '../controllers/SymfoniaCarSyncController';
 
 const router = Router();
 
@@ -25,5 +26,10 @@ router.post('/contracts/quick', SymfoniaContractSyncController.quickSync);
 router.get('/contracts/status', SymfoniaContractSyncController.getStatus);
 router.get('/contracts/history', SymfoniaContractSyncController.getHistory);
 router.get('/contracts/progress', SymfoniaContractSyncController.getProgress);
+
+// Cars sync (Samochody)
+router.post('/cars/sync', SymfoniaCarSyncController.sync);
+router.get('/cars/status', SymfoniaCarSyncController.getStatus);
+router.get('/cars/history', SymfoniaCarSyncController.getHistory);
 
 export default router;
