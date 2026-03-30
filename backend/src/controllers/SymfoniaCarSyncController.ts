@@ -11,7 +11,12 @@ export class SymfoniaCarSyncController {
    */
   static async sync(req: Request, res: Response): Promise<void> {
     try {
-      const userId = (req as any).user?.userId || (req as any).userId;
+      const rawUserId = (req as any).user?.userId ?? (req as any).userId;
+      if (rawUserId === undefined || rawUserId === null) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+      const userId = Number(rawUserId);
       const result = await SymfoniaCarSyncService.syncCars(userId);
       res.json({ success: true, data: result });
     } catch (error) {
@@ -42,7 +47,8 @@ export class SymfoniaCarSyncController {
    */
   static async getHistory(req: Request, res: Response): Promise<void> {
     try {
-      const limit = Math.min(parseInt(String(req.query.limit || '10'), 10), 100);
+      const parsedLimit = parseInt(String(req.query.limit ?? '10'), 10);
+      const limit = Math.min(Math.max(Number.isNaN(parsedLimit) ? 10 : parsedLimit, 1), 100);
       const history = await SymfoniaCarSyncService.getHistory(limit);
       res.json({ success: true, data: history });
     } catch (error) {

@@ -304,7 +304,9 @@ export class SymfoniaCarSyncService {
     const now = new Date();
     const nextSync = new Date(now);
     nextSync.setMinutes(0, 0, 0);
-    nextSync.setHours(nextSync.getHours() + 12);
+    // Align to next 00:00 or 12:00 boundary (matches cron: 0 */12 * * *)
+    const nextHour = nextSync.getHours() < 12 ? 12 : 24;
+    nextSync.setHours(nextHour);
 
     return {
       lastFullSync: lastRecord?.createdAt ?? null,

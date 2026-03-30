@@ -500,11 +500,8 @@ const CarsSyncSection: React.FC = () => {
 
       {/* Status */}
       <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="card-header">
           <h2 className="card-title">Status synchronizacji</h2>
-          <button className="btn btn-secondary btn-sm" onClick={loadStatus} disabled={statusLoading}>
-            {statusLoading ? 'Odświeżanie...' : '↻ Odśwież'}
-          </button>
         </div>
         <div className="card-body">
           {statusError && <p className="alert alert-error">{statusError}</p>}
@@ -547,11 +544,8 @@ const CarsSyncSection: React.FC = () => {
 
       {/* History */}
       <div className="card">
-        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="card-header">
           <h2 className="card-title">Historia synchronizacji</h2>
-          <button className="btn btn-secondary btn-sm" onClick={loadHistory} disabled={historyLoading}>
-            {historyLoading ? 'Ładowanie...' : '↻ Odśwież'}
-          </button>
         </div>
         <div className="card-body" style={{ padding: 0 }}>
           {historyError && <p className="alert alert-error" style={{ margin: '1rem' }}>{historyError}</p>}
