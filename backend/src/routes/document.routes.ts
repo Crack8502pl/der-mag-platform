@@ -3,7 +3,8 @@
 
 import { Router } from 'express';
 import { DocumentController } from '../controllers/DocumentController';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { uploadDocument } from '../middleware/upload';
 
 const router = Router();
@@ -33,10 +34,10 @@ router.get('/:id/download', DocumentController.downloadDocument);
 // Aktualizuj dokument
 router.put('/:id', DocumentController.updateDocument);
 
-// Usuń dokument (wymaga uprawnień admin lub manager)
+// Usuń dokument (wymaga uprawnienia documents.delete)
 router.delete(
   '/:id',
-  authorize('admin', 'manager'),
+  checkPermission('documents', 'delete'),
   DocumentController.deleteDocument
 );
 

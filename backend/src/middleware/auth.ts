@@ -105,6 +105,8 @@ export const authenticate = async (
 };
 
 /**
+ * @deprecated Use checkPermission() from middleware/permissions.ts instead.
+ * This function only checks role name, not granular JSONB permissions.
  * Middleware sprawdzania roli użytkownika
  */
 export const authorize = (...allowedRoles: string[]) => {

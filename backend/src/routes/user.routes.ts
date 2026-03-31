@@ -2,7 +2,8 @@
 import { Router, Request, Response } from 'express';
 import { UserController } from '../controllers/UserController';
 import { UserPreferencesController } from '../controllers/UserPreferencesController';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { AppDataSource } from '../config/database';
 import { User } from '../entities/User';
 
@@ -113,20 +114,20 @@ router.get('/project-managers', authenticate, async (req: any, res: any) => {
   }
 });
 
-// Admin-only routes
-router.get('/', authenticate, authorize('admin'), UserController.list);
-router.get('/:id', authenticate, authorize('admin'), UserController.getById);
-router.post('/', authenticate, authorize('admin'), UserController.create);
-router.put('/:id', authenticate, authorize('admin'), UserController.update);
-router.delete('/:id', authenticate, authorize('admin'), UserController.delete);
+// Permission-based routes
+router.get('/', authenticate, checkPermission('users', 'read'), UserController.list);
+router.get('/:id', authenticate, checkPermission('users', 'read'), UserController.getById);
+router.post('/', authenticate, checkPermission('users', 'create'), UserController.create);
+router.put('/:id', authenticate, checkPermission('users', 'update'), UserController.update);
+router.delete('/:id', authenticate, checkPermission('users', 'delete'), UserController.delete);
 
-router.post('/:id/reset-password', authenticate, authorize('admin'), UserController.resetPassword);
-router.post('/:id/deactivate', authenticate, authorize('admin'), UserController.deactivate);
-router.post('/:id/activate', authenticate, authorize('admin'), UserController.activate);
-router.put('/:id/role', authenticate, authorize('admin'), UserController.changeRole);
+router.post('/:id/reset-password', authenticate, checkPermission('users', 'update'), UserController.resetPassword);
+router.post('/:id/deactivate', authenticate, checkPermission('users', 'update'), UserController.deactivate);
+router.post('/:id/activate', authenticate, checkPermission('users', 'update'), UserController.activate);
+router.put('/:id/role', authenticate, checkPermission('users', 'update'), UserController.changeRole);
 
-router.get('/:id/activity', authenticate, authorize('admin'), UserController.getActivity);
-router.get('/:id/permissions', authenticate, authorize('admin'), UserController.getPermissions);
+router.get('/:id/activity', authenticate, checkPermission('users', 'read'), UserController.getActivity);
+router.get('/:id/permissions', authenticate, checkPermission('users', 'read'), UserController.getPermissions);
 
 // User self-service: change own password
 router.post('/change-password', authenticate, UserController.changePassword);
