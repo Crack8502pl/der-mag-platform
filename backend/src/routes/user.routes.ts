@@ -114,6 +114,13 @@ router.get('/project-managers', authenticate, async (req: any, res: any) => {
   }
 });
 
+// User self-service routes (literal paths must be registered before parameterized /:id routes)
+router.post('/change-password', authenticate, UserController.changePassword);
+router.get('/me/preferences', authenticate, UserPreferencesController.getPreferences);
+router.put('/me/preferences', authenticate, UserPreferencesController.updatePreferences);
+router.put('/me/profile', authenticate, UserPreferencesController.updateProfile);
+router.put('/me/password', authenticate, UserPreferencesController.changePassword);
+
 // Permission-based routes
 router.get('/', authenticate, checkPermission('users', 'read'), UserController.list);
 router.get('/:id', authenticate, checkPermission('users', 'read'), UserController.getById);
@@ -128,14 +135,5 @@ router.put('/:id/role', authenticate, checkPermission('users', 'update'), UserCo
 
 router.get('/:id/activity', authenticate, checkPermission('users', 'read'), UserController.getActivity);
 router.get('/:id/permissions', authenticate, checkPermission('users', 'read'), UserController.getPermissions);
-
-// User self-service: change own password
-router.post('/change-password', authenticate, UserController.changePassword);
-
-// User preferences routes (self-service)
-router.get('/me/preferences', authenticate, UserPreferencesController.getPreferences);
-router.put('/me/preferences', authenticate, UserPreferencesController.updatePreferences);
-router.put('/me/profile', authenticate, UserPreferencesController.updateProfile);
-router.put('/me/password', authenticate, UserPreferencesController.changePassword);
 
 export default router;
