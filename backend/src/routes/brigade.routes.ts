@@ -11,6 +11,9 @@ const router = Router();
 // All routes require authentication
 router.use(authenticate);
 
+// GET /api/brigades/available-workers - get workers available for brigade assignment
+router.get('/available-workers', checkPermission('brigades', 'assignMembers'), BrigadeController.getAvailableWorkers);
+
 // Brigades CRUD
 // Admin, management_board, coordinator can create
 router.post('/', checkPermission('brigades', 'create'), BrigadeController.createBrigade);

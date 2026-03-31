@@ -12,6 +12,7 @@ import type {
   BrigadeStats,
   BrigadeFilters,
 } from '../types/brigade.types';
+import type { User } from '../types/admin.types';
 
 class BrigadeService {
   /**
@@ -106,6 +107,14 @@ class BrigadeService {
    */
   async removeMember(brigadeId: number, memberId: number): Promise<void> {
     await api.delete(`/brigades/${brigadeId}/members/${memberId}`);
+  }
+
+  /**
+   * Get workers available for brigade assignment
+   */
+  async getAvailableWorkers(): Promise<User[]> {
+    const response = await api.get('/brigades/available-workers');
+    return response.data.data || [];
   }
 }
 

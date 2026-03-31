@@ -3,7 +3,6 @@
 
 import React, { useState, useEffect } from 'react';
 import brigadeService from '../../services/brigade.service';
-import { AdminService } from '../../services/admin.service';
 import type { Brigade, BrigadeMember, AddMemberDto } from '../../types/brigade.types';
 import type { User } from '../../types/admin.types';
 
@@ -39,8 +38,6 @@ export const BrigadeMembersModal: React.FC<BrigadeMembersModalProps> = ({ brigad
     active: true,
   });
 
-  const adminService = new AdminService();
-
   useEffect(() => {
     loadData();
   }, []);
@@ -51,13 +48,10 @@ export const BrigadeMembersModal: React.FC<BrigadeMembersModalProps> = ({ brigad
       setError('');
       const [membersData, usersData] = await Promise.all([
         brigadeService.getMembers(brigade.id),
-        adminService.getAllUsers(),
+        brigadeService.getAvailableWorkers(),
       ]);
       setMembers(membersData);
-      setUsers(usersData.filter(u => {
-        const roleName = typeof u.role === 'string' ? u.role : u.role?.name;
-        return u.active && roleName?.toLowerCase() === 'worker';
-      }));
+      setUsers(usersData);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd pobierania danych');
     } finally {

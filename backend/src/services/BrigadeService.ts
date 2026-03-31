@@ -152,11 +152,10 @@ export class BrigadeService {
       throw new Error('Użytkownik nie znaleziony');
     }
 
-    // Check for overlapping time periods
+    // Check for overlapping time periods in ANY brigade
     const queryBuilder = this.memberRepository
       .createQueryBuilder('member')
-      .where('member.brigadeId = :brigadeId', { brigadeId: data.brigadeId })
-      .andWhere('member.userId = :userId', { userId: data.userId })
+      .where('member.userId = :userId', { userId: data.userId })
       .andWhere('member.active = :active', { active: true });
 
     // Check for overlaps: new period overlaps if:
@@ -175,7 +174,7 @@ export class BrigadeService {
 
     if (overlapping) {
       throw new Error(
-        'Użytkownik jest już przypisany do tej brygady w nakładającym się okresie czasu'
+        'Użytkownik jest już przypisany do innej brygady w nakładającym się okresie czasu. Pracownik może być aktywny tylko w jednej brygadzie naraz.'
       );
     }
 
