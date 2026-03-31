@@ -3,7 +3,10 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { SerialPatternsConfig } from '../../types/completion.types';
+import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
 import './SerialScannerModal.css';
+
+const SERIAL_SCANNER_VIDEO_ID = 'serial-scanner-video';
 
 interface SerialScannerModalProps {
   isOpen: boolean;
@@ -30,7 +33,23 @@ export const SerialScannerModal: React.FC<SerialScannerModalProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [error, setError] = useState('');
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [scanMode, setScanMode] = useState<'camera' | 'manual'>('camera');
+  const [cameraAvailable, setCameraAvailable] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Check camera availability on mount
+  useEffect(() => {
+    navigator.mediaDevices?.enumerateDevices()
+      .then(devices => {
+        const hasCamera = devices.some(d => d.kind === 'videoinput');
+        setCameraAvailable(hasCamera);
+        if (!hasCamera) setScanMode('manual');
+      })
+      .catch(() => {
+        setCameraAvailable(false);
+        setScanMode('manual');
+      });
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -38,9 +57,13 @@ export const SerialScannerModal: React.FC<SerialScannerModalProps> = ({
       setInputValue('');
       setError('');
       setShowExitConfirm(false);
-      setTimeout(() => inputRef.current?.focus(), 100);
+      // Reset to camera mode if available when modal opens
+      if (cameraAvailable) setScanMode('camera');
+      setTimeout(() => {
+        if (scanMode === 'manual') inputRef.current?.focus();
+      }, 100);
     }
-  }, [isOpen, initialSerials]);
+  }, [isOpen, initialSerials]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const applyStripPrefixes = useCallback((value: string): string => {
     if (!patternsConfig?.stripPrefixes?.length) return value;
@@ -67,11 +90,9 @@ export const SerialScannerModal: React.FC<SerialScannerModalProps> = ({
     return `Numer seryjny "${value}" nie pasuje do żadnego ze wzorców`;
   }, [patternsConfig]);
 
-  const handleAddSerial = () => {
-    const raw = inputValue.trim();
-    if (!raw) return;
-
-    const processed = applyStripPrefixes(raw);
+  const addSerial = useCallback((raw: string) => {
+    const processed = applyStripPrefixes(raw.trim());
+    if (!processed) return;
 
     if (serials.includes(processed)) {
       setError(`Numer seryjny "${processed}" już został zeskanowany`);
@@ -90,8 +111,58 @@ export const SerialScannerModal: React.FC<SerialScannerModalProps> = ({
     }
 
     setSerials(prev => [...prev, processed]);
-    setInputValue('');
     setError('');
+  }, [serials, applyStripPrefixes, validateSerial, expectedCount]);
+
+  // Camera scan handler
+  const handleCameraScan = useCallback((barcode: string) => {
+    addSerial(barcode);
+  }, [addSerial]);
+
+  const handleCameraError = useCallback((err: string) => {
+    console.warn('Serial scanner camera error:', err);
+    // If camera fails, fall back to manual mode
+    setCameraAvailable(false);
+    setScanMode('manual');
+  }, []);
+
+  const {
+    isScanning,
+    startScanning,
+    stopScanning,
+    error: cameraError,
+  } = useBarcodeScanner(handleCameraScan, handleCameraError);
+
+  // Start/stop scanner based on mode and modal open state
+  useEffect(() => {
+    if (!isOpen) {
+      if (isScanning) stopScanning();
+      return;
+    }
+    if (scanMode === 'camera' && cameraAvailable && !isScanning) {
+      // Small delay to let the DOM render the video element
+      const timer = setTimeout(() => {
+        startScanning(SERIAL_SCANNER_VIDEO_ID);
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+    if (scanMode !== 'camera' && isScanning) {
+      stopScanning();
+    }
+  }, [isOpen, scanMode, cameraAvailable]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopScanning();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleAddSerial = () => {
+    const raw = inputValue.trim();
+    if (!raw) return;
+    addSerial(raw);
+    setInputValue('');
     inputRef.current?.focus();
   };
 
@@ -124,6 +195,11 @@ export const SerialScannerModal: React.FC<SerialScannerModalProps> = ({
     onClose();
   };
 
+  const handleSwitchToManual = () => {
+    setScanMode('manual');
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
   if (!isOpen) return null;
 
   const progressPct = expectedCount > 0 ? Math.round((serials.length / expectedCount) * 100) : 0;
@@ -143,6 +219,25 @@ export const SerialScannerModal: React.FC<SerialScannerModalProps> = ({
           <button className="serial-modal-close" onClick={handleClose} aria-label="Zamknij">✕</button>
         </div>
 
+        {/* Mode toggle */}
+        <div className="scan-mode-toggle">
+          <button
+            className={`scan-mode-btn${scanMode === 'camera' ? ' active' : ''}`}
+            onClick={() => setScanMode('camera')}
+            disabled={!cameraAvailable || isComplete}
+            title={cameraAvailable ? 'Skanuj kamerą' : 'Kamera niedostępna'}
+          >
+            📷 Kamera
+          </button>
+          <button
+            className={`scan-mode-btn${scanMode === 'manual' ? ' active' : ''}`}
+            onClick={handleSwitchToManual}
+            disabled={isComplete}
+          >
+            ⌨️ Ręcznie
+          </button>
+        </div>
+
         <div className="serial-modal-progress">
           <div className="serial-progress-bar-wrap">
             <div
@@ -157,26 +252,60 @@ export const SerialScannerModal: React.FC<SerialScannerModalProps> = ({
         </div>
 
         <div className="serial-modal-body">
-          <div className="serial-input-row">
-            <input
-              ref={inputRef}
-              type="text"
-              className="input serial-input"
-              placeholder="Zeskanuj lub wpisz numer seryjny..."
-              value={inputValue}
-              onChange={e => { setInputValue(e.target.value); setError(''); }}
-              onKeyDown={handleKeyDown}
-              disabled={isComplete}
-              autoComplete="off"
-            />
-            <button
-              className="btn btn-primary serial-add-btn"
-              onClick={handleAddSerial}
-              disabled={isComplete || !inputValue.trim()}
-            >
-              Dodaj
-            </button>
-          </div>
+          {scanMode === 'camera' && !isComplete ? (
+            <div className="serial-camera-container">
+              <div id={SERIAL_SCANNER_VIDEO_ID} className="serial-scanner-video" />
+              {isScanning && (
+                <div className="serial-scanner-viewfinder">
+                  <div className="viewfinder-corner tl" />
+                  <div className="viewfinder-corner tr" />
+                  <div className="viewfinder-corner bl" />
+                  <div className="viewfinder-corner br" />
+                </div>
+              )}
+              {cameraError && (
+                <div className="serial-camera-error">
+                  <p>{cameraError}</p>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => startScanning(SERIAL_SCANNER_VIDEO_ID)}
+                  >
+                    Spróbuj ponownie
+                  </button>
+                </div>
+              )}
+              {!isScanning && !cameraError && (
+                <div className="serial-camera-loading">
+                  <div className="spinner" />
+                  <p>Uruchamianie kamery...</p>
+                </div>
+              )}
+              <p className="serial-camera-hint">
+                Wyceluj kamerą w kod kreskowy lub numer seryjny
+              </p>
+            </div>
+          ) : (
+            <div className="serial-input-row">
+              <input
+                ref={inputRef}
+                type="text"
+                className="input serial-input"
+                placeholder="Zeskanuj lub wpisz numer seryjny..."
+                value={inputValue}
+                onChange={e => { setInputValue(e.target.value); setError(''); }}
+                onKeyDown={handleKeyDown}
+                disabled={isComplete}
+                autoComplete="off"
+              />
+              <button
+                className="btn btn-primary serial-add-btn"
+                onClick={handleAddSerial}
+                disabled={isComplete || !inputValue.trim()}
+              >
+                Dodaj
+              </button>
+            </div>
+          )}
 
           {error && <p className="serial-error">{error}</p>}
 

@@ -134,6 +134,102 @@ import { CarController } from '../controllers/CarController';
 import { requireAdmin } from '../middleware/permissions';
 router.post('/admin/cars/sync', authenticate, requireAdmin, CarController.syncCars);
 
+// Permission SSE events endpoint (for authenticated users to receive real-time updates)
+import { permissionBroadcastService } from '../services/PermissionBroadcastService';
+import { decodePermissionError } from '../utils/permissionCodec';
+import { verifyAccessToken } from '../config/jwt';
+import { User } from '../entities/User';
+
+router.get('/permissions/events', async (req, res) => {
+  try {
+    // EventSource cannot send custom headers, so accept the token via query param
+    const tokenFromQuery = req.query.token as string | undefined;
+    const tokenFromHeader = req.headers.authorization?.startsWith('Bearer ')
+      ? req.headers.authorization.substring(7)
+      : undefined;
+
+    const token = tokenFromQuery || tokenFromHeader;
+    if (!token) {
+      res.status(401).json({ success: false, message: 'Brak tokenu autoryzacyjnego' });
+      return;
+    }
+
+    let userId: number;
+    try {
+      const payload = verifyAccessToken(token);
+      userId = payload.userId;
+    } catch {
+      res.status(401).json({ success: false, message: 'Nieprawidłowy lub wygasły token' });
+      return;
+    }
+
+    const userRepo = AppDataSource.getRepository(User);
+    const user = await userRepo.findOne({
+      where: { id: userId, active: true },
+      relations: ['role'],
+    });
+
+    if (!user || !user.role) {
+      res.status(403).json({ success: false, message: 'Brak roli użytkownika' });
+      return;
+    }
+
+    const roleId = user.role.id;
+
+    // Set SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+    res.flushHeaders();
+
+    // Send initial ping to confirm connection
+    res.write(`data: ${JSON.stringify({ type: 'connected', roleId })}\n\n`);
+
+    const client = permissionBroadcastService.addClient(roleId, res);
+
+    // Keep-alive ping every 30 seconds.
+    // The ": ping" format is a valid SSE comment that prevents proxy timeouts
+    // without triggering the client's onmessage handler.
+    const keepAlive = setInterval(() => {
+      try {
+        res.write(`: ping\n\n`);
+      } catch {
+        clearInterval(keepAlive);
+      }
+    }, 30000);
+
+    req.on('close', () => {
+      clearInterval(keepAlive);
+      permissionBroadcastService.removeClient(client);
+    });
+  } catch (error) {
+    console.error('SSE permissions error:', error);
+    if (!res.headersSent) {
+      res.status(500).end();
+    }
+  }
+});
+
+// Permission decode endpoint (admin only)
+router.post('/admin/permissions/decode', authenticate, requireAdmin, (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code || typeof code !== 'string') {
+      res.status(400).json({ success: false, message: 'Brak kodu' });
+      return;
+    }
+    const payload = decodePermissionError(code);
+    if (!payload) {
+      res.status(400).json({ success: false, message: 'Nieprawidłowy kod błędu uprawnień' });
+      return;
+    }
+    res.json({ success: true, data: payload });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Błąd serwera' });
+  }
+});
+
 // Admin routes
 router.use('/admin', adminRoutes);
 

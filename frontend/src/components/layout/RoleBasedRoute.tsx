@@ -26,7 +26,16 @@ export const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({
   if (requiredPermission) {
     const hasAccess = hasPermission(requiredPermission.module, requiredPermission.action);
     if (!hasAccess) {
-      return <Navigate to="/forbidden" replace />;
+      return (
+        <Navigate
+          to="/forbidden"
+          replace
+          state={{
+            module: requiredPermission.module,
+            action: requiredPermission.action,
+          }}
+        />
+      );
     }
   }
 
@@ -34,7 +43,13 @@ export const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({
   if (requireAnyModuleAccess) {
     const hasAccess = hasAnyPermissionInModule(requireAnyModuleAccess);
     if (!hasAccess) {
-      return <Navigate to="/forbidden" replace />;
+      return (
+        <Navigate
+          to="/forbidden"
+          replace
+          state={{ module: requireAnyModuleAccess, action: 'read' }}
+        />
+      );
     }
   }
 

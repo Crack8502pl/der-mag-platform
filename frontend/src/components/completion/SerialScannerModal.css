@@ -82,6 +82,124 @@
   background: var(--bg-hover);
 }
 
+/* Mode toggle */
+.scan-mode-toggle {
+  display: flex;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-md) var(--spacing-lg) 0;
+}
+
+.scan-mode-btn {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-dark);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.scan-mode-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.scan-mode-btn.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
+}
+
+.scan-mode-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Camera container */
+.serial-camera-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  max-height: 260px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: #000;
+  margin-bottom: var(--spacing-md);
+}
+
+.serial-scanner-video {
+  width: 100%;
+  height: 100%;
+}
+
+.serial-scanner-viewfinder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 160px;
+  height: 160px;
+  pointer-events: none;
+}
+
+.viewfinder-corner {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-color: var(--primary-light);
+  border-style: solid;
+  border-width: 0;
+}
+
+.viewfinder-corner.tl { top: 0; left: 0; border-top-width: 3px; border-left-width: 3px; }
+.viewfinder-corner.tr { top: 0; right: 0; border-top-width: 3px; border-right-width: 3px; }
+.viewfinder-corner.bl { bottom: 0; left: 0; border-bottom-width: 3px; border-left-width: 3px; }
+.viewfinder-corner.br { bottom: 0; right: 0; border-bottom-width: 3px; border-right-width: 3px; }
+
+.serial-camera-error {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  text-align: center;
+}
+
+.serial-camera-error p {
+  color: var(--error);
+  font-size: 0.9rem;
+}
+
+.serial-camera-loading {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+}
+
+.serial-camera-loading p {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.serial-camera-hint {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin: 0 0 var(--spacing-md);
+}
+
 /* Progress */
 .serial-modal-progress {
   padding: var(--spacing-md) var(--spacing-lg) 0;
