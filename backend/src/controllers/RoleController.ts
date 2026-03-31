@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
 import { Role, RolePermissions } from '../entities/Role';
 import { User } from '../entities/User';
+import { permissionBroadcastService } from '../services/PermissionBroadcastService';
 
 export class RoleController {
   /**
@@ -109,6 +110,9 @@ export class RoleController {
       if (permissions !== undefined) role.permissions = permissions;
 
       await roleRepo.save(role);
+
+      // Notify all connected clients with this role about the permission update
+      permissionBroadcastService.broadcastRoleUpdate(role.id);
 
       res.json({
         success: true,

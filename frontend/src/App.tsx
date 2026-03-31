@@ -23,6 +23,7 @@ import { SymfoniaIntegrationPage } from './components/admin/SymfoniaIntegrationP
 import { SymfoniaSyncPage } from './components/admin/SymfoniaSyncPage';
 import { SerialPatternSettings } from './components/admin/SerialPatternSettings';
 import { HoneypotDashboardPage } from './components/admin/HoneypotDashboardPage';
+import { PermissionDebugTool } from './components/admin/PermissionDebugTool';
 import { SubsystemsPage } from './components/modules/SubsystemsPage';
 import { TasksPage } from './components/modules/TasksPage';
 import { PrefabricationPage } from './components/modules/PrefabricationPage';
@@ -43,6 +44,7 @@ import { TasksMapPage } from './components/map/TasksMapPage';
 import { CarsPage } from './components/cars/CarsPage';
 import { useAuth } from './hooks/useAuth';
 import { useTokenExpirationWarning } from './hooks/useTokenExpirationWarning';
+import { usePermissionRefresh } from './hooks/usePermissionRefresh';
 import { TokenExpirationModal } from './components/common/TokenExpirationModal';
 import { TokenTimerWidget } from './components/common/TokenTimerWidget';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -77,13 +79,14 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 function App() {
   const { isAuthenticated, logout } = useAuth();
-  const { 
-    showWarning, 
-    secondsRemaining, 
+  const {
+    showWarning,
+    secondsRemaining,
     refreshToken,
     isRefreshing,
-    refreshError 
+    refreshError
   } = useTokenExpirationWarning();
+  usePermissionRefresh();
 
   return (
     <ThemeProvider>
@@ -457,6 +460,16 @@ function App() {
             <ProtectedRoute>
               <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
                 <HoneypotDashboardPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/debug-permissions"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
+                <PermissionDebugTool />
               </RoleBasedRoute>
             </ProtectedRoute>
           }

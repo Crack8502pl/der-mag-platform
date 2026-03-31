@@ -1,0 +1,128 @@
+/* src/components/admin/PermissionDebugTool.css */
+/* Styles for the Permission Debug Tool page */
+
+@import '../../styles/grover-theme.css';
+
+.debug-tool-page {
+  padding: 20px;
+  max-width: 760px;
+  margin: 0 auto;
+  background: var(--bg-dark);
+  min-height: 100vh;
+}
+
+.debug-tool-card,
+.debug-result-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.debug-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-md);
+}
+
+.debug-input-row {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.debug-input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.debug-error {
+  color: var(--error);
+  font-size: 0.85rem;
+  margin: var(--spacing-sm) 0 0;
+}
+
+/* Result grid */
+.debug-result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+
+.debug-result-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+}
+
+.debug-result-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.debug-result-value {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.debug-role-badge {
+  display: inline-block;
+  background: rgba(99, 179, 237, 0.15);
+  border: 1px solid rgba(99, 179, 237, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 0.1rem 0.5rem;
+  color: #63b3ed;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.debug-perm-badge {
+  display: inline-block;
+  background: rgba(154, 230, 180, 0.15);
+  border: 1px solid rgba(154, 230, 180, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 0.1rem 0.5rem;
+  color: var(--success);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+/* Actions */
+.debug-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-color);
+}
+
+.debug-hint {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin: 0;
+  flex: 1;
+  min-width: 200px;
+}
+
+.debug-hint code {
+  background: var(--bg-dark);
+  border-radius: var(--radius-sm);
+  padding: 0.1rem 0.4rem;
+  font-family: var(--font-mono);
+  color: var(--success);
+}

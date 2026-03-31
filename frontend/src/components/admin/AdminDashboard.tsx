@@ -33,6 +33,13 @@ export const AdminDashboard: React.FC = () => {
       adminOnly: true,
     },
     {
+      title: 'Debuger uprawnień 🔍',
+      description: 'Odkoduj kod błędu uprawnień otrzymany od użytkownika',
+      icon: '🔍',
+      path: '/admin/debug-permissions',
+      adminOnly: true,
+    },
+    {
       title: 'Konfiguracja SMTP',
       description: 'Skonfiguruj serwer pocztowy do wysyłki emaili',
       icon: '📧',
