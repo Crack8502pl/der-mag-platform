@@ -36,10 +36,20 @@ export const ForbiddenPage: React.FC = () => {
 
   const handleCopy = () => {
     if (!errorCode) return;
-    navigator.clipboard.writeText(errorCode).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    if (!navigator.clipboard?.writeText) {
+      window.alert('Kopiowanie do schowka nie jest obsługiwane w tej przeglądarce. Skopiuj kod ręcznie.');
+      return;
+    }
+    navigator.clipboard
+      .writeText(errorCode)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch((err) => {
+        console.error('Nie udało się skopiować kodu błędu do schowka:', err);
+        window.alert('Nie udało się skopiować kodu błędu. Skopiuj go ręcznie.');
+      });
   };
 
   return (

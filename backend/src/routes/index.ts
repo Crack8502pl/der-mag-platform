@@ -137,35 +137,20 @@ router.post('/admin/cars/sync', authenticate, requireAdmin, CarController.syncCa
 // Permission SSE events endpoint (for authenticated users to receive real-time updates)
 import { permissionBroadcastService } from '../services/PermissionBroadcastService';
 import { decodePermissionError } from '../utils/permissionCodec';
-import { verifyAccessToken } from '../config/jwt';
+import { sseTokenService } from '../services/SseTokenService';
 import { User } from '../entities/User';
 
-router.get('/permissions/events', async (req, res) => {
+/**
+ * POST /api/permissions/sse-token
+ * Returns a short-lived, one-time SSE token for the authenticated user.
+ * The client must use this token (instead of the long-lived access token)
+ * in the EventSource URL to avoid leaking credentials in logs/history.
+ */
+router.post('/permissions/sse-token', authenticate, async (req, res) => {
   try {
-    // EventSource cannot send custom headers, so accept the token via query param
-    const tokenFromQuery = req.query.token as string | undefined;
-    const tokenFromHeader = req.headers.authorization?.startsWith('Bearer ')
-      ? req.headers.authorization.substring(7)
-      : undefined;
-
-    const token = tokenFromQuery || tokenFromHeader;
-    if (!token) {
-      res.status(401).json({ success: false, message: 'Brak tokenu autoryzacyjnego' });
-      return;
-    }
-
-    let userId: number;
-    try {
-      const payload = verifyAccessToken(token);
-      userId = payload.userId;
-    } catch {
-      res.status(401).json({ success: false, message: 'Nieprawidłowy lub wygasły token' });
-      return;
-    }
-
     const userRepo = AppDataSource.getRepository(User);
     const user = await userRepo.findOne({
-      where: { id: userId, active: true },
+      where: { id: req.userId, active: true },
       relations: ['role'],
     });
 
@@ -174,17 +159,52 @@ router.get('/permissions/events', async (req, res) => {
       return;
     }
 
-    const roleId = user.role.id;
+    const sseToken = sseTokenService.create(user.role.id);
+    res.json({ success: true, data: { sseToken } });
+  } catch (error) {
+    console.error('SSE token generation error:', error);
+    res.status(500).json({ success: false, message: 'Błąd serwera' });
+  }
+});
 
-    // Set SSE headers
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
-    res.flushHeaders();
+/**
+ * GET /api/permissions/events?sseToken=...
+ * SSE stream for real-time permission updates.
+ * Uses a short-lived one-time token (obtained via POST /permissions/sse-token)
+ * instead of the access token to avoid credential leakage in URLs.
+ * Auth errors are returned as SSE events (not HTTP errors) to prevent
+ * EventSource from entering an infinite reconnect loop.
+ */
+router.get('/permissions/events', async (req, res) => {
+  // Always upgrade to SSE immediately so EventSource doesn't get a non-200
+  // response that would trigger infinite reconnect loops.
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+  res.flushHeaders();
 
-    // Send initial ping to confirm connection
-    res.write(`data: ${JSON.stringify({ type: 'connected', roleId })}\n\n`);
+  const sendEvent = (data: object) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  try {
+    const sseToken = req.query.sseToken as string | undefined;
+    if (!sseToken) {
+      sendEvent({ type: 'unauthorized', message: 'Brak tokenu SSE' });
+      res.end();
+      return;
+    }
+
+    const roleId = sseTokenService.consume(sseToken);
+    if (roleId === null) {
+      sendEvent({ type: 'unauthorized', message: 'Nieprawidłowy lub wygasły token SSE' });
+      res.end();
+      return;
+    }
+
+    // Send initial event to confirm connection
+    sendEvent({ type: 'connected', roleId });
 
     const client = permissionBroadcastService.addClient(roleId, res);
 
@@ -195,7 +215,11 @@ router.get('/permissions/events', async (req, res) => {
       try {
         res.write(`: ping\n\n`);
       } catch {
+        // res.write failed – client disconnected without firing the 'close' event
+        // (can happen with certain proxy/network failure modes). Clean up here to
+        // prevent Response objects from leaking in permissionBroadcastService.
         clearInterval(keepAlive);
+        permissionBroadcastService.removeClient(client);
       }
     }, 30000);
 
@@ -205,9 +229,8 @@ router.get('/permissions/events', async (req, res) => {
     });
   } catch (error) {
     console.error('SSE permissions error:', error);
-    if (!res.headersSent) {
-      res.status(500).end();
-    }
+    sendEvent({ type: 'error', message: 'Wewnętrzny błąd serwera' });
+    res.end();
   }
 });
 

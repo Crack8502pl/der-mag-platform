@@ -36,6 +36,10 @@ export const SerialScannerModal: React.FC<SerialScannerModalProps> = ({
   const [scanMode, setScanMode] = useState<'camera' | 'manual'>('camera');
   const [cameraAvailable, setCameraAvailable] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Keep a ref to the latest serials array so the camera callback always
+  // validates against current state (avoids stale-closure duplicates).
+  const serialsRef = useRef<string[]>(serials);
+  useEffect(() => { serialsRef.current = serials; }, [serials]);
 
   // Check camera availability on mount
   useEffect(() => {
@@ -57,13 +61,14 @@ export const SerialScannerModal: React.FC<SerialScannerModalProps> = ({
       setInputValue('');
       setError('');
       setShowExitConfirm(false);
-      // Reset to camera mode if available when modal opens
-      if (cameraAvailable) setScanMode('camera');
-      setTimeout(() => {
-        if (scanMode === 'manual') inputRef.current?.focus();
-      }, 100);
+      // Decide which mode to start in
+      const targetMode: 'camera' | 'manual' = cameraAvailable ? 'camera' : 'manual';
+      setScanMode(targetMode);
+      if (targetMode === 'manual') {
+        setTimeout(() => inputRef.current?.focus(), 100);
+      }
     }
-  }, [isOpen, initialSerials]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, initialSerials, cameraAvailable]);
 
   const applyStripPrefixes = useCallback((value: string): string => {
     if (!patternsConfig?.stripPrefixes?.length) return value;
@@ -94,7 +99,11 @@ export const SerialScannerModal: React.FC<SerialScannerModalProps> = ({
     const processed = applyStripPrefixes(raw.trim());
     if (!processed) return;
 
-    if (serials.includes(processed)) {
+    // Use the ref to get the current serials without being a closure dependency.
+    // This ensures the camera callback always validates against the latest list.
+    const currentSerials = serialsRef.current;
+
+    if (currentSerials.includes(processed)) {
       setError(`Numer seryjny "${processed}" już został zeskanowany`);
       return;
     }
@@ -105,14 +114,14 @@ export const SerialScannerModal: React.FC<SerialScannerModalProps> = ({
       return;
     }
 
-    if (serials.length >= expectedCount) {
+    if (currentSerials.length >= expectedCount) {
       setError(`Osiągnięto maksymalną ilość ${expectedCount} numerów seryjnych`);
       return;
     }
 
     setSerials(prev => [...prev, processed]);
     setError('');
-  }, [serials, applyStripPrefixes, validateSerial, expectedCount]);
+  }, [applyStripPrefixes, validateSerial, expectedCount]);
 
   // Camera scan handler
   const handleCameraScan = useCallback((barcode: string) => {
