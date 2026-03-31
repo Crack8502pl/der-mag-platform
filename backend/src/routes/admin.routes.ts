@@ -2,8 +2,9 @@
 // Admin routes for system configuration and user management
 
 import { Router } from 'express';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/PermissionMiddleware';
+import { requireAdmin } from '../middleware/permissions';
 import { SystemConfigController } from '../controllers/SystemConfigController';
 import { UserController } from '../controllers/UserController';
 import { RoleController } from '../controllers/RoleController';
@@ -12,9 +13,9 @@ import { CompletionController } from '../controllers/CompletionController';
 
 const router = Router();
 
-// All admin routes require authentication and admin role
+// All admin routes require authentication and admin privileges
 router.use(authenticate);
-router.use(authorize('admin'));
+router.use(requireAdmin);
 
 // ============================================
 // System Configuration Routes

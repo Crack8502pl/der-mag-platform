@@ -56,8 +56,11 @@ export const checkPermission = (module: string, action: string) => {
         return;
       }
 
-      // Sprawdź konkretną akcję
-      const hasPermission = (modulePermissions as Record<string, any>)[action] === true;
+      // Sprawdź konkretną akcję.
+      // Wartość truthy (true lub niepusty string jak 'SERWIS'/'OWN') jest traktowana jako posiadane
+      // uprawnienie – ograniczenia warunkowe są egzekwowane przez dedykowane middleware kontrolerów.
+      const permValue = (modulePermissions as Record<string, any>)[action];
+      const hasPermission = permValue === true || (typeof permValue === 'string' && permValue.length > 0);
 
       if (!hasPermission) {
         res.status(403).json({
@@ -127,10 +130,12 @@ export const checkAnyPermission = (module: string, actions: string[]) => {
         return;
       }
 
-      // Sprawdź czy użytkownik ma jakąkolwiek z wymaganych akcji
-      const hasAnyPermission = actions.some(action => 
-        (modulePermissions as Record<string, any>)[action] === true
-      );
+      // Sprawdź czy użytkownik ma jakąkolwiek z wymaganych akcji.
+      // Wartość truthy (true lub niepusty string) jest traktowana jako posiadane uprawnienie.
+      const hasAnyPermission = actions.some(action => {
+        const permValue = (modulePermissions as Record<string, any>)[action];
+        return permValue === true || (typeof permValue === 'string' && permValue.length > 0);
+      });
 
       if (!hasAnyPermission) {
         res.status(403).json({
