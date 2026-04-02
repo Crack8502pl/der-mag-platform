@@ -3,9 +3,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { TaskStatusBadge } from './TaskStatusBadge';
+import { LCSConfigModal } from './LCSConfigModal';
+import { NastawniConfigModal } from './NastawniConfigModal';
+import { FiberSchemaModal } from './FiberSchemaModal';
 import taskService from '../../services/task.service';
 import type { Task } from '../../types/task.types';
 import { getPriorityDisplay } from '../../utils/priority';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface Props {
   taskNumber: string;
@@ -16,6 +20,12 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showLCSConfig, setShowLCSConfig] = useState(false);
+  const [showNastawniConfig, setShowNastawniConfig] = useState(false);
+  const [showFiberSchema, setShowFiberSchema] = useState(false);
+
+  const { hasPermission } = usePermissions();
+  const canEdit = hasPermission('tasks', 'update');
 
   useEffect(() => {
     loadTask();
@@ -34,7 +44,19 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
     }
   };
 
+  const handleConfigSuccess = () => {
+    setShowLCSConfig(false);
+    setShowNastawniConfig(false);
+    setShowFiberSchema(false);
+    loadTask();
+  };
+
+  const taskVariant: string = task?.metadata?.taskVariant || task?.taskType?.code || '';
+  const isLCS = taskVariant === 'LCS';
+  const isNastawnia = taskVariant === 'NASTAWNIA';
+
   return (
+    <>
     <div className="modal-overlay">
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
@@ -211,11 +233,67 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
         )}
 
         <div className="modal-footer">
+          {/* Configure buttons for LCS / Nastawnia tasks */}
+          {task && canEdit && isLCS && (
+            <>
+              <button
+                className="btn"
+                style={{ backgroundColor: '#f59e0b', color: 'white', marginRight: '8px' }}
+                onClick={() => setShowLCSConfig(true)}
+              >
+                ⚙️ Konfiguruj LCS
+              </button>
+              <button
+                className="btn"
+                style={{ backgroundColor: '#6366f1', color: 'white', marginRight: 'auto' }}
+                onClick={() => setShowFiberSchema(true)}
+              >
+                🔗 Schemat światłowodowy
+              </button>
+            </>
+          )}
+          {task && canEdit && isNastawnia && (
+            <button
+              className="btn"
+              style={{ backgroundColor: '#f59e0b', color: 'white', marginRight: 'auto' }}
+              onClick={() => setShowNastawniConfig(true)}
+            >
+              ⚙️ Konfiguruj Nastawnie
+            </button>
+          )}
           <button className="btn btn-secondary" onClick={onClose}>
             Zamknij
           </button>
         </div>
       </div>
     </div>
+
+    {/* LCS Config Modal */}
+    {task && showLCSConfig && (
+      <LCSConfigModal
+        task={task}
+        onClose={() => setShowLCSConfig(false)}
+        onSuccess={handleConfigSuccess}
+      />
+    )}
+
+    {/* Nastawnia Config Modal */}
+    {task && showNastawniConfig && (
+      <NastawniConfigModal
+        task={task}
+        onClose={() => setShowNastawniConfig(false)}
+        onSuccess={handleConfigSuccess}
+      />
+    )}
+
+    {/* Fiber Schema Modal */}
+    {task && showFiberSchema && (
+      <FiberSchemaModal
+        task={task}
+        onClose={() => setShowFiberSchema(false)}
+        onSuccess={handleConfigSuccess}
+      />
+    )}
+    </>
   );
 };

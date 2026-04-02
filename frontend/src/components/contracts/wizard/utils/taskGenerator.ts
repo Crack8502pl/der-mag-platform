@@ -127,9 +127,16 @@ const generateSmokipATasks = (subsystem: SubsystemWizardData, liniaKolejowa?: st
       });
     }
     if (getBooleanValue(params, 'hasLCS')) {
+      const monitory = getNumericValue(params, 'lcsMonitory');
+      const stanowiska = getNumericValue(params, 'lcsStanowiska');
+      const hasLPR = getBooleanValue(params, 'lcsHasLPR');
+      const lprSuffix = hasLPR ? ', LPR' : '';
+      const countSuffix = (monitory || stanowiska)
+        ? ` (${monitory} monitorów, ${stanowiska} stanowisk${lprSuffix})`
+        : '';
       tasks.push({
         number: '',
-        name: `LCS (${getNumericValue(params, 'lcsMonitory')} monitorów, ${getNumericValue(params, 'lcsStanowiska')} stanowisk)`,
+        name: `LCS${countSuffix}`,
         type: 'LCS',
         subsystemType: subsystem.type
       });
@@ -184,9 +191,14 @@ const generateSmokipBTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: st
       });
     }
     if (getBooleanValue(params, 'hasLCS')) {
+      const monitory = getNumericValue(params, 'lcsMonitory');
+      const stanowiska = getNumericValue(params, 'lcsStanowiska');
+      const countSuffix = (monitory || stanowiska)
+        ? ` (${monitory} monitorów, ${stanowiska} stanowisk)`
+        : '';
       tasks.push({
         number: '',
-        name: `LCS (${getNumericValue(params, 'lcsMonitory')} monitorów, ${getNumericValue(params, 'lcsStanowiska')} stanowisk)`,
+        name: `LCS${countSuffix}`,
         type: 'LCS',
         subsystemType: subsystem.type
       });

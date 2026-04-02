@@ -5,6 +5,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import taskService from '../../services/task.service';
 import { BOMConfigModal } from './BOMConfigModal';
 import { SMOKConfigModal } from './SMOKConfigModal';
+import { LCSConfigModal } from './LCSConfigModal';
+import { NastawniConfigModal } from './NastawniConfigModal';
 import { LocationPicker } from '../common/LocationPicker';
 import type { GPSCoordinates } from '../../hooks/useGoogleMaps';
 import type { Task, TaskType, UpdateTaskDto } from '../../types/task.types';
@@ -14,6 +16,15 @@ interface Props {
   onClose: () => void;
   onSuccess: () => void;
 }
+
+/** Determine which config modal to show based on task type / variant */
+const getConfigModalType = (task: Task): 'LCS' | 'NASTAWNIA' | 'SMOK' => {
+  const variant: string =
+    task.metadata?.taskVariant || task.taskType?.code || '';
+  if (variant === 'LCS') return 'LCS';
+  if (variant === 'NASTAWNIA') return 'NASTAWNIA';
+  return 'SMOK';
+};
 
 export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => {
   const [formData, setFormData] = useState<UpdateTaskDto>({
@@ -35,6 +46,10 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
   const [error, setError] = useState('');
   const [showBOMConfig, setShowBOMConfig] = useState(false);
   const [showSMOKConfig, setShowSMOKConfig] = useState(false);
+  const [showLCSConfig, setShowLCSConfig] = useState(false);
+  const [showNastawniConfig, setShowNastawniConfig] = useState(false);
+
+  const configModalType = getConfigModalType(task);
 
   useEffect(() => {
     loadTaskTypes();
@@ -273,7 +288,11 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
             <button 
               type="button" 
               className="btn"
-              onClick={() => setShowSMOKConfig(true)}
+              onClick={() => {
+                if (configModalType === 'LCS') setShowLCSConfig(true);
+                else if (configModalType === 'NASTAWNIA') setShowNastawniConfig(true);
+                else setShowSMOKConfig(true);
+              }}
               disabled={loading}
               style={{
                 backgroundColor: '#f59e0b',
@@ -336,6 +355,30 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
             onClose={() => setShowSMOKConfig(false)}
             onSuccess={() => {
               setShowSMOKConfig(false);
+              onSuccess();
+            }}
+          />
+        )}
+
+        {/* LCS Config Modal */}
+        {showLCSConfig && (
+          <LCSConfigModal
+            task={task}
+            onClose={() => setShowLCSConfig(false)}
+            onSuccess={() => {
+              setShowLCSConfig(false);
+              onSuccess();
+            }}
+          />
+        )}
+
+        {/* Nastawnia Config Modal */}
+        {showNastawniConfig && (
+          <NastawniConfigModal
+            task={task}
+            onClose={() => setShowNastawniConfig(false)}
+            onSuccess={() => {
+              setShowNastawniConfig(false);
               onSuccess();
             }}
           />

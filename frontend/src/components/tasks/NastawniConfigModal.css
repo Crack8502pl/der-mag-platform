@@ -1,0 +1,119 @@
+/* NastawniConfigModal.css */
+/* Styles for Nastawnia (signalling box) configuration modal */
+
+.nastawnia-config-section {
+  background: var(--bg-card, #252525);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.nastawnia-config-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-color, #ff6b35);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.nastawnia-type-selector {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.nastawnia-type-card {
+  flex: 1;
+  background: var(--bg-primary, #1a1a1a);
+  border: 2px solid var(--border-color, #333);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.nastawnia-type-card:hover {
+  border-color: var(--primary-color, #ff6b35);
+}
+
+.nastawnia-type-card.active {
+  border-color: var(--primary-color, #ff6b35);
+  background: rgba(255, 107, 53, 0.08);
+}
+
+.nastawnia-type-card .type-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.nastawnia-type-card .type-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+}
+
+.nastawnia-type-card .type-desc {
+  font-size: 11px;
+  color: var(--text-secondary, #a0aec0);
+  margin-top: 4px;
+}
+
+.nastawnia-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nastawnia-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 6px 0;
+}
+
+.nastawnia-checkbox-item input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary-color, #ff6b35);
+  cursor: pointer;
+}
+
+.nastawnia-checkbox-item span {
+  font-size: 14px;
+  color: var(--text-primary, #fff);
+}
+
+.nastawnia-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.nastawnia-sub-section {
+  background: var(--bg-primary, #1a1a1a);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.nastawnia-sub-section h5 {
+  margin: 0 0 10px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary, #a0aec0);
+}
+
+@media (max-width: 600px) {
+  .nastawnia-type-selector {
+    flex-direction: column;
+  }
+
+  .nastawnia-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
