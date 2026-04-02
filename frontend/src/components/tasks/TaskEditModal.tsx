@@ -17,8 +17,23 @@ interface Props {
   onSuccess: () => void;
 }
 
-/** Determine which config modal to show based on task type / variant */
-const getConfigModalType = (task: Task): 'LCS' | 'NASTAWNIA' | 'SMOK' => {
+/** Determine which config modal to show based on task type / variant.
+ *  Prefers the currently-selected task type (from formData + taskTypes list)
+ *  so that changing the task type in the edit form doesn't open the wrong modal.
+ */
+const resolveConfigModalType = (
+  task: Task,
+  taskTypeId: number | undefined,
+  taskTypes: TaskType[]
+): 'LCS' | 'NASTAWNIA' | 'SMOK' => {
+  // Try to resolve from the currently selected task type in the form
+  if (taskTypeId) {
+    const selectedType = taskTypes.find(t => t.id === taskTypeId);
+    if (selectedType?.code === 'LCS') return 'LCS';
+    if (selectedType?.code === 'NASTAWNIA') return 'NASTAWNIA';
+    if (selectedType) return 'SMOK'; // known type, just not LCS/NASTAWNIA
+  }
+  // Fall back to the original task's stored variant
   const variant: string =
     task.metadata?.taskVariant || task.taskType?.code || '';
   if (variant === 'LCS') return 'LCS';
@@ -49,7 +64,7 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
   const [showLCSConfig, setShowLCSConfig] = useState(false);
   const [showNastawniConfig, setShowNastawniConfig] = useState(false);
 
-  const configModalType = getConfigModalType(task);
+  const configModalType = resolveConfigModalType(task, formData.taskTypeId, taskTypes);
 
   useEffect(() => {
     loadTaskTypes();

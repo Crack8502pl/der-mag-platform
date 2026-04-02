@@ -205,9 +205,79 @@ const SmokAForm: React.FC<SmokAFormProps> = ({
   readOnly,
   onUpdateConfig,
   onToggleFunkcjonalnosc,
+  onTogglePrzejazd,
 }) => {
+  const [newPrzejazdId, setNewPrzejazdId] = React.useState('');
+
+  const handleAddPrzejazd = () => {
+    const id = parseInt(newPrzejazdId, 10);
+    if (!isNaN(id) && id > 0 && !config.obserwowanePrzejazdy.includes(id)) {
+      onTogglePrzejazd(id);
+      setNewPrzejazdId('');
+    }
+  };
+
   return (
     <>
+      {/* Obserwowane przejazdy */}
+      <div className="lcs-config-section">
+        <h4>🚦 Obserwowane przejazdy</h4>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+          {config.obserwowanePrzejazdy.length === 0 && (
+            <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
+              Brak przypisanych przejazdów
+            </span>
+          )}
+          {config.obserwowanePrzejazdy.map(id => (
+            <span
+              key={id}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '3px 10px',
+                borderRadius: '12px',
+                background: 'rgba(255,107,53,0.15)',
+                border: '1px solid rgba(255,107,53,0.4)',
+                fontSize: '12px',
+                color: 'var(--text-primary)',
+              }}
+            >
+              🚦 ID {id}
+              {!readOnly && (
+                <button
+                  type="button"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '0 2px', lineHeight: 1 }}
+                  onClick={() => onTogglePrzejazd(id)}
+                  title="Usuń przejazd"
+                >
+                  ✕
+                </button>
+              )}
+            </span>
+          ))}
+        </div>
+        {!readOnly && (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input
+              type="number"
+              min={1}
+              value={newPrzejazdId}
+              onChange={(e) => setNewPrzejazdId(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddPrzejazd())}
+              placeholder="ID przejazdu"
+              style={{ width: '130px' }}
+            />
+            <button type="button" className="btn btn-secondary" style={{ fontSize: '13px' }} onClick={handleAddPrzejazd}>
+              ➕ Dodaj
+            </button>
+          </div>
+        )}
+        <small className="form-help" style={{ marginTop: '6px', display: 'block' }}>
+          Wpisz ID zadania przejazdu i kliknij „Dodaj"
+        </small>
+      </div>
+
       {/* Stanowiska i monitory */}
       <div className="lcs-config-section">
         <h4>📺 Stanowiska i monitory</h4>
@@ -374,10 +444,79 @@ const SmokBForm: React.FC<SmokBFormProps> = ({
   config,
   readOnly,
   onUpdateConfig,
+  onTogglePrzejazd,
 }) => {
+  const [newPrzejazdId, setNewPrzejazdId] = React.useState('');
+
+  const handleAddPrzejazd = () => {
+    const id = parseInt(newPrzejazdId, 10);
+    if (!isNaN(id) && id > 0 && !config.obserwowanePrzejazdy.includes(id)) {
+      onTogglePrzejazd(id);
+      setNewPrzejazdId('');
+    }
+  };
+
   return (
     <>
-      {/* Serwer odbioru obrazów */}
+      {/* Obserwowane przejazdy */}
+      <div className="lcs-config-section">
+        <h4>🚦 Obserwowane przejazdy</h4>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+          {config.obserwowanePrzejazdy.length === 0 && (
+            <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
+              Brak przypisanych przejazdów
+            </span>
+          )}
+          {config.obserwowanePrzejazdy.map(id => (
+            <span
+              key={id}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '3px 10px',
+                borderRadius: '12px',
+                background: 'rgba(72,187,120,0.15)',
+                border: '1px solid rgba(72,187,120,0.4)',
+                fontSize: '12px',
+                color: 'var(--text-primary)',
+              }}
+            >
+              🚦 ID {id}
+              {!readOnly && (
+                <button
+                  type="button"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '0 2px', lineHeight: 1 }}
+                  onClick={() => onTogglePrzejazd(id)}
+                  title="Usuń przejazd"
+                >
+                  ✕
+                </button>
+              )}
+            </span>
+          ))}
+        </div>
+        {!readOnly && (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input
+              type="number"
+              min={1}
+              value={newPrzejazdId}
+              onChange={(e) => setNewPrzejazdId(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddPrzejazd())}
+              placeholder="ID przejazdu"
+              style={{ width: '130px' }}
+            />
+            <button type="button" className="btn btn-secondary" style={{ fontSize: '13px' }} onClick={handleAddPrzejazd}>
+              ➕ Dodaj
+            </button>
+          </div>
+        )}
+        <small className="form-help" style={{ marginTop: '6px', display: 'block' }}>
+          Wpisz ID zadania przejazdu i kliknij „Dodaj"
+        </small>
+      </div>
+
       <div className="lcs-config-section">
         <h4>🖥️ Serwer odbioru obrazów</h4>
         <div className="lcs-grid-2">
@@ -437,7 +576,7 @@ const SmokBForm: React.FC<SmokBFormProps> = ({
           </p>
         )}
         {config.stacjeOperatorskie.map((stacja, idx) => (
-          <div key={idx} className="lcs-sub-section">
+          <div key={stacja.id} className="lcs-sub-section">
             <div className="lcs-grid-2">
               <div className="form-group">
                 <label>Nazwa stacji</label>

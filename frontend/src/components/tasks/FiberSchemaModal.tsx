@@ -34,15 +34,6 @@ const newEndpoint = (typ: FiberEndpoint['typ'] = 'PRZEJAZD'): FiberEndpoint => (
   typ,
 });
 
-const newConnection = (): FiberConnection => ({
-  id: Date.now(),
-  obiektStartowy: newEndpoint('LCS'),
-  obiektKoncowy: newEndpoint('NASTAWNIA'),
-  odleglosc: 0,
-  typWkladki: 'DUPLEX',
-  iloscWlokien: 2,
-});
-
 const endpointLabel = (typ: FiberEndpoint['typ']): string => {
   const map: Record<FiberEndpoint['typ'], string> = {
     LCS: '🏢 LCS',
@@ -70,23 +61,36 @@ export const FiberSchemaModal: React.FC<Props> = ({ task, onClose, onSuccess }) 
   }, [task.metadata]);
 
   /* ---------------------------------------------------------------- */
-  /* Recalculate distances whenever connections change                  */
+  /* Recalculate helpers                                               */
   /* ---------------------------------------------------------------- */
-  const recalcConnection = (conn: FiberConnection): FiberConnection => {
-    const odleglosc = estimateDistance(conn.obiektStartowy, conn.obiektKoncowy);
-    const iloscWlokien = fibersForInsert(conn.typWkladki);
-    return { ...conn, odleglosc, iloscWlokien };
+
+  /** Recalc only when endpoints change. Preserves manually-entered odleglosc. */
+  const recalcEndpoints = (conn: FiberConnection): FiberConnection => {
+    const estimated = estimateDistance(conn.obiektStartowy, conn.obiektKoncowy);
+    // Only overwrite distance if auto-calculation produced a non-zero result
+    // (i.e., at least one endpoint has km or GPS data)
+    const hasAutoData =
+      (conn.obiektStartowy.kilometraz != null && conn.obiektKoncowy.kilometraz != null) ||
+      (conn.obiektStartowy.gps != null && conn.obiektKoncowy.gps != null);
+    return {
+      ...conn,
+      odleglosc: hasAutoData ? estimated : conn.odleglosc,
+      iloscWlokien: fibersForInsert(conn.typWkladki),
+    };
   };
 
+  /** Called when user changes typWkladki or odleglosc directly – never overwrites odleglosc. */
   const updateConnection = (idx: number, patch: Partial<FiberConnection>) => {
     setConnections(prev => {
       const updated = [...prev];
       const merged = { ...updated[idx], ...patch };
-      updated[idx] = recalcConnection(merged);
+      // Only recalc iloscWlokien, preserve odleglosc as provided (manual or unchanged)
+      updated[idx] = { ...merged, iloscWlokien: fibersForInsert(merged.typWkladki) };
       return updated;
     });
   };
 
+  /** Called when an endpoint field changes – triggers auto-distance recalculation. */
   const updateEndpoint = (
     connIdx: number,
     side: 'obiektStartowy' | 'obiektKoncowy',
@@ -96,13 +100,39 @@ export const FiberSchemaModal: React.FC<Props> = ({ task, onClose, onSuccess }) 
       const updated = [...prev];
       const conn = { ...updated[connIdx] };
       conn[side] = { ...conn[side], ...patch };
-      updated[connIdx] = recalcConnection(conn);
+      updated[connIdx] = recalcEndpoints(conn);
       return updated;
     });
   };
 
+  /** Create a new connection, pre-populating the LCS endpoint from current task data. */
   const addConnection = () => {
-    setConnections(prev => [...prev, newConnection()]);
+    const taskKm = task.metadata?.configParams?.kilometraz
+      ? parseFloat(task.metadata.configParams.kilometraz)
+      : undefined;
+    const taskGps =
+      task.gpsLatitude != null && task.gpsLongitude != null
+        ? { lat: Number(task.gpsLatitude), lng: Number(task.gpsLongitude) }
+        : undefined;
+
+    const lcsEndpoint: FiberEndpoint = {
+      id: Date.now(),
+      nazwa: task.title || 'LCS',
+      typ: 'LCS',
+      ...(taskKm != null && !isNaN(taskKm) ? { kilometraz: taskKm } : {}),
+      ...(taskGps ? { gps: taskGps } : {}),
+    };
+
+    const conn: FiberConnection = {
+      id: Date.now() + 1,
+      obiektStartowy: lcsEndpoint,
+      obiektKoncowy: newEndpoint('NASTAWNIA'),
+      odleglosc: 0,
+      typWkladki: 'DUPLEX',
+      iloscWlokien: 2,
+    };
+
+    setConnections(prev => [...prev, conn]);
   };
 
   const removeConnection = (idx: number) => {
@@ -269,6 +299,13 @@ const ConnectionRow: React.FC<ConnectionRowProps> = ({
   const distanceM = Math.round(conn.odleglosc);
   const distanceKm = (conn.odleglosc / 1000).toFixed(2);
 
+  // Detect if distance was auto-calculated from endpoints (km or GPS)
+  const hasAutoKm =
+    conn.obiektStartowy.kilometraz != null && conn.obiektKoncowy.kilometraz != null;
+  const hasAutoGps =
+    conn.obiektStartowy.gps != null && conn.obiektKoncowy.gps != null;
+  const isAutoDistance = hasAutoKm || hasAutoGps;
+
   return (
     <div className="fiber-connection-item">
       <div className="fiber-connection-header">
@@ -325,7 +362,9 @@ const ConnectionRow: React.FC<ConnectionRowProps> = ({
           </select>
         </div>
         <div className="form-group">
-          <label style={{ fontSize: '12px' }}>Odległość [m]</label>
+          <label style={{ fontSize: '12px' }}>
+            Odległość [m]{isAutoDistance && <span style={{ color: 'var(--text-secondary)', marginLeft: '4px' }}>⚡ auto</span>}
+          </label>
           <input
             type="number"
             min={0}
@@ -336,7 +375,9 @@ const ConnectionRow: React.FC<ConnectionRowProps> = ({
             }
           />
           {conn.odleglosc > 0 && (
-            <div className="fiber-distance-auto">≈ {distanceKm} km</div>
+            <div className="fiber-distance-auto">
+              ≈ {distanceKm} km{isAutoDistance ? ' · obliczona z danych' : ' · ręcznie'}
+            </div>
           )}
         </div>
         <div className="form-group">
