@@ -174,7 +174,7 @@ export class BrigadeService {
 
     if (overlapping) {
       throw new Error(
-        'Użytkownik jest już przypisany do innej brygady w nakładającym się okresie czasu. Pracownik może być aktywny tylko w jednej brygadzie naraz.'
+        'Użytkownik jest już przypisany do brygady w nakładającym się okresie czasu. Pracownik może być aktywny tylko w jednej brygadzie naraz.'
       );
     }
 

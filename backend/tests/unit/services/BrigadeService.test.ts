@@ -273,6 +273,34 @@ describe('BrigadeService', () => {
         })
       ).rejects.toThrow('nakładającym się okresie czasu');
     });
+
+    it('should enforce single-brigade constraint: reject member active in a different brigade', async () => {
+      const mockBrigade = { id: 2, members: [] } as any;
+      mockBrigadeRepository.findOne.mockResolvedValue(mockBrigade);
+      mockUserRepository.findOne.mockResolvedValue({ id: 5 } as User);
+
+      const mockQb = createMockQueryBuilder<BrigadeMember>();
+      // Simulate user already active in brigade 1 (different brigade)
+      mockQb.getOne.mockResolvedValue({ id: 88, brigadeId: 1, userId: 5 } as BrigadeMember);
+      mockMemberRepository.createQueryBuilder.mockReturnValue(mockQb);
+
+      await expect(
+        service.addMember({
+          brigadeId: 2,
+          userId: 5,
+          workDays: [1, 2],
+          validFrom: new Date(),
+        })
+      ).rejects.toThrow('nakładającym się okresie czasu');
+
+      // Verify the overlap check is NOT scoped to a specific brigade
+      expect(mockQb.where).not.toHaveBeenCalledWith(
+        expect.stringContaining('brigadeId'),
+        expect.anything()
+      );
+      // Verify it does check by userId
+      expect(mockQb.where).toHaveBeenCalledWith('member.userId = :userId', { userId: 5 });
+    });
   });
 
   describe('removeMember', () => {

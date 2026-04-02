@@ -3,8 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import brigadeService from '../../services/brigade.service';
-import type { Brigade, BrigadeMember, AddMemberDto } from '../../types/brigade.types';
-import type { User } from '../../types/admin.types';
+import type { Brigade, BrigadeMember, AddMemberDto, AvailableWorker } from '../../types/brigade.types';
 
 interface BrigadeMembersModalProps {
   brigade: Brigade;
@@ -23,7 +22,7 @@ const DAYS_OF_WEEK = [
 
 export const BrigadeMembersModal: React.FC<BrigadeMembersModalProps> = ({ brigade, onClose }) => {
   const [members, setMembers] = useState<BrigadeMember[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<AvailableWorker[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');

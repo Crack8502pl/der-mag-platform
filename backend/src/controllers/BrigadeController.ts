@@ -35,7 +35,7 @@ export class BrigadeController {
           firstName: u.firstName,
           lastName: u.lastName,
           active: u.active,
-          role: u.role,
+          role: u.role ? { id: u.role.id, name: u.role.name } : null,
         })),
       });
     } catch (error) {

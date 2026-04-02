@@ -11,8 +11,8 @@ import type {
   UpdateMemberDto,
   BrigadeStats,
   BrigadeFilters,
+  AvailableWorker,
 } from '../types/brigade.types';
-import type { User } from '../types/admin.types';
 
 class BrigadeService {
   /**
@@ -112,7 +112,7 @@ class BrigadeService {
   /**
    * Get workers available for brigade assignment
    */
-  async getAvailableWorkers(): Promise<User[]> {
+  async getAvailableWorkers(): Promise<AvailableWorker[]> {
     const response = await api.get('/brigades/available-workers');
     return response.data.data || [];
   }
