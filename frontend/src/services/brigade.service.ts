@@ -11,6 +11,7 @@ import type {
   UpdateMemberDto,
   BrigadeStats,
   BrigadeFilters,
+  AvailableWorker,
 } from '../types/brigade.types';
 
 class BrigadeService {
@@ -106,6 +107,14 @@ class BrigadeService {
    */
   async removeMember(brigadeId: number, memberId: number): Promise<void> {
     await api.delete(`/brigades/${brigadeId}/members/${memberId}`);
+  }
+
+  /**
+   * Get workers available for brigade assignment
+   */
+  async getAvailableWorkers(): Promise<AvailableWorker[]> {
+    const response = await api.get('/brigades/available-workers');
+    return response.data.data || [];
   }
 }
 

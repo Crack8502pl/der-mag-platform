@@ -83,3 +83,13 @@ export interface BrigadesResponse {
   limit: number;
   totalPages: number;
 }
+
+export interface AvailableWorker {
+  id: number;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  active: boolean;
+  role: { id: number; name: string } | null;
+}

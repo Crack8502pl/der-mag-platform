@@ -3,9 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import brigadeService from '../../services/brigade.service';
-import { AdminService } from '../../services/admin.service';
-import type { Brigade, BrigadeMember, AddMemberDto } from '../../types/brigade.types';
-import type { User } from '../../types/admin.types';
+import type { Brigade, BrigadeMember, AddMemberDto, AvailableWorker } from '../../types/brigade.types';
 
 interface BrigadeMembersModalProps {
   brigade: Brigade;
@@ -24,7 +22,7 @@ const DAYS_OF_WEEK = [
 
 export const BrigadeMembersModal: React.FC<BrigadeMembersModalProps> = ({ brigade, onClose }) => {
   const [members, setMembers] = useState<BrigadeMember[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<AvailableWorker[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -39,8 +37,6 @@ export const BrigadeMembersModal: React.FC<BrigadeMembersModalProps> = ({ brigad
     active: true,
   });
 
-  const adminService = new AdminService();
-
   useEffect(() => {
     loadData();
   }, []);
@@ -51,13 +47,10 @@ export const BrigadeMembersModal: React.FC<BrigadeMembersModalProps> = ({ brigad
       setError('');
       const [membersData, usersData] = await Promise.all([
         brigadeService.getMembers(brigade.id),
-        adminService.getAllUsers(),
+        brigadeService.getAvailableWorkers(),
       ]);
       setMembers(membersData);
-      setUsers(usersData.filter(u => {
-        const roleName = typeof u.role === 'string' ? u.role : u.role?.name;
-        return u.active && roleName?.toLowerCase() === 'worker';
-      }));
+      setUsers(usersData);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd pobierania danych');
     } finally {

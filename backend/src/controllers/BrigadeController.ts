@@ -3,9 +3,49 @@
 
 import { Request, Response } from 'express';
 import { BrigadeService } from '../services/BrigadeService';
+import { AppDataSource } from '../config/database';
+import { User } from '../entities/User';
 
 export class BrigadeController {
   private brigadeService = new BrigadeService();
+
+  /**
+   * GET /api/brigades/available-workers
+   * Get workers available for brigade assignment
+   */
+  getAvailableWorkers = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userRepository = AppDataSource.getRepository(User);
+      const workers = await userRepository
+        .createQueryBuilder('user')
+        .leftJoinAndSelect('user.role', 'role')
+        .where('user.active = :active', { active: true })
+        .andWhere('user.deletedAt IS NULL')
+        .andWhere('role.name = :roleName', { roleName: 'worker' })
+        .orderBy('user.lastName', 'ASC')
+        .addOrderBy('user.firstName', 'ASC')
+        .getMany();
+
+      res.json({
+        success: true,
+        data: workers.map(u => ({
+          id: u.id,
+          username: u.username,
+          email: u.email,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          active: u.active,
+          role: u.role ? { id: u.role.id, name: u.role.name } : null,
+        })),
+      });
+    } catch (error) {
+      console.error('Error getting available workers:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Błąd podczas pobierania dostępnych pracowników',
+      });
+    }
+  };
 
   /**
    * POST /api/brigades
