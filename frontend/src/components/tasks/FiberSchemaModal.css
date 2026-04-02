@@ -1,0 +1,144 @@
+/* FiberSchemaModal.css */
+/* Styles for fiber optic transmission schema calculator modal */
+
+.fiber-connection-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.fiber-connection-item {
+  background: var(--bg-card, #252525);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.fiber-connection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.fiber-connection-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary-color, #ff6b35);
+}
+
+.fiber-endpoints {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.fiber-arrow {
+  font-size: 18px;
+  text-align: center;
+  color: var(--text-secondary, #a0aec0);
+}
+
+.fiber-endpoint-card {
+  background: var(--bg-primary, #1a1a1a);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.fiber-endpoint-card label {
+  font-size: 11px;
+  color: var(--text-muted, #718096);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.fiber-meta-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  align-items: end;
+}
+
+.fiber-summary {
+  background: rgba(255, 107, 53, 0.08);
+  border: 1px solid rgba(255, 107, 53, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.fiber-summary h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-color, #ff6b35);
+}
+
+.fiber-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.fiber-summary-item {
+  text-align: center;
+}
+
+.fiber-summary-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary-color, #ff6b35);
+}
+
+.fiber-summary-label {
+  font-size: 11px;
+  color: var(--text-secondary, #a0aec0);
+  margin-top: 4px;
+}
+
+.fiber-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.fiber-type-duplex {
+  background: rgba(66, 153, 225, 0.2);
+  color: #4299e1;
+  border: 1px solid rgba(66, 153, 225, 0.4);
+}
+
+.fiber-type-wdm {
+  background: rgba(72, 187, 120, 0.2);
+  color: #48bb78;
+  border: 1px solid rgba(72, 187, 120, 0.4);
+}
+
+.fiber-distance-auto {
+  font-size: 11px;
+  color: var(--text-secondary, #a0aec0);
+  margin-top: 2px;
+}
+
+@media (max-width: 600px) {
+  .fiber-endpoints {
+    grid-template-columns: 1fr;
+  }
+
+  .fiber-meta-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .fiber-summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -5,6 +5,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import taskService from '../../services/task.service';
 import { BOMConfigModal } from './BOMConfigModal';
 import { SMOKConfigModal } from './SMOKConfigModal';
+import { LCSConfigModal } from './LCSConfigModal';
+import { NastawniConfigModal } from './NastawniConfigModal';
 import { LocationPicker } from '../common/LocationPicker';
 import type { GPSCoordinates } from '../../hooks/useGoogleMaps';
 import type { Task, TaskType, UpdateTaskDto } from '../../types/task.types';
@@ -14,6 +16,30 @@ interface Props {
   onClose: () => void;
   onSuccess: () => void;
 }
+
+/** Determine which config modal to show based on task type / variant.
+ *  Prefers the currently-selected task type (from formData + taskTypes list)
+ *  so that changing the task type in the edit form doesn't open the wrong modal.
+ */
+const resolveConfigModalType = (
+  task: Task,
+  taskTypeId: number | undefined,
+  taskTypes: TaskType[]
+): 'LCS' | 'NASTAWNIA' | 'SMOK' => {
+  // Try to resolve from the currently selected task type in the form
+  if (taskTypeId) {
+    const selectedType = taskTypes.find(t => t.id === taskTypeId);
+    if (selectedType?.code === 'LCS') return 'LCS';
+    if (selectedType?.code === 'NASTAWNIA') return 'NASTAWNIA';
+    if (selectedType) return 'SMOK'; // known type, just not LCS/NASTAWNIA
+  }
+  // Fall back to the original task's stored variant
+  const variant: string =
+    task.metadata?.taskVariant || task.taskType?.code || '';
+  if (variant === 'LCS') return 'LCS';
+  if (variant === 'NASTAWNIA') return 'NASTAWNIA';
+  return 'SMOK';
+};
 
 export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => {
   const [formData, setFormData] = useState<UpdateTaskDto>({
@@ -35,6 +61,10 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
   const [error, setError] = useState('');
   const [showBOMConfig, setShowBOMConfig] = useState(false);
   const [showSMOKConfig, setShowSMOKConfig] = useState(false);
+  const [showLCSConfig, setShowLCSConfig] = useState(false);
+  const [showNastawniConfig, setShowNastawniConfig] = useState(false);
+
+  const configModalType = resolveConfigModalType(task, formData.taskTypeId, taskTypes);
 
   useEffect(() => {
     loadTaskTypes();
@@ -273,7 +303,11 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
             <button 
               type="button" 
               className="btn"
-              onClick={() => setShowSMOKConfig(true)}
+              onClick={() => {
+                if (configModalType === 'LCS') setShowLCSConfig(true);
+                else if (configModalType === 'NASTAWNIA') setShowNastawniConfig(true);
+                else setShowSMOKConfig(true);
+              }}
               disabled={loading}
               style={{
                 backgroundColor: '#f59e0b',
@@ -336,6 +370,30 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
             onClose={() => setShowSMOKConfig(false)}
             onSuccess={() => {
               setShowSMOKConfig(false);
+              onSuccess();
+            }}
+          />
+        )}
+
+        {/* LCS Config Modal */}
+        {showLCSConfig && (
+          <LCSConfigModal
+            task={task}
+            onClose={() => setShowLCSConfig(false)}
+            onSuccess={() => {
+              setShowLCSConfig(false);
+              onSuccess();
+            }}
+          />
+        )}
+
+        {/* Nastawnia Config Modal */}
+        {showNastawniConfig && (
+          <NastawniConfigModal
+            task={task}
+            onClose={() => setShowNastawniConfig(false)}
+            onSuccess={() => {
+              setShowNastawniConfig(false);
               onSuccess();
             }}
           />
