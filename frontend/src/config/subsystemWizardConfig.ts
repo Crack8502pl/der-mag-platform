@@ -92,9 +92,6 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
       { name: 'iloscSKP', label: '1.2 Ilość SKP', type: 'number' },
       { name: 'iloscNastawni', label: '1.3 Ilość Nastawni', type: 'number' },
       { name: 'hasLCS', label: '1.4 LCS (obecny)', type: 'checkbox' },
-      { name: 'lcsMonitory', label: '1.4.1 Ilość monitorów LCS', type: 'number', dependsOn: 'hasLCS', optional: true },
-      { name: 'lcsStanowiska', label: '1.4.2 Ilość stanowisk LCS', type: 'number', dependsOn: 'hasLCS', optional: true },
-      { name: 'lcsHasLPR', label: '1.4.3 LCS – obsługa LPR', type: 'checkbox', dependsOn: 'hasLCS', optional: true },
       { name: 'nastawniaSamodzielna', label: '1.3.1 Nastawnia samodzielna (brak LCS)', type: 'checkbox', optional: true },
       { name: 'hasCUID', label: '1.5 CUID (obecny)', type: 'checkbox' },
       { name: 'gatewayIP', label: 'Gateway IP', type: 'text', optional: true },
@@ -107,8 +104,6 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
       { name: 'przejazdyKatB', label: '1.1 Ilość przejazdów Kat B', type: 'number' },
       { name: 'iloscNastawni', label: '1.3 Ilość Nastawni', type: 'number' },
       { name: 'hasLCS', label: '1.4 LCS (obecny)', type: 'checkbox' },
-      { name: 'lcsMonitory', label: '1.4.1 Ilość monitorów LCS', type: 'number', dependsOn: 'hasLCS', optional: true },
-      { name: 'lcsStanowiska', label: '1.4.2 Ilość stanowisk LCS', type: 'number', dependsOn: 'hasLCS', optional: true },
       { name: 'hasCUID', label: '1.5 CUID (obecny)', type: 'checkbox' },
       { name: 'gatewayIP', label: 'Gateway IP', type: 'text', optional: true },
       { name: 'subnetMask', label: 'Subnet Mask', type: 'text', optional: true }

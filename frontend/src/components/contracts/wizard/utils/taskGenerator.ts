@@ -127,17 +127,9 @@ const generateSmokipATasks = (subsystem: SubsystemWizardData, liniaKolejowa?: st
       });
     }
     if (getBooleanValue(params, 'hasLCS')) {
-      const monitory = getNumericValue(params, 'lcsMonitory');
-      const stanowiska = getNumericValue(params, 'lcsStanowiska');
-      const hasLPR = getBooleanValue(params, 'lcsHasLPR');
-      const parts: string[] = [];
-      if (monitory > 0) parts.push(`${monitory} monitorów`);
-      if (stanowiska > 0) parts.push(`${stanowiska} stanowisk`);
-      if (hasLPR) parts.push('LPR');
-      const countSuffix = parts.length > 0 ? ` (${parts.join(', ')})` : '';
       tasks.push({
         number: '',
-        name: `LCS${countSuffix}`,
+        name: 'LCS',
         type: 'LCS',
         subsystemType: subsystem.type
       });
@@ -192,15 +184,9 @@ const generateSmokipBTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: st
       });
     }
     if (getBooleanValue(params, 'hasLCS')) {
-      const monitory = getNumericValue(params, 'lcsMonitory');
-      const stanowiska = getNumericValue(params, 'lcsStanowiska');
-      const parts: string[] = [];
-      if (monitory > 0) parts.push(`${monitory} monitorów`);
-      if (stanowiska > 0) parts.push(`${stanowiska} stanowisk`);
-      const countSuffix = parts.length > 0 ? ` (${parts.join(', ')})` : '';
       tasks.push({
         number: '',
-        name: `LCS${countSuffix}`,
+        name: 'LCS',
         type: 'LCS',
         subsystemType: subsystem.type
       });
