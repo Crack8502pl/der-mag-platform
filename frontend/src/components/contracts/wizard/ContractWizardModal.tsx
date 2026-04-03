@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import contractService from '../../../services/contract.service';
+import type { Contract } from '../../../services/contract.service';
 // SUBSYSTEM_WIZARD_CONFIG imported in child components
 import { useWizardState } from './hooks/useWizardState';
 import { generateAllTasks, buildTaskNameFromDetails, resolveTaskVariant } from './utils/taskGenerator';
@@ -15,6 +16,7 @@ import { BasicDataStep } from './steps/BasicDataStep';
 import { SubsystemSelectionStep } from './steps/SubsystemSelectionStep';
 import { PreviewStep } from './steps/PreviewStep';
 import { SuccessStep } from './steps/SuccessStep';
+import { ShipmentWizardStep } from './steps/ShipmentWizardStep';
 
 // Subsystem Config Components
 import { SmokipAConfigStep } from './subsystems/smokip-a/SmokipAConfigStep';
@@ -49,6 +51,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
   const [error, setError] = useState('');
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
   const [createdContractId, setCreatedContractId] = useState<number | null>(null);
+  const [createdContract, setCreatedContract] = useState<Contract | null>(null);
+  const [shippingActive, setShippingActive] = useState(false);
   
   // Initialize wizard state using custom hook
   const {
@@ -336,9 +340,10 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         
         console.log('✅ Contract created:', response);
         
-        // Store created contract ID for the shipping callback
+        // Store created contract ID and full contract for the shipping step
         if (response.id) {
           setCreatedContractId(response.id);
+          setCreatedContract(response);
         }
         
         // Update generated tasks with actual task numbers from backend
@@ -473,6 +478,17 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
   };
 
   const renderCurrentStep = () => {
+    // Shipping step is rendered when explicitly requested (after success)
+    if (shippingActive && createdContract) {
+      return (
+        <ShipmentWizardStep
+          contract={createdContract}
+          onComplete={() => { onSuccess(); onClose(); }}
+          onSkip={() => { onSuccess(); onClose(); }}
+        />
+      );
+    }
+
     const stepInfo = getCurrentStepInfo();
     
     const stepComponents = {
@@ -503,6 +519,13 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       ),
       success: () => {
         const contractId = createdContractId || contractToEdit?.id;
+        // When a newly created contract is available, use internal shipping step.
+        // For edit mode or fallback, delegate to the external onRequestShipping callback.
+        const handleRequestShipping = createdContract
+          ? () => { onSuccess(); setShippingActive(true); }
+          : (onRequestShipping && contractId
+              ? () => { onSuccess(); onClose(); onRequestShipping(contractId); }
+              : undefined);
         return (
           <SuccessStep
             contractNumber={wizardData.contractNumber}
@@ -512,21 +535,18 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
               onSuccess();
               onClose();
             }}
-            onRequestShipping={onRequestShipping && contractId ? () => {
-              onSuccess();
-              onClose();
-              onRequestShipping(contractId);
-            } : undefined}
+            onRequestShipping={handleRequestShipping}
           />
         );
-      }
+      },
+      shipping: () => null, // Handled by the shippingActive guard above
     };
     
     return stepComponents[stepInfo.type]?.() || null;
   };
 
   const stepInfo = getCurrentStepInfo();
-  const isLastStep = stepInfo.type === 'success';
+  const isLastStep = stepInfo.type === 'success' || shippingActive;
   
   // Check if we're in SMW config step with internal navigation
   const isSmwConfigStep = stepInfo.type === 'config' && 
@@ -537,11 +557,11 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     <div className="modal-overlay">
       <div className="modal-content modal-wizard" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>🧙‍♂️ {editMode ? 'Edycja Kontraktu' : 'Kreator Kontraktu'}</h2>
+          <h2>🧙‍♂️ {shippingActive ? 'Kreator Kontraktu — Wysyłka' : (editMode ? 'Edycja Kontraktu' : 'Kreator Kontraktu')}</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         
-        {renderStepIndicator()}
+        {!shippingActive && renderStepIndicator()}
         
         {error && <div className="alert alert-error">{error}</div>}
         

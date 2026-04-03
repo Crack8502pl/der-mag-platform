@@ -1600,8 +1600,6 @@ const AddTemplateItemModal: React.FC<{
     'przejazdyKatB',
     'iloscSKP',
     'iloscNastawni',
-    'lcsMonitory',
-    'lcsStanowiska',
     'iloscBudynkow',
     'iloscDrzwi',
     'iloscPomieszczen',
