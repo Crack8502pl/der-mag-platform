@@ -3,6 +3,7 @@ import type { SubsystemWizardData, TaskDetail } from '../../types/wizard.types';
 import type { FiberConnection } from '../../../../../types/fiber.types';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../../config/subsystemWizardConfig';
 import { OPTIONAL_KILOMETRAZ_HELP, formatLiniaKolejowa } from '../../utils/validation';
+import { taskDetailToAvailableEndpoint } from '../../utils/fiberTaskUtils';
 import { useGoogleMaps } from '../../../../../hooks/useGoogleMaps';
 import { WizardFiberModal } from '../WizardFiberModal';
 
@@ -422,6 +423,9 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
             gpsLatitude={detail?.gpsLatitude}
             gpsLongitude={detail?.gpsLongitude}
             kilometraz={detail?.kilometraz}
+            availableEndpoints={taskDetails
+              .filter((_, i) => i !== fiberModalTaskIndex)
+              .map(taskDetailToAvailableEndpoint)}
             onSave={(connections: FiberConnection[]) => {
               onUpdateTask(subsystemIndex, fiberModalTaskIndex, { fiberConnections: connections });
               setFiberModalTaskIndex(null);

@@ -11,6 +11,8 @@ import {
   sumFibers,
   totalLengthKm,
 } from '../../../../services/fiberCalculator.service';
+import { useAuth } from '../../../../hooks/useAuth';
+import { parseWizardKilometraz } from '../utils/fiberTaskUtils';
 import '../../../../styles/grover-theme.css';
 import '../../../tasks/FiberSchemaModal.css';
 
@@ -23,6 +25,13 @@ interface WizardFiberModalProps {
   gpsLatitude?: string;
   gpsLongitude?: string;
   kilometraz?: string;
+  /** Other tasks in the subsystem – used to pre-fill the target endpoint */
+  availableEndpoints?: Array<{
+    nazwa: string;
+    typ: FiberEndpoint['typ'];
+    kilometraz?: number;
+    gps?: { lat: number; lng: number };
+  }>;
   onSave: (connections: FiberConnection[]) => void;
   onClose: () => void;
 }
@@ -56,9 +65,12 @@ export const WizardFiberModal: React.FC<WizardFiberModalProps> = ({
   gpsLatitude,
   gpsLongitude,
   kilometraz,
+  availableEndpoints,
   onSave,
   onClose,
 }) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const [connections, setConnections] = useState<FiberConnection[]>(initialConnections);
   // Per-instance ID counter so that parallel open modals don't share global state.
   const idCounterRef = useRef(Date.now());
@@ -100,7 +112,8 @@ export const WizardFiberModal: React.FC<WizardFiberModalProps> = ({
   };
 
   const addConnection = () => {
-    const taskKm = kilometraz ? parseFloat(kilometraz) : undefined;
+    // Parse "XXX,XXX" wizard kilometraż format correctly (comma as decimal separator)
+    const taskKm = parseWizardKilometraz(kilometraz);
 
     // Only use GPS values when both are present and numeric
     const latNum = gpsLatitude ? Number(gpsLatitude) : NaN;
@@ -118,10 +131,19 @@ export const WizardFiberModal: React.FC<WizardFiberModalProps> = ({
       ...(taskGps ? { gps: taskGps } : {}),
     };
 
+    const firstAvailable = availableEndpoints?.[0];
+    const targetEndpoint: FiberEndpoint = firstAvailable ? {
+      id: genId(),
+      nazwa: firstAvailable.nazwa,
+      typ: firstAvailable.typ,
+      ...(firstAvailable.kilometraz != null ? { kilometraz: firstAvailable.kilometraz } : {}),
+      ...(firstAvailable.gps ? { gps: firstAvailable.gps } : {}),
+    } : newEndpoint('NASTAWNIA');
+
     const conn: FiberConnection = {
       id: genId(),
       obiektStartowy: lcsEndpoint,
-      obiektKoncowy: newEndpoint('NASTAWNIA'),
+      obiektKoncowy: targetEndpoint,
       odleglosc: 0,
       typWkladki: 'DUPLEX',
       iloscWlokien: 2,
@@ -166,6 +188,7 @@ export const WizardFiberModal: React.FC<WizardFiberModalProps> = ({
                 key={conn.id}
                 conn={conn}
                 idx={idx}
+                isAdmin={isAdmin}
                 onUpdateConnection={updateConnection}
                 onUpdateEndpoint={updateEndpoint}
                 onRemove={removeConnection}
@@ -189,6 +212,7 @@ export const WizardFiberModal: React.FC<WizardFiberModalProps> = ({
                 <div className="fiber-summary-item">
                   <div className="fiber-summary-value">{totalKm.toFixed(2)}</div>
                   <div className="fiber-summary-label">km światłowodu łącznie</div>
+                  {isAdmin && <small className="bom-variable-hint">[obliczenia.calkowitaDlugoscKm]</small>}
                 </div>
                 <div className="fiber-summary-item">
                   <div className="fiber-summary-value">{connections.length}</div>
@@ -197,6 +221,7 @@ export const WizardFiberModal: React.FC<WizardFiberModalProps> = ({
                 <div className="fiber-summary-item">
                   <div className="fiber-summary-value">{totalFibers}</div>
                   <div className="fiber-summary-label">włókien wymaganych</div>
+                  {isAdmin && <small className="bom-variable-hint">[obliczenia.wymaganychWlokien]</small>}
                 </div>
               </div>
             </div>
@@ -223,6 +248,7 @@ export const WizardFiberModal: React.FC<WizardFiberModalProps> = ({
 interface ConnectionRowProps {
   conn: FiberConnection;
   idx: number;
+  isAdmin: boolean;
   onUpdateConnection: (idx: number, patch: Partial<FiberConnection>) => void;
   onUpdateEndpoint: (
     connIdx: number,
@@ -235,6 +261,7 @@ interface ConnectionRowProps {
 const ConnectionRow: React.FC<ConnectionRowProps> = ({
   conn,
   idx,
+  isAdmin,
   onUpdateConnection,
   onUpdateEndpoint,
   onRemove,
@@ -257,12 +284,18 @@ const ConnectionRow: React.FC<ConnectionRowProps> = ({
       <EndpointEditor
         label="Obiekt START"
         endpoint={conn.obiektStartowy}
+        side="obiektStartowy"
+        connIdx={idx}
+        isAdmin={isAdmin}
         onChange={(patch) => onUpdateEndpoint(idx, 'obiektStartowy', patch)}
       />
       {/* End endpoint */}
       <EndpointEditor
         label="Obiekt KONIEC"
         endpoint={conn.obiektKoncowy}
+        side="obiektKoncowy"
+        connIdx={idx}
+        isAdmin={isAdmin}
         onChange={(patch) => onUpdateEndpoint(idx, 'obiektKoncowy', patch)}
       />
     </div>
@@ -278,6 +311,7 @@ const ConnectionRow: React.FC<ConnectionRowProps> = ({
           <option value="DUPLEX">DUPLEX (2 włókna)</option>
           <option value="WDM">WDM (1 włókno)</option>
         </select>
+        {isAdmin && <small className="bom-variable-hint">[schematLacznosci[{idx}].typWkladki]</small>}
       </div>
       <div>
         <label style={{ display: 'block', marginBottom: '4px', fontWeight: 600 }}>Odległość (m)</label>
@@ -288,10 +322,12 @@ const ConnectionRow: React.FC<ConnectionRowProps> = ({
           onChange={(e) => onUpdateConnection(idx, { odleglosc: Number(e.target.value) })}
           style={{ width: '100%' }}
         />
+        {isAdmin && <small className="bom-variable-hint">[schematLacznosci[{idx}].odleglosc]</small>}
       </div>
       <div>
         <label style={{ display: 'block', marginBottom: '4px', fontWeight: 600 }}>Włókna</label>
         <span style={{ fontSize: '16px', fontWeight: 700 }}>{conn.iloscWlokien}</span>
+        {isAdmin && <small className="bom-variable-hint">[schematLacznosci[{idx}].iloscWlokien]</small>}
       </div>
     </div>
   </div>
@@ -304,10 +340,13 @@ const ConnectionRow: React.FC<ConnectionRowProps> = ({
 interface EndpointEditorProps {
   label: string;
   endpoint: FiberEndpoint;
+  side: 'obiektStartowy' | 'obiektKoncowy';
+  connIdx: number;
+  isAdmin: boolean;
   onChange: (patch: Partial<FiberEndpoint>) => void;
 }
 
-const EndpointEditor: React.FC<EndpointEditorProps> = ({ label, endpoint, onChange }) => (
+const EndpointEditor: React.FC<EndpointEditorProps> = ({ label, endpoint, side, connIdx, isAdmin, onChange }) => (
   <div style={{ fontSize: '13px' }}>
     <label style={{ display: 'block', marginBottom: '4px', fontWeight: 600 }}>{label}</label>
     <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
@@ -328,6 +367,7 @@ const EndpointEditor: React.FC<EndpointEditorProps> = ({ label, endpoint, onChan
         style={{ flex: 1 }}
       />
     </div>
+    {isAdmin && <small className="bom-variable-hint">[schematLacznosci[{connIdx}].{side}.typ]</small>}
     <input
       type="number"
       placeholder="Kilometraż"
@@ -335,5 +375,6 @@ const EndpointEditor: React.FC<EndpointEditorProps> = ({ label, endpoint, onChan
       onChange={(e) => onChange({ kilometraz: e.target.value ? Number(e.target.value) : undefined })}
       style={{ width: '100%', fontSize: '12px' }}
     />
+    {isAdmin && <small className="bom-variable-hint">[schematLacznosci[{connIdx}].{side}.kilometraz]</small>}
   </div>
 );
