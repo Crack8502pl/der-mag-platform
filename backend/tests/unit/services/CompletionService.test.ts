@@ -729,4 +729,69 @@ describe('CompletionService', () => {
       expect(recalcSpy).toHaveBeenCalledWith(42);
     });
   });
+
+  // -------------------------------------------------------------------------
+  describe('saveIssuedQuantities', () => {
+    it('should set status SCANNED when issuedQuantity >= expectedQuantity', async () => {
+      const item = createMockCompletionItem({ id: 1, expectedQuantity: 2, status: CompletionItemStatus.PENDING });
+      mockItemRepo.find.mockResolvedValue([item]);
+      mockItemRepo.save.mockResolvedValue(item);
+
+      await service.saveIssuedQuantities(1, { 1: 2 });
+
+      expect(mockItemRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, issuedQuantity: 2, status: CompletionItemStatus.SCANNED })
+      );
+    });
+
+    it('should set status PARTIAL when 0 < issuedQuantity < expectedQuantity', async () => {
+      const item = createMockCompletionItem({ id: 1, expectedQuantity: 4, status: CompletionItemStatus.PENDING });
+      mockItemRepo.find.mockResolvedValue([item]);
+      mockItemRepo.save.mockResolvedValue(item);
+
+      await service.saveIssuedQuantities(1, { 1: 2 });
+
+      expect(mockItemRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, issuedQuantity: 2, status: CompletionItemStatus.PARTIAL })
+      );
+    });
+
+    it('should set status PENDING when issuedQuantity is 0', async () => {
+      const item = createMockCompletionItem({ id: 1, expectedQuantity: 2, status: CompletionItemStatus.SCANNED });
+      mockItemRepo.find.mockResolvedValue([item]);
+      mockItemRepo.save.mockResolvedValue(item);
+
+      await service.saveIssuedQuantities(1, { 1: 0 });
+
+      expect(mockItemRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, issuedQuantity: 0, status: CompletionItemStatus.PENDING })
+      );
+    });
+
+    it('should clamp negative values to 0 and set status PENDING', async () => {
+      const item = createMockCompletionItem({ id: 1, expectedQuantity: 2, status: CompletionItemStatus.PENDING });
+      mockItemRepo.find.mockResolvedValue([item]);
+      mockItemRepo.save.mockResolvedValue(item);
+
+      await service.saveIssuedQuantities(1, { 1: -5 });
+
+      expect(mockItemRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, issuedQuantity: 0, status: CompletionItemStatus.PENDING })
+      );
+    });
+
+    it('should skip items not present in quantities map', async () => {
+      const item1 = createMockCompletionItem({ id: 1, expectedQuantity: 2 });
+      const item2 = createMockCompletionItem({ id: 2, expectedQuantity: 3 });
+      mockItemRepo.find.mockResolvedValue([item1, item2]);
+      mockItemRepo.save.mockResolvedValue(item1);
+
+      await service.saveIssuedQuantities(1, { 1: 2 });
+
+      expect(mockItemRepo.save).toHaveBeenCalledTimes(1);
+      expect(mockItemRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1 })
+      );
+    });
+  });
 });

@@ -1119,4 +1119,111 @@ describe('CompletionController', () => {
       expect(res.status).toHaveBeenCalledWith(400);
     });
   });
+
+  // -------------------------------------------------------------------------
+  describe('saveItemSerials', () => {
+    let mockQueryBuilder: any;
+
+    beforeEach(() => {
+      mockQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([]),
+      };
+      mockItemRepo.createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder);
+      mockTaskMaterialRepo.createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder);
+    });
+
+    it('should return 400 when serialNumbers is not an array', async () => {
+      req.params = { id: '1', itemId: '1' };
+      req.body = { serialNumbers: 'not-an-array' };
+
+      await CompletionController.saveItemSerials(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ success: false, message: 'serialNumbers musi być tablicą' });
+    });
+
+    it('should return 404 when completion item is not found', async () => {
+      mockItemRepo.findOne.mockResolvedValue(null);
+
+      req.params = { id: '1', itemId: '99' };
+      req.body = { serialNumbers: ['SN001'] };
+
+      await CompletionController.saveItemSerials(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+
+    it('should save serial numbers successfully when no duplicates exist', async () => {
+      const item = createMockCompletionItem({ id: 1, completionOrderId: 1, taskMaterial: null, taskMaterialId: null, expectedQuantity: 2 });
+      mockItemRepo.findOne.mockResolvedValue(item);
+      mockItemRepo.save.mockResolvedValue(item);
+      mockQueryBuilder.getMany.mockResolvedValue([]);
+
+      req.params = { id: '1', itemId: '1' };
+      req.body = { serialNumbers: ['SN001', 'SN002'] };
+
+      await CompletionController.saveItemSerials(req as Request, res as Response);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    });
+
+    it('should return 400 when a serial number is already used in another completion item', async () => {
+      const item = createMockCompletionItem({ id: 1, completionOrderId: 1, taskMaterial: null, taskMaterialId: null });
+      mockItemRepo.findOne.mockResolvedValue(item);
+
+      const duplicateQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn()
+          .mockResolvedValueOnce([createMockCompletionItem({ id: 2, serialNumber: 'SN001' })])
+          .mockResolvedValue([]),
+      };
+      mockItemRepo.createQueryBuilder = jest.fn().mockReturnValue(duplicateQueryBuilder);
+      mockTaskMaterialRepo.createQueryBuilder = jest.fn().mockReturnValue(duplicateQueryBuilder);
+
+      req.params = { id: '1', itemId: '1' };
+      req.body = { serialNumbers: ['SN001', 'SN002'] };
+
+      await CompletionController.saveItemSerials(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: false,
+        message: expect.stringContaining('SN001'),
+      }));
+    });
+
+    it('should return 400 when a serial number is already used in another task material', async () => {
+      const item = createMockCompletionItem({ id: 1, completionOrderId: 1, taskMaterial: null, taskMaterialId: null });
+      mockItemRepo.findOne.mockResolvedValue(item);
+
+      const noItemDuplicates = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([]),
+      };
+      const withMaterialDuplicates = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([
+          { id: 5, serialNumbers: ['SN001', 'SN003'] }
+        ]),
+      };
+      mockItemRepo.createQueryBuilder = jest.fn().mockReturnValue(noItemDuplicates);
+      mockTaskMaterialRepo.createQueryBuilder = jest.fn().mockReturnValue(withMaterialDuplicates);
+
+      req.params = { id: '1', itemId: '1' };
+      req.body = { serialNumbers: ['SN001', 'SN002'] };
+
+      await CompletionController.saveItemSerials(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: false,
+        message: expect.stringContaining('SN001'),
+      }));
+    });
+  });
 });

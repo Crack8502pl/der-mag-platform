@@ -1028,7 +1028,18 @@ export class CompletionService {
 
     for (const item of items) {
       if (quantities[item.id] !== undefined) {
-        item.issuedQuantity = Math.max(0, quantities[item.id]);
+        const issued = Math.max(0, quantities[item.id]);
+        const expected = Number(item.expectedQuantity ?? 0);
+        item.issuedQuantity = issued;
+
+        if (issued >= expected && expected > 0) {
+          item.status = CompletionItemStatus.SCANNED;
+        } else if (issued > 0) {
+          item.status = CompletionItemStatus.PARTIAL;
+        } else {
+          item.status = CompletionItemStatus.PENDING;
+        }
+
         await completionItemRepo.save(item);
       }
     }
