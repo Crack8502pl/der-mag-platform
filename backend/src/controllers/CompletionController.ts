@@ -889,6 +889,49 @@ export class CompletionController {
       const expectedQty = resolvePlannedQty(item);
       const uniqueSerials = [...new Set(serialNumbers.map((s: string) => s.trim()).filter(Boolean))];
 
+      // Check global serial number uniqueness across other completion items and task materials
+      if (uniqueSerials.length > 0) {
+        // Check other completion items (serialNumber field) - exclude current item
+        const duplicateItems = await completionItemRepo
+          .createQueryBuilder('ci')
+          .where('ci.id != :currentId', { currentId: item.id })
+          .andWhere('ci.serialNumber IN (:...serials)', { serials: uniqueSerials })
+          .getMany();
+
+        if (duplicateItems.length > 0) {
+          const duplicates = uniqueSerials.filter(sn =>
+            duplicateItems.some(ci => ci.serialNumber === sn)
+          );
+          res.status(400).json({
+            success: false,
+            message: `Numery seryjne już użyte w innych pozycjach: ${duplicates.join(', ')}`
+          });
+          return;
+        }
+
+        // Check other task materials (serialNumbers JSONB array) - exclude current item's task material
+        const currentTaskMaterialId = item.taskMaterialId ?? 0;
+        const duplicateMaterials = await taskMaterialRepo
+          .createQueryBuilder('tm')
+          .where('tm.id != :currentId', { currentId: currentTaskMaterialId })
+          .andWhere(
+            'EXISTS (SELECT 1 FROM jsonb_array_elements_text(tm.serialNumbers) AS serial WHERE serial IN (:...serials))',
+            { serials: uniqueSerials }
+          )
+          .getMany();
+
+        if (duplicateMaterials.length > 0) {
+          const duplicates = uniqueSerials.filter(sn =>
+            duplicateMaterials.some(tm => tm.serialNumbers?.includes(sn))
+          );
+          res.status(400).json({
+            success: false,
+            message: `Numery seryjne już użyte w innych pozycjach: ${duplicates.join(', ')}`
+          });
+          return;
+        }
+      }
+
       // Update taskMaterial serialNumbers if exists
       if (item.taskMaterial) {
         item.taskMaterial.serialNumbers = uniqueSerials;
