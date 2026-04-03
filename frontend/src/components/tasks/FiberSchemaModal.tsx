@@ -518,7 +518,7 @@ const EndpointForm: React.FC<EndpointFormProps> = ({ endpoint, label, side, conn
         {isAdmin && (
           <small className="bom-variable-hint">
             [{`schematLacznosci[${connIdx}].${side}.gps.lat`}]<br />
-            [{`schematLacznosci[${connIdx}].${side}.gps.lon`}]
+            [{`schematLacznosci[${connIdx}].${side}.gps.lng`}]
           </small>
         )}
       </div>
