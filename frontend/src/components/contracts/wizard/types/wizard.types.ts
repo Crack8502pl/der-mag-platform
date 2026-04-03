@@ -3,6 +3,7 @@
 
 import type { SubsystemType, SmwWizardData } from '../../../../config/subsystemWizardConfig';
 import type { Contract } from '../../../../services/contract.service';
+import type { FiberConnection } from '../../../../types/fiber.types';
 
 export interface WizardProps {
   onClose: () => void;
@@ -10,6 +11,7 @@ export interface WizardProps {
   editMode?: boolean;
   contractToEdit?: Contract;
   onRequestShipping?: (contractId: number) => void;
+  onRequestShippingForContract?: (contract: Contract) => void;
 }
 
 export interface TaskDetail {
@@ -23,6 +25,8 @@ export interface TaskDetail {
   liniaKolejowa?: string;
   gpsLatitude?: string;
   gpsLongitude?: string;
+  googleMapsUrl?: string;
+  fiberConnections?: FiberConnection[];
 }
 
 export interface SubsystemWizardData {

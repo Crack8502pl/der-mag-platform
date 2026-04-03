@@ -13,6 +13,12 @@ import { TaskType } from '../entities/TaskType';
 import { TaskNumberGenerator } from '../services/TaskNumberGenerator';
 import { serverLogger } from '../utils/logger';
 
+interface FiberConnectionData {
+  iloscWlokien?: number;
+  typWkladki?: string;
+  [key: string]: unknown;
+}
+
 export class ContractController {
   private contractService: ContractService;
   private subsystemService: SubsystemService;
@@ -515,12 +521,27 @@ export class ContractController {
                     subsystemId: subsystem.id,
                     location: contract.customName,
                     priority: 0,
+                    gpsLatitude: taskData.gpsLatitude != null && taskData.gpsLatitude !== '' ? Number(taskData.gpsLatitude) : null,
+                    gpsLongitude: taskData.gpsLongitude != null && taskData.gpsLongitude !== '' ? Number(taskData.gpsLongitude) : null,
+                    googleMapsUrl: taskData.googleMapsUrl || null,
                     metadata: {
                       createdFromWizard: true,
                       wizardData: taskData,
                       subsystemType: type,
                       taskVariant: taskData.type || null,
-                      configParams: subsystemParams || {}
+                      configParams: {
+                        ...(subsystemParams || {}),
+                        ...(taskData.fiberConnections?.length ? {
+                          fiberSchema: {
+                            schematLacznosci: taskData.fiberConnections,
+                            obliczenia: {
+                              calkowitaDlugoscKm: 0,
+                      wymaganychWlokien: (taskData.fiberConnections as FiberConnectionData[]).reduce((sum: number, c: FiberConnectionData) => sum + (c.iloscWlokien || 0), 0),
+                              typPolaczenia: (taskData.fiberConnections as FiberConnectionData[]).every((c: FiberConnectionData) => c.typWkladki === 'WDM') ? 'WDM' : 'DUPLEX',
+                            }
+                          }
+                        } : {})
+                      }
                     }
                   });
                   
