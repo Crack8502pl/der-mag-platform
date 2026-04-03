@@ -3,6 +3,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { useAuthStore } from '../../stores/authStore';
 import { getCorrectedTime, getServerTimeOffset, CLOCK_SKEW_WARNING_THRESHOLD } from '../../services/api';
+import { useConnectionQuality } from '../../hooks/useConnectionQuality';
+import { useTheme } from '../../contexts/ThemeContext';
 import './TokenTimerWidget.css';
 
 // localStorage key for widget position
@@ -73,6 +75,65 @@ export const TokenTimerWidget: React.FC = () => {
   });
   
   const widgetRef = useRef<HTMLDivElement>(null);
+
+  // Connection quality
+  const { quality, latency, bandwidth } = useConnectionQuality();
+  const { effectiveTheme } = useTheme();
+
+  // Connection quality helpers
+  const getConnectionSymbol = () => {
+    if (quality === 'offline') {
+      return effectiveTheme === 'husky' ? '⚫' : '⚪';
+    }
+    switch (quality) {
+      case 'excellent': return '🟢';
+      case 'good': return '🟡';
+      case 'poor': return '🔴';
+      default: return '⚪';
+    }
+  };
+
+  const getConnectionLabel = () => {
+    switch (quality) {
+      case 'excellent': return 'Doskonałe';
+      case 'good': return 'Dobre';
+      case 'poor': return 'Słabe';
+      case 'offline': return 'Offline';
+      default: return 'Nieznane';
+    }
+  };
+
+  const getConnectionHints = () => {
+    switch (quality) {
+      case 'excellent':
+        return [
+          '✅ Połączenie stabilne',
+          '✅ Upload plików zalecany',
+          '✅ Wszystkie operacje bezpieczne',
+        ];
+      case 'good':
+        return [
+          '⚠️ Połączenie akceptowalne',
+          '⚠️ Duże pliki mogą zająć chwilę',
+          '💡 Unikaj wielokrotnego odświeżania',
+        ];
+      case 'poor':
+        return [
+          '🔴 Słabe połączenie',
+          '🔴 Upload może się nie powieść',
+          '💡 Znajdź lepszy zasięg lub WiFi',
+          '💡 Operacje są kolejkowane automatycznie',
+        ];
+      case 'offline':
+        return [
+          effectiveTheme === 'husky' ? '⚫ Brak połączenia' : '⚪ Brak połączenia',
+          '📦 Wszystkie operacje są kolejkowane',
+          '🔄 Automatyczny retry po przywróceniu połączenia',
+        ];
+      default:
+        return [];
+    }
+  };
 
   // Timer update effect
   useEffect(() => {
@@ -258,7 +319,7 @@ export const TokenTimerWidget: React.FC = () => {
   return (
     <div 
       ref={widgetRef}
-      className={`token-timer-widget ${isExpiring ? 'expiring' : isExpiringSoon ? 'expiring-soon' : ''} ${isDragging ? 'dragging' : ''} ${isExpanded ? 'expanded' : ''} ${isMobile && isLandscape ? 'mobile-landscape' : ''}`}
+      className={`token-timer-widget ${isExpiring ? 'expiring' : isExpiringSoon ? 'expiring-soon' : ''} ${isDragging ? 'dragging' : ''} ${isExpanded ? 'expanded' : ''} ${isMobile && isLandscape ? 'mobile-landscape' : ''} connection-${quality}`}
       style={desktopStyle}
       onMouseDown={handleMouseDown}
       onMouseEnter={() => {
@@ -289,6 +350,10 @@ export const TokenTimerWidget: React.FC = () => {
       <div className="timer-content">
         <span className="timer-icon">🕐</span>
         <span className="timer-text">{formatTime(timeRemaining)}</span>
+        {/* Connection quality indicator */}
+        <span className="connection-indicator" title={getConnectionLabel()}>
+          {getConnectionSymbol()}
+        </span>
       </div>
       
       {/* Progress bar */}
@@ -302,6 +367,20 @@ export const TokenTimerWidget: React.FC = () => {
       {/* Mobile: Expanded content (instead of tooltip) */}
       {isMobile && isExpanded && (
         <div className="mobile-expanded-content">
+          {/* Connection quality mobile */}
+          <div className="mobile-connection-status">
+            <span className="mobile-connection-icon">{getConnectionSymbol()}</span>
+            <span className="mobile-connection-label">{getConnectionLabel()}</span>
+          </div>
+
+          {quality !== 'offline' && (
+            <div className="mobile-connection-metrics">
+              <span>{latency}ms</span>
+              <span>•</span>
+              <span>{bandwidth.toFixed(1)} Mbps</span>
+            </div>
+          )}
+
           <div className="expanded-stats">
             <div className="expanded-stat">
               <span className="stat-label">Pozostało:</span>
@@ -325,6 +404,13 @@ export const TokenTimerWidget: React.FC = () => {
               {clockSkewWarning}
             </p>
           )}
+
+          {/* Mobile hints */}
+          <div className="mobile-hints">
+            {getConnectionHints().map((hint, index) => (
+              <p key={index} className="mobile-hint">{hint}</p>
+            ))}
+          </div>
         </div>
       )}
 
@@ -335,6 +421,41 @@ export const TokenTimerWidget: React.FC = () => {
           <p className="tooltip-time">{formatTime(timeRemaining)}</p>
           <p className="tooltip-subtitle">do wygaśnięcia tokenu</p>
           
+          <div className="tooltip-divider"></div>
+
+          {/* Connection quality section */}
+          <div className="tooltip-connection-section">
+            <p className="tooltip-connection-header">
+              {getConnectionSymbol()} Jakość połączenia
+            </p>
+            <p className="tooltip-connection-quality">
+              {getConnectionLabel()}
+            </p>
+
+            {quality !== 'offline' && (
+              <div className="tooltip-connection-stats">
+                <div className="connection-stat">
+                  <span className="stat-label">Latencja:</span>
+                  <span className="stat-value">{latency}ms</span>
+                </div>
+                <div className="connection-stat">
+                  <span className="stat-label">Przepustowość:</span>
+                  <span className="stat-value">{bandwidth.toFixed(1)} Mbps</span>
+                </div>
+              </div>
+            )}
+
+            {/* Connection hints */}
+            <div className="tooltip-connection-hints">
+              <p className="hints-header">💡 Wskazówki:</p>
+              <ul className="hints-list">
+                {getConnectionHints().map((hint, index) => (
+                  <li key={index}>{hint}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
           <div className="tooltip-divider"></div>
           
           <div className="tooltip-stats">

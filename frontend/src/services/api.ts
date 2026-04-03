@@ -4,6 +4,7 @@
 import axios, { type AxiosError, type AxiosResponse } from 'axios';
 import type { AxiosInstance } from 'axios';
 import { useAuthStore } from '../stores/authStore';
+import { queueRequest, isConnectionOnline } from './connectionMonitor';
 
 // Inteligentne wykrywanie API URL dla różnych środowisk
 const getApiBaseURL = (): string => {
@@ -106,7 +107,23 @@ const AUTH_ME_MIN_INTERVAL = 5000; // Minimum 5s between /auth/me requests
 
 // Request interceptor - add access token
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    // Check connection before sending non-GET requests
+    if (!isConnectionOnline() && config.method && config.method.toLowerCase() !== 'get') {
+      console.warn('⚠️ Offline - queueing request:', config.method, config.url);
+
+      await queueRequest(
+        config.url || '',
+        config.method || 'post',
+        config.data,
+        config.headers as Record<string, string>
+      );
+
+      const error: any = new Error('OFFLINE_QUEUED');
+      error.isOfflineQueued = true;
+      return Promise.reject(error);
+    }
+
     // Throttle /auth/me requests to prevent flooding
     if (config.url && (config.url.endsWith('/auth/me') || config.url.includes('/auth/me?'))) {
       const now = Date.now();
@@ -149,6 +166,11 @@ api.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
+    // Handle offline queued errors silently
+    if ((error as any).isOfflineQueued) {
+      return Promise.reject(error);
+    }
+
     // Handle throttled requests gracefully
     if ((error as any).__THROTTLED__) {
       return Promise.reject(error);
@@ -162,6 +184,32 @@ api.interceptors.response.use(
     });
     
     const originalRequest = error.config as any;
+
+    // Detect network errors and queue if appropriate
+    const isNetworkError =
+      error.code === 'ECONNABORTED' ||
+      error.message === 'Network Error' ||
+      !error.response;
+
+    if (
+      isNetworkError &&
+      originalRequest &&
+      originalRequest.method &&
+      originalRequest.method.toLowerCase() !== 'get' &&
+      !originalRequest._offlineQueued
+    ) {
+      console.warn('⚠️ Network error detected - queueing request');
+      originalRequest._offlineQueued = true;
+
+      await queueRequest(
+        originalRequest.url || '',
+        originalRequest.method || 'post',
+        originalRequest.data,
+        originalRequest.headers as Record<string, string>
+      );
+
+      (error as any).isOfflineQueued = true;
+    }
 
     // 🆕 OBSŁUGA 429 - Rate Limit Exceeded
     if (error.response?.status === 429) {
