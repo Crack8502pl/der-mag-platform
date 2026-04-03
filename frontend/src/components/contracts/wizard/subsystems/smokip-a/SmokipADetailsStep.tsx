@@ -425,7 +425,7 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
             availableEndpoints={taskDetails
               .filter((_, i) => i !== fiberModalTaskIndex)
               .map(d => ({
-                nazwa: d.nazwa || d.kilometraz || d.taskType,
+                nazwa: d.nazwa || (d.kilometraz ? `km ${d.kilometraz}` : d.taskType),
                 typ: (d.taskType === 'NASTAWNIA' ? 'NASTAWNIA'
                   : d.taskType === 'SKP' ? 'SKP'
                   : d.taskType?.includes('PRZEJAZD') ? 'PRZEJAZD'
