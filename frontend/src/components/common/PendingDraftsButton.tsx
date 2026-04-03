@@ -6,6 +6,14 @@ import { useNavigate } from 'react-router-dom';
 import { usePendingDrafts, getWizardLabel, getWizardPath } from '../../hooks/usePendingDrafts';
 import './PendingDraftsButton.css';
 
+const pluralizeDrafts = (count: number): string => {
+  if (count === 1) return 'Szkic';
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'Szkice';
+  return 'Szkiców';
+};
+
 const formatTimeAgo = (dateStr: string): string => {
   const diff = Date.now() - new Date(dateStr).getTime();
   const minutes = Math.floor(diff / 60_000);
@@ -48,7 +56,7 @@ export const PendingDraftsButton: React.FC = () => {
         onClick={() => setOpen((prev) => !prev)}
         title="Niedokończone kreatory"
       >
-        📝 {drafts.length} {drafts.length === 1 ? 'Szkic' : 'Szkice'} ⚠️
+        📝 {drafts.length} {pluralizeDrafts(drafts.length)} ⚠️
       </button>
 
       {open && (
