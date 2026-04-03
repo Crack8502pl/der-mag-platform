@@ -1024,7 +1024,7 @@ export class CompletionService {
 
     const items = await completionItemRepo.find({
       where: { completionOrderId: orderId },
-      relations: ['taskMaterial', 'bomItem']
+      relations: ['taskMaterial', 'bomItem', 'bomItem.templateItem']
     });
 
     for (const item of items) {
@@ -1038,12 +1038,20 @@ export class CompletionService {
         );
         item.issuedQuantity = issuedQty;
 
-        if (issuedQty >= expectedQty && expectedQty > 0) {
-          item.status = CompletionItemStatus.SCANNED;
-        } else if (issuedQty > 0) {
-          item.status = CompletionItemStatus.PARTIAL;
-        } else {
-          item.status = CompletionItemStatus.PENDING;
+        // Only update status for non-serialized items; serialized items have
+        // their status managed exclusively by saveItemSerials.
+        const requiresSerial =
+          item.taskMaterial?.requiresSerialNumber === true ||
+          item.bomItem?.templateItem?.requiresSerialNumber === true;
+
+        if (!requiresSerial) {
+          if (issuedQty >= expectedQty && expectedQty > 0) {
+            item.status = CompletionItemStatus.SCANNED;
+          } else if (issuedQty > 0) {
+            item.status = CompletionItemStatus.PARTIAL;
+          } else {
+            item.status = CompletionItemStatus.PENDING;
+          }
         }
 
         await completionItemRepo.save(item);

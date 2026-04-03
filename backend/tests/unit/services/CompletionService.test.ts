@@ -838,8 +838,43 @@ describe('CompletionService', () => {
 
       expect(mockItemRepo.find).toHaveBeenCalledWith(
         expect.objectContaining({
-          relations: expect.arrayContaining(['taskMaterial', 'bomItem']),
+          relations: expect.arrayContaining(['taskMaterial', 'bomItem', 'bomItem.templateItem']),
         })
+      );
+    });
+
+    it('should not update status for serialized taskMaterial items', async () => {
+      const item = createMockCompletionItem({
+        id: 1,
+        expectedQuantity: 2,
+        taskMaterial: { id: 10, plannedQuantity: 2, requiresSerialNumber: true } as any,
+        status: CompletionItemStatus.PENDING,
+      });
+      mockItemRepo.find.mockResolvedValue([item]);
+      mockItemRepo.save.mockResolvedValue(item);
+
+      await service.saveIssuedQuantities(1, { 1: 2 });
+
+      expect(mockItemRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, issuedQuantity: 2, status: CompletionItemStatus.PENDING })
+      );
+    });
+
+    it('should not update status for serialized bomItem items (via templateItem)', async () => {
+      const item = createMockCompletionItem({
+        id: 1,
+        expectedQuantity: 2,
+        taskMaterial: null,
+        bomItem: { id: 20, quantity: 2, templateItem: { requiresSerialNumber: true } } as any,
+        status: CompletionItemStatus.PENDING,
+      });
+      mockItemRepo.find.mockResolvedValue([item]);
+      mockItemRepo.save.mockResolvedValue(item);
+
+      await service.saveIssuedQuantities(1, { 1: 2 });
+
+      expect(mockItemRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, issuedQuantity: 2, status: CompletionItemStatus.PENDING })
       );
     });
   });
