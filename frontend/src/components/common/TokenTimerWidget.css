@@ -742,3 +742,191 @@
     transition: none !important;
   }
 }
+
+/* ============================================================
+   CONNECTION QUALITY INDICATOR
+   ============================================================ */
+
+/* Connection indicator in timer */
+.connection-indicator {
+  font-size: 14px;
+  margin-left: 8px;
+  animation: pulse-connection 2s infinite;
+}
+
+@keyframes pulse-connection {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+/* Tooltip connection section */
+.tooltip-connection-section {
+  padding: 12px 0;
+}
+
+.tooltip-connection-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tooltip-connection-quality {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  text-align: center;
+  color: var(--success, #10b981);
+}
+
+/* Quality-specific colors */
+.token-timer-widget.connection-good .tooltip-connection-quality {
+  color: var(--warning, #f59e0b);
+}
+
+.token-timer-widget.connection-poor .tooltip-connection-quality {
+  color: var(--error, #ef4444);
+}
+
+.token-timer-widget.connection-offline .tooltip-connection-quality {
+  color: var(--text-muted, #9ca3af);
+}
+
+/* Husky theme override for offline */
+:root[data-theme="husky"] .token-timer-widget.connection-offline .tooltip-connection-quality {
+  color: #1E293B;
+}
+
+/* Connection stats grid */
+.tooltip-connection-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px;
+  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+  border-radius: var(--radius-sm, 6px);
+}
+
+.connection-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.connection-stat .stat-label {
+  font-size: 11px;
+  color: var(--text-muted, #9ca3af);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.connection-stat .stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary-color, #4CAF50);
+  font-family: 'Courier New', monospace;
+}
+
+/* Connection hints */
+.tooltip-connection-hints {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(255, 107, 53, 0.05);
+  border-left: 3px solid var(--primary-color, #4CAF50);
+  border-radius: var(--radius-sm, 6px);
+}
+
+:root[data-theme="husky"] .tooltip-connection-hints {
+  background: rgba(37, 99, 235, 0.05);
+  border-left-color: var(--primary-color, #2563eb);
+}
+
+.hints-header {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #666);
+}
+
+.hints-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.hints-list li {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-secondary, #666);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.hints-list li:last-child {
+  border-bottom: none;
+}
+
+/* Mobile connection status */
+.mobile-connection-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 0;
+  margin-bottom: 8px;
+}
+
+.mobile-connection-icon {
+  font-size: 20px;
+}
+
+.mobile-connection-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+}
+
+.mobile-connection-metrics {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted, #9ca3af);
+  font-family: 'Courier New', monospace;
+  margin-bottom: 12px;
+}
+
+.mobile-hints {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+}
+
+.mobile-hint {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-secondary, #666);
+  margin: 4px 0;
+}
+
+/* Pulsing animation for poor/offline status */
+.token-timer-widget.connection-poor .connection-indicator,
+.token-timer-widget.connection-offline .connection-indicator {
+  animation: pulse-warning 2s infinite;
+}
+
+@keyframes pulse-warning {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.2);
+  }
+}

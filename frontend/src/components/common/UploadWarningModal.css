@@ -1,0 +1,119 @@
+.upload-warning-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.upload-warning-modal {
+  background: var(--bg-card);
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.upload-warning-modal__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.upload-warning-modal__icon {
+  font-size: 24px;
+}
+
+.upload-warning-modal__header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.upload-warning-modal__body {
+  padding: 20px;
+}
+
+.upload-warning-modal__message {
+  font-size: 15px;
+  color: var(--text-primary);
+  margin: 0 0 16px;
+  line-height: 1.6;
+}
+
+.upload-warning-modal__estimate {
+  padding: 12px;
+  background: var(--bg-hover);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  margin-bottom: 16px;
+  color: var(--text-secondary);
+}
+
+.upload-warning-modal__tips {
+  margin-top: 16px;
+}
+
+.upload-warning-modal__tips h4 {
+  font-size: 14px;
+  margin: 0 0 8px;
+  color: var(--text-primary);
+}
+
+.upload-warning-modal__tips ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.upload-warning-modal__tips li {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.upload-warning-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-hover);
+  border-radius: 0 0 12px 12px;
+}
+
+.upload-warning-modal .btn-danger {
+  background: var(--error);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.upload-warning-modal .btn-danger:hover:not(:disabled) {
+  opacity: 0.9;
+}

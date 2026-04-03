@@ -1,7 +1,7 @@
 // src/App.tsx
 // Main application with routing
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from './components/auth/LoginPage';
 import { ForgotPasswordPage } from './components/auth/ForgotPasswordPage';
@@ -47,6 +47,8 @@ import { useTokenExpirationWarning } from './hooks/useTokenExpirationWarning';
 import { usePermissionRefresh } from './hooks/usePermissionRefresh';
 import { TokenExpirationModal } from './components/common/TokenExpirationModal';
 import { TokenTimerWidget } from './components/common/TokenTimerWidget';
+import { ConnectionStatusBanner } from './components/common/ConnectionStatusBanner';
+import { initConnectionMonitor } from './services/connectionMonitor';
 import { ThemeProvider } from './contexts/ThemeContext';
 import './styles/grover-theme.css';
 import './styles/husky-theme.css';
@@ -88,9 +90,16 @@ function App() {
   } = useTokenExpirationWarning();
   usePermissionRefresh();
 
+  useEffect(() => {
+    // Initialize connection monitor on app startup
+    initConnectionMonitor();
+  }, []);
+
   return (
     <ThemeProvider>
     <BrowserRouter>
+      {/* Connection status banner */}
+      <ConnectionStatusBanner />
       {/* ✅ DODAJ: Zegarek widoczny tylko dla zalogowanych użytkowników */}
       {isAuthenticated && <TokenTimerWidget />}
       

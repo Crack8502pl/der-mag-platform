@@ -55,6 +55,8 @@ import pushRoutes from './push.routes';
 import honeypotRoutes from './honeypot.routes';
 // Cars routes
 import carRoutes from './car.routes';
+// Health/connection monitoring routes
+import healthRoutes from './health.routes';
 
 // Wizard draft routes
 import wizardDraftController from '../controllers/WizardDraftController';
@@ -131,6 +133,9 @@ router.use('/admin/honeypot', honeypotRoutes);
 
 // Cars routes
 router.use('/cars', carRoutes);
+
+// Health/connection monitoring routes (no auth required - lightweight endpoints)
+router.use('/', healthRoutes);
 
 // Wizard drafts routes
 router.get('/wizard-drafts', authenticate, (req, res) => wizardDraftController.listDrafts(req, res));

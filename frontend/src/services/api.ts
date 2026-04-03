@@ -4,34 +4,8 @@
 import axios, { type AxiosError, type AxiosResponse } from 'axios';
 import type { AxiosInstance } from 'axios';
 import { useAuthStore } from '../stores/authStore';
-
-// Inteligentne wykrywanie API URL dla różnych środowisk
-const getApiBaseURL = (): string => {
-  // 1. Priorytet: zmienna środowiskowa (build time)
-  if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL;
-  }
-  
-  // 2. Wykryj protokół (HTTPS lub HTTP)
-  const protocol = window.location.protocol; // 'https:' lub 'http:'
-  const hostname = window.location.hostname;
-  const isLocalNetwork = /^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(hostname);
-  
-  // 3. Dla sieci lokalnej - użyj tego samego protokołu co frontend
-  if (isLocalNetwork) {
-    return `${protocol}//${hostname}:3000/api`;
-  }
-  
-  // 4. Dla localhost
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return `${protocol}//localhost:3000/api`;
-  }
-  
-  // 5. Fallback: użyj origin (dla production)
-  return `${window.location.origin}/api`;
-};
-
-const API_BASE_URL = getApiBaseURL();
+import { queueRequest, isConnectionOnline } from './connectionMonitor';
+import { API_BASE_URL } from './apiBaseUrl';
 
 // 🆕 Debug info w konsoli
 console.log('🌐 API Configuration:', {
@@ -104,9 +78,59 @@ export const getServerTimeOffset = (): number => serverTimeOffset;
 let lastAuthMeRequest = 0;
 const AUTH_ME_MIN_INTERVAL = 5000; // Minimum 5s between /auth/me requests
 
+/**
+ * Build a fully-qualified URL from an Axios config's baseURL + relative url.
+ * Stored URLs must be absolute so the offline-queue retry does not depend on
+ * the Axios instance's baseURL being available at replay time.
+ */
+const buildFullUrl = (baseURL: string | undefined, relativeUrl: string | undefined): string => {
+  const base = (baseURL || '').replace(/\/$/, '');
+  const rel = relativeUrl || '';
+  if (!rel) return '';
+  if (rel.startsWith('http')) return rel;
+  return `${base}${rel.startsWith('/') ? '' : '/'}${rel}`;
+};
+
+/**
+ * Return true when the Content-Type header indicates a JSON payload.
+ * Only JSON requests can be safely serialised into IndexedDB for later replay.
+ */
+const isJsonRequest = (headers: Record<string, string> | undefined): boolean => {
+  const ct = String(headers?.['Content-Type'] || headers?.['content-type'] || 'application/json');
+  return ct.includes('application/json');
+};
+
 // Request interceptor - add access token
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    // Check connection before sending non-GET requests.
+    // isConnectionOnline() mirrors navigator.onLine; the request interceptor uses
+    // this synchronous pre-flight check so the request is never dispatched when
+    // offline. The response interceptor uses navigator.onLine directly because it
+    // runs after a dispatch attempt and we only want to queue when the browser
+    // confirmed it is offline (safe: request was never sent to the server).
+    if (!isConnectionOnline() && config.method && config.method.toLowerCase() !== 'get') {
+      // Only queue JSON requests; FormData/binary uploads cannot be safely serialised
+      if (isJsonRequest(config.headers as Record<string, string>)) {
+        console.warn('⚠️ Offline - queueing request:', config.method, config.url);
+
+        const fullUrl = buildFullUrl(config.baseURL, config.url);
+        if (fullUrl) {
+          await queueRequest(
+            fullUrl,
+            config.method || 'post',
+            config.data,
+            config.headers as Record<string, string>
+          );
+        }
+      } else {
+        console.warn('⚠️ Offline - skipping queue for non-JSON request:', config.method, config.url);
+      }
+
+      const offlineError = Object.assign(new Error('OFFLINE_QUEUED'), { isOfflineQueued: true });
+      return Promise.reject(offlineError);
+    }
+
     // Throttle /auth/me requests to prevent flooding
     if (config.url && (config.url.endsWith('/auth/me') || config.url.includes('/auth/me?'))) {
       const now = Date.now();
@@ -149,6 +173,11 @@ api.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
+    // Handle offline queued errors silently
+    if ((error as any).isOfflineQueued) {
+      return Promise.reject(error);
+    }
+
     // Handle throttled requests gracefully
     if ((error as any).__THROTTLED__) {
       return Promise.reject(error);
@@ -162,6 +191,40 @@ api.interceptors.response.use(
     });
     
     const originalRequest = error.config as any;
+
+    // Detect network errors and queue only when the browser is genuinely offline.
+    // Queuing on generic timeouts/network errors when online is unsafe because the
+    // server may have already committed the request (risk of duplicate mutations).
+    const isNetworkError =
+      error.code === 'ECONNABORTED' ||
+      error.message === 'Network Error' ||
+      !error.response;
+
+    if (
+      isNetworkError &&
+      !navigator.onLine &&
+      originalRequest &&
+      originalRequest.method &&
+      originalRequest.method.toLowerCase() !== 'get' &&
+      !originalRequest._offlineQueued
+    ) {
+      if (isJsonRequest(originalRequest.headers)) {
+        console.warn('⚠️ Network error while offline - queueing request');
+        originalRequest._offlineQueued = true;
+
+        const fullUrl = buildFullUrl(originalRequest.baseURL, originalRequest.url);
+        if (fullUrl) {
+          await queueRequest(
+            fullUrl,
+            originalRequest.method || 'post',
+            originalRequest.data,
+            originalRequest.headers as Record<string, string>
+          );
+        }
+
+        (error as any).isOfflineQueued = true;
+      }
+    }
 
     // 🆕 OBSŁUGA 429 - Rate Limit Exceeded
     if (error.response?.status === 429) {
