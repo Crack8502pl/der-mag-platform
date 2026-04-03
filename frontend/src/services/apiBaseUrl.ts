@@ -15,6 +15,7 @@ export const getApiBaseURL = (): string => {
 
   const protocol = window.location.protocol;
   const hostname = window.location.hostname;
+  // Matches RFC-1918 private ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
   const isLocalNetwork = /^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(hostname);
 
   // 2. Local network (e.g. 192.168.x.x)

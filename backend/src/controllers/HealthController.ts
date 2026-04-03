@@ -29,7 +29,7 @@ export class HealthController {
       ? 1024
       : Math.max(minSize, Math.min(parsedSize, maxSize));
 
-    const data = Buffer.alloc(actualSize * 1024, '0'); // Fill with zeros
+    const data = Buffer.alloc(actualSize * 1024); // Zero-filled by default; no initialisation overhead
 
     res.set('Content-Type', 'application/octet-stream');
     res.set('Content-Length', data.length.toString());

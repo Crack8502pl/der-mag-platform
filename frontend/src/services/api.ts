@@ -78,27 +78,43 @@ export const getServerTimeOffset = (): number => serverTimeOffset;
 let lastAuthMeRequest = 0;
 const AUTH_ME_MIN_INTERVAL = 5000; // Minimum 5s between /auth/me requests
 
+/**
+ * Build a fully-qualified URL from an Axios config's baseURL + relative url.
+ * Stored URLs must be absolute so the offline-queue retry does not depend on
+ * the Axios instance's baseURL being available at replay time.
+ */
+const buildFullUrl = (baseURL: string | undefined, relativeUrl: string | undefined): string => {
+  const base = (baseURL || '').replace(/\/$/, '');
+  const rel = relativeUrl || '';
+  if (!rel) return '';
+  if (rel.startsWith('http')) return rel;
+  return `${base}${rel.startsWith('/') ? '' : '/'}${rel}`;
+};
+
+/**
+ * Return true when the Content-Type header indicates a JSON payload.
+ * Only JSON requests can be safely serialised into IndexedDB for later replay.
+ */
+const isJsonRequest = (headers: Record<string, string> | undefined): boolean => {
+  const ct = String(headers?.['Content-Type'] || headers?.['content-type'] || 'application/json');
+  return ct.includes('application/json');
+};
+
 // Request interceptor - add access token
 api.interceptors.request.use(
   async (config) => {
-    // Check connection before sending non-GET requests
+    // Check connection before sending non-GET requests.
+    // isConnectionOnline() mirrors navigator.onLine; the request interceptor uses
+    // this synchronous pre-flight check so the request is never dispatched when
+    // offline. The response interceptor uses navigator.onLine directly because it
+    // runs after a dispatch attempt and we only want to queue when the browser
+    // confirmed it is offline (safe: request was never sent to the server).
     if (!isConnectionOnline() && config.method && config.method.toLowerCase() !== 'get') {
       // Only queue JSON requests; FormData/binary uploads cannot be safely serialised
-      const contentType = String(
-        (config.headers as Record<string, string>)?.['Content-Type'] ||
-        (config.headers as Record<string, string>)?.['content-type'] ||
-        'application/json'
-      );
-      if (contentType.includes('application/json')) {
+      if (isJsonRequest(config.headers as Record<string, string>)) {
         console.warn('⚠️ Offline - queueing request:', config.method, config.url);
 
-        // Build a fully-qualified URL so the retry does not depend on baseURL
-        const baseURL = (config.baseURL || '').replace(/\/$/, '');
-        const relativeUrl = config.url || '';
-        const fullUrl = relativeUrl.startsWith('http')
-          ? relativeUrl
-          : `${baseURL}${relativeUrl.startsWith('/') ? '' : '/'}${relativeUrl}`;
-
+        const fullUrl = buildFullUrl(config.baseURL, config.url);
         if (fullUrl) {
           await queueRequest(
             fullUrl,
@@ -192,22 +208,11 @@ api.interceptors.response.use(
       originalRequest.method.toLowerCase() !== 'get' &&
       !originalRequest._offlineQueued
     ) {
-      const contentType = String(
-        originalRequest.headers?.['Content-Type'] ||
-        originalRequest.headers?.['content-type'] ||
-        'application/json'
-      );
-      if (contentType.includes('application/json')) {
+      if (isJsonRequest(originalRequest.headers)) {
         console.warn('⚠️ Network error while offline - queueing request');
         originalRequest._offlineQueued = true;
 
-        // Build fully-qualified URL
-        const baseURL = (originalRequest.baseURL || '').replace(/\/$/, '');
-        const relativeUrl = originalRequest.url || '';
-        const fullUrl = relativeUrl.startsWith('http')
-          ? relativeUrl
-          : `${baseURL}${relativeUrl.startsWith('/') ? '' : '/'}${relativeUrl}`;
-
+        const fullUrl = buildFullUrl(originalRequest.baseURL, originalRequest.url);
         if (fullUrl) {
           await queueRequest(
             fullUrl,
