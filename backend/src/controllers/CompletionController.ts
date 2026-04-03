@@ -895,7 +895,7 @@ export class CompletionController {
         const duplicateItems = await completionItemRepo
           .createQueryBuilder('ci')
           .where('ci.id != :currentId', { currentId: item.id })
-          .andWhere('ci.serial_number IN (:...serials)', { serials: uniqueSerials })
+          .andWhere('ci.serialNumber IN (:...serials)', { serials: uniqueSerials })
           .getMany();
 
         if (duplicateItems.length > 0) {
