@@ -77,6 +77,8 @@ import { Car } from '../entities/Car';
 // Recorder and Disk Specifications
 import { RecorderSpecification } from '../entities/RecorderSpecification';
 import { DiskSpecification } from '../entities/DiskSpecification';
+// Wizard Drafts
+import { WizardDraft } from '../entities/WizardDraft';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -181,6 +183,8 @@ export const AppDataSource = new DataSource({
     // Recorder and Disk Specifications
     RecorderSpecification,
     DiskSpecification,
+    // Wizard Drafts
+    WizardDraft,
   ],
   subscribers: [],
   migrations: [],

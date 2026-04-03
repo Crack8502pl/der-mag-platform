@@ -56,6 +56,9 @@ import honeypotRoutes from './honeypot.routes';
 // Cars routes
 import carRoutes from './car.routes';
 
+// Wizard draft routes
+import wizardDraftController from '../controllers/WizardDraftController';
+
 const router = Router();
 
 // Existing routes
@@ -128,6 +131,12 @@ router.use('/admin/honeypot', honeypotRoutes);
 
 // Cars routes
 router.use('/cars', carRoutes);
+
+// Wizard drafts routes
+router.get('/wizard-drafts', authenticate, (req, res) => wizardDraftController.listDrafts(req, res));
+router.get('/wizard-drafts/:wizardType', authenticate, (req, res) => wizardDraftController.getDraft(req, res));
+router.post('/wizard-drafts/:wizardType', authenticate, (req, res) => wizardDraftController.saveDraft(req, res));
+router.delete('/wizard-drafts/:wizardType', authenticate, (req, res) => wizardDraftController.deleteDraft(req, res));
 
 // Cars admin sync
 import { CarController } from '../controllers/CarController';

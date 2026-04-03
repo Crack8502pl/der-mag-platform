@@ -17,6 +17,7 @@ import { startSymfoniaStockSyncJob, stopSymfoniaStockSyncJob } from './jobs/symf
 import { scheduleWarehouseCleanup, stopWarehouseCleanupJob } from './jobs/warehouseCleanupJob';
 import { startSymfoniaContractSyncJobs, stopSymfoniaContractSyncJobs } from './jobs/symfoniaContractSync.job';
 import { startSymfoniaCarSyncJob, stopSymfoniaCarSyncJob } from './jobs/symfoniaCarSync.job';
+import { scheduleCleanExpiredDrafts, stopCleanExpiredDraftsJob } from './jobs/cleanExpiredDrafts';
 import { serverLogger, overrideConsole } from './utils/logger';
 
 // Override console.* to redirect all logs to winston files
@@ -62,6 +63,10 @@ const startServer = async () => {
     // Inicjalizacja CRON synchronizacji samochodów
     serverLogger.info('🚗 Inicjalizacja synchronizacji samochodów Symfonia...');
     startSymfoniaCarSyncJob();
+
+    // Inicjalizacja CRON czyszczenia wygasłych draftów wizardów
+    serverLogger.info('🧹 Inicjalizacja czyszczenia wygasłych draftów wizardów...');
+    scheduleCleanExpiredDrafts();
 
     // Start serwera z HTTPS lub HTTP
     if (USE_HTTPS) {
@@ -133,6 +138,7 @@ process.on('SIGTERM', async () => {
   stopSymfoniaContractSyncJobs();
   stopSymfoniaCarSyncJob();
   stopWarehouseCleanupJob();
+  stopCleanExpiredDraftsJob();
   await EmailQueueService.close();
   process.exit(0);
 });
@@ -143,6 +149,7 @@ process.on('SIGINT', async () => {
   stopSymfoniaContractSyncJobs();
   stopSymfoniaCarSyncJob();
   stopWarehouseCleanupJob();
+  stopCleanExpiredDraftsJob();
   await EmailQueueService.close();
   process.exit(0);
 });
