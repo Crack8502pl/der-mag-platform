@@ -561,7 +561,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         
-        {renderStepIndicator()}
+        {!shippingActive && renderStepIndicator()}
         
         {error && <div className="alert alert-error">{error}</div>}
         

@@ -100,12 +100,17 @@ Dostępne dla zadań szczegółowych (PRZEJAZD, SKP, NASTAWNIA, LCS, CUID):
 
 ### LCSConfigSmokB
 
-| Ścieżka parametru                     | Typ    | Opis                     |
-|---------------------------------------|--------|--------------------------|
-| `lcsConfig.serwerObrazu.ip`           | string | IP serwera obrazu        |
-| `lcsConfig.serwerObrazu.maxKamer`     | number | Max kamer                |
-| `lcsConfig.serwerObrazu.protokol`     | string | Protokół (RTSP/ONVIF)    |
-| `lcsConfig.hasCUID`                   | boolean| CUID włączony            |
+| Ścieżka parametru                           | Typ     | Opis                               |
+|---------------------------------------------|---------|------------------------------------|
+| `lcsConfig.obserwowanePrzejazdy`            | array   | Lista obserwowanych przejazdów     |
+| `lcsConfig.serwerObrazu.ip`                 | string  | IP serwera obrazu                  |
+| `lcsConfig.serwerObrazu.maxKamer`           | number  | Max kamer                          |
+| `lcsConfig.serwerObrazu.protokol`           | string  | Protokół (RTSP/ONVIF)              |
+| `lcsConfig.stacjeOperatorskie`              | array   | Lista stacji operatorskich         |
+| `lcsConfig.hasCUID`                         | boolean | CUID włączony                      |
+| `lcsConfig.cuidConfig.stanowiskoZgran`      | string  | Stanowisko zgrań                   |
+| `lcsConfig.cuidConfig.typNosnika`           | string  | Typ nośnika (USB/DVD/HDD)          |
+| `lcsConfig.cuidConfig.formatWyjsciowy`      | string  | Format wyjściowy (AVI/MP4/MKV)     |
 
 ---
 
@@ -134,15 +139,18 @@ Dostępne dla zadań szczegółowych (PRZEJAZD, SKP, NASTAWNIA, LCS, CUID):
 
 ### NastawniaPodleglaConfig
 
-| Ścieżka parametru                                       | Typ    | Opis                          |
-|---------------------------------------------------------|--------|-------------------------------|
-| `nastawniConfig.nadrzedneLCSId`                         | number | ID nadrzędnego LCS            |
-| `nastawniConfig.serwerWyswietlania.ip`                  | string | IP serwera wyświetlania       |
-| `nastawniConfig.serwerWyswietlania.maxMonitorow`        | number | Max monitorów                 |
-| `nastawniConfig.stacjaOperatorska.iloscMonitorow`       | number | Ilość monitorów stacji        |
-| `nastawniConfig.infrastruktura.systemPodtrzymania.mocVA`| number | Moc UPS (VA)                  |
-| `nastawniConfig.infrastruktura.switchTransmisji.model`  | string | Model switcha                 |
-| `nastawniConfig.infrastruktura.switchTransmisji.iloscPortow` | number | Ilość portów             |
+| Ścieżka parametru                                            | Typ            | Opis                              |
+|--------------------------------------------------------------|----------------|-----------------------------------|
+| `nastawniConfig.nadrzedneLCSId`                              | number         | ID nadrzędnego LCS                |
+| `nastawniConfig.serwerWyswietlania.ip`                       | string         | IP serwera wyświetlania           |
+| `nastawniConfig.serwerWyswietlania.maxMonitorow`             | number         | Max monitorów                     |
+| `nastawniConfig.stacjaOperatorska.iloscMonitorow`            | number         | Ilość monitorów stacji            |
+| `nastawniConfig.stacjaOperatorska.przypisaneKamery`          | array (string) | Kamery przypisane do stacji       |
+| `nastawniConfig.telefonSystemowy.numerWewnetrzny`            | string         | Numer wewnętrzny telefonu         |
+| `nastawniConfig.telefonSystemowy.typ`                        | string         | Typ telefonu (SIP/ANALOG)         |
+| `nastawniConfig.infrastruktura.systemPodtrzymania.mocVA`     | number         | Moc UPS (VA)                      |
+| `nastawniConfig.infrastruktura.switchTransmisji.model`       | string         | Model switcha                     |
+| `nastawniConfig.infrastruktura.switchTransmisji.iloscPortow` | number         | Ilość portów                      |
 
 ---
 
@@ -181,12 +189,24 @@ Dostępne dla zadań szczegółowych (PRZEJAZD, SKP, NASTAWNIA, LCS, CUID):
 }
 ```
 
-### Przykład 2: Ilość z parametru wizarda
+### Przykład 2: Ilość z parametru wizarda (FROM_CONFIG – wartość bezpośrednio)
+
+```typescript
+{
+  materialName: "Sterownik przejazdu",
+  quantitySource: "FROM_CONFIG",
+  configParamName: "przejazdyKatA",  // MUSI być identyczne z nazwą z wizarda!
+  defaultQuantity: 1  // fallback gdy parametr brak
+}
+// Wynik: przejazdyKatA=5 → ilość = 5 (wartość bezpośrednio z konfiguracji)
+```
+
+### Przykład 2b: Ilość = wielokrotność parametru wizarda (PER_UNIT – mnożnik)
 
 ```typescript
 {
   materialName: "Kamera IP PTZ",
-  quantitySource: "FROM_CONFIG",
+  quantitySource: "PER_UNIT",
   configParamName: "przejazdyKatA",  // MUSI być identyczne z nazwą z wizarda!
   defaultQuantity: 2  // 2 kamery na każdy przejazd
 }
@@ -229,8 +249,9 @@ Każda pozycja w BOM Template może mieć `warehouseStockId` który linkuje do p
 Przy generowaniu BOM:
 1. System pobiera szablon dla danego typu zadania
 2. Dla każdej pozycji:
-   - Jeśli `quantitySource: FROM_CONFIG` → pobiera wartość z `task.metadata.configParams[configParamName]`
-   - Mnoży przez `defaultQuantity`
+   - `FIXED` → używa `defaultQuantity` wprost
+   - `FROM_CONFIG` → pobiera wartość z `task.metadata.configParams[configParamName]` (wartość bezpośrednio, `defaultQuantity` jako fallback)
+   - `PER_UNIT` → mnoży `defaultQuantity` × wartość z `configParamName`
 3. Jeśli `warehouseStockId` jest ustawione → rezerwuje/przypisuje materiał z magazynu
 
 ---

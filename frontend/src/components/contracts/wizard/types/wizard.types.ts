@@ -55,7 +55,7 @@ export interface GeneratedTask {
 }
 
 export interface StepInfo {
-  type: 'basic' | 'subsystem-selection' | 'config' | 'details' | 'preview' | 'success' | 'shipping';
+  type: 'basic' | 'selection' | 'config' | 'details' | 'preview' | 'success' | 'shipping';
   subsystemIndex?: number;
   subsystemType?: SubsystemType;
 }
