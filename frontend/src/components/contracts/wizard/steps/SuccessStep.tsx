@@ -50,7 +50,7 @@ export const SuccessStep: React.FC<Props> = ({
       <p><strong>Łącznie: {generatedTasks.length} zadań</strong></p>
       <div className="success-actions">
         <button className="btn btn-secondary" onClick={onClose}>
-          Zakończ bez konfiguracji
+          Zakończ bez wysyłki
         </button>
         <button 
           className="btn btn-primary" 

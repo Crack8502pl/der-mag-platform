@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import type { SubsystemWizardData, TaskDetail } from '../../types/wizard.types';
+import type { FiberConnection } from '../../../../../types/fiber.types';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../../config/subsystemWizardConfig';
 import { OPTIONAL_KILOMETRAZ_HELP, formatLiniaKolejowa } from '../../utils/validation';
 import { useGoogleMaps } from '../../../../../hooks/useGoogleMaps';
+import { WizardFiberModal } from '../WizardFiberModal';
 
 interface SmokipADetailsStepProps {
   subsystem: SubsystemWizardData;
@@ -30,6 +32,7 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
   const taskDetails = subsystem.taskDetails || [];
   const { parseUrl, parseUrlLocal, loading: gpsLoading } = useGoogleMaps();
   const [gpsInputValues, setGpsInputValues] = useState<Record<number, string>>({});
+  const [fiberModalTaskIndex, setFiberModalTaskIndex] = useState<number | null>(null);
 
   const handleGpsInputChange = async (taskIndex: number, value: string) => {
     setGpsInputValues(prev => ({ ...prev, [taskIndex]: value }));
@@ -40,7 +43,8 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
         if (localResult) {
           onUpdateTask(subsystemIndex, taskIndex, {
             gpsLatitude: localResult.lat.toFixed(6),
-            gpsLongitude: localResult.lon.toFixed(6)
+            gpsLongitude: localResult.lon.toFixed(6),
+            googleMapsUrl: value
           });
           return;
         }
@@ -48,7 +52,8 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
         if (result?.coordinates) {
           onUpdateTask(subsystemIndex, taskIndex, {
             gpsLatitude: result.coordinates.lat.toFixed(6),
-            gpsLongitude: result.coordinates.lon.toFixed(6)
+            gpsLongitude: result.coordinates.lon.toFixed(6),
+            googleMapsUrl: value
           });
         }
       } catch (err) {
@@ -314,6 +319,28 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
                   />
                   <small className="form-help">{OPTIONAL_KILOMETRAZ_HELP}</small>
                 </div>
+                <div className="form-group">
+                  <label>Połączenia światłowodowe <span className="text-muted">(opcjonalne)</span></label>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setFiberModalTaskIndex(idx)}
+                  >
+                    ⚡ {(() => {
+                        const n = detail.fiberConnections?.length || 0;
+                        if (!n) return 'Konfiguruj połączenia';
+                        const mod10 = n % 10;
+                        const mod100 = n % 100;
+                        const plural =
+                          n === 1
+                            ? 'połączenie'
+                            : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)
+                              ? 'połączenia'
+                              : 'połączeń';
+                        return `Konfiguruj (${n} ${plural})`;
+                      })()}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -385,6 +412,24 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
           </div>
         </div>
       </div>
+
+      {fiberModalTaskIndex !== null && (() => {
+        const detail = taskDetails[fiberModalTaskIndex];
+        return (
+          <WizardFiberModal
+            taskLabel={detail?.nazwa || `LCS ${fiberModalTaskIndex + 1}`}
+            initialConnections={detail?.fiberConnections || []}
+            gpsLatitude={detail?.gpsLatitude}
+            gpsLongitude={detail?.gpsLongitude}
+            kilometraz={detail?.kilometraz}
+            onSave={(connections: FiberConnection[]) => {
+              onUpdateTask(subsystemIndex, fiberModalTaskIndex, { fiberConnections: connections });
+              setFiberModalTaskIndex(null);
+            }}
+            onClose={() => setFiberModalTaskIndex(null)}
+          />
+        );
+      })()}
     </div>
   );
 };

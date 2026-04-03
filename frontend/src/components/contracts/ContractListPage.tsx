@@ -7,6 +7,7 @@ import { BackButton } from '../common/BackButton';
 import { ContractCreateModal } from './ContractCreateModal';
 import { ContractImportModal } from './ContractImportModal';
 import { ContractWizardModal } from './wizard';
+import { ShipmentWizardStep } from './wizard/steps/ShipmentWizardStep';
 import { ContractStatusBadge } from './ContractStatusBadge';
 import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
@@ -50,6 +51,7 @@ export const ContractListPage: React.FC = () => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showWizardModal, setShowWizardModal] = useState(false);
   const [editingContract, setEditingContract] = useState<Contract | null>(null);
+  const [shippingContract, setShippingContract] = useState<Contract | null>(null);
 
   // Permission checks
   const canCreate = hasPermission('contracts', 'create');
@@ -473,7 +475,29 @@ export const ContractListPage: React.FC = () => {
             setShowWizardModal(false);
             navigate(`/contracts/${contractId}`);
           }}
+          onRequestShippingForContract={(contract) => {
+            setShowWizardModal(false);
+            setShippingContract(contract);
+          }}
         />
+      )}
+
+      {shippingContract && (
+        <div className="modal-overlay">
+          <div className="modal-content modal-wizard" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>📦 Kreator wysyłki</h2>
+              <button className="modal-close" onClick={() => setShippingContract(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <ShipmentWizardStep
+                contract={shippingContract}
+                onComplete={() => { setShippingContract(null); handleContractCreated(); }}
+                onSkip={() => setShippingContract(null)}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

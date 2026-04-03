@@ -43,7 +43,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
   onSuccess, 
   editMode = false,
   contractToEdit,
-  onRequestShipping
+  onRequestShipping,
+  onRequestShippingForContract
 }) => {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
@@ -256,11 +257,18 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
               type: subsystem.type,
               params: subsystem.params,
               ipPool: subsystem.ipPool,
-              tasks: subsystemTasks.map(t => ({
-                number: t.number,
-                name: t.name,
-                type: t.type
-              }))
+              tasks: subsystemTasks.map((t, idx) => {
+                const detail = subsystem.taskDetails?.[idx];
+                return {
+                  number: t.number,
+                  name: t.name,
+                  type: t.type,
+                  gpsLatitude: detail?.gpsLatitude || null,
+                  gpsLongitude: detail?.gpsLongitude || null,
+                  googleMapsUrl: detail?.googleMapsUrl || null,
+                  fiberConnections: detail?.fiberConnections?.length ? detail.fiberConnections : null,
+                };
+              })
             };
           });
           
@@ -286,6 +294,10 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
               tasks: newTasks.map(t => ({
                 name: buildTaskNameFromDetails(t.taskType, t, wizardData.liniaKolejowa),
                 type: resolveTaskVariant(t.taskType, t),
+                gpsLatitude: t.gpsLatitude || null,
+                gpsLongitude: t.gpsLongitude || null,
+                googleMapsUrl: t.googleMapsUrl || null,
+                fiberConnections: t.fiberConnections?.length ? t.fiberConnections : null,
                 metadata: {
                   kilometraz: t.kilometraz,
                   kategoria: t.kategoria,
@@ -311,11 +323,19 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
             type: subsystem.type,
             params: params as Record<string, number | boolean | any>,
             ipPool: subsystem.ipPool,
-            tasks: subsystemTasks.map(t => ({
-              number: t.number,
-              name: t.name,
-              type: t.type
-            }))
+            tasks: subsystemTasks.map((t, idx) => {
+              // For SMOKIP subsystems, task details are in the same order as generated tasks
+              const detail = subsystem.taskDetails?.[idx];
+              return {
+                number: t.number,
+                name: t.name,
+                type: t.type,
+                gpsLatitude: detail?.gpsLatitude || null,
+                gpsLongitude: detail?.gpsLongitude || null,
+                googleMapsUrl: detail?.googleMapsUrl || null,
+                fiberConnections: detail?.fiberConnections?.length ? detail.fiberConnections : null,
+              };
+            })
           };
         });
 
@@ -519,10 +539,14 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       ),
       success: () => {
         const contractId = createdContractId || contractToEdit?.id;
-        // When a newly created contract is available, use internal shipping step.
-        // For edit mode or fallback, delegate to the external onRequestShipping callback.
+        // For a newly created contract: prefer external onRequestShippingForContract (closes
+        // wizard and opens the shipping step as a separate modal).  If that callback is not
+        // provided, fall back to the internal shippingActive approach.
+        // For edit mode / fallback: delegate to the existing onRequestShipping callback.
         const handleRequestShipping = createdContract
-          ? () => { onSuccess(); setShippingActive(true); }
+          ? (onRequestShippingForContract
+              ? () => { onSuccess(); onClose(); onRequestShippingForContract(createdContract); }
+              : () => { onSuccess(); setShippingActive(true); })
           : (onRequestShipping && contractId
               ? () => { onSuccess(); onClose(); onRequestShipping(contractId); }
               : undefined);
