@@ -7,14 +7,13 @@ import { Logger as TypeOrmLoggerInterface, QueryRunner } from 'typeorm';
 import { dbLogger } from './logger';
 import * as util from 'util';
 
-const LOG_SQL_QUERIES = process.env.LOG_SQL_QUERIES === 'true';
 const MAX_QUERY_LENGTH = 500;
 
 export class TypeOrmLogger implements TypeOrmLoggerInterface {
   logQuery(query: string, parameters?: any[], _queryRunner?: QueryRunner): void {
-    if (!LOG_SQL_QUERIES) return;
+    if (process.env.LOG_SQL_QUERIES !== 'true') return;
     const sql = this.formatQuery(query, parameters);
-    dbLogger.debug(`[DB] query: ${sql}`);
+    dbLogger.info(`[DB] query: ${sql}`);
   }
 
   logQueryError(

@@ -29,19 +29,34 @@ describe('TypeOrmLogger', () => {
   });
 
   describe('logQuery', () => {
-    it('should not log query when LOG_SQL_QUERIES is not set', () => {
-      const prev = process.env.LOG_SQL_QUERIES;
+    afterEach(() => {
       delete process.env.LOG_SQL_QUERIES;
-      logger.logQuery('SELECT * FROM users WHERE id = $1', [1]);
-      expect(dbLogger.debug).not.toHaveBeenCalled();
-      if (prev !== undefined) process.env.LOG_SQL_QUERIES = prev;
     });
 
-    it('should log query with debug level when LOG_SQL_QUERIES=false', () => {
+    it('should not log query when LOG_SQL_QUERIES is not set', () => {
+      delete process.env.LOG_SQL_QUERIES;
+      logger.logQuery('SELECT * FROM users WHERE id = $1', [1]);
+      expect(dbLogger.info).not.toHaveBeenCalled();
+    });
+
+    it('should not log query when LOG_SQL_QUERIES=false', () => {
       process.env.LOG_SQL_QUERIES = 'false';
       logger.logQuery('SELECT * FROM users');
-      expect(dbLogger.debug).not.toHaveBeenCalled();
-      delete process.env.LOG_SQL_QUERIES;
+      expect(dbLogger.info).not.toHaveBeenCalled();
+    });
+
+    it('should log query with info level when LOG_SQL_QUERIES=true', () => {
+      process.env.LOG_SQL_QUERIES = 'true';
+      logger.logQuery('SELECT * FROM users WHERE id = $1', [1]);
+      expect(dbLogger.info).toHaveBeenCalledWith(expect.stringContaining('SELECT * FROM users'));
+    });
+
+    it('should truncate long queries when LOG_SQL_QUERIES=true', () => {
+      process.env.LOG_SQL_QUERIES = 'true';
+      const longQuery = 'SELECT ' + 'x'.repeat(600) + ' FROM users';
+      logger.logQuery(longQuery, []);
+      const call = dbLogger.info.mock.calls[0][0] as string;
+      expect(call).toContain('...');
     });
   });
 
