@@ -1,10 +1,12 @@
 // src/components/contracts/ShipmentWizardSmokB.tsx
 // 3-krokowy kreator wysyłki dla podsystemów SMOKIP_B
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { Subsystem, SubsystemTask } from '../../services/contract.service';
 import api from '../../services/api';
 import { PoleSearchModal } from './PoleSearchModal';
+import { useWizardDraft } from '../../hooks/useWizardDraft';
+import { RestoreDraftModal } from '../common/RestoreDraftModal';
 import './ShipmentWizardSmokB.css';
 import './WizardStepIndicator.css';
 
@@ -29,8 +31,7 @@ interface PoleConfig {
   };
 }
 
-interface WizardState {
-  currentStep: 1 | 2 | 3;
+interface WizardDraftData {
   selectedTasks: string[];
   deliveryAddress: string;
   contactPhone: string;
@@ -72,9 +73,6 @@ const isPrzejazdTask = (taskType: string): boolean =>
 const isLcsNdTask = (taskType: string): boolean =>
   LCS_ND_TYPES.includes(taskType.toUpperCase());
 
-const getLocalStorageKey = (subsystemId: number) =>
-  `shipmentWizard_${subsystemId}`;
-
 // ─── Komponent główny ────────────────────────────────────────────────────────
 
 export const ShipmentWizardSmokB: React.FC<ShipmentWizardSmokBProps> = ({
@@ -83,70 +81,86 @@ export const ShipmentWizardSmokB: React.FC<ShipmentWizardSmokBProps> = ({
   onSuccess,
 }) => {
   const eligibleTasks = getEligibleTasks(subsystem.tasks || []);
-  const storageKey = getLocalStorageKey(subsystem.id);
 
-  // ── Stan wizarda ──────────────────────────────────────────────────────────
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
-  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
-  const [deliveryAddress, setDeliveryAddress] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [cabinetConfig, setCabinetConfig] = useState<CabinetConfig>({});
-  const [poleConfig, setPoleConfig] = useState<PoleConfig>({});
+  const defaultDraftData: WizardDraftData = {
+    selectedTasks: eligibleTasks.map((t) => t.taskNumber),
+    deliveryAddress: '',
+    contactPhone: '',
+    cabinetConfig: {},
+    poleConfig: {},
+  };
+
+  // ── Draft management via server-side hook ─────────────────────────────────
+  const {
+    data: draftData,
+    setData: setDraftData,
+    currentStep,
+    setCurrentStep,
+    lastSaveTime,
+    isSaving,
+    saveAndExit,
+    clearDraft,
+    showRestoreModal,
+    savedDraft,
+    restoreDraft,
+    discardDraft,
+  } = useWizardDraft<WizardDraftData>({
+    wizardType: `shipment_wizard_smokb_${subsystem.id}`,
+    initialData: defaultDraftData,
+    autoSaveInterval: 30000,
+  });
+
+  // ── Derived state from draftData ──────────────────────────────────────────
+  const selectedTasks = draftData.selectedTasks;
+  const deliveryAddress = draftData.deliveryAddress;
+  const contactPhone = draftData.contactPhone;
+  const cabinetConfig = draftData.cabinetConfig;
+  const poleConfig = draftData.poleConfig;
+
+  // ── Setters that update draftData ─────────────────────────────────────────
+  const setSelectedTasks = (tasks: string[]) =>
+    setDraftData((prev) => ({ ...prev, selectedTasks: tasks }));
+
+  const setDeliveryAddress = (addr: string) =>
+    setDraftData((prev) => ({ ...prev, deliveryAddress: addr }));
+
+  const setContactPhone = (phone: string) =>
+    setDraftData((prev) => ({ ...prev, contactPhone: phone }));
+
+  const setCabinetConfig = (updater: (prev: CabinetConfig) => CabinetConfig) =>
+    setDraftData((prev) => ({ ...prev, cabinetConfig: updater(prev.cabinetConfig) }));
+
+  const setPoleConfig = (updater: (prev: PoleConfig) => PoleConfig) =>
+    setDraftData((prev) => ({ ...prev, poleConfig: updater(prev.poleConfig) }));
+
+  // Intersect selectedTasks with eligible tasks when a draft is restored
+  const handleRestore = () => {
+    if (!savedDraft) {
+      restoreDraft();
+      return;
+    }
+
+    const eligibleNumbers = new Set(eligibleTasks.map((t) => t.taskNumber));
+    const restoredDraftData: WizardDraftData = {
+      ...savedDraft.draftData,
+      selectedTasks: (savedDraft.draftData.selectedTasks || []).filter((n) =>
+        eligibleNumbers.has(n)
+      ),
+    };
+
+    restoreDraft();
+    setDraftData(restoredDraftData);
+  };
   const [poleSearchTaskNumber, setPoleSearchTaskNumber] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // ── Załaduj zapisany stan ─────────────────────────────────────────────────
-  const initializedRef = React.useRef(false);
-  useEffect(() => {
-    if (initializedRef.current) return;
-    initializedRef.current = true;
-    const saved = localStorage.getItem(storageKey);
-    if (saved) {
-      try {
-        const state: WizardState = JSON.parse(saved);
-        setCurrentStep(state.currentStep || 1);
-        // Intersect saved selectedTasks with currently eligible tasks to drop any
-        // that got substatus='wysyłka_zlecona' since the state was saved
-        const eligibleNumbers = new Set(eligibleTasks.map((t) => t.taskNumber));
-        setSelectedTasks((state.selectedTasks || []).filter((n) => eligibleNumbers.has(n)));
-        setDeliveryAddress(state.deliveryAddress || '');
-        setContactPhone(state.contactPhone || '');
-        setCabinetConfig(state.cabinetConfig || {});
-        setPoleConfig(state.poleConfig || {});
-      } catch (e) {
-        console.warn('ShipmentWizardSmokB: nie udało się wczytać zapisanego stanu', e);
-      }
-    } else {
-      // Domyślnie zaznacz wszystkie kwalifikujące się zadania
-      setSelectedTasks(eligibleTasks.map((t) => t.taskNumber));
-    }
-  }, [storageKey]);
-
-  // ── Zapisz stan do localStorage ──────────────────────────────────────────
-  const saveState = () => {
-    const state: WizardState = {
-      currentStep,
-      selectedTasks,
-      deliveryAddress,
-      contactPhone,
-      cabinetConfig,
-      poleConfig,
-    };
-    localStorage.setItem(storageKey, JSON.stringify(state));
-  };
-
-  const clearState = () => {
-    localStorage.removeItem(storageKey);
-  };
-
   // ── Obsługa checkboxów ────────────────────────────────────────────────────
   const toggleTask = (taskNumber: string) => {
-    setSelectedTasks((prev) =>
-      prev.includes(taskNumber)
-        ? prev.filter((t) => t !== taskNumber)
-        : [...prev, taskNumber]
-    );
+    const next = selectedTasks.includes(taskNumber)
+      ? selectedTasks.filter((t) => t !== taskNumber)
+      : [...selectedTasks, taskNumber];
+    setSelectedTasks(next);
   };
 
   // ── Formatowanie telefonu po utracie fokusu ───────────────────────────────
@@ -238,11 +252,11 @@ export const ShipmentWizardSmokB: React.FC<ShipmentWizardSmokBProps> = ({
         setError(`Niektóre wysyłki nie powiodły się:\n${failures.join('\n')}`);
         const successes = results.filter((r) => r.status === 'fulfilled').length;
         if (successes > 0) {
-          clearState();
+          await clearDraft();
           onSuccess();
         }
       } else {
-        clearState();
+        await clearDraft();
         onSuccess();
       }
     } catch (err: any) {
@@ -585,6 +599,18 @@ export const ShipmentWizardSmokB: React.FC<ShipmentWizardSmokBProps> = ({
   // ── Render główny ─────────────────────────────────────────────────────────
   return (
     <>
+      {/* Modal przywracania draftu */}
+      {showRestoreModal && savedDraft && (
+        <RestoreDraftModal
+          visible={showRestoreModal}
+          wizardName={`Kreator wysyłki SMOKIP-B — ${subsystem.subsystemNumber}`}
+          savedAt={savedDraft.updatedAt}
+          expiresAt={savedDraft.expiresAt}
+          onRestore={handleRestore}
+          onDiscard={discardDraft}
+        />
+      )}
+
       <div className="modal-overlay" onClick={onClose}>
         <div
           className="modal-content shipment-wizard"
@@ -597,9 +623,16 @@ export const ShipmentWizardSmokB: React.FC<ShipmentWizardSmokBProps> = ({
             <h2 id="smb-wizard-title">
               📦 Kreator wysyłki SMOKIP-B — {subsystem.subsystemNumber}
             </h2>
-            <button className="modal-close" onClick={onClose} aria-label="Zamknij">
-              ✕
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {lastSaveTime && (
+                <span style={{ fontSize: '12px', color: isSaving ? 'var(--text-secondary)' : 'var(--success-color, #4caf50)' }}>
+                  {isSaving ? '⏳ Zapisywanie...' : '✅ Zapisano'}
+                </span>
+              )}
+              <button className="modal-close" onClick={onClose} aria-label="Zamknij">
+                ✕
+              </button>
+            </div>
           </div>
 
           <div className="modal-body">
@@ -620,18 +653,15 @@ export const ShipmentWizardSmokB: React.FC<ShipmentWizardSmokBProps> = ({
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => {
-                    saveState();
-                    onClose();
-                  }}
+                  onClick={() => saveAndExit(onClose)}
                 >
                   💾 Zapisz
                 </button>
                 <button
                   type="button"
                   className="btn btn-ghost"
-                  onClick={() => {
-                    clearState();
+                  onClick={async () => {
+                    await clearDraft();
                     onClose();
                   }}
                 >

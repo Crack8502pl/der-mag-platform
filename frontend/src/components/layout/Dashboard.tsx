@@ -8,6 +8,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
 import { TasksMapTile } from '../dashboard';
+import { PendingDraftsButton } from '../common/PendingDraftsButton';
 import './Dashboard.css';
 
 interface ModuleCard {
@@ -314,6 +315,8 @@ export const Dashboard: React.FC = () => {
         >
           🔄 Resetuj
         </button>
+
+        <PendingDraftsButton />
       </div>
 
       {/* Cards */}

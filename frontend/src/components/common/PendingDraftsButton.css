@@ -1,0 +1,71 @@
+/* src/components/common/PendingDraftsButton.css */
+
+.pending-drafts-btn-wrapper {
+  position: relative;
+}
+
+.pending-drafts-btn {
+  border-color: var(--warning, #f0ad4e) !important;
+}
+
+.pending-drafts-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  min-width: 280px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.pending-drafts-dropdown-header {
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pending-drafts-dropdown-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.pending-drafts-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+}
+
+.pending-drafts-item:hover {
+  background: var(--bg-hover);
+}
+
+.pending-drafts-item-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.pending-drafts-item-meta {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
