@@ -126,7 +126,7 @@ export const TokenTimerWidget: React.FC = () => {
         ];
       case 'offline':
         return [
-          effectiveTheme === 'husky' ? '⚫ Brak połączenia' : '⚪ Brak połączenia',
+          `${effectiveTheme === 'husky' ? '⚫' : '⚪'} Brak połączenia`,
           '📦 Wszystkie operacje są kolejkowane',
           '🔄 Automatyczny retry po przywróceniu połączenia',
         ];

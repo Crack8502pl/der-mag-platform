@@ -22,12 +22,17 @@ export const UploadWarningModal: React.FC<Props> = ({
 
   const recommendation = getUploadRecommendation(fileSizeBytes);
 
+  const qualitySymbol =
+    quality === 'poor' ? '🔴' :
+    quality === 'good' ? '🟡' :
+    quality === 'offline' ? '⚪' : '🟢';
+
   return (
     <div className="upload-warning-modal-overlay">
       <div className="upload-warning-modal">
         <div className="upload-warning-modal__header">
           <span className="upload-warning-modal__icon">
-            {quality === 'poor' ? '🔴' : quality === 'good' ? '🟡' : '⚪'}
+            {qualitySymbol}
           </span>
           <h3>Ostrzeżenie o jakości połączenia</h3>
         </div>

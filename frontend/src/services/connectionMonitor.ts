@@ -80,7 +80,7 @@ export const queueRequest = async (
   const request: QueuedRequest = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     url,
-    method: method.toLowerCase(),
+    method: method.toUpperCase(),
     data,
     headers,
     timestamp: Date.now(),

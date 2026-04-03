@@ -119,9 +119,8 @@ api.interceptors.request.use(
         config.headers as Record<string, string>
       );
 
-      const error: any = new Error('OFFLINE_QUEUED');
-      error.isOfflineQueued = true;
-      return Promise.reject(error);
+      const offlineError = Object.assign(new Error('OFFLINE_QUEUED'), { isOfflineQueued: true });
+      return Promise.reject(offlineError);
     }
 
     // Throttle /auth/me requests to prevent flooding

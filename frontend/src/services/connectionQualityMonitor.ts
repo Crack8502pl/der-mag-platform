@@ -42,6 +42,7 @@ let pingIntervalId: ReturnType<typeof setInterval> | null = null;
 let bandwidthIntervalId: ReturnType<typeof setInterval> | null = null;
 let packetLossIntervalId: ReturnType<typeof setInterval> | null = null;
 let isMonitoring = false;
+let monitoringRefCount = 0;
 
 // Intervals (in milliseconds)
 const PING_INTERVAL = 10000; // 10s
@@ -289,8 +290,10 @@ const handleOffline = () => {
 
 /**
  * Start monitoring connection quality
+ * Uses reference counting to support multiple consumers
  */
 export const startMonitoring = (): void => {
+  monitoringRefCount++;
   if (isMonitoring) return;
   isMonitoring = true;
 
@@ -311,8 +314,11 @@ export const startMonitoring = (): void => {
 
 /**
  * Stop monitoring connection quality
+ * Only actually stops when all consumers have called stopMonitoring
  */
 export const stopMonitoring = (): void => {
+  monitoringRefCount = Math.max(0, monitoringRefCount - 1);
+  if (monitoringRefCount > 0) return;
   if (!isMonitoring) return;
   isMonitoring = false;
 
