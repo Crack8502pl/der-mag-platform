@@ -74,6 +74,10 @@ const getEligibleTasks = (tasks: SubsystemTask[]): SubsystemTask[] =>
     return true;
   });
 
+// Checks if a task type matches any PRZEJAZD category.
+// The `pt.replace('_', '')` strips underscores from the constant so that
+// taskType variants with or without underscores (e.g. "SMOKIPA" vs "SMOKIP_A")
+// are matched via `includes`; the second condition handles the exact canonical form.
 const isPrzejazdTask = (taskType: string): boolean =>
   PRZEJAZD_TYPES.some((pt) => taskType.toUpperCase().includes(pt.replace('_', '')) || taskType.toUpperCase() === pt);
 
@@ -106,6 +110,9 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
   const [error, setError] = useState('');
 
   // ── Załaduj zapisany stan ─────────────────────────────────────────────────
+  // Deliberately run only once on mount to restore local draft state.
+  // The eligible task list is intersected at load time to filter out tasks that
+  // received substatus='wysyłka_zlecona' since the state was last saved.
   const initializedRef = React.useRef(false);
   useEffect(() => {
     if (initializedRef.current) return;

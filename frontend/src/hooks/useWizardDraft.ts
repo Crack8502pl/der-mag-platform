@@ -1,7 +1,7 @@
 // src/hooks/useWizardDraft.ts
 // Hook do zarządzania draftami wizardów z auto-save i przywracaniem
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../services/api';
 
 interface UseWizardDraftOptions<T> {
@@ -10,6 +10,18 @@ interface UseWizardDraftOptions<T> {
   autoSaveInterval?: number;
   onRestore?: (data: T) => void;
   enabled?: boolean;
+}
+
+interface SavedDraft<T> {
+  id: number;
+  wizardType: string;
+  userId: number;
+  draftData: T;
+  currentStep: number | null;
+  metadata: Record<string, any> | null;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string;
 }
 
 export function useWizardDraft<T extends Record<string, any>>({
@@ -24,8 +36,29 @@ export function useWizardDraft<T extends Record<string, any>>({
   const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
-  const [savedDraft, setSavedDraft] = useState<any>(null);
+  const [savedDraft, setSavedDraft] = useState<SavedDraft<T> | null>(null);
   const loadedRef = useRef(false);
+
+  const saveDraft = useCallback(
+    async (draftData: T, step: number) => {
+      if (!enabled) return;
+
+      setIsSaving(true);
+      try {
+        await api.post(`/wizard-drafts/${wizardType}`, {
+          draftData,
+          currentStep: step,
+          metadata: { version: '1.0' },
+        });
+        setLastSaveTime(new Date());
+      } catch (error) {
+        console.error('Failed to save draft:', error);
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [wizardType, enabled]
+  );
 
   // Załaduj draft przy montowaniu
   useEffect(() => {
@@ -36,7 +69,7 @@ export function useWizardDraft<T extends Record<string, any>>({
       try {
         const response = await api.get(`/wizard-drafts/${wizardType}`);
         if (response.data.success && response.data.data) {
-          setSavedDraft(response.data.data);
+          setSavedDraft(response.data.data as SavedDraft<T>);
           setShowRestoreModal(true);
         }
       } catch (error) {
@@ -56,25 +89,7 @@ export function useWizardDraft<T extends Record<string, any>>({
     }, autoSaveInterval);
 
     return () => clearInterval(interval);
-  }, [data, currentStep, autoSaveInterval, enabled]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const saveDraft = async (draftData: T, step: number) => {
-    if (!enabled) return;
-
-    setIsSaving(true);
-    try {
-      await api.post(`/wizard-drafts/${wizardType}`, {
-        draftData,
-        currentStep: step,
-        metadata: { version: '1.0' },
-      });
-      setLastSaveTime(new Date());
-    } catch (error) {
-      console.error('Failed to save draft:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  }, [data, currentStep, autoSaveInterval, enabled, saveDraft]);
 
   const restoreDraft = () => {
     if (savedDraft) {
