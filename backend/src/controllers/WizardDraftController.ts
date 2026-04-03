@@ -46,33 +46,34 @@ export class WizardDraftController {
         return;
       }
 
+      // Validate required draftData field
+      if (draftData === undefined || draftData === null || typeof draftData !== 'object') {
+        res.status(400).json({ success: false, message: 'Pole draftData jest wymagane i musi być obiektem' });
+        return;
+      }
+
       const repository = AppDataSource.getRepository(WizardDraft);
 
       // Ustaw datę wygaśnięcia na 7 dni od teraz
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
 
-      let draft = await repository.findOne({
-        where: { wizardType, userId },
-      });
-
-      if (draft) {
-        draft.draftData = draftData;
-        draft.currentStep = currentStep ?? null;
-        draft.metadata = metadata ?? null;
-        draft.expiresAt = expiresAt;
-      } else {
-        draft = repository.create({
+      // Use upsert to safely handle concurrent saves from multiple tabs/sessions
+      await repository.upsert(
+        {
           wizardType,
           userId,
           draftData,
           currentStep: currentStep ?? null,
           metadata: metadata ?? null,
           expiresAt,
-        });
-      }
+        },
+        ['wizardType', 'userId']
+      );
 
-      await repository.save(draft);
+      const draft = await repository.findOne({
+        where: { wizardType, userId },
+      });
 
       res.json({ success: true, data: draft });
     } catch (error: any) {

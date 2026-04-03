@@ -80,16 +80,18 @@ export function useWizardDraft<T extends Record<string, any>>({
     loadDraft();
   }, [wizardType, enabled]);
 
-  // Auto-save
+  // Auto-save — paused while the restore modal is open so that the initial
+  // (empty) state cannot overwrite an existing server-side draft before the
+  // user has had a chance to choose "restore" or "discard".
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || showRestoreModal) return;
 
     const interval = setInterval(() => {
       saveDraft(data, currentStep);
     }, autoSaveInterval);
 
     return () => clearInterval(interval);
-  }, [data, currentStep, autoSaveInterval, enabled, saveDraft]);
+  }, [data, currentStep, autoSaveInterval, enabled, showRestoreModal, saveDraft]);
 
   const restoreDraft = () => {
     if (savedDraft) {

@@ -1,10 +1,12 @@
 // src/components/contracts/ShipmentWizardSmokA.tsx
 // 3-krokowy kreator wysyłki dla podsystemów SMOKIP_A
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { Subsystem, SubsystemTask } from '../../services/contract.service';
 import api from '../../services/api';
 import { PoleSearchModal } from './PoleSearchModal';
+import { useWizardDraft } from '../../hooks/useWizardDraft';
+import { RestoreDraftModal } from '../common/RestoreDraftModal';
 import './ShipmentWizardSmokA.css';
 import './WizardStepIndicator.css';
 
@@ -36,8 +38,7 @@ interface SKPConfig {
   };
 }
 
-interface WizardState {
-  currentStep: 1 | 2 | 3;
+interface WizardDraftData {
   selectedTasks: string[];
   deliveryAddress: string;
   contactPhone: string;
@@ -74,18 +75,22 @@ const getEligibleTasks = (tasks: SubsystemTask[]): SubsystemTask[] =>
     return true;
   });
 
-// Checks if a task type matches any PRZEJAZD category.
-// The `pt.replace('_', '')` strips underscores from the constant so that
-// taskType variants with or without underscores (e.g. "SMOKIPA" vs "SMOKIP_A")
-// are matched via `includes`; the second condition handles the exact canonical form.
-const isPrzejazdTask = (taskType: string): boolean =>
-  PRZEJAZD_TYPES.some((pt) => taskType.toUpperCase().includes(pt.replace('_', '')) || taskType.toUpperCase() === pt);
+// Remove underscores from both values so that taskType variants with or without
+// underscores (e.g. "SMOKIPA" vs "SMOKIP_A", "PRZEJAZDKATA" vs "PRZEJAZD_KAT_A")
+// are matched consistently; the second condition still handles the exact canonical form.
+const isPrzejazdTask = (taskType: string): boolean => {
+  const normalizedTaskType = taskType.toUpperCase();
+  const normalizedTaskTypeWithoutUnderscores = normalizedTaskType.replace(/_/g, '');
+
+  return PRZEJAZD_TYPES.some(
+    (pt) =>
+      normalizedTaskTypeWithoutUnderscores.includes(pt.replace(/_/g, '')) ||
+      normalizedTaskType === pt
+  );
+};
 
 const isLcsNdSkpTask = (taskType: string): boolean =>
   LCS_ND_SKP_TYPES.some((t) => taskType.toUpperCase() === t);
-
-const getLocalStorageKey = (subsystemId: number) =>
-  `shipmentWizardSmokA_${subsystemId}`;
 
 // ─── Komponent główny ────────────────────────────────────────────────────────
 
@@ -95,75 +100,87 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
   onSuccess,
 }) => {
   const eligibleTasks = getEligibleTasks(subsystem.tasks || []);
-  const storageKey = getLocalStorageKey(subsystem.id);
 
-  // ── Stan wizarda ──────────────────────────────────────────────────────────
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
-  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
-  const [deliveryAddress, setDeliveryAddress] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [cabinetConfig, setCabinetConfig] = useState<CabinetConfig>({});
-  const [poleConfig, setPoleConfig] = useState<PoleConfig>({});
-  const [skpConfig, setSkpConfig] = useState<SKPConfig>({});
+  const defaultDraftData: WizardDraftData = {
+    selectedTasks: eligibleTasks.map((t) => t.taskNumber),
+    deliveryAddress: '',
+    contactPhone: '',
+    cabinetConfig: {},
+    poleConfig: {},
+    skpConfig: {},
+  };
+
+  // ── Draft management via server-side hook ─────────────────────────────────
+  const {
+    data: draftData,
+    setData: setDraftData,
+    currentStep,
+    setCurrentStep,
+    lastSaveTime,
+    isSaving,
+    saveAndExit,
+    clearDraft,
+    showRestoreModal,
+    savedDraft,
+    restoreDraft,
+    discardDraft,
+  } = useWizardDraft<WizardDraftData>({
+    wizardType: `shipment_wizard_smoka_${subsystem.id}`,
+    initialData: defaultDraftData,
+    autoSaveInterval: 30000,
+  });
+
+  // ── Derived state from draftData ──────────────────────────────────────────
+  const selectedTasks = draftData.selectedTasks;
+  const deliveryAddress = draftData.deliveryAddress;
+  const contactPhone = draftData.contactPhone;
+  const cabinetConfig = draftData.cabinetConfig;
+  const poleConfig = draftData.poleConfig;
+  const skpConfig = draftData.skpConfig;
+
+  // ── Setters that update draftData ─────────────────────────────────────────
+  const setSelectedTasks = (tasks: string[]) =>
+    setDraftData((prev) => ({ ...prev, selectedTasks: tasks }));
+
+  const setDeliveryAddress = (addr: string) =>
+    setDraftData((prev) => ({ ...prev, deliveryAddress: addr }));
+
+  const setContactPhone = (phone: string) =>
+    setDraftData((prev) => ({ ...prev, contactPhone: phone }));
+
+  const setCabinetConfigState = (updater: (prev: CabinetConfig) => CabinetConfig) =>
+    setDraftData((prev) => ({ ...prev, cabinetConfig: updater(prev.cabinetConfig) }));
+
+  const setPoleConfigState = (updater: (prev: PoleConfig) => PoleConfig) =>
+    setDraftData((prev) => ({ ...prev, poleConfig: updater(prev.poleConfig) }));
+
+  const setSkpConfigState = (updater: (prev: SKPConfig) => SKPConfig) =>
+    setDraftData((prev) => ({ ...prev, skpConfig: updater(prev.skpConfig) }));
+
+  // Intersect selectedTasks with eligible tasks when a draft is restored,
+  // to drop tasks that received substatus='wysyłka_zlecona' since the draft was saved.
+  const handleRestore = () => {
+    restoreDraft();
+    setDraftData((prev) => {
+      const eligibleNumbers = new Set(eligibleTasks.map((t) => t.taskNumber));
+      return {
+        ...prev,
+        selectedTasks: (prev.selectedTasks || []).filter((n) => eligibleNumbers.has(n)),
+      };
+    });
+  };
+
+  // ── UI state (not persisted) ──────────────────────────────────────────────
   const [poleSearchTaskNumber, setPoleSearchTaskNumber] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // ── Załaduj zapisany stan ─────────────────────────────────────────────────
-  // Deliberately run only once on mount to restore local draft state.
-  // The eligible task list is intersected at load time to filter out tasks that
-  // received substatus='wysyłka_zlecona' since the state was last saved.
-  const initializedRef = React.useRef(false);
-  useEffect(() => {
-    if (initializedRef.current) return;
-    initializedRef.current = true;
-    const saved = localStorage.getItem(storageKey);
-    if (saved) {
-      try {
-        const state: WizardState = JSON.parse(saved);
-        setCurrentStep(state.currentStep || 1);
-        // Intersect saved selectedTasks with currently eligible tasks to drop any
-        // that got substatus='wysyłka_zlecona' since the state was saved
-        const eligibleNumbers = new Set(eligibleTasks.map((t) => t.taskNumber));
-        setSelectedTasks((state.selectedTasks || []).filter((n) => eligibleNumbers.has(n)));
-        setDeliveryAddress(state.deliveryAddress || '');
-        setContactPhone(state.contactPhone || '');
-        setCabinetConfig(state.cabinetConfig || {});
-        setPoleConfig(state.poleConfig || {});
-        setSkpConfig(state.skpConfig || {});
-      } catch (e) {
-        console.warn('ShipmentWizardSmokA: nie udało się wczytać zapisanego stanu', e);
-      }
-    } else {
-      // Domyślnie zaznacz wszystkie kwalifikujące się zadania
-      setSelectedTasks(eligibleTasks.map((t) => t.taskNumber));
-    }
-  }, [storageKey]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Zapisz stan do localStorage ──────────────────────────────────────────
-  const saveState = () => {
-    const state: WizardState = {
-      currentStep,
-      selectedTasks,
-      deliveryAddress,
-      contactPhone,
-      cabinetConfig,
-      poleConfig,
-      skpConfig,
-    };
-    localStorage.setItem(storageKey, JSON.stringify(state));
-  };
-
-  const clearState = () => {
-    localStorage.removeItem(storageKey);
-  };
-
   // ── Obsługa checkboxów ────────────────────────────────────────────────────
   const toggleTask = (taskNumber: string) => {
-    setSelectedTasks((prev) =>
-      prev.includes(taskNumber)
-        ? prev.filter((t) => t !== taskNumber)
-        : [...prev, taskNumber]
+    setSelectedTasks(
+      selectedTasks.includes(taskNumber)
+        ? selectedTasks.filter((t) => t !== taskNumber)
+        : [...selectedTasks, taskNumber]
     );
   };
 
@@ -262,11 +279,11 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
         setError(`Niektóre wysyłki nie powiodły się:\n${failures.join('\n')}`);
         const successes = results.filter((r) => r.status === 'fulfilled').length;
         if (successes > 0) {
-          clearState();
+          await clearDraft();
           onSuccess();
         }
       } else {
-        clearState();
+        await clearDraft();
         onSuccess();
       }
     } catch (err: any) {
@@ -278,7 +295,7 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
 
   // ── Obsługa konfiguracji szafy ────────────────────────────────────────────
   const setCabinet = (taskNumber: string, value: CabinetOption) => {
-    setCabinetConfig((prev) => ({ ...prev, [taskNumber]: value }));
+    setCabinetConfigState((prev) => ({ ...prev, [taskNumber]: value }));
   };
 
   // ── Obsługa konfiguracji słupa ────────────────────────────────────────────
@@ -287,7 +304,7 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
     field: K,
     value: PoleConfig[string][K]
   ) => {
-    setPoleConfig((prev) => {
+    setPoleConfigState((prev) => {
       const existing = prev[taskNumber] || {
         quantity: 0,
         type: 'STALOWY' as PoleType,
@@ -309,7 +326,7 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
     field: K,
     value: SKPConfig[string][K]
   ) => {
-    setSkpConfig((prev) => {
+    setSkpConfigState((prev) => {
       const existing = prev[taskNumber] || { typ: 'SAMODZIELNY' as const };
       return {
         ...prev,
@@ -670,6 +687,18 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
   // ── Render główny ─────────────────────────────────────────────────────────
   return (
     <>
+      {/* Modal przywracania draftu */}
+      {showRestoreModal && savedDraft && (
+        <RestoreDraftModal
+          visible={showRestoreModal}
+          wizardName={`Kreator wysyłki SMOKIP-A — ${subsystem.subsystemNumber}`}
+          savedAt={savedDraft.updatedAt}
+          expiresAt={savedDraft.expiresAt}
+          onRestore={handleRestore}
+          onDiscard={discardDraft}
+        />
+      )}
+
       <div className="modal-overlay" onClick={onClose}>
         <div
           className="modal-content shipment-wizard"
@@ -682,9 +711,16 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
             <h2 id="sma-wizard-title">
               📦 Kreator wysyłki SMOKIP-A — {subsystem.subsystemNumber}
             </h2>
-            <button className="modal-close" onClick={onClose} aria-label="Zamknij">
-              ✕
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {lastSaveTime && (
+                <span style={{ fontSize: '12px', color: isSaving ? 'var(--text-secondary)' : 'var(--success-color, #4caf50)' }}>
+                  {isSaving ? '⏳ Zapisywanie...' : '✅ Zapisano'}
+                </span>
+              )}
+              <button className="modal-close" onClick={onClose} aria-label="Zamknij">
+                ✕
+              </button>
+            </div>
           </div>
 
           <div className="modal-body">
@@ -705,10 +741,7 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => {
-                    saveState();
-                    onClose();
-                  }}
+                  onClick={() => saveAndExit(onClose)}
                 >
                   💾 Zapisz
                 </button>
@@ -716,7 +749,7 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
                   type="button"
                   className="btn btn-ghost"
                   onClick={() => {
-                    clearState();
+                    clearDraft();
                     onClose();
                   }}
                 >
