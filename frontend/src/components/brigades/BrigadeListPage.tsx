@@ -126,6 +126,10 @@ export const BrigadeListPage: React.FC = () => {
     );
   });
 
+  const displayedBrigades = (editingBrigade || managingMembers)
+    ? filteredBrigades.filter(b => b.id === (editingBrigade?.id ?? managingMembers?.id))
+    : filteredBrigades;
+
   return (
     <div className="module-page">
       <BackButton to="/dashboard" />
@@ -188,7 +192,7 @@ export const BrigadeListPage: React.FC = () => {
         </div>
 
         <div className="brigades-count">
-          Znaleziono: <strong>{filteredBrigades.length}</strong> z {totalBrigades} brygad
+          Znaleziono: <strong>{displayedBrigades.length}</strong> z {totalBrigades} brygad
         </div>
       </div>
 
@@ -226,7 +230,7 @@ export const BrigadeListPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredBrigades.map((brigade) => (
+                {displayedBrigades.map((brigade) => (
                   <tr key={brigade.id}>
                     <td>
                       <strong className="brigade-code">{brigade.code}</strong>
