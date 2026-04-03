@@ -20,18 +20,27 @@ import { useAuth } from '../../hooks/useAuth';
 import '../../styles/grover-theme.css';
 import './FiberSchemaModal.css';
 
-interface Props {
-  /** Existing task – optional. When provided, data is loaded from task metadata. */
-  task?: Task;
-  /** Task number label shown in the header when no task entity is available. */
+/** Wizard mode – no existing task, data flows via props/callbacks. */
+interface WizardProps {
+  task?: never;
   taskNumber?: string;
   onClose: () => void;
-  /** Callback used in wizard mode – receives the built config and closes the modal. */
-  onSave?: (config: FiberTransmissionConfig) => void;
-  /** Pre-populated connections for wizard mode (task not yet created). */
+  onSave: (config: FiberTransmissionConfig) => void;
+  initialConnections?: FiberConnection[];
+  onSuccess?: never;
+}
+
+/** Task-edit mode – an existing Task entity is provided; data saved via API. */
+interface TaskProps {
+  task: Task;
+  taskNumber?: string;
+  onClose: () => void;
+  onSave?: never;
   initialConnections?: FiberConnection[];
   onSuccess?: () => void;
 }
+
+type Props = WizardProps | TaskProps;
 
 const ENDPOINT_TYPES: FiberEndpoint['typ'][] = ['LCS', 'NASTAWNIA', 'PRZEJAZD', 'SKP'];
 
@@ -127,9 +136,8 @@ export const FiberSchemaModal: React.FC<Props> = ({
 
   /** Create a new connection, pre-populating the LCS endpoint from current task data. */
   const addConnection = () => {
-    const taskKm = task?.metadata?.configParams?.kilometraz
-      ? parseFloat(task.metadata.configParams.kilometraz)
-      : undefined;
+    const taskKilometraz = task?.metadata?.configParams?.kilometraz;
+    const taskKm = taskKilometraz ? parseFloat(taskKilometraz) : undefined;
     const taskGps =
       task && task.gpsLatitude != null && task.gpsLongitude != null
         ? { lat: Number(task.gpsLatitude), lng: Number(task.gpsLongitude) }
