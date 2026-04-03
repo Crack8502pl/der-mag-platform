@@ -110,8 +110,9 @@ export const BrigadesTab: React.FC = () => {
     );
   });
 
-  const displayedBrigades = (editingBrigade || managingMembers)
-    ? filteredBrigades.filter(b => b.id === (editingBrigade?.id ?? managingMembers?.id))
+  const activeBrigade = editingBrigade ?? managingMembers;
+  const displayedBrigades = activeBrigade
+    ? [activeBrigade]
     : filteredBrigades;
 
   return (

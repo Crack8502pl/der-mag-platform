@@ -126,8 +126,9 @@ export const BrigadeListPage: React.FC = () => {
     );
   });
 
-  const displayedBrigades = (editingBrigade || managingMembers)
-    ? filteredBrigades.filter(b => b.id === (editingBrigade?.id ?? managingMembers?.id))
+  const activeBrigade = editingBrigade ?? managingMembers;
+  const displayedBrigades = activeBrigade
+    ? [brigades.find(b => b.id === activeBrigade.id) ?? activeBrigade]
     : filteredBrigades;
 
   return (
