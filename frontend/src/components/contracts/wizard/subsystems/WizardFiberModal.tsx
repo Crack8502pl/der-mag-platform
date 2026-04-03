@@ -3,7 +3,7 @@
 // Unlike FiberSchemaModal, it does NOT require an existing Task entity —
 // connections are stored in taskDetails and saved when the contract is created.
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import type { FiberConnection, FiberEndpoint } from '../../../../types/fiber.types';
 import {
   estimateDistance,
@@ -12,6 +12,7 @@ import {
   totalLengthKm,
 } from '../../../../services/fiberCalculator.service';
 import '../../../../styles/grover-theme.css';
+import '../../../tasks/FiberSchemaModal.css';
 
 interface WizardFiberModalProps {
   /** Display name for the LCS task anchor */
@@ -28,8 +29,13 @@ interface WizardFiberModalProps {
 
 const ENDPOINT_TYPES: FiberEndpoint['typ'][] = ['LCS', 'NASTAWNIA', 'PRZEJAZD', 'SKP'];
 
+// Monotonic ID counter to avoid duplicate keys when multiple items are created
+// within the same millisecond.
+let _nextId = Date.now();
+const nextId = (): number => ++_nextId;
+
 const newEndpoint = (typ: FiberEndpoint['typ'] = 'PRZEJAZD'): FiberEndpoint => ({
-  id: Date.now(),
+  id: nextId(),
   nazwa: '',
   typ,
 });
@@ -54,6 +60,9 @@ export const WizardFiberModal: React.FC<WizardFiberModalProps> = ({
   onClose,
 }) => {
   const [connections, setConnections] = useState<FiberConnection[]>(initialConnections);
+  // Per-instance ID counter so that parallel open modals don't share global state.
+  const idCounterRef = useRef(Date.now());
+  const genId = (): number => { idCounterRef.current += 1; return idCounterRef.current; };
 
   const recalcEndpoints = (conn: FiberConnection): FiberConnection => {
     const estimated = estimateDistance(conn.obiektStartowy, conn.obiektKoncowy);
@@ -92,13 +101,17 @@ export const WizardFiberModal: React.FC<WizardFiberModalProps> = ({
 
   const addConnection = () => {
     const taskKm = kilometraz ? parseFloat(kilometraz) : undefined;
+
+    // Only use GPS values when both are present and numeric
+    const latNum = gpsLatitude ? Number(gpsLatitude) : NaN;
+    const lonNum = gpsLongitude ? Number(gpsLongitude) : NaN;
     const taskGps =
-      gpsLatitude && gpsLongitude
-        ? { lat: Number(gpsLatitude), lng: Number(gpsLongitude) }
+      !isNaN(latNum) && !isNaN(lonNum) && gpsLatitude && gpsLongitude
+        ? { lat: latNum, lng: lonNum }
         : undefined;
 
     const lcsEndpoint: FiberEndpoint = {
-      id: Date.now(),
+      id: genId(),
       nazwa: taskLabel || 'LCS',
       typ: 'LCS',
       ...(taskKm != null && !isNaN(taskKm) ? { kilometraz: taskKm } : {}),
@@ -106,7 +119,7 @@ export const WizardFiberModal: React.FC<WizardFiberModalProps> = ({
     };
 
     const conn: FiberConnection = {
-      id: Date.now() + 1,
+      id: genId(),
       obiektStartowy: lcsEndpoint,
       obiektKoncowy: newEndpoint('NASTAWNIA'),
       odleglosc: 0,

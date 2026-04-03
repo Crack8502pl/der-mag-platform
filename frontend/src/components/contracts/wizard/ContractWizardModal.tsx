@@ -257,11 +257,18 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
               type: subsystem.type,
               params: subsystem.params,
               ipPool: subsystem.ipPool,
-              tasks: subsystemTasks.map(t => ({
-                number: t.number,
-                name: t.name,
-                type: t.type
-              }))
+              tasks: subsystemTasks.map((t, idx) => {
+                const detail = subsystem.taskDetails?.[idx];
+                return {
+                  number: t.number,
+                  name: t.name,
+                  type: t.type,
+                  gpsLatitude: detail?.gpsLatitude || null,
+                  gpsLongitude: detail?.gpsLongitude || null,
+                  googleMapsUrl: detail?.googleMapsUrl || null,
+                  fiberConnections: detail?.fiberConnections?.length ? detail.fiberConnections : null,
+                };
+              })
             };
           });
           
@@ -287,6 +294,10 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
               tasks: newTasks.map(t => ({
                 name: buildTaskNameFromDetails(t.taskType, t, wizardData.liniaKolejowa),
                 type: resolveTaskVariant(t.taskType, t),
+                gpsLatitude: t.gpsLatitude || null,
+                gpsLongitude: t.gpsLongitude || null,
+                googleMapsUrl: t.googleMapsUrl || null,
+                fiberConnections: t.fiberConnections?.length ? t.fiberConnections : null,
                 metadata: {
                   kilometraz: t.kilometraz,
                   kategoria: t.kategoria,

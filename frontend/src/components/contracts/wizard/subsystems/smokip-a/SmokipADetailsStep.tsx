@@ -329,7 +329,14 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
                     ⚡ {(() => {
                         const n = detail.fiberConnections?.length || 0;
                         if (!n) return 'Konfiguruj połączenia';
-                        const plural = n === 1 ? 'połączenie' : n < 5 ? 'połączenia' : 'połączeń';
+                        const mod10 = n % 10;
+                        const mod100 = n % 100;
+                        const plural =
+                          n === 1
+                            ? 'połączenie'
+                            : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)
+                              ? 'połączenia'
+                              : 'połączeń';
                         return `Konfiguruj (${n} ${plural})`;
                       })()}
                   </button>

@@ -14,6 +14,7 @@ import { TaskNumberGenerator } from '../services/TaskNumberGenerator';
 import { serverLogger } from '../utils/logger';
 
 interface FiberConnectionData {
+  odleglosc?: number;
   iloscWlokien?: number;
   typWkladki?: string;
   [key: string]: unknown;
@@ -521,8 +522,8 @@ export class ContractController {
                     subsystemId: subsystem.id,
                     location: contract.customName,
                     priority: 0,
-                    gpsLatitude: taskData.gpsLatitude != null && taskData.gpsLatitude !== '' ? Number(taskData.gpsLatitude) : null,
-                    gpsLongitude: taskData.gpsLongitude != null && taskData.gpsLongitude !== '' ? Number(taskData.gpsLongitude) : null,
+                    gpsLatitude: (() => { const v = Number(taskData.gpsLatitude); return (taskData.gpsLatitude != null && taskData.gpsLatitude !== '' && !isNaN(v)) ? v : null; })(),
+                    gpsLongitude: (() => { const v = Number(taskData.gpsLongitude); return (taskData.gpsLongitude != null && taskData.gpsLongitude !== '' && !isNaN(v)) ? v : null; })(),
                     googleMapsUrl: taskData.googleMapsUrl || null,
                     metadata: {
                       createdFromWizard: true,
@@ -531,12 +532,12 @@ export class ContractController {
                       taskVariant: taskData.type || null,
                       configParams: {
                         ...(subsystemParams || {}),
-                        ...(taskData.fiberConnections?.length ? {
+                        ...(Array.isArray(taskData.fiberConnections) && taskData.fiberConnections.length > 0 ? {
                           fiberSchema: {
                             schematLacznosci: taskData.fiberConnections,
                             obliczenia: {
-                              calkowitaDlugoscKm: 0,
-                      wymaganychWlokien: (taskData.fiberConnections as FiberConnectionData[]).reduce((sum: number, c: FiberConnectionData) => sum + (c.iloscWlokien || 0), 0),
+                              calkowitaDlugoscKm: Math.round((taskData.fiberConnections as FiberConnectionData[]).reduce((sum: number, c: FiberConnectionData) => sum + (Number(c.odleglosc) || 0), 0) / 10) / 100,
+                              wymaganychWlokien: (taskData.fiberConnections as FiberConnectionData[]).reduce((sum: number, c: FiberConnectionData) => sum + (Number(c.iloscWlokien) || 0), 0),
                               typPolaczenia: (taskData.fiberConnections as FiberConnectionData[]).every((c: FiberConnectionData) => c.typWkladki === 'WDM') ? 'WDM' : 'DUPLEX',
                             }
                           }
