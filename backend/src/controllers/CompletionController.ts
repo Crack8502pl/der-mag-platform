@@ -909,12 +909,15 @@ export class CompletionController {
           return;
         }
 
-        // Check other task materials (serialNumbers array) - exclude current item's task material
+        // Check other task materials (serialNumbers JSONB array) - exclude current item's task material
         const currentTaskMaterialId = item.taskMaterialId ?? 0;
         const duplicateMaterials = await taskMaterialRepo
           .createQueryBuilder('tm')
           .where('tm.id != :currentId', { currentId: currentTaskMaterialId })
-          .andWhere('tm.serialNumbers && ARRAY[:...serials]::text[]', { serials: uniqueSerials })
+          .andWhere(
+            'EXISTS (SELECT 1 FROM jsonb_array_elements_text(tm.serialNumbers) AS serial WHERE serial IN (:...serials))',
+            { serials: uniqueSerials }
+          )
           .getMany();
 
         if (duplicateMaterials.length > 0) {
