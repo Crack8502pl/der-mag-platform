@@ -110,6 +110,11 @@ export const BrigadesTab: React.FC = () => {
     );
   });
 
+  const activeBrigade = editingBrigade ?? managingMembers;
+  const displayedBrigades = activeBrigade
+    ? [activeBrigade]
+    : filteredBrigades;
+
   return (
     <div className="brigades-tab-content">
       {success && (
@@ -155,7 +160,7 @@ export const BrigadesTab: React.FC = () => {
           )}
         </div>
         <div className="brigades-count">
-          Znaleziono: <strong>{filteredBrigades.length}</strong> z {totalBrigades} brygad
+          Znaleziono: <strong>{displayedBrigades.length}</strong> z {totalBrigades} brygad
         </div>
       </div>
 
@@ -190,7 +195,7 @@ export const BrigadesTab: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredBrigades.map((brigade) => (
+                {displayedBrigades.map((brigade) => (
                   <tr key={brigade.id}>
                     <td>
                       <strong className="brigade-code">{brigade.code}</strong>
