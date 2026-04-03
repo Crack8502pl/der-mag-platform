@@ -793,5 +793,54 @@ describe('CompletionService', () => {
         expect.objectContaining({ id: 1 })
       );
     });
+
+    it('should use taskMaterial.plannedQuantity when relation is loaded', async () => {
+      const item = createMockCompletionItem({
+        id: 1,
+        expectedQuantity: 0,
+        taskMaterial: { id: 10, plannedQuantity: 3 } as any,
+        status: CompletionItemStatus.PENDING,
+      });
+      mockItemRepo.find.mockResolvedValue([item]);
+      mockItemRepo.save.mockResolvedValue(item);
+
+      await service.saveIssuedQuantities(1, { 1: 3 });
+
+      expect(mockItemRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, issuedQuantity: 3, status: CompletionItemStatus.SCANNED })
+      );
+    });
+
+    it('should use bomItem.quantity when taskMaterial is null', async () => {
+      const item = createMockCompletionItem({
+        id: 1,
+        expectedQuantity: 0,
+        taskMaterial: null,
+        bomItem: { id: 20, quantity: 2 } as any,
+        status: CompletionItemStatus.PENDING,
+      });
+      mockItemRepo.find.mockResolvedValue([item]);
+      mockItemRepo.save.mockResolvedValue(item);
+
+      await service.saveIssuedQuantities(1, { 1: 2 });
+
+      expect(mockItemRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, issuedQuantity: 2, status: CompletionItemStatus.SCANNED })
+      );
+    });
+
+    it('should load relations when querying items', async () => {
+      const item = createMockCompletionItem({ id: 1, expectedQuantity: 1 });
+      mockItemRepo.find.mockResolvedValue([item]);
+      mockItemRepo.save.mockResolvedValue(item);
+
+      await service.saveIssuedQuantities(1, { 1: 1 });
+
+      expect(mockItemRepo.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          relations: expect.arrayContaining(['taskMaterial', 'bomItem']),
+        })
+      );
+    });
   });
 });
