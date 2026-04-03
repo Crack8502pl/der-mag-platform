@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import type { SubsystemWizardData, TaskDetail } from '../../types/wizard.types';
-import type { FiberConnection, FiberEndpoint } from '../../../../../types/fiber.types';
+import type { FiberConnection } from '../../../../../types/fiber.types';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../../config/subsystemWizardConfig';
 import { OPTIONAL_KILOMETRAZ_HELP, formatLiniaKolejowa } from '../../utils/validation';
+import { taskDetailToAvailableEndpoint } from '../../utils/fiberTaskUtils';
 import { useGoogleMaps } from '../../../../../hooks/useGoogleMaps';
 import { WizardFiberModal } from '../WizardFiberModal';
 
@@ -424,17 +425,7 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
             kilometraz={detail?.kilometraz}
             availableEndpoints={taskDetails
               .filter((_, i) => i !== fiberModalTaskIndex)
-              .map(d => ({
-                nazwa: d.nazwa || (d.kilometraz ? `km ${d.kilometraz}` : d.taskType),
-                typ: (d.taskType === 'NASTAWNIA' ? 'NASTAWNIA'
-                  : d.taskType === 'SKP' ? 'SKP'
-                  : d.taskType?.includes('PRZEJAZD') ? 'PRZEJAZD'
-                  : 'LCS') as FiberEndpoint['typ'],
-                kilometraz: d.kilometraz ? parseFloat(d.kilometraz) : undefined,
-                gps: d.gpsLatitude && d.gpsLongitude
-                  ? { lat: Number(d.gpsLatitude), lng: Number(d.gpsLongitude) }
-                  : undefined,
-              }))}
+              .map(taskDetailToAvailableEndpoint)}
             onSave={(connections: FiberConnection[]) => {
               onUpdateTask(subsystemIndex, fiberModalTaskIndex, { fiberConnections: connections });
               setFiberModalTaskIndex(null);

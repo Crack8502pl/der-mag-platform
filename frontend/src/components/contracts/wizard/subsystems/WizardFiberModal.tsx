@@ -12,6 +12,7 @@ import {
   totalLengthKm,
 } from '../../../../services/fiberCalculator.service';
 import { useAuth } from '../../../../hooks/useAuth';
+import { parseWizardKilometraz } from '../utils/fiberTaskUtils';
 import '../../../../styles/grover-theme.css';
 import '../../../tasks/FiberSchemaModal.css';
 
@@ -111,7 +112,8 @@ export const WizardFiberModal: React.FC<WizardFiberModalProps> = ({
   };
 
   const addConnection = () => {
-    const taskKm = kilometraz ? parseFloat(kilometraz) : undefined;
+    // Parse "XXX,XXX" wizard kilometraż format correctly (comma as decimal separator)
+    const taskKm = parseWizardKilometraz(kilometraz);
 
     // Only use GPS values when both are present and numeric
     const latNum = gpsLatitude ? Number(gpsLatitude) : NaN;
