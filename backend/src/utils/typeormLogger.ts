@@ -1,16 +1,20 @@
 // src/utils/typeormLogger.ts
-// Custom TypeORM logger that routes all SQL logs to winston serverLogger
+// Custom TypeORM logger that routes all SQL logs to winston dbLogger.
 // TypeORM's default SimpleConsoleLogger writes directly to process.stdout (bypassing console.log),
 // so this custom logger is required to capture SQL queries in log files.
 
 import { Logger as TypeOrmLoggerInterface, QueryRunner } from 'typeorm';
-import serverLogger from './logger';
+import { dbLogger } from './logger';
 import * as util from 'util';
+
+const LOG_SQL_QUERIES = process.env.LOG_SQL_QUERIES === 'true';
+const MAX_QUERY_LENGTH = 500;
 
 export class TypeOrmLogger implements TypeOrmLoggerInterface {
   logQuery(query: string, parameters?: any[], _queryRunner?: QueryRunner): void {
+    if (!LOG_SQL_QUERIES) return;
     const sql = this.formatQuery(query, parameters);
-    serverLogger.info(`[DB] query: ${sql}`);
+    dbLogger.debug(`[DB] query: ${sql}`);
   }
 
   logQueryError(
@@ -21,8 +25,8 @@ export class TypeOrmLogger implements TypeOrmLoggerInterface {
   ): void {
     const sql = this.formatQuery(query, parameters);
     const errorMsg = error instanceof Error ? (error.stack || error.message) : String(error);
-    serverLogger.error(`[DB] query failed: ${sql}`);
-    serverLogger.error(`[DB] error: ${errorMsg}`);
+    dbLogger.error(`[DB] query failed: ${sql}`);
+    dbLogger.error(`[DB] error: ${errorMsg}`);
   }
 
   logQuerySlow(
@@ -32,23 +36,23 @@ export class TypeOrmLogger implements TypeOrmLoggerInterface {
     _queryRunner?: QueryRunner
   ): void {
     const sql = this.formatQuery(query, parameters);
-    serverLogger.warn(`[DB] slow query (${time}ms): ${sql}`);
+    dbLogger.warn(`[DB] slow query (${time}ms): ${sql}`);
   }
 
   logSchemaBuild(message: string, _queryRunner?: QueryRunner): void {
-    serverLogger.info(`[DB] schema: ${message}`);
+    dbLogger.info(`[DB] schema: ${message}`);
   }
 
   logMigration(message: string, _queryRunner?: QueryRunner): void {
-    serverLogger.info(`[DB] migration: ${message}`);
+    dbLogger.info(`[DB] migration: ${message}`);
   }
 
   log(level: 'log' | 'info' | 'warn', message: any, _queryRunner?: QueryRunner): void {
     const text = typeof message === 'object' ? this.safeSerialize(message) : String(message);
     if (level === 'warn') {
-      serverLogger.warn(`[DB] ${text}`);
+      dbLogger.warn(`[DB] ${text}`);
     } else {
-      serverLogger.info(`[DB] ${text}`);
+      dbLogger.info(`[DB] ${text}`);
     }
   }
 
@@ -65,9 +69,11 @@ export class TypeOrmLogger implements TypeOrmLoggerInterface {
   }
 
   private formatQuery(query: string, parameters?: any[]): string {
+    const truncated =
+      query.length > MAX_QUERY_LENGTH ? `${query.slice(0, MAX_QUERY_LENGTH)}...` : query;
     if (parameters && parameters.length > 0) {
-      return `${query} -- PARAMETERS: ${this.safeSerialize(parameters)}`;
+      return `${truncated} -- PARAMETERS: ${this.safeSerialize(parameters)}`;
     }
-    return query;
+    return truncated;
   }
 }

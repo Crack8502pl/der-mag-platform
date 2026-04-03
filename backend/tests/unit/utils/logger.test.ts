@@ -33,6 +33,7 @@ describe('logger utilities', () => {
   const originalConsoleError = console.error;
   const originalConsoleWarn = console.warn;
   const originalConsoleDebug = console.debug;
+  const originalOverrideConsole = process.env.OVERRIDE_CONSOLE;
 
   afterEach(() => {
     // Restore original console methods
@@ -40,10 +41,20 @@ describe('logger utilities', () => {
     console.error = originalConsoleError;
     console.warn = originalConsoleWarn;
     console.debug = originalConsoleDebug;
+    // Restore env var
+    if (originalOverrideConsole === undefined) {
+      delete process.env.OVERRIDE_CONSOLE;
+    } else {
+      process.env.OVERRIDE_CONSOLE = originalOverrideConsole;
+    }
     jest.clearAllMocks();
   });
 
   describe('overrideConsole', () => {
+    beforeEach(() => {
+      process.env.OVERRIDE_CONSOLE = 'true';
+    });
+
     it('should override console.log with serverLogger.info', () => {
       const { overrideConsole, serverLogger } = require('../../../src/utils/logger');
       overrideConsole();
@@ -100,12 +111,28 @@ describe('logger utilities', () => {
       console.log('a', 'b', 'c');
       expect(serverLogger.info).toHaveBeenCalledWith('a b c');
     });
+
+    it('should not override console when OVERRIDE_CONSOLE is not set', () => {
+      delete process.env.OVERRIDE_CONSOLE;
+      const { overrideConsole, serverLogger } = require('../../../src/utils/logger');
+      overrideConsole();
+
+      console.log('test message');
+      expect(serverLogger.info).not.toHaveBeenCalled();
+    });
   });
 
   describe('serverLogger export', () => {
     it('should export serverLogger', () => {
       const { serverLogger } = require('../../../src/utils/logger');
       expect(serverLogger).toBeDefined();
+    });
+  });
+
+  describe('dbLogger export', () => {
+    it('should export dbLogger', () => {
+      const { dbLogger } = require('../../../src/utils/logger');
+      expect(dbLogger).toBeDefined();
     });
   });
 });
