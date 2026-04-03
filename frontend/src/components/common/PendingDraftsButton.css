@@ -40,9 +40,16 @@
 }
 
 .pending-drafts-item {
+  display: block;
+  width: 100%;
   padding: 8px 12px;
   cursor: pointer;
   transition: background 0.15s ease;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
 }
 
 .pending-drafts-item:hover {

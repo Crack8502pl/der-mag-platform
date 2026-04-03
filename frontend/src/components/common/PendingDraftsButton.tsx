@@ -31,22 +31,25 @@ export const PendingDraftsButton: React.FC = () => {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside — only active when dropdown is open
   useEffect(() => {
+    if (!open) return;
+
     const handleClickOutside = (e: MouseEvent) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
         setOpen(false);
       }
     };
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [open]);
 
   if (loading || drafts.length === 0) return null;
 
-  const handleItemClick = (wizardType: string, meta: Record<string, unknown> | null) => {
+  const handleItemClick = (wizardType: string) => {
     setOpen(false);
-    navigate(getWizardPath(wizardType, meta));
+    navigate(getWizardPath(wizardType));
   };
 
   return (
@@ -54,30 +57,34 @@ export const PendingDraftsButton: React.FC = () => {
       <button
         className="btn btn-secondary pending-drafts-btn"
         onClick={() => setOpen((prev) => !prev)}
+        aria-haspopup="menu"
+        aria-expanded={open}
         title="Niedokończone kreatory"
       >
         📝 {drafts.length} {pluralizeDrafts(drafts.length)} ⚠️
       </button>
 
       {open && (
-        <div className="pending-drafts-dropdown">
+        <div className="pending-drafts-dropdown" role="menu">
           <div className="pending-drafts-dropdown-header">Niedokończone kreatory</div>
-          <ul className="pending-drafts-dropdown-list">
+          <ul className="pending-drafts-dropdown-list" role="presentation">
             {drafts.map((draft) => (
-              <li
-                key={draft.id}
-                className="pending-drafts-item"
-                onClick={() => handleItemClick(draft.wizardType, draft.metadata)}
-              >
-                <div className="pending-drafts-item-label">
-                  {getWizardLabel(draft.wizardType)}
-                </div>
-                <div className="pending-drafts-item-meta">
-                  {draft.currentStep != null && (
-                    <span>Krok {draft.currentStep}</span>
-                  )}
-                  <span>{formatTimeAgo(draft.updatedAt)}</span>
-                </div>
+              <li key={draft.id} role="none">
+                <button
+                  className="pending-drafts-item"
+                  role="menuitem"
+                  onClick={() => handleItemClick(draft.wizardType)}
+                >
+                  <div className="pending-drafts-item-label">
+                    {getWizardLabel(draft.wizardType)}
+                  </div>
+                  <div className="pending-drafts-item-meta">
+                    {draft.currentStep != null && (
+                      <span>Krok {draft.currentStep}</span>
+                    )}
+                    <span>{formatTimeAgo(draft.updatedAt)}</span>
+                  </div>
+                </button>
               </li>
             ))}
           </ul>

@@ -135,14 +135,21 @@ export const ShipmentWizardSmokB: React.FC<ShipmentWizardSmokBProps> = ({
 
   // Intersect selectedTasks with eligible tasks when a draft is restored
   const handleRestore = () => {
+    if (!savedDraft) {
+      restoreDraft();
+      return;
+    }
+
+    const eligibleNumbers = new Set(eligibleTasks.map((t) => t.taskNumber));
+    const restoredDraftData: WizardDraftData = {
+      ...savedDraft.draftData,
+      selectedTasks: (savedDraft.draftData.selectedTasks || []).filter((n) =>
+        eligibleNumbers.has(n)
+      ),
+    };
+
     restoreDraft();
-    setDraftData((prev) => {
-      const eligibleNumbers = new Set(eligibleTasks.map((t) => t.taskNumber));
-      return {
-        ...prev,
-        selectedTasks: (prev.selectedTasks || []).filter((n) => eligibleNumbers.has(n)),
-      };
-    });
+    setDraftData(restoredDraftData);
   };
   const [poleSearchTaskNumber, setPoleSearchTaskNumber] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -653,8 +660,8 @@ export const ShipmentWizardSmokB: React.FC<ShipmentWizardSmokBProps> = ({
                 <button
                   type="button"
                   className="btn btn-ghost"
-                  onClick={() => {
-                    clearDraft();
+                  onClick={async () => {
+                    await clearDraft();
                     onClose();
                   }}
                 >

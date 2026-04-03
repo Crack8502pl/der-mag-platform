@@ -15,19 +15,17 @@ export interface PendingDraft {
 
 interface WizardConfig {
   label: string;
-  getPath: (wizardType: string, meta: Record<string, unknown> | null) => string;
+  getPath: (wizardType: string) => string;
 }
 
 const WIZARD_CONFIG: Record<string, WizardConfig> = {
   shipment_wizard_smoka: {
     label: 'Wysyłka SMOKIP-A',
-    getPath: (_wt, meta) =>
-      meta?.contractId ? `/contracts/${meta.contractId}` : '/contracts',
+    getPath: () => '/contracts',
   },
   shipment_wizard_smokb: {
     label: 'Wysyłka SMOKIP-B',
-    getPath: (_wt, meta) =>
-      meta?.contractId ? `/contracts/${meta.contractId}` : '/contracts',
+    getPath: () => '/contracts',
   },
   contract_wizard: {
     label: 'Kreator kontraktu',
@@ -35,8 +33,7 @@ const WIZARD_CONFIG: Record<string, WizardConfig> = {
   },
   contract_wizard_edit: {
     label: 'Edycja kontraktu',
-    getPath: (_wt, meta) =>
-      meta?.contractId ? `/contracts/${meta.contractId}` : '/contracts',
+    getPath: () => '/contracts',
   },
 };
 
@@ -58,10 +55,8 @@ const getWizardConfig = (wizardType: string): WizardConfig => {
 export const getWizardLabel = (wizardType: string): string =>
   getWizardConfig(wizardType).label;
 
-export const getWizardPath = (
-  wizardType: string,
-  meta: Record<string, unknown> | null
-): string => getWizardConfig(wizardType).getPath(wizardType, meta);
+export const getWizardPath = (wizardType: string): string =>
+  getWizardConfig(wizardType).getPath(wizardType);
 
 export function usePendingDrafts() {
   const [drafts, setDrafts] = useState<PendingDraft[]>([]);
