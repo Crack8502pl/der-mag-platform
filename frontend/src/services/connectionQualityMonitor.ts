@@ -1,6 +1,8 @@
 // src/services/connectionQualityMonitor.ts
 // Connection Quality Monitor - measures latency, bandwidth, and packet loss
 
+import { API_BASE_URL } from './apiBaseUrl';
+
 export type ConnectionQuality = 'excellent' | 'good' | 'poor' | 'offline';
 
 export interface ConnectionMetrics {
@@ -25,9 +27,10 @@ const THRESHOLDS = {
   poor: { latency: 1000, bandwidth: 0.1, packetLoss: 20 },
 };
 
-// Default/initial metrics
+// Default/initial metrics - start as 'offline' until the first probe completes
+// to avoid showing a misleading 'excellent' state before any measurements
 const DEFAULT_METRICS: ConnectionMetrics = {
-  quality: 'excellent',
+  quality: navigator.onLine ? 'poor' : 'offline',
   latency: 0,
   bandwidth: 0,
   packetLoss: 0,
@@ -59,7 +62,7 @@ const measureLatency = async (): Promise<number> => {
 
   try {
     const start = Date.now();
-    await fetch('/api/ping', {
+    await fetch(`${API_BASE_URL}/ping`, {
       method: 'GET',
       cache: 'no-store',
       signal: controller.signal,
@@ -81,7 +84,7 @@ const measureBandwidth = async (): Promise<number> => {
 
   try {
     const start = Date.now();
-    const response = await fetch('/api/speed-test?size=100', {
+    const response = await fetch(`${API_BASE_URL}/speed-test?size=100`, {
       method: 'GET',
       cache: 'no-store',
       signal: controller.signal,
@@ -114,7 +117,7 @@ const measurePacketLoss = async (): Promise<number> => {
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
     try {
-      await fetch('/api/ping', {
+      await fetch(`${API_BASE_URL}/ping`, {
         method: 'GET',
         cache: 'no-store',
         signal: controller.signal,
@@ -197,16 +200,13 @@ const updateMetrics = (partial: Partial<ConnectionMetrics>) => {
     newMetrics.packetLoss
   );
 
-  const qualityChanged = newMetrics.quality !== currentMetrics.quality;
   currentMetrics = newMetrics;
 
-  // Always notify on quality change, throttle otherwise
-  if (qualityChanged) {
-    window.dispatchEvent(
-      new CustomEvent('connectionQualityChanged', { detail: currentMetrics })
-    );
-    callbacks.forEach(cb => cb(currentMetrics));
-  }
+  // Always notify subscribers so latency/bandwidth values are kept fresh in the UI
+  window.dispatchEvent(
+    new CustomEvent('connectionQualityChanged', { detail: currentMetrics })
+  );
+  callbacks.forEach(cb => cb(currentMetrics));
 };
 
 /**

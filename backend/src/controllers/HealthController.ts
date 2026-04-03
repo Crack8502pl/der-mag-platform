@@ -20,10 +20,15 @@ export class HealthController {
    * Query param 'size' in KB (default: 1024, max: 10240)
    */
   static async speedTest(req: Request, res: Response): Promise<void> {
-    const size = parseInt(req.query.size as string) || 1024; // KB
-    const maxSize = 10 * 1024; // Max 10MB
+    const maxSize = 10 * 1024; // Max 10MB in KB
+    const minSize = 1; // Min 1KB
 
-    const actualSize = Math.min(size, maxSize);
+    const parsedSize = parseInt(req.query.size as string);
+    // Clamp to [minSize, maxSize]; fall back to 1024 KB when not a valid number
+    const actualSize = Number.isNaN(parsedSize)
+      ? 1024
+      : Math.max(minSize, Math.min(parsedSize, maxSize));
+
     const data = Buffer.alloc(actualSize * 1024, '0'); // Fill with zeros
 
     res.set('Content-Type', 'application/octet-stream');

@@ -1,5 +1,5 @@
 // src/components/common/ConnectionStatusBanner.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { onConnectionChange } from '../../services/connectionMonitor';
 import './ConnectionStatusBanner.css';
 
@@ -9,6 +9,7 @@ export const ConnectionStatusBanner: React.FC = () => {
     type: 'success' | 'error' | 'info';
     message: string;
   } | null>(null);
+  const notificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const unsubscribe = onConnectionChange((online) => {
@@ -21,8 +22,13 @@ export const ConnectionStatusBanner: React.FC = () => {
 
       setNotification({ type, message });
 
-      setTimeout(() => {
+      // Cancel any pending dismiss timer before starting a new one
+      if (notificationTimerRef.current !== null) {
+        clearTimeout(notificationTimerRef.current);
+      }
+      notificationTimerRef.current = setTimeout(() => {
         setNotification(null);
+        notificationTimerRef.current = null;
       }, 5000);
     };
 
@@ -31,6 +37,9 @@ export const ConnectionStatusBanner: React.FC = () => {
     return () => {
       unsubscribe();
       window.removeEventListener('connectionMonitorNotification', handleNotification);
+      if (notificationTimerRef.current !== null) {
+        clearTimeout(notificationTimerRef.current);
+      }
     };
   }, []);
 

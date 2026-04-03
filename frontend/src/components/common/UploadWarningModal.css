@@ -103,7 +103,7 @@
   border-radius: 0 0 12px 12px;
 }
 
-.btn-danger {
+.upload-warning-modal .btn-danger {
   background: var(--error);
   color: white;
   border: none;
@@ -114,6 +114,6 @@
   font-weight: 500;
 }
 
-.btn-danger:hover:not(:disabled) {
+.upload-warning-modal .btn-danger:hover:not(:disabled) {
   opacity: 0.9;
 }

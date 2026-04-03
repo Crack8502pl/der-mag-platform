@@ -148,10 +148,16 @@ export const retryQueuedRequests = async (): Promise<void> => {
 
   for (const request of queued) {
     try {
+      // Read CSRF token from the double-submit cookie (non-httpOnly)
+      const csrfMatch = document.cookie.match(/csrf-token=([^;]+)/);
+      const csrfToken = csrfMatch ? csrfMatch[1] : null;
+
       const response = await fetch(request.url, {
         method: request.method.toUpperCase(),
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
           ...(request.headers || {}),
         },
         body: request.data ? JSON.stringify(request.data) : undefined,
