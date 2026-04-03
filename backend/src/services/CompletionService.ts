@@ -1023,21 +1023,35 @@ export class CompletionService {
     const completionItemRepo = AppDataSource.getRepository(CompletionItem);
 
     const items = await completionItemRepo.find({
-      where: { completionOrderId: orderId }
+      where: { completionOrderId: orderId },
+      relations: ['taskMaterial', 'bomItem', 'bomItem.templateItem']
     });
 
     for (const item of items) {
       if (quantities[item.id] !== undefined) {
-        const issued = Math.max(0, quantities[item.id]);
-        const expected = Number(item.expectedQuantity ?? 0);
-        item.issuedQuantity = issued;
+        const issuedQty = Math.max(0, quantities[item.id]);
+        const expectedQty = Number(
+          item.taskMaterial?.plannedQuantity ??
+          item.bomItem?.quantity ??
+          item.expectedQuantity ??
+          0
+        );
+        item.issuedQuantity = issuedQty;
 
-        if (issued >= expected && expected > 0) {
-          item.status = CompletionItemStatus.SCANNED;
-        } else if (issued > 0) {
-          item.status = CompletionItemStatus.PARTIAL;
-        } else {
-          item.status = CompletionItemStatus.PENDING;
+        // Only update status for non-serialized items; serialized items have
+        // their status managed exclusively by saveItemSerials.
+        const requiresSerial =
+          item.taskMaterial?.requiresSerialNumber === true ||
+          item.bomItem?.templateItem?.requiresSerialNumber === true;
+
+        if (!requiresSerial) {
+          if (issuedQty >= expectedQty && expectedQty > 0) {
+            item.status = CompletionItemStatus.SCANNED;
+          } else if (issuedQty > 0) {
+            item.status = CompletionItemStatus.PARTIAL;
+          } else {
+            item.status = CompletionItemStatus.PENDING;
+          }
         }
 
         await completionItemRepo.save(item);
