@@ -42,10 +42,10 @@ const newEndpoint = (typ: FiberEndpoint['typ'] = 'PRZEJAZD'): FiberEndpoint => (
 
 const endpointLabel = (typ: FiberEndpoint['typ']): string => {
   const map: Record<FiberEndpoint['typ'], string> = {
-    LCS: '🏢 LCS',
-    NASTAWNIA: '🏗️ Nastawnia',
-    PRZEJAZD: '🚦 Przejazd',
-    SKP: '🔧 SKP',
+    LCS: 'LCS',
+    NASTAWNIA: 'Nastawnia',
+    PRZEJAZD: 'Przejazd',
+    SKP: 'SKP',
   };
   return map[typ];
 };
@@ -140,12 +140,12 @@ export const WizardFiberModal: React.FC<WizardFiberModalProps> = ({
   return (
     <div className="modal-overlay">
       <div
-        className="modal-content"
+        className="modal-content fiber-schema-modal"
         onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: '860px', maxHeight: '90vh', overflow: 'auto' }}
       >
         <div className="modal-header">
-          <h2>🔗 Połączenia światłowodowe — {taskLabel}</h2>
+          <h2>Połączenia światłowodowe — {taskLabel}</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
@@ -184,7 +184,7 @@ export const WizardFiberModal: React.FC<WizardFiberModalProps> = ({
 
           {connections.length > 0 && (
             <div className="fiber-summary">
-              <h4>📊 Podsumowanie</h4>
+              <h4>Podsumowanie</h4>
               <div className="fiber-summary-grid">
                 <div className="fiber-summary-item">
                   <div className="fiber-summary-value">{totalKm.toFixed(2)}</div>

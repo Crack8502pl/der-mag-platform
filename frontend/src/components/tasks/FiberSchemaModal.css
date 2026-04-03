@@ -1,6 +1,45 @@
 /* FiberSchemaModal.css */
 /* Styles for fiber optic transmission schema calculator modal */
 
+/* Scoped input/select/textarea styles */
+.fiber-schema-modal input,
+.fiber-schema-modal select,
+.fiber-schema-modal textarea {
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
+  font-size: 13px;
+  width: 100%;
+  font-family: var(--font-sans);
+  transition: border-color 0.2s;
+}
+
+.fiber-schema-modal input:focus,
+.fiber-schema-modal select:focus,
+.fiber-schema-modal textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+.fiber-schema-modal input:disabled,
+.fiber-schema-modal select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fiber-schema-modal select:hover:not(:disabled) {
+  border-color: var(--primary-color);
+}
+
+.fiber-schema-modal select option {
+  background: var(--bg-input);
+  color: var(--text-primary);
+  padding: 6px;
+}
+
 .fiber-connection-list {
   display: flex;
   flex-direction: column;
@@ -9,9 +48,9 @@
 }
 
 .fiber-connection-item {
-  background: var(--bg-card, #252525);
-  border: 1px solid var(--border-color, #333);
-  border-radius: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
   padding: 14px;
 }
 
@@ -19,13 +58,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: var(--bg-hover);
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
   margin-bottom: 10px;
 }
 
 .fiber-connection-label {
   font-size: 13px;
   font-weight: 600;
-  color: var(--primary-color, #ff6b35);
+  color: var(--primary-color);
 }
 
 .fiber-endpoints {
@@ -39,19 +81,19 @@
 .fiber-arrow {
   font-size: 18px;
   text-align: center;
-  color: var(--text-secondary, #a0aec0);
+  color: var(--text-secondary);
 }
 
 .fiber-endpoint-card {
-  background: var(--bg-primary, #1a1a1a);
-  border: 1px solid var(--border-color, #333);
-  border-radius: 6px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   padding: 10px;
 }
 
-.fiber-endpoint-card label {
+.fiber-endpoint-card > label {
   font-size: 11px;
-  color: var(--text-muted, #718096);
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 6px;
@@ -66,9 +108,9 @@
 }
 
 .fiber-summary {
-  background: rgba(255, 107, 53, 0.08);
-  border: 1px solid rgba(255, 107, 53, 0.3);
-  border-radius: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
   padding: 16px;
   margin-top: 16px;
 }
@@ -77,7 +119,7 @@
   margin: 0 0 12px 0;
   font-size: 14px;
   font-weight: 600;
-  color: var(--primary-color, #ff6b35);
+  color: var(--primary-color);
 }
 
 .fiber-summary-grid {
@@ -93,40 +135,53 @@
 .fiber-summary-value {
   font-size: 24px;
   font-weight: 700;
-  color: var(--primary-color, #ff6b35);
+  color: var(--primary-color);
 }
 
 .fiber-summary-label {
   font-size: 11px;
-  color: var(--text-secondary, #a0aec0);
+  color: var(--text-secondary);
   margin-top: 4px;
 }
 
 .fiber-type-badge {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
 }
 
 .fiber-type-duplex {
-  background: rgba(66, 153, 225, 0.2);
-  color: #4299e1;
-  border: 1px solid rgba(66, 153, 225, 0.4);
+  background: var(--info, #4299e1);
+  color: #fff;
+  border: none;
 }
 
 .fiber-type-wdm {
-  background: rgba(72, 187, 120, 0.2);
-  color: #48bb78;
-  border: 1px solid rgba(72, 187, 120, 0.4);
+  background: var(--success, #48bb78);
+  color: #fff;
+  border: none;
 }
 
 .fiber-distance-auto {
   font-size: 11px;
-  color: var(--text-secondary, #a0aec0);
+  color: var(--text-secondary);
   margin-top: 2px;
+}
+
+/* BOM variable hint shown for admins */
+.bom-variable-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono, 'Courier New', monospace);
+  background: var(--bg-hover);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
 }
 
 @media (max-width: 600px) {

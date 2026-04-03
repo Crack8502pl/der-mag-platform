@@ -16,14 +16,21 @@ import {
   totalLengthKm,
 } from '../../services/fiberCalculator.service';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useAuth } from '../../hooks/useAuth';
 import '../../styles/grover-theme.css';
 import './FiberSchemaModal.css';
 
 interface Props {
-  /** The LCS task that anchors the fiber schema */
-  task: Task;
+  /** Existing task – optional. When provided, data is loaded from task metadata. */
+  task?: Task;
+  /** Task number label shown in the header when no task entity is available. */
+  taskNumber?: string;
   onClose: () => void;
-  onSuccess: () => void;
+  /** Callback used in wizard mode – receives the built config and closes the modal. */
+  onSave?: (config: FiberTransmissionConfig) => void;
+  /** Pre-populated connections for wizard mode (task not yet created). */
+  initialConnections?: FiberConnection[];
+  onSuccess?: () => void;
 }
 
 const ENDPOINT_TYPES: FiberEndpoint['typ'][] = ['LCS', 'NASTAWNIA', 'PRZEJAZD', 'SKP'];
@@ -36,29 +43,42 @@ const newEndpoint = (typ: FiberEndpoint['typ'] = 'PRZEJAZD'): FiberEndpoint => (
 
 const endpointLabel = (typ: FiberEndpoint['typ']): string => {
   const map: Record<FiberEndpoint['typ'], string> = {
-    LCS: '🏢 LCS',
-    NASTAWNIA: '🏗️ Nastawnia',
-    PRZEJAZD: '🚦 Przejazd',
-    SKP: '🔧 SKP',
+    LCS: 'LCS',
+    NASTAWNIA: 'Nastawnia',
+    PRZEJAZD: 'Przejazd',
+    SKP: 'SKP',
   };
   return map[typ];
 };
 
-export const FiberSchemaModal: React.FC<Props> = ({ task, onClose, onSuccess }) => {
+export const FiberSchemaModal: React.FC<Props> = ({
+  task,
+  taskNumber,
+  onClose,
+  onSave,
+  initialConnections,
+  onSuccess,
+}) => {
   const { hasPermission } = usePermissions();
+  const { user } = useAuth();
   const canEdit = hasPermission('tasks', 'update');
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
   const [connections, setConnections] = useState<FiberConnection[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const saved: FiberTransmissionConfig | undefined =
-      task.metadata?.configParams?.fiberSchema;
-    if (saved?.schematLacznosci?.length) {
-      setConnections(saved.schematLacznosci);
+    if (initialConnections && initialConnections.length > 0) {
+      setConnections(initialConnections);
+    } else if (task) {
+      const saved: FiberTransmissionConfig | undefined =
+        task.metadata?.configParams?.fiberSchema;
+      if (saved?.schematLacznosci?.length) {
+        setConnections(saved.schematLacznosci);
+      }
     }
-  }, [task.metadata]);
+  }, [task, initialConnections]);
 
   /* ---------------------------------------------------------------- */
   /* Recalculate helpers                                               */
@@ -107,17 +127,17 @@ export const FiberSchemaModal: React.FC<Props> = ({ task, onClose, onSuccess }) 
 
   /** Create a new connection, pre-populating the LCS endpoint from current task data. */
   const addConnection = () => {
-    const taskKm = task.metadata?.configParams?.kilometraz
+    const taskKm = task?.metadata?.configParams?.kilometraz
       ? parseFloat(task.metadata.configParams.kilometraz)
       : undefined;
     const taskGps =
-      task.gpsLatitude != null && task.gpsLongitude != null
+      task && task.gpsLatitude != null && task.gpsLongitude != null
         ? { lat: Number(task.gpsLatitude), lng: Number(task.gpsLongitude) }
         : undefined;
 
     const lcsEndpoint: FiberEndpoint = {
       id: Date.now(),
-      nazwa: task.title || 'LCS',
+      nazwa: task?.title || taskNumber || 'LCS',
       typ: 'LCS',
       ...(taskKm != null && !isNaN(taskKm) ? { kilometraz: taskKm } : {}),
       ...(taskGps ? { gps: taskGps } : {}),
@@ -155,7 +175,18 @@ export const FiberSchemaModal: React.FC<Props> = ({ task, onClose, onSuccess }) 
   });
 
   const handleSave = async () => {
-    if (!canEdit) return;
+    if (!canEdit && !onSave) return;
+    const config = buildConfig();
+
+    if (onSave) {
+      // Wizard mode – return data to parent and close
+      onSave(config);
+      onClose();
+      return;
+    }
+
+    if (!task) return;
+
     try {
       setSaving(true);
       setError('');
@@ -164,12 +195,12 @@ export const FiberSchemaModal: React.FC<Props> = ({ task, onClose, onSuccess }) 
           ...task.metadata,
           configParams: {
             ...(task.metadata?.configParams || {}),
-            fiberSchema: buildConfig(),
+            fiberSchema: config,
           },
         },
         status: 'configured',
       });
-      onSuccess();
+      onSuccess?.();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd zapisywania schematu światłowodowego');
     } finally {
@@ -180,21 +211,21 @@ export const FiberSchemaModal: React.FC<Props> = ({ task, onClose, onSuccess }) 
   return (
     <div className="modal-overlay">
       <div
-        className="modal-content"
+        className="modal-content fiber-schema-modal"
         onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: '860px', maxHeight: '90vh', overflow: 'auto' }}
       >
         <div className="modal-header">
-          <h2>🔗 Schemat transmisji światłowodowej</h2>
+          <h2>Schemat transmisji światłowodowej{taskNumber ? ` — ${taskNumber}` : task ? ` — ${task.taskNumber}` : ''}</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
         <div className="modal-form">
           {error && <div className="alert alert-error">{error}</div>}
 
-          {!canEdit && (
+          {!canEdit && !onSave && (
             <div className="alert alert-info" style={{ marginBottom: '16px' }}>
-              🔒 Tryb podglądu – brak uprawnień do edycji
+              Tryb podglądu – brak uprawnień do edycji
             </div>
           )}
 
@@ -215,7 +246,8 @@ export const FiberSchemaModal: React.FC<Props> = ({ task, onClose, onSuccess }) 
                 key={conn.id}
                 conn={conn}
                 idx={idx}
-                readOnly={!canEdit}
+                readOnly={!canEdit && !onSave}
+                isAdmin={isAdmin}
                 onUpdateConnection={updateConnection}
                 onUpdateEndpoint={updateEndpoint}
                 onRemove={removeConnection}
@@ -223,7 +255,7 @@ export const FiberSchemaModal: React.FC<Props> = ({ task, onClose, onSuccess }) 
             ))}
           </div>
 
-          {canEdit && (
+          {(canEdit || onSave) && (
             <button
               type="button"
               className="btn btn-secondary"
@@ -237,11 +269,12 @@ export const FiberSchemaModal: React.FC<Props> = ({ task, onClose, onSuccess }) 
           {/* Summary */}
           {connections.length > 0 && (
             <div className="fiber-summary">
-              <h4>📊 Podsumowanie</h4>
+              <h4>Podsumowanie</h4>
               <div className="fiber-summary-grid">
                 <div className="fiber-summary-item">
                   <div className="fiber-summary-value">{totalKm.toFixed(2)}</div>
                   <div className="fiber-summary-label">km światłowodu łącznie</div>
+                  {isAdmin && <small className="bom-variable-hint">[obliczenia.calkowitaDlugoscKm]</small>}
                 </div>
                 <div className="fiber-summary-item">
                   <div className="fiber-summary-value">{connections.length}</div>
@@ -250,6 +283,7 @@ export const FiberSchemaModal: React.FC<Props> = ({ task, onClose, onSuccess }) 
                 <div className="fiber-summary-item">
                   <div className="fiber-summary-value">{totalFibers}</div>
                   <div className="fiber-summary-label">włókien wymaganych</div>
+                  {isAdmin && <small className="bom-variable-hint">[obliczenia.wymaganychWlokien]</small>}
                 </div>
               </div>
             </div>
@@ -258,9 +292,9 @@ export const FiberSchemaModal: React.FC<Props> = ({ task, onClose, onSuccess }) 
 
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose} disabled={saving}>
-            Zamknij
+            {onSave ? 'Anuluj' : 'Zamknij'}
           </button>
-          {canEdit && (
+          {(canEdit || onSave) && (
             <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
               {saving ? 'Zapisywanie...' : '💾 Zapisz schemat'}
             </button>
@@ -279,6 +313,7 @@ interface ConnectionRowProps {
   conn: FiberConnection;
   idx: number;
   readOnly: boolean;
+  isAdmin: boolean;
   onUpdateConnection: (idx: number, patch: Partial<FiberConnection>) => void;
   onUpdateEndpoint: (
     connIdx: number,
@@ -292,6 +327,7 @@ const ConnectionRow: React.FC<ConnectionRowProps> = ({
   conn,
   idx,
   readOnly,
+  isAdmin,
   onUpdateConnection,
   onUpdateEndpoint,
   onRemove,
@@ -334,14 +370,20 @@ const ConnectionRow: React.FC<ConnectionRowProps> = ({
         <EndpointForm
           endpoint={conn.obiektStartowy}
           label="Obiekt startowy"
+          side="obiektStartowy"
+          connIdx={idx}
           readOnly={readOnly}
+          isAdmin={isAdmin}
           onChange={(patch) => onUpdateEndpoint(idx, 'obiektStartowy', patch)}
         />
         <div className="fiber-arrow">→</div>
         <EndpointForm
           endpoint={conn.obiektKoncowy}
           label="Obiekt końcowy"
+          side="obiektKoncowy"
+          connIdx={idx}
           readOnly={readOnly}
+          isAdmin={isAdmin}
           onChange={(patch) => onUpdateEndpoint(idx, 'obiektKoncowy', patch)}
         />
       </div>
@@ -360,6 +402,7 @@ const ConnectionRow: React.FC<ConnectionRowProps> = ({
             <option value="DUPLEX">DUPLEX (2 włókna)</option>
             <option value="WDM">WDM (1 włókno)</option>
           </select>
+          {isAdmin && <small className="bom-variable-hint">[schematLacznosci[{idx}].typWkladki]</small>}
         </div>
         <div className="form-group">
           <label style={{ fontSize: '12px' }}>
@@ -379,6 +422,7 @@ const ConnectionRow: React.FC<ConnectionRowProps> = ({
               ≈ {distanceKm} km{isAutoDistance ? ' · obliczona z danych' : ' · ręcznie'}
             </div>
           )}
+          {isAdmin && <small className="bom-variable-hint">[schematLacznosci[{idx}].odleglosc]</small>}
         </div>
         <div className="form-group">
           <label style={{ fontSize: '12px' }}>Włókna</label>
@@ -390,6 +434,7 @@ const ConnectionRow: React.FC<ConnectionRowProps> = ({
             readOnly
           />
           <div className="fiber-distance-auto">auto z typu wkładki</div>
+          {isAdmin && <small className="bom-variable-hint">[schematLacznosci[{idx}].iloscWlokien]</small>}
         </div>
       </div>
     </div>
@@ -403,11 +448,14 @@ const ConnectionRow: React.FC<ConnectionRowProps> = ({
 interface EndpointFormProps {
   endpoint: FiberEndpoint;
   label: string;
+  side: 'obiektStartowy' | 'obiektKoncowy';
+  connIdx: number;
   readOnly: boolean;
+  isAdmin: boolean;
   onChange: (patch: Partial<FiberEndpoint>) => void;
 }
 
-const EndpointForm: React.FC<EndpointFormProps> = ({ endpoint, label, readOnly, onChange }) => (
+const EndpointForm: React.FC<EndpointFormProps> = ({ endpoint, label, side, connIdx, readOnly, isAdmin, onChange }) => (
   <div className="fiber-endpoint-card">
     <label>{label}</label>
     <div className="form-group" style={{ marginBottom: '6px' }}>
@@ -423,6 +471,7 @@ const EndpointForm: React.FC<EndpointFormProps> = ({ endpoint, label, readOnly, 
           </option>
         ))}
       </select>
+      {isAdmin && <small className="bom-variable-hint">[schematLacznosci[{connIdx}].{side}.typ]</small>}
     </div>
     <div className="form-group" style={{ marginBottom: '6px' }}>
       <input
@@ -435,33 +484,44 @@ const EndpointForm: React.FC<EndpointFormProps> = ({ endpoint, label, readOnly, 
       />
     </div>
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
-      <input
-        type="number"
-        placeholder="Kilometraż"
-        value={endpoint.kilometraz ?? ''}
-        disabled={readOnly}
-        style={{ fontSize: '12px' }}
-        onChange={(e) =>
-          onChange({ kilometraz: e.target.value !== '' ? Number(e.target.value) : undefined })
-        }
-        title="Kilometraż na linii kolejowej"
-      />
-      <input
-        type="text"
-        placeholder="lat,lng (GPS)"
-        value={endpoint.gps ? `${endpoint.gps.lat},${endpoint.gps.lng}` : ''}
-        disabled={readOnly}
-        style={{ fontSize: '12px' }}
-        onChange={(e) => {
-          const parts = e.target.value.split(',').map(s => s.trim());
-          if (parts.length === 2 && !isNaN(Number(parts[0])) && !isNaN(Number(parts[1]))) {
-            onChange({ gps: { lat: Number(parts[0]), lng: Number(parts[1]) } });
-          } else if (e.target.value === '') {
-            onChange({ gps: undefined });
+      <div>
+        <input
+          type="number"
+          placeholder="Kilometraż"
+          value={endpoint.kilometraz ?? ''}
+          disabled={readOnly}
+          style={{ fontSize: '12px' }}
+          onChange={(e) =>
+            onChange({ kilometraz: e.target.value !== '' ? Number(e.target.value) : undefined })
           }
-        }}
-        title="Współrzędne GPS: szerokość, długość"
-      />
+          title="Kilometraż na linii kolejowej"
+        />
+        {isAdmin && <small className="bom-variable-hint">[schematLacznosci[{connIdx}].{side}.kilometraz]</small>}
+      </div>
+      <div>
+        <input
+          type="text"
+          placeholder="lat,lng (GPS)"
+          value={endpoint.gps ? `${endpoint.gps.lat},${endpoint.gps.lng}` : ''}
+          disabled={readOnly}
+          style={{ fontSize: '12px' }}
+          onChange={(e) => {
+            const parts = e.target.value.split(',').map(s => s.trim());
+            if (parts.length === 2 && !isNaN(Number(parts[0])) && !isNaN(Number(parts[1]))) {
+              onChange({ gps: { lat: Number(parts[0]), lng: Number(parts[1]) } });
+            } else if (e.target.value === '') {
+              onChange({ gps: undefined });
+            }
+          }}
+          title="Współrzędne GPS: szerokość, długość"
+        />
+        {isAdmin && (
+          <small className="bom-variable-hint">
+            [{`schematLacznosci[${connIdx}].${side}.gps.lat`}]<br />
+            [{`schematLacznosci[${connIdx}].${side}.gps.lon`}]
+          </small>
+        )}
+      </div>
     </div>
   </div>
 );
