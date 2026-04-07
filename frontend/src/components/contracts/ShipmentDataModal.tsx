@@ -20,6 +20,10 @@ const SHIPMENT_TASK_TYPES = ['KOMPLETACJA_WYSYLKI', 'KOMPLETACJA_SZAF'];
 export const ShipmentDataModal: React.FC<ShipmentDataModalProps> = ({ subsystem, onClose }) => {
   const tasks = subsystem.tasks || [];
 
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
   // Zadania wysyłkowe
   const shipmentTasks = tasks.filter(
     (t) => SHIPMENT_TASK_TYPES.includes((t.taskType || '').toUpperCase())
@@ -102,7 +106,7 @@ export const ShipmentDataModal: React.FC<ShipmentDataModalProps> = ({ subsystem,
   };
 
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="modal-overlay" onClick={handleOverlayClick}>
       <div className="modal-content" style={{ maxWidth: 640, maxHeight: '80vh', overflowY: 'auto' }}>
         <div className="modal-header">
           <h2>📋 Dane wysyłkowe — {subsystem.subsystemNumber}</h2>

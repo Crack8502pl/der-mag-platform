@@ -857,6 +857,12 @@ export class TaskController {
             throw new Error('Maksymalna liczba zadań (9999) osiągnięta dla bieżącego miesiąca');
           }
           cabinetTaskNumber = `Z${String(seq).padStart(4, '0')}${match[2]}`;
+        } else {
+          serverLogger.warn('Nie można wygenerować numeru zadania KOMPLETACJA_SZAF - nieoczekiwany format numeru zadania', {
+            taskNumber,
+            newTaskNumber,
+            sourceTaskType: sourceTask.taskType,
+          });
         }
       }
 
