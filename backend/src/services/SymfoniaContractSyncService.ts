@@ -414,10 +414,10 @@ export class SymfoniaContractSyncService {
       if (allEmployeeCodes.length > 0) {
         const users = await userRepo
           .createQueryBuilder('u')
-          .where('u.employee_code IN (:...codes)', { codes: allEmployeeCodes })
-          .orWhere('u.alt_employee_code_1 IN (:...codes)', { codes: allEmployeeCodes })
-          .orWhere('u.alt_employee_code_2 IN (:...codes)', { codes: allEmployeeCodes })
-          .orWhere('u.alt_employee_code_3 IN (:...codes)', { codes: allEmployeeCodes })
+          .where('u.employeeCode IN (:...codes)', { codes: allEmployeeCodes })
+          .orWhere('u.altEmployeeCode1 IN (:...codes)', { codes: allEmployeeCodes })
+          .orWhere('u.altEmployeeCode2 IN (:...codes)', { codes: allEmployeeCodes })
+          .orWhere('u.altEmployeeCode3 IN (:...codes)', { codes: allEmployeeCodes })
           .getMany();
 
         // Map ALL codes (main + alternative) to the user
@@ -565,10 +565,10 @@ export class SymfoniaContractSyncService {
     if (allEmployeeCodes.length > 0) {
       const users = await userRepo
         .createQueryBuilder('u')
-        .where('u.employee_code IN (:...codes)', { codes: allEmployeeCodes })
-        .orWhere('u.alt_employee_code_1 IN (:...codes)', { codes: allEmployeeCodes })
-        .orWhere('u.alt_employee_code_2 IN (:...codes)', { codes: allEmployeeCodes })
-        .orWhere('u.alt_employee_code_3 IN (:...codes)', { codes: allEmployeeCodes })
+        .where('u.employeeCode IN (:...codes)', { codes: allEmployeeCodes })
+        .orWhere('u.altEmployeeCode1 IN (:...codes)', { codes: allEmployeeCodes })
+        .orWhere('u.altEmployeeCode2 IN (:...codes)', { codes: allEmployeeCodes })
+        .orWhere('u.altEmployeeCode3 IN (:...codes)', { codes: allEmployeeCodes })
         .getMany();
 
       // Map ALL codes (main + alternative) to the user

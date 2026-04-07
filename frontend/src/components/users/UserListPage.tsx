@@ -13,6 +13,7 @@ import { DeleteUserModal } from './DeleteUserModal';
 import { UserStatusBadge } from './UserStatusBadge';
 import api from '../../services/api';
 import { FALLBACK_ROLES } from '../../constants/roles';
+import { useAuth } from '../../hooks/useAuth';
 import './UserListPage.css';
 
 interface User {
@@ -44,6 +45,11 @@ interface Role {
 }
 
 export const UserListPage: React.FC = () => {
+  const { hasPermission } = useAuth();
+  const canUpdate = hasPermission('users', 'update');
+  const canCreate = hasPermission('users', 'create');
+  const canDelete = hasPermission('users', 'delete');
+
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
@@ -237,12 +243,14 @@ export const UserListPage: React.FC = () => {
               setCurrentPage(1);
             }}
           />
+          {canCreate && (
           <button
             className="btn btn-primary"
             onClick={() => setShowCreateModal(true)}
           >
             + Dodaj użytkownika
           </button>
+          )}
         </div>
         
         <div className="toolbar-filters">
@@ -361,6 +369,7 @@ export const UserListPage: React.FC = () => {
                       </div>
                     ) : (
                       <div className="action-buttons">
+                        {canUpdate && (
                         <button 
                           className="btn-action" 
                           title="Edytuj"
@@ -368,6 +377,8 @@ export const UserListPage: React.FC = () => {
                         >
                           ✏️
                         </button>
+                        )}
+                        {canUpdate && (
                         <button 
                           className="btn-action" 
                           title="Resetuj hasło"
@@ -375,7 +386,8 @@ export const UserListPage: React.FC = () => {
                         >
                           🔑
                         </button>
-                        {user.active ? (
+                        )}
+                        {canUpdate && (user.active ? (
                           <button 
                             className="btn-action" 
                             title="Dezaktywuj"
@@ -391,7 +403,8 @@ export const UserListPage: React.FC = () => {
                           >
                             ✅
                           </button>
-                        )}
+                        ))}
+                        {canDelete && (
                         <button 
                           className="btn-action" 
                           title="Usuń"
@@ -399,6 +412,7 @@ export const UserListPage: React.FC = () => {
                         >
                           🗑️
                         </button>
+                        )}
                       </div>
                     )}
                   </td>

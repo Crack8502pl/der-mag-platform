@@ -541,14 +541,21 @@ export class UserController {
             return;
           }
           
-          const codeUpper = employeeCode.toUpperCase();
+          const codeUpper = employeeCode.trim().toUpperCase();
+
+          // Check global uniqueness across all four employee code columns
+          const codeExists = await userRepository
+            .createQueryBuilder('u')
+            .where('u.id != :userId', { userId: user.id })
+            .andWhere('u.deletedAt IS NULL')
+            .andWhere(
+              '(u.employeeCode = :code OR u.altEmployeeCode1 = :code OR ' +
+              'u.altEmployeeCode2 = :code OR u.altEmployeeCode3 = :code)',
+              { code: codeUpper }
+            )
+            .getOne();
           
-          // Check uniqueness
-          const codeExists = await userRepository.findOne({
-            where: { employeeCode: codeUpper, deletedAt: IsNull() }
-          });
-          
-          if (codeExists && codeExists.id !== user.id) {
+          if (codeExists) {
             res.status(400).json({
               success: false,
               error: 'EMPLOYEE_CODE_EXISTS',
@@ -571,21 +578,42 @@ export class UserController {
         { value: altEmployeeCode3, field: 'altEmployeeCode3' as const },
       ];
 
-      // Collect all non-empty alt codes being set
-      const newAltCodes = altCodeFields
-        .filter(({ value }) => value !== undefined && value)
-        .map(({ value, field }) => ({ field, codeUpper: (value as string).trim().toUpperCase() }));
+      // Validate format, normalize, and collect non-empty alt codes being set
+      const newAltCodes: Array<{ field: 'altEmployeeCode1' | 'altEmployeeCode2' | 'altEmployeeCode3'; codeUpper: string }> = [];
+
+      for (const { value, field } of altCodeFields) {
+        if (value !== undefined && value) {
+          const codeUpper = (value as string).trim().toUpperCase();
+          if (!codeUpper) {
+            // Whitespace-only input — treat as clearing the field
+            user[field] = null;
+            continue;
+          }
+
+          const validation = EmployeeCodeGenerator.validateCode(codeUpper);
+          if (!validation.valid) {
+            res.status(400).json({
+              success: false,
+              error: 'INVALID_EMPLOYEE_CODE',
+              message: validation.error
+            });
+            return;
+          }
+
+          newAltCodes.push({ field, codeUpper });
+        }
+      }
 
       if (newAltCodes.length > 0) {
-        // Single query to check uniqueness of all provided codes at once
+        // Single query to check global uniqueness of all provided codes at once
         const codeValues = newAltCodes.map(({ codeUpper }) => codeUpper);
         const conflictUser = await userRepository
           .createQueryBuilder('u')
           .where('u.id != :userId', { userId: user.id })
-          .andWhere('u.deleted_at IS NULL')
+          .andWhere('u.deletedAt IS NULL')
           .andWhere(
-            '(u.employee_code IN (:...codes) OR u.alt_employee_code_1 IN (:...codes) OR ' +
-            'u.alt_employee_code_2 IN (:...codes) OR u.alt_employee_code_3 IN (:...codes))',
+            '(u.employeeCode IN (:...codes) OR u.altEmployeeCode1 IN (:...codes) OR ' +
+            'u.altEmployeeCode2 IN (:...codes) OR u.altEmployeeCode3 IN (:...codes))',
             { codes: codeValues }
           )
           .getOne();
@@ -604,9 +632,9 @@ export class UserController {
         }
       }
 
-      // Clear alt codes that were explicitly set to empty
+      // Clear alt codes that were explicitly set to empty string
       for (const { value, field } of altCodeFields) {
-        if (value !== undefined && !value) {
+        if (value !== undefined && typeof value === 'string' && value.trim() === '') {
           user[field] = null;
         }
       }

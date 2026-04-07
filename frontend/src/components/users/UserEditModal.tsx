@@ -58,14 +58,17 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
   const [codeAvailability, setCodeAvailability] = useState<Record<string, boolean | null>>({});
   const [codeValidating, setCodeValidating] = useState<Record<string, boolean>>({});
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const abortControllers = useRef<Record<string, AbortController>>({});
 
   const EMPLOYEE_CODE_FIELDS = ['employeeCode', 'altEmployeeCode1', 'altEmployeeCode2', 'altEmployeeCode3'];
 
-  // Clean up all pending debounce timers on unmount
+  // Clean up all pending debounce timers and in-flight requests on unmount
   useEffect(() => {
     const timers = debounceTimers.current;
+    const controllers = abortControllers.current;
     return () => {
       Object.values(timers).forEach(clearTimeout);
+      Object.values(controllers).forEach((c) => c.abort());
     };
   }, []);
 
@@ -73,6 +76,10 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
     (fieldName: string, code: string) => {
       if (debounceTimers.current[fieldName]) {
         clearTimeout(debounceTimers.current[fieldName]);
+      }
+      // Cancel any in-flight request for this field
+      if (abortControllers.current[fieldName]) {
+        abortControllers.current[fieldName].abort();
       }
 
       if (!code || code.trim() === '') {
@@ -82,13 +89,19 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
       }
 
       debounceTimers.current[fieldName] = setTimeout(async () => {
+        const controller = new AbortController();
+        abortControllers.current[fieldName] = controller;
         try {
           setCodeValidating((prev) => ({ ...prev, [fieldName]: true }));
           const response = await api.get(
-            `/users/check-employee-code/${encodeURIComponent(code)}?excludeUserId=${user.id}`
+            `/users/check-employee-code/${encodeURIComponent(code)}?excludeUserId=${user.id}`,
+            { signal: controller.signal }
           );
           setCodeAvailability((prev) => ({ ...prev, [fieldName]: response.data.available }));
-        } catch {
+        } catch (err: any) {
+          if (err?.name === 'CanceledError' || err?.name === 'AbortError') {
+            return; // Stale request — ignore
+          }
           setCodeAvailability((prev) => ({ ...prev, [fieldName]: null }));
         } finally {
           setCodeValidating((prev) => ({ ...prev, [fieldName]: false }));

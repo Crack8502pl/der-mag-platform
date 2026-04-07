@@ -125,13 +125,13 @@ router.put('/me/password', authenticate, UserPreferencesController.changePasswor
  * GET /api/users/check-employee-code/:code
  * Sprawdź czy kod pracownika (główny lub alternatywny) jest dostępny w systemie
  */
-router.get('/check-employee-code/:code', authenticate, async (req: Request, res: Response) => {
+router.get('/check-employee-code/:code', authenticate, checkPermission('users', 'update'), async (req: Request, res: Response) => {
   try {
     const { code } = req.params;
     const { excludeUserId } = req.query;
 
     if (!code || code.trim() === '') {
-      res.status(400).json({ error: 'Code is required' });
+      res.status(400).json({ success: false, error: 'INVALID_CODE', message: 'Kod jest wymagany' });
       return;
     }
 
@@ -140,10 +140,10 @@ router.get('/check-employee-code/:code', authenticate, async (req: Request, res:
 
     const query = userRepository
       .createQueryBuilder('u')
-      .where('u.deleted_at IS NULL')
+      .where('u.deletedAt IS NULL')
       .andWhere(
-        '(u.employee_code = :code OR u.alt_employee_code_1 = :code OR ' +
-        'u.alt_employee_code_2 = :code OR u.alt_employee_code_3 = :code)',
+        '(u.employeeCode = :code OR u.altEmployeeCode1 = :code OR ' +
+        'u.altEmployeeCode2 = :code OR u.altEmployeeCode3 = :code)',
         { code: trimmedCode }
       );
 
@@ -155,18 +155,10 @@ router.get('/check-employee-code/:code', authenticate, async (req: Request, res:
 
     res.json({
       available: conflictUser === null,
-      conflictUser: conflictUser
-        ? {
-            id: conflictUser.id,
-            fullName: `${conflictUser.firstName} ${conflictUser.lastName}`,
-            email: conflictUser.email,
-            employeeCode: conflictUser.employeeCode,
-          }
-        : null,
     });
   } catch (error) {
-    console.error('Error checking employee code:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Błąd sprawdzania kodu pracownika:', error);
+    res.status(500).json({ success: false, error: 'SERVER_ERROR', message: 'Błąd serwera' });
   }
 });
 
