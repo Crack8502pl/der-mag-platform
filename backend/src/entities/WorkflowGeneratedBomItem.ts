@@ -21,14 +21,14 @@ export class WorkflowGeneratedBomItem {
   @JoinColumn({ name: 'generated_bom_id' })
   generatedBom: WorkflowGeneratedBom;
 
-  @Column({ name: 'generated_bom_id' })
+  @Column({ type: 'int', name: 'generated_bom_id' })
   generatedBomId: number;
 
   @ManyToOne(() => WorkflowBomTemplateItem)
   @JoinColumn({ name: 'template_item_id' })
   templateItem: WorkflowBomTemplateItem;
 
-  @Column({ name: 'template_item_id' })
+  @Column({ type: 'int', name: 'template_item_id' })
   templateItemId: number;
 
   @Column({ name: 'item_name', type: 'varchar', length: 200 })

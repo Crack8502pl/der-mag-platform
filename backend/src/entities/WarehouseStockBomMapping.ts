@@ -25,24 +25,24 @@ export class WarehouseStockBomMapping {
   @JoinColumn({ name: 'warehouse_stock_id' })
   warehouseStock: WarehouseStock;
 
-  @Column({ name: 'warehouse_stock_id' })
+  @Column({ type: 'int', name: 'warehouse_stock_id' })
   warehouseStockId: number;
 
   @ManyToOne(() => BOMTemplate, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'bom_template_id' })
   bomTemplate: BOMTemplate;
 
-  @Column({ name: 'bom_template_id' })
+  @Column({ type: 'int', name: 'bom_template_id' })
   bomTemplateId: number;
 
   // Parametry mapowania
   @Column({ name: 'quantity_per_unit', type: 'decimal', precision: 10, scale: 2, default: 1 })
   quantityPerUnit: number;
 
-  @Column({ name: 'is_optional', default: false })
+  @Column({ type: 'boolean', name: 'is_optional', default: false })
   isOptional: boolean;
 
-  @Column({ name: 'is_alternative', default: false })
+  @Column({ type: 'boolean', name: 'is_alternative', default: false })
   isAlternative: boolean;
 
   @Column({ type: 'text', nullable: true })
@@ -53,7 +53,7 @@ export class WarehouseStockBomMapping {
   @JoinColumn({ name: 'created_by' })
   createdBy: User;
 
-  @Column({ name: 'created_by', nullable: true })
+  @Column({ type: 'int', name: 'created_by', nullable: true })
   createdById: number;
 
   @CreateDateColumn({ name: 'created_at' })

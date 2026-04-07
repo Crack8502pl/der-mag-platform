@@ -32,7 +32,7 @@ export class DeviceIPAssignment {
   @JoinColumn({ name: 'allocation_id' })
   allocation: NetworkAllocation;
 
-  @Column({ name: 'allocation_id' })
+  @Column({ type: 'int', name: 'allocation_id' })
   allocationId: number;
 
   @Column({ name: 'ip_address', type: 'inet' })

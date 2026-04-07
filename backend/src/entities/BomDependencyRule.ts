@@ -22,7 +22,7 @@ export class BomDependencyRule {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ length: 200 })
+  @Column({ type: 'varchar', length: 200 })
   name: string;
 
   @Column({ type: 'text', nullable: true })
@@ -43,10 +43,10 @@ export class BomDependencyRule {
   @Column({ name: 'system_type', type: 'varchar', length: 50, nullable: true })
   systemType: string;  // SMOKIP_A, SMOKIP_B, etc.
 
-  @Column({ default: 10 })
+  @Column({ type: 'int', default: 10 })
   priority: number;
 
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   active: boolean;
 
   @CreateDateColumn({ name: 'created_at' })

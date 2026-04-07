@@ -37,14 +37,14 @@ export class TaskGeneratedBom {
   @JoinColumn({ name: 'subsystem_id' })
   subsystem: Subsystem;
 
-  @Column({ name: 'subsystem_id', nullable: true })
+  @Column({ type: 'int', name: 'subsystem_id', nullable: true })
   subsystemId: number;
 
   @ManyToOne(() => BomSubsystemTemplate, { nullable: true })
   @JoinColumn({ name: 'template_id' })
   template: BomSubsystemTemplate;
 
-  @Column({ name: 'template_id', nullable: true })
+  @Column({ type: 'int', name: 'template_id', nullable: true })
   templateId: number;
 
   @Column({
@@ -61,7 +61,7 @@ export class TaskGeneratedBom {
   @JoinColumn({ name: 'generated_by' })
   generatedBy: User;
 
-  @Column({ name: 'generated_by', nullable: true })
+  @Column({ type: 'int', name: 'generated_by', nullable: true })
   generatedById: number;
 
   @Column({ name: 'generated_at', type: 'timestamp', default: () => 'NOW()' })

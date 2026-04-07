@@ -228,7 +228,7 @@ export class Role {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true, length: 50 })
+  @Column({ type: 'varchar', unique: true, length: 50 })
   name: string;
 
   @Column({ type: 'text', nullable: true })

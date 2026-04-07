@@ -43,19 +43,19 @@ export class WarehouseStock {
   uuid: string;
 
   // Identyfikacja materiału
-  @Column({ name: 'catalog_number', length: 200, unique: true })
+  @Column({ type: 'varchar', name: 'catalog_number', length: 200, unique: true })
   catalogNumber: string;
 
-  @Column({ name: 'material_name', length: 500 })
+  @Column({ type: 'varchar', name: 'material_name', length: 500 })
   materialName: string;
 
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ length: 200, nullable: true })
+  @Column({ type: 'varchar', length: 200, nullable: true })
   category: string;
 
-  @Column({ length: 200, nullable: true })
+  @Column({ type: 'varchar', length: 200, nullable: true })
   subcategory: string;
 
   @Column({
@@ -67,7 +67,7 @@ export class WarehouseStock {
   materialType: MaterialType;
 
   // Ilości i jednostki
-  @Column({ length: 50, default: 'szt' })
+  @Column({ type: 'varchar', length: 50, default: 'szt' })
   unit: string;
 
   @Column({ name: 'quantity_in_stock', type: 'decimal', precision: 10, scale: 2, default: 0 })
@@ -90,23 +90,23 @@ export class WarehouseStock {
   reorderPoint: number;
 
   // Lokalizacja magazynowa
-  @Column({ name: 'warehouse_location', length: 500, nullable: true })
+  @Column({ type: 'varchar', name: 'warehouse_location', length: 500, nullable: true })
   warehouseLocation: string;
 
-  @Column({ name: 'storage_zone', length: 100, nullable: true })
+  @Column({ type: 'varchar', name: 'storage_zone', length: 100, nullable: true })
   storageZone: string;
 
   // Dane dostawcy i producenta
-  @Column({ length: 500, nullable: true })
+  @Column({ type: 'varchar', length: 500, nullable: true })
   supplier: string;
 
-  @Column({ name: 'supplier_catalog_number', length: 200, nullable: true })
+  @Column({ type: 'varchar', name: 'supplier_catalog_number', length: 200, nullable: true })
   supplierCatalogNumber: string;
 
-  @Column({ length: 500, nullable: true })
+  @Column({ type: 'varchar', length: 500, nullable: true })
   manufacturer: string;
 
-  @Column({ name: 'part_number', length: 200, nullable: true })
+  @Column({ type: 'varchar', name: 'part_number', length: 200, nullable: true })
   partNumber: string;
 
   // Ceny
@@ -122,30 +122,30 @@ export class WarehouseStock {
   @Column({ name: 'average_price', type: 'decimal', precision: 10, scale: 2, nullable: true })
   averagePrice: number;
 
-  @Column({ length: 10, default: 'PLN' })
+  @Column({ type: 'varchar', length: 10, default: 'PLN' })
   currency: string;
 
   // Flagi kontrolne
-  @Column({ name: 'is_serialized', default: false })
+  @Column({ type: 'boolean', name: 'is_serialized', default: false })
   isSerialized: boolean;
 
-  @Column({ name: 'is_batch_tracked', default: false })
+  @Column({ type: 'boolean', name: 'is_batch_tracked', default: false })
   isBatchTracked: boolean;
 
-  @Column({ name: 'requires_ip_address', default: false })
+  @Column({ type: 'boolean', name: 'requires_ip_address', default: false })
   requiresIpAddress: boolean;
 
-  @Column({ name: 'is_active', default: true })
+  @Column({ type: 'boolean', name: 'is_active', default: true })
   isActive: boolean;
 
-  @Column({ name: 'is_hazardous', default: false })
+  @Column({ type: 'boolean', name: 'is_hazardous', default: false })
   isHazardous: boolean;
 
-  @Column({ name: 'requires_certification', default: false })
+  @Column({ type: 'boolean', name: 'requires_certification', default: false })
   requiresCertification: boolean;
 
   // Kategoria urządzenia
-  @Column({ name: 'device_category', length: 100, nullable: true })
+  @Column({ type: 'varchar', name: 'device_category', length: 100, nullable: true })
   deviceCategory: string;
 
   // Dane techniczne (JSONB)
@@ -171,10 +171,10 @@ export class WarehouseStock {
   status: StockStatus;
 
   // Dokumenty i multimedia
-  @Column({ name: 'image_url', length: 500, nullable: true })
+  @Column({ type: 'varchar', name: 'image_url', length: 500, nullable: true })
   imageUrl: string;
 
-  @Column({ name: 'datasheet_url', length: 500, nullable: true })
+  @Column({ type: 'varchar', name: 'datasheet_url', length: 500, nullable: true })
   datasheetUrl: string;
 
   @Column({ type: 'jsonb', default: [] })
@@ -192,14 +192,14 @@ export class WarehouseStock {
   @JoinColumn({ name: 'successor_id' })
   successor: WarehouseStockRef | null;
 
-  @Column({ name: 'successor_id', nullable: true })
+  @Column({ type: 'int', name: 'successor_id', nullable: true })
   successorId: number | null;
 
   @ManyToOne('WarehouseStock', { nullable: true })
   @JoinColumn({ name: 'predecessor_id' })
   predecessor: WarehouseStockRef | null;
 
-  @Column({ name: 'predecessor_id', nullable: true })
+  @Column({ type: 'int', name: 'predecessor_id', nullable: true })
   predecessorId: number | null;
 
   @Column({ name: 'discontinued_date', type: 'timestamp', nullable: true })
@@ -213,14 +213,14 @@ export class WarehouseStock {
   @JoinColumn({ name: 'created_by' })
   createdBy: User;
 
-  @Column({ name: 'created_by', nullable: true })
+  @Column({ type: 'int', name: 'created_by', nullable: true })
   createdById: number;
 
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'updated_by' })
   updatedBy: User;
 
-  @Column({ name: 'updated_by', nullable: true })
+  @Column({ type: 'int', name: 'updated_by', nullable: true })
   updatedById: number;
 
   @CreateDateColumn({ name: 'created_at' })

@@ -65,7 +65,7 @@ export class HoneypotLog {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @Column({ default: false })
+  @Column({ type: 'boolean', default: false })
   reviewed: boolean;
 
   @Column({ type: 'text', nullable: true })

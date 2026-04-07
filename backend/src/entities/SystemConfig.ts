@@ -8,7 +8,7 @@ export class SystemConfig {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true, length: 100 })
+  @Column({ type: 'varchar', unique: true, length: 100 })
   key: string;
 
   @Column({ type: 'text' })
@@ -23,6 +23,6 @@ export class SystemConfig {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @Column({ name: 'updated_by_id', nullable: true })
+  @Column({ type: 'int', name: 'updated_by_id', nullable: true })
   updatedById: number;
 }

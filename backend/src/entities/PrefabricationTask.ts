@@ -23,21 +23,21 @@ export class PrefabricationTask {
   @JoinColumn({ name: 'completion_order_id' })
   completionOrder: CompletionOrder;
 
-  @Column({ name: 'completion_order_id' })
+  @Column({ type: 'int', name: 'completion_order_id' })
   completionOrderId: number;
 
   @ManyToOne(() => Subsystem)
   @JoinColumn({ name: 'subsystem_id' })
   subsystem: Subsystem;
 
-  @Column({ name: 'subsystem_id' })
+  @Column({ type: 'int', name: 'subsystem_id' })
   subsystemId: number;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'assigned_to' })
   assignedTo: User;
 
-  @Column({ name: 'assigned_to' })
+  @Column({ type: 'int', name: 'assigned_to' })
   assignedToId: number;
 
   @Column({

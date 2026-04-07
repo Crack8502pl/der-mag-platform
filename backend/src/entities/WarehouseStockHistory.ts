@@ -44,7 +44,7 @@ export class WarehouseStockHistory {
   @JoinColumn({ name: 'warehouse_stock_id' })
   warehouseStock: WarehouseStock;
 
-  @Column({ name: 'warehouse_stock_id' })
+  @Column({ type: 'int', name: 'warehouse_stock_id' })
   warehouseStockId: number;
 
   // Typ operacji
@@ -66,10 +66,10 @@ export class WarehouseStockHistory {
   quantityAfter: number;
 
   // Referencje
-  @Column({ name: 'reference_type', length: 50, nullable: true })
+  @Column({ type: 'varchar', name: 'reference_type', length: 50, nullable: true })
   referenceType: string;
 
-  @Column({ name: 'reference_id', nullable: true })
+  @Column({ type: 'int', name: 'reference_id', nullable: true })
   referenceId: number;
 
   // Dodatkowe dane (JSONB)
@@ -84,7 +84,7 @@ export class WarehouseStockHistory {
   @JoinColumn({ name: 'performed_by' })
   performedBy: User;
 
-  @Column({ name: 'performed_by', nullable: true })
+  @Column({ type: 'int', name: 'performed_by', nullable: true })
   performedById: number;
 
   @CreateDateColumn({ name: 'performed_at' })

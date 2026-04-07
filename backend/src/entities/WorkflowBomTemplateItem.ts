@@ -14,7 +14,7 @@ export class WorkflowBomTemplateItem {
   @JoinColumn({ name: 'template_id' })
   template: WorkflowBomTemplate;
 
-  @Column({ name: 'template_id' })
+  @Column({ type: 'int', name: 'template_id' })
   templateId: number;
 
   @Column({ name: 'part_number', type: 'varchar', length: 100, nullable: true })

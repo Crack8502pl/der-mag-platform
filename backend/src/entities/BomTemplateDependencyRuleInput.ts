@@ -31,7 +31,7 @@ export class BomTemplateDependencyRuleInput {
   @JoinColumn({ name: 'rule_id' })
   rule: BomTemplateDependencyRule;
 
-  @Column({ name: 'rule_id' })
+  @Column({ type: 'int', name: 'rule_id' })
   ruleId: number;
 
   @Column({
@@ -46,14 +46,14 @@ export class BomTemplateDependencyRuleInput {
   @JoinColumn({ name: 'source_item_id' })
   sourceItem: BomSubsystemTemplateItem | null;
 
-  @Column({ name: 'source_item_id', nullable: true })
+  @Column({ type: 'int', name: 'source_item_id', nullable: true })
   sourceItemId: number | null;
 
   @ManyToOne(() => BomTemplateDependencyRule, { nullable: true })
   @JoinColumn({ name: 'source_rule_id' })
   sourceRule: BomTemplateDependencyRule | null;
 
-  @Column({ name: 'source_rule_id', nullable: true })
+  @Column({ type: 'int', name: 'source_rule_id', nullable: true })
   sourceRuleId: number | null;
 
   @Column({ name: 'only_if_selected', type: 'boolean', default: true })

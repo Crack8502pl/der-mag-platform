@@ -14,16 +14,16 @@ export class Car {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'symfonia_lp', length: 20, unique: true })
+  @Column({ type: 'varchar', name: 'symfonia_lp', length: 20, unique: true })
   symfoniaLp: string; // np. S00144
 
-  @Column({ length: 20 })
+  @Column({ type: 'varchar', length: 20 })
   registration: string; // nr rejestracyjny uppercase np. CB144RX
 
   @Column({ name: 'symfonia_element_id', nullable: true, type: 'int' })
   symfoniaElementId: number | null;
 
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   active: boolean;
 
   @Column({ name: 'brigade_id', nullable: true, type: 'int' })

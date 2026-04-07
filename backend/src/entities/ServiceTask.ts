@@ -37,10 +37,10 @@ export class ServiceTask {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'task_number', unique: true, length: 20 })
+  @Column({ type: 'varchar', name: 'task_number', unique: true, length: 20 })
   taskNumber: string; // np. SRV-000001
 
-  @Column({ length: 255 })
+  @Column({ type: 'varchar', length: 255 })
   title: string;
 
   @Column({ type: 'text', nullable: true })
@@ -53,28 +53,28 @@ export class ServiceTask {
   })
   variant: ServiceTaskVariant;
 
-  @Column({ length: 50, default: ServiceTaskStatus.CREATED })
+  @Column({ type: 'varchar', length: 50, default: ServiceTaskStatus.CREATED })
   status: ServiceTaskStatus;
 
   @ManyToOne(() => Contract, { nullable: true })
   @JoinColumn({ name: 'contract_id' })
   contract: Contract;
 
-  @Column({ name: 'contract_id', nullable: true })
+  @Column({ type: 'int', name: 'contract_id', nullable: true })
   contractId: number;
 
   @ManyToOne(() => Subsystem, { nullable: true })
   @JoinColumn({ name: 'subsystem_id' })
   subsystem: Subsystem;
 
-  @Column({ name: 'subsystem_id', nullable: true })
+  @Column({ type: 'int', name: 'subsystem_id', nullable: true })
   subsystemId: number;
 
   @ManyToOne(() => Brigade, { nullable: true })
   @JoinColumn({ name: 'brigade_id' })
   brigade: Brigade;
 
-  @Column({ name: 'brigade_id', nullable: true })
+  @Column({ type: 'int', name: 'brigade_id', nullable: true })
   brigadeId: number;
 
   @Column({ name: 'planned_start_date', type: 'date', nullable: true })
@@ -99,7 +99,7 @@ export class ServiceTask {
   @JoinColumn({ name: 'created_by' })
   createdBy: User;
 
-  @Column({ name: 'created_by' })
+  @Column({ type: 'int', name: 'created_by' })
   createdById: number;
 
   @CreateDateColumn({ name: 'created_at' })

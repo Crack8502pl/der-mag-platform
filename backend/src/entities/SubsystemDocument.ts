@@ -14,7 +14,7 @@ export class SubsystemDocument {
   @JoinColumn({ name: 'subsystem_id' })
   subsystem: Subsystem;
 
-  @Column({ name: 'subsystem_id' })
+  @Column({ type: 'int', name: 'subsystem_id' })
   subsystemId: number;
 
   @Column({ type: 'varchar', length: 255 })
@@ -36,7 +36,7 @@ export class SubsystemDocument {
   @JoinColumn({ name: 'uploaded_by' })
   uploadedBy: User;
 
-  @Column({ name: 'uploaded_by' })
+  @Column({ type: 'int', name: 'uploaded_by' })
   uploadedById: number;
 
   @CreateDateColumn({ name: 'uploaded_at' })

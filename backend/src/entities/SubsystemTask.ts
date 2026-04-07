@@ -32,7 +32,7 @@ export class SubsystemTask {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'subsystem_id' })
+  @Column({ type: 'int', name: 'subsystem_id' })
   subsystemId: number;
 
   @ManyToOne(() => Subsystem)
@@ -58,14 +58,14 @@ export class SubsystemTask {
   @Column({ name: 'bom_generated', type: 'boolean', default: false })
   bomGenerated: boolean;
 
-  @Column({ name: 'bom_id', nullable: true })
+  @Column({ type: 'int', name: 'bom_id', nullable: true })
   bomId: number | null;
 
   @ManyToOne(() => WorkflowGeneratedBom, { nullable: true })
   @JoinColumn({ name: 'bom_id' })
   bom: WorkflowGeneratedBom | null;
 
-  @Column({ name: 'task_bom_id', nullable: true })
+  @Column({ type: 'int', name: 'task_bom_id', nullable: true })
   taskBomId: number | null;
 
   @ManyToOne(() => TaskGeneratedBom, { nullable: true })
@@ -73,7 +73,7 @@ export class SubsystemTask {
   taskBom: TaskGeneratedBom | null;
 
   // Completion tracking
-  @Column({ name: 'completion_order_id', nullable: true })
+  @Column({ type: 'int', name: 'completion_order_id', nullable: true })
   completionOrderId: number | null;
 
   @ManyToOne(() => CompletionOrder, { nullable: true })
@@ -87,7 +87,7 @@ export class SubsystemTask {
   completionCompletedAt: Date | null;
 
   // Prefabrication tracking
-  @Column({ name: 'prefabrication_task_id', nullable: true })
+  @Column({ type: 'int', name: 'prefabrication_task_id', nullable: true })
   prefabricationTaskId: number | null;
 
   @ManyToOne(() => PrefabricationTask, { nullable: true })

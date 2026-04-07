@@ -16,22 +16,22 @@ export class BOMTemplate {
   @JoinColumn({ name: 'task_type_id' })
   taskType: TaskType;
 
-  @Column({ name: 'task_type_id' })
+  @Column({ type: 'int', name: 'task_type_id' })
   taskTypeId: number;
 
-  @Column({ name: 'material_name', length: 200 })
+  @Column({ type: 'varchar', name: 'material_name', length: 200 })
   materialName: string;
 
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ length: 50, nullable: true })
+  @Column({ type: 'varchar', length: 50, nullable: true })
   unit: string;
 
   @Column({ name: 'default_quantity', type: 'decimal', precision: 10, scale: 2, default: 1 })
   defaultQuantity: number;
 
-  @Column({ name: 'is_serialized', default: false })
+  @Column({ type: 'boolean', name: 'is_serialized', default: false })
   isSerialized: boolean;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
@@ -52,13 +52,13 @@ export class BOMTemplate {
   @Column({ name: 'unit_price', type: 'decimal', precision: 10, scale: 2, nullable: true })
   unitPrice?: number;
 
-  @Column({ name: 'is_required', default: false })
+  @Column({ type: 'boolean', name: 'is_required', default: false })
   isRequired: boolean;
 
-  @Column({ name: 'sort_order', default: 0 })
+  @Column({ type: 'int', name: 'sort_order', default: 0 })
   sortOrder: number;
 
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   active: boolean;
 
   @CreateDateColumn({ name: 'created_at' })

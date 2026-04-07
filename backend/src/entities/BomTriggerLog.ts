@@ -18,20 +18,20 @@ export class BomTriggerLog {
   @JoinColumn({ name: 'trigger_id' })
   trigger: BomTrigger;
 
-  @Column({ name: 'trigger_id' })
+  @Column({ type: 'int', name: 'trigger_id' })
   triggerId: number;
 
   @ManyToOne(() => Task, { nullable: true })
   @JoinColumn({ name: 'task_id' })
   task?: Task;
 
-  @Column({ name: 'task_id', nullable: true })
+  @Column({ type: 'int', name: 'task_id', nullable: true })
   taskId?: number;
 
   @CreateDateColumn({ name: 'executed_at' })
   executedAt: Date;
 
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   success: boolean;
 
   @Column({ name: 'input_data', type: 'jsonb', default: {} })

@@ -21,20 +21,20 @@ export class ServiceTaskActivity {
   @JoinColumn({ name: 'service_task_id' })
   serviceTask: ServiceTask;
 
-  @Column({ name: 'service_task_id' })
+  @Column({ type: 'int', name: 'service_task_id' })
   serviceTaskId: number;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'performed_by' })
   performedBy: User;
 
-  @Column({ name: 'performed_by' })
+  @Column({ type: 'int', name: 'performed_by' })
   performedById: number;
 
   @Column({ type: 'text' })
   description: string;
 
-  @Column({ name: 'activity_type', length: 50 })
+  @Column({ type: 'varchar', name: 'activity_type', length: 50 })
   activityType: string; // 'status_change', 'note', 'photo', 'material_used'
 
   @Column({ type: 'jsonb', default: {} })

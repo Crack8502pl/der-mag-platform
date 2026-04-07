@@ -23,25 +23,25 @@ export class WarehouseLocation {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'location_code', length: 50, unique: true })
+  @Column({ type: 'varchar', name: 'location_code', length: 50, unique: true })
   locationCode: string;
 
-  @Column({ name: 'location_name', length: 200 })
+  @Column({ type: 'varchar', name: 'location_name', length: 200 })
   locationName: string;
 
-  @Column({ length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   zone: string;
 
-  @Column({ length: 50, nullable: true })
+  @Column({ type: 'varchar', length: 50, nullable: true })
   aisle: string;
 
-  @Column({ length: 50, nullable: true })
+  @Column({ type: 'varchar', length: 50, nullable: true })
   rack: string;
 
-  @Column({ length: 50, nullable: true })
+  @Column({ type: 'varchar', length: 50, nullable: true })
   shelf: string;
 
-  @Column({ length: 50, nullable: true })
+  @Column({ type: 'varchar', length: 50, nullable: true })
   bin: string;
 
   // Parametry lokalizacji
@@ -51,7 +51,7 @@ export class WarehouseLocation {
   @Column({ name: 'current_usage', type: 'decimal', precision: 10, scale: 2, default: 0 })
   currentUsage: number;
 
-  @Column({ name: 'is_active', default: true })
+  @Column({ type: 'boolean', name: 'is_active', default: true })
   isActive: boolean;
 
   @Column({

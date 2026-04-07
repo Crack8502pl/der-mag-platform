@@ -25,7 +25,7 @@ export class WizardDraft {
   @Column({ name: 'wizard_type', type: 'varchar', length: 50 })
   wizardType: string;
 
-  @Column({ name: 'user_id' })
+  @Column({ type: 'int', name: 'user_id' })
   userId: number;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })

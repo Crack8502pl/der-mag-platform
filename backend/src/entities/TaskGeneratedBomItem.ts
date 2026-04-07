@@ -25,14 +25,14 @@ export class TaskGeneratedBomItem {
   @JoinColumn({ name: 'task_bom_id' })
   taskBom: TaskGeneratedBom;
 
-  @Column({ name: 'task_bom_id' })
+  @Column({ type: 'int', name: 'task_bom_id' })
   taskBomId: number;
 
   @ManyToOne(() => BomSubsystemTemplateItem, { nullable: true })
   @JoinColumn({ name: 'template_item_id' })
   templateItem: BomSubsystemTemplateItem;
 
-  @Column({ name: 'template_item_id', nullable: true })
+  @Column({ type: 'int', name: 'template_item_id', nullable: true })
   templateItemId: number;
 
   @Column({ name: 'item_name', type: 'varchar', length: 255 })

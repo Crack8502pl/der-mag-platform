@@ -14,14 +14,14 @@ export class TaskMetric {
   @JoinColumn({ name: 'task_id' })
   task: Task;
 
-  @Column({ name: 'task_id' })
+  @Column({ type: 'int', name: 'task_id' })
   taskId: number;
 
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ name: 'user_id', nullable: true })
+  @Column({ type: 'int', name: 'user_id', nullable: true })
   userId: number;
 
   @Column({ name: 'metric_type', type: 'varchar', length: 50 })

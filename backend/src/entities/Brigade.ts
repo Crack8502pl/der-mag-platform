@@ -17,16 +17,16 @@ export class Brigade {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true, length: 20 })
+  @Column({ type: 'varchar', unique: true, length: 20 })
   code: string; // Numer rejestracyjny samochodu np. "WA12345"
 
-  @Column({ length: 100 })
+  @Column({ type: 'varchar', length: 100 })
   name: string;
 
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   active: boolean;
 
   @OneToMany(() => BrigadeMember, (member) => member.brigade)

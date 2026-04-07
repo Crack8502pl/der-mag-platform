@@ -11,19 +11,19 @@ export class User {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true, length: 50 })
+  @Column({ type: 'varchar', unique: true, length: 50 })
   username: string;
 
-  @Column({ unique: true, length: 100 })
+  @Column({ type: 'varchar', unique: true, length: 100 })
   email: string;
 
-  @Column({ name: 'password_hash', select: false })
+  @Column({ type: 'text', name: 'password_hash', select: false })
   password: string;
 
-  @Column({ name: 'first_name', length: 100 })
+  @Column({ type: 'varchar', name: 'first_name', length: 100 })
   firstName: string;
 
-  @Column({ name: 'last_name', length: 100 })
+  @Column({ type: 'varchar', name: 'last_name', length: 100 })
   lastName: string;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
@@ -36,16 +36,16 @@ export class User {
   @JoinColumn({ name: 'role_id' })
   role: Role;
 
-  @Column({ name: 'role_id' })
+  @Column({ type: 'int', name: 'role_id' })
   roleId: number;
 
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   active: boolean;
 
   @Column({ name: 'last_login', type: 'timestamp', nullable: true })
   lastLogin: Date;
 
-  @Column({ name: 'force_password_change', default: true })
+  @Column({ type: 'boolean', name: 'force_password_change', default: true })
   forcePasswordChange: boolean;
 
   @Column({ name: 'password_changed_at', type: 'timestamp', nullable: true })

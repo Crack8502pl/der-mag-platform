@@ -16,21 +16,21 @@ export class NetworkAllocation {
   @JoinColumn({ name: 'contract_id' })
   contract: Contract;
 
-  @Column({ name: 'contract_id' })
+  @Column({ type: 'int', name: 'contract_id' })
   contractId: number;
 
   @OneToOne(() => Subsystem, subsystem => subsystem.networkAllocation)
   @JoinColumn({ name: 'subsystem_id' })
   subsystem: Subsystem;
 
-  @Column({ name: 'subsystem_id' })
+  @Column({ type: 'int', name: 'subsystem_id' })
   subsystemId: number;
 
   @ManyToOne(() => NetworkPool, pool => pool.allocations)
   @JoinColumn({ name: 'pool_id' })
   pool: NetworkPool;
 
-  @Column({ name: 'pool_id' })
+  @Column({ type: 'int', name: 'pool_id' })
   poolId: number;
 
   @Column({ name: 'system_type', type: 'varchar', length: 50 })
