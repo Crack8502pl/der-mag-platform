@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 echo "=== Optymalizacja swappiness dla der-mag-platform ==="
 
@@ -10,10 +11,10 @@ echo "Obecny swappiness: $current"
 if [ "$current" != "10" ]; then
     echo "Ustawiam swappiness na 10..."
     sudo sysctl vm.swappiness=10
-    if ! grep -q "^vm.swappiness=" /etc/sysctl.conf; then
+    if ! grep -Eq '^[[:space:]]*vm\.swappiness[[:space:]]*=' /etc/sysctl.conf; then
         echo "vm.swappiness=10" | sudo tee -a /etc/sysctl.conf
     else
-        sudo sed -i 's/^vm.swappiness=.*/vm.swappiness=10/' /etc/sysctl.conf
+        sudo sed -i -E 's|^[[:space:]]*vm\.swappiness[[:space:]]*=.*|vm.swappiness=10|' /etc/sysctl.conf
     fi
     echo "✅ Swappiness zaktualizowany"
 else
@@ -24,10 +25,10 @@ fi
 echo ""
 echo "Optymalizacja vfs_cache_pressure..."
 sudo sysctl vm.vfs_cache_pressure=50
-if ! grep -q "^vm.vfs_cache_pressure=" /etc/sysctl.conf; then
+if ! grep -Eq '^[[:space:]]*vm\.vfs_cache_pressure[[:space:]]*=' /etc/sysctl.conf; then
     echo "vm.vfs_cache_pressure=50" | sudo tee -a /etc/sysctl.conf
 else
-    sudo sed -i 's/^vm.vfs_cache_pressure=.*/vm.vfs_cache_pressure=50/' /etc/sysctl.conf
+    sudo sed -i -E 's|^[[:space:]]*vm\.vfs_cache_pressure[[:space:]]*=.*|vm.vfs_cache_pressure=50|' /etc/sysctl.conf
 fi
 
 echo ""

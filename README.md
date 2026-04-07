@@ -508,16 +508,15 @@ Po optymalizacjach:
 
 ### Konfiguracja środowiska
 
-Upewnij się, że pliki `.env` zawierają:
-
-**backend/.env**:
+**backend/.env** — limit pamięci sterty dla procesu serwera:
 ```
-NODE_OPTIONS="--max-old-space-size=384 --max-semi-space-size=2"
+NODE_OPTIONS="--max-old-space-size=384"
 ```
 
-**frontend/.env**:
-```
-NODE_OPTIONS="--max-old-space-size=256"
+**frontend** — Vite nie wczytuje `NODE_OPTIONS` z pliku `.env`. Ustaw flagę w shellu lub w skrypcie uruchomieniowym:
+```bash
+# uruchomienie z limitem pamięci
+NODE_OPTIONS=--max-old-space-size=256 npm run dev
 ```
 
 ### PostgreSQL (opcjonalnie)
