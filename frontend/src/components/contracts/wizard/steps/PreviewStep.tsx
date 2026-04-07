@@ -25,7 +25,7 @@ export const PreviewStep: React.FC<Props> = ({
     const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
     const tasks = generatedTasks.filter(t => t.subsystemType === subsystem.type);
     const existingTasksCount = editMode
-      ? (subsystem.taskDetails?.filter(t => t.id)?.length || 0)
+      ? (subsystem.taskDetails?.filter(t => t.id).length || 0)
       : 0;
     return { config, subsystem, tasks, existingTasksCount };
   });

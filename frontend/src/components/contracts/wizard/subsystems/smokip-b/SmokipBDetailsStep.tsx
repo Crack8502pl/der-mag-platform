@@ -95,10 +95,7 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
               <strong>
                 Zadanie {idx + 1}: {detail.taskType}
                 {isExisting && (
-                  <span
-                    className="badge badge-success"
-                    style={{ marginLeft: '8px', fontSize: '0.75rem', padding: '4px 8px', background: '#4caf50', color: 'white', borderRadius: '4px' }}
-                  >
+                  <span className="badge-task-created">
                     ✅ Utworzone
                   </span>
                 )}
