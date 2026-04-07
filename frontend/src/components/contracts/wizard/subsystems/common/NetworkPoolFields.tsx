@@ -15,7 +15,7 @@ interface NetworkPoolFieldsProps {
 /** Convert CIDR prefix to dotted subnet mask */
 export const prefixToSubnetMask = (prefix: number): string => {
   if (prefix < 0 || prefix > 32) return '';
-  const bits = 0xffffffff << (32 - prefix);
+  const bits = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
   return [
     (bits >>> 24) & 0xff,
     (bits >>> 16) & 0xff,
@@ -24,18 +24,33 @@ export const prefixToSubnetMask = (prefix: number): string => {
   ].join('.');
 };
 
-/** Calculate network address (first IP in CIDR) and return the first usable host address */
+/** Calculate network address (first IP in CIDR) and return the first usable host address.
+ * Returns empty string for /32 (no usable hosts) or the network address itself for /31 (RFC 3021). */
 export const calculateFirstIP = (ip: string, prefix: number): string => {
   const parts = ip.split('.').map(Number);
   if (parts.length !== 4 || parts.some(p => isNaN(p) || p < 0 || p > 255)) return '';
 
   const ipInt =
-    (parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3];
-  const maskInt = prefix === 0 ? 0 : 0xffffffff << (32 - prefix);
-  const networkInt = ipInt & maskInt;
+    ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
+  const maskInt = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+  const networkInt = (ipInt & maskInt) >>> 0;
 
-  // Return first host address (network address + 1)
-  const firstInt = networkInt + 1;
+  // /32: single host, return that address itself
+  if (prefix === 32) {
+    return ip.split('/')[0];
+  }
+  // /31: RFC 3021 - both addresses are usable, return the lower address
+  if (prefix === 31) {
+    return [
+      (networkInt >>> 24) & 0xff,
+      (networkInt >>> 16) & 0xff,
+      (networkInt >>> 8) & 0xff,
+      networkInt & 0xff,
+    ].join('.');
+  }
+
+  // Standard: return network address + 1 (first usable host)
+  const firstInt = (networkInt + 1) >>> 0;
   return [
     (firstInt >>> 24) & 0xff,
     (firstInt >>> 16) & 0xff,

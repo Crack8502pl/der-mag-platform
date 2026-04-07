@@ -28,6 +28,8 @@ export interface TaskDetail {
   googleMapsUrl?: string;
   fiberConnections?: FiberConnection[];
   hasCUID?: boolean; // For LCS tasks: whether a CUiD task has been linked to this LCS
+  /** Stable index (at time of creation) linking a CUID task back to the LCS that created it */
+  linkedLCSTaskIndex?: number;
 }
 
 export interface SubsystemWizardData {

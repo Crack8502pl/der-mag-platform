@@ -24,7 +24,12 @@ const parseDms = (dms: DmsValue): number | null => {
   const m = parseFloat(dms.minutes || '0');
   const s = parseFloat(dms.seconds || '0');
   if (isNaN(d)) return null;
-  return d + m / 60 + s / 3600;
+  // Validate minutes and seconds are within valid ranges
+  if (m < 0 || m >= 60) return null;
+  if (s < 0 || s >= 60) return null;
+  // For negative degrees, minutes and seconds reduce the absolute value
+  const sign = d < 0 ? -1 : 1;
+  return d + sign * (m / 60 + s / 3600);
 };
 
 export const GPSLocationInput: React.FC<GPSLocationInputProps> = ({

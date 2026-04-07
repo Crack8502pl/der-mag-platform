@@ -49,15 +49,19 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
     const lcsTask = taskDetails[lcsTaskIndex];
     onUpdateTask(subsystemIndex, lcsTaskIndex, { hasCUID: checked });
     if (checked) {
+      // Add CUID task inheriting location from LCS; store the LCS index for later removal
       const cuidInitial: Partial<TaskDetail> = {
         liniaKolejowa: lcsTask.liniaKolejowa || detectedRailwayLine,
         miejscowosc: lcsTask.miejscowosc,
         nazwa: lcsTask.nazwa,
+        linkedLCSTaskIndex: lcsTaskIndex,
       };
       onAddTask(subsystemIndex, 'CUID', cuidInitial);
     } else {
-      // Remove the first CUID task that appears after this LCS in the list
-      const cuidIndex = taskDetails.findIndex((t, i) => i > lcsTaskIndex && t.taskType === 'CUID');
+      // Remove the CUID task that was created by this specific LCS checkbox
+      const cuidIndex = taskDetails.findIndex(
+        (t) => t.taskType === 'CUID' && t.linkedLCSTaskIndex === lcsTaskIndex
+      );
       if (cuidIndex !== -1) {
         onRemoveTask(subsystemIndex, cuidIndex);
       }
