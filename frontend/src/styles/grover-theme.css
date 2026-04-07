@@ -595,6 +595,14 @@ a:hover {
   color: rgba(255,255,255,0.5);
 }
 
+.text-error {
+  color: var(--error);
+}
+
+.text-success {
+  color: var(--success);
+}
+
 .modal-wizard .detected-subsystem {
   margin-top: 8px;
   padding: 8px 12px;

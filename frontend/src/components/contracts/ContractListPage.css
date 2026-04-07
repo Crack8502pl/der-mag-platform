@@ -404,6 +404,14 @@
   font-size: 13px;
 }
 
+.text-error {
+  color: var(--error);
+}
+
+.text-success {
+  color: var(--success);
+}
+
 .required {
   color: #dc3545;
 }

@@ -18,7 +18,7 @@ export const SmokipBConfigStep: React.FC<SubsystemConfigStepProps> = (props) => 
   };
 
   const handleUpdateIpPool = (value: string) => {
-    onUpdate(subsystemIndex, { ipPool: value.trim() });
+    onUpdate(subsystemIndex, { ipPool: value });
   };
 
   return (

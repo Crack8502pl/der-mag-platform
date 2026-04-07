@@ -81,6 +81,9 @@ const isPrzejazdTask = (taskType: string): boolean => {
   );
 };
 
+const isSkpTask = (taskType: string): boolean =>
+  taskType.toUpperCase() === 'SKP' || taskType.toUpperCase().includes('SKP');
+
 const isLcsNdTask = (taskType: string): boolean =>
   LCS_ND_TYPES.some((t) => taskType.toUpperCase() === t);
 
@@ -305,7 +308,9 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
   const activeTasks = eligibleTasks.filter((t) =>
     selectedTasks.includes(t.taskNumber)
   );
-  const przejazdTasks = activeTasks.filter((t) => isPrzejazdTask(t.taskType));
+  const przejazdOrSkpTasks = activeTasks.filter(
+    (t) => isPrzejazdTask(t.taskType) || isSkpTask(t.taskType)
+  );
 
   // ── Render pomocniczy ─────────────────────────────────────────────────────
   const renderStepIndicator = () => (
@@ -491,16 +496,16 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
   const renderStep3 = () => (
     <>
       <p className="wizard-subtitle">
-        Konfiguracja słupów dla zadań typu PRZEJAZD
+        Konfiguracja słupów dla zadań typu PRZEJAZD i SKP
       </p>
 
-      {przejazdTasks.length === 0 && (
+      {przejazdOrSkpTasks.length === 0 && (
         <div className="alert alert-info">
-          Brak zadań typu PRZEJAZD wśród zaznaczonych — możesz zlecić wysyłkę.
+          Brak zadań typu PRZEJAZD/SKP wśród zaznaczonych — możesz zlecić wysyłkę.
         </div>
       )}
 
-      {przejazdTasks.map((task) => {
+      {przejazdOrSkpTasks.map((task) => {
         const config = poleConfig[task.taskNumber] || {
           quantity: 0,
           type: 'STALOWY' as PoleType,
