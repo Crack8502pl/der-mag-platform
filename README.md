@@ -487,6 +487,53 @@ npm run db:setup-cron
 
 Szczegółowe informacje w [backend/README.md](backend/README.md)
 
+## 🚀 Optymalizacja wydajności
+
+### Zużycie RAM
+
+Po optymalizacjach:
+- **Backend (tsx)**: ~150 MB (poprzednio 505 MB)
+- **Frontend (Vite)**: ~60 MB (poprzednio 84 MB)
+- **Razem**: ~210 MB (poprzednio ~790 MB)
+
+### Monitoring
+
+```bash
+# Sprawdź zużycie RAM procesów Node.js
+./scripts/monitor-ram.sh
+
+# Optymalizuj system (Linux)
+./scripts/optimize-system.sh
+```
+
+### Konfiguracja środowiska
+
+Upewnij się, że pliki `.env` zawierają:
+
+**backend/.env**:
+```
+NODE_OPTIONS="--max-old-space-size=384 --max-semi-space-size=2"
+```
+
+**frontend/.env**:
+```
+NODE_OPTIONS="--max-old-space-size=256"
+```
+
+### PostgreSQL (opcjonalnie)
+
+Jeśli używasz PostgreSQL, zastosuj optymalizacje:
+```bash
+# Backup obecnej konfiguracji
+sudo cp /etc/postgresql/*/main/postgresql.conf /etc/postgresql/*/main/postgresql.conf.backup
+
+# Dodaj optymalizacje
+sudo cat scripts/optimize-postgres.conf | sudo tee -a /etc/postgresql/*/main/postgresql.conf
+
+# Restart PostgreSQL
+sudo systemctl restart postgresql
+```
+
 ## 📄 Licencja
 
 MIT License - zobacz [LICENSE](LICENSE)

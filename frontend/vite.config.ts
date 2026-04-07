@@ -17,6 +17,15 @@ if (!certsExist) {
 export default defineConfig({
   plugins: [react()],
   base: '/', // 🆕 CRITICAL - ensure relative paths work on any domain
+
+  // RAM optimization: limit esbuild pre-bundling work
+  optimizeDeps: {
+    force: false,
+    esbuildOptions: {
+      target: 'es2020'
+    }
+  },
+
   server: {
     host: '0.0.0.0', // Pozwól na dostęp z sieci lokalnej
     port: 5173,
@@ -26,13 +35,20 @@ export default defineConfig({
       cert: fs.readFileSync(certPath)
     } : undefined,
     cors:  true, // 🆕 Enable CORS in Vite dev server
+    // RAM optimization: disable polling watcher
+    watch: {
+      usePolling: false
+    },
     hmr: {
       protocol: certsExist ? 'wss' : 'ws', // 🆕 Use WebSocket Secure when HTTPS enabled
-      host: 'localhost'
+      host: 'localhost',
+      overlay: true
     }
   },
   build: {
+    target: 'es2020',
     sourcemap: true, // 🆕 Sourcemapy dla debugowania
+    minify: 'esbuild',
     assetsDir: 'assets', // 🆕 Ensure assets are in /assets/
     rollupOptions: {
       output: {
