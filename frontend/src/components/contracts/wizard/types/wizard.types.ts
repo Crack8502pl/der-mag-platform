@@ -27,6 +27,7 @@ export interface TaskDetail {
   gpsLongitude?: string;
   googleMapsUrl?: string;
   fiberConnections?: FiberConnection[];
+  hasCUID?: boolean; // For LCS tasks: whether a CUiD task has been linked to this LCS
 }
 
 export interface SubsystemWizardData {
@@ -48,6 +49,7 @@ export interface WizardData {
   projectManagerId: string;
   managerCode: string;
   liniaKolejowa?: string; // Optional railway line field
+  detectedRailwayLine?: string; // Auto-detected from contract name (e.g. "LK123")
   subsystems: SubsystemWizardData[];
 }
 

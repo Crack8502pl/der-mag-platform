@@ -1,15 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import type { SubsystemWizardData, TaskDetail } from '../../types/wizard.types';
-import type { FiberConnection } from '../../../../../types/fiber.types';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../../config/subsystemWizardConfig';
 import { OPTIONAL_KILOMETRAZ_HELP, formatLiniaKolejowa } from '../../utils/validation';
-import { taskDetailToAvailableEndpoint } from '../../utils/fiberTaskUtils';
-import { useGoogleMaps } from '../../../../../hooks/useGoogleMaps';
-import { WizardFiberModal } from '../WizardFiberModal';
+import { GPSLocationInput } from '../../common/GPSLocationInput';
 
 interface SmokipBDetailsStepProps {
   subsystem: SubsystemWizardData;
   subsystemIndex: number;
+  detectedRailwayLine?: string;
   onUpdate: (index: number, updates: Partial<SubsystemWizardData>) => void;
   onAddTask: (subsystemIndex: number, taskType: TaskDetail['taskType']) => void;
   onRemoveTask: (subsystemIndex: number, taskIndex: number) => void;
@@ -23,6 +21,7 @@ interface SmokipBDetailsStepProps {
 export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
   subsystem,
   subsystemIndex,
+  detectedRailwayLine,
   onAddTask,
   onRemoveTask,
   onUpdateTask,
@@ -31,74 +30,6 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
 }) => {
   const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
   const taskDetails = subsystem.taskDetails || [];
-  const { parseUrl, parseUrlLocal, loading: gpsLoading } = useGoogleMaps();
-  const [gpsInputValues, setGpsInputValues] = useState<Record<number, string>>({});
-  const [fiberModalTaskIndex, setFiberModalTaskIndex] = useState<number | null>(null);
-
-  const handleGpsInputChange = async (taskIndex: number, value: string) => {
-    setGpsInputValues(prev => ({ ...prev, [taskIndex]: value }));
-
-    if (value.includes('google.com/maps') || value.includes('goo.gl/maps') || value.includes('maps.app.goo.gl')) {
-      try {
-        const localResult = parseUrlLocal(value);
-        if (localResult) {
-          onUpdateTask(subsystemIndex, taskIndex, {
-            gpsLatitude: localResult.lat.toFixed(6),
-            gpsLongitude: localResult.lon.toFixed(6),
-            googleMapsUrl: value
-          });
-          return;
-        }
-        const result = await parseUrl(value);
-        if (result?.coordinates) {
-          onUpdateTask(subsystemIndex, taskIndex, {
-            gpsLatitude: result.coordinates.lat.toFixed(6),
-            gpsLongitude: result.coordinates.lon.toFixed(6),
-            googleMapsUrl: value
-          });
-        }
-      } catch (err) {
-        console.error('Błąd parsowania linku Google Maps:', err);
-      }
-    } else if (value.match(/^[-0-9.]+\s*,\s*[-0-9.]+$/)) {
-      const parts = value.split(',').map(s => s.trim());
-      if (parts.length === 2) {
-        const lat = parseFloat(parts[0]);
-        const lon = parseFloat(parts[1]);
-        if (!isNaN(lat) && !isNaN(lon)) {
-          onUpdateTask(subsystemIndex, taskIndex, {
-            gpsLatitude: lat.toFixed(6),
-            gpsLongitude: lon.toFixed(6)
-          });
-        }
-      }
-    }
-  };
-
-  const handleGetCurrentLocation = (taskIndex: number) => {
-    if (!navigator.geolocation) {
-      alert('Geolokalizacja nie jest wspierana przez tę przeglądarkę');
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        onUpdateTask(subsystemIndex, taskIndex, {
-          gpsLatitude: position.coords.latitude.toFixed(6),
-          gpsLongitude: position.coords.longitude.toFixed(6)
-        });
-        setGpsInputValues(prev => ({ ...prev, [taskIndex]: '' }));
-      },
-      (error) => {
-        const msg = error.code === error.PERMISSION_DENIED
-          ? 'Brak uprawnień do geolokalizacji. Zezwól na dostęp do lokalizacji w ustawieniach przeglądarki.'
-          : error.code === error.POSITION_UNAVAILABLE
-            ? 'Lokalizacja jest niedostępna. Spróbuj ponownie.'
-            : 'Nie udało się pobrać lokalizacji. Spróbuj ponownie.';
-        alert(msg);
-      },
-      { enableHighAccuracy: true }
-    );
-  };
 
   const handleLiniaKolejowaBlur = (taskIndex: number, value: string) => {
     if (value.trim()) {
@@ -107,9 +38,36 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
     }
   };
 
-  const openInGoogleMaps = (lat: string, lon: string) => {
-    if (lat && lon) {
-      window.open(`https://www.google.com/maps?q=${lat},${lon}`, '_blank');
+  const handleAddTask = (taskType: TaskDetail['taskType']) => {
+    onAddTask(subsystemIndex, taskType);
+    if (detectedRailwayLine) {
+      setTimeout(() => {
+        const newIndex = (subsystem.taskDetails?.length ?? 0);
+        onUpdateTask(subsystemIndex, newIndex, { liniaKolejowa: detectedRailwayLine });
+      }, 0);
+    }
+  };
+
+  const handleCuidCheckbox = (lcsTaskIndex: number, checked: boolean) => {
+    const lcsTask = taskDetails[lcsTaskIndex];
+    onUpdateTask(subsystemIndex, lcsTaskIndex, { hasCUID: checked });
+    if (checked) {
+      onAddTask(subsystemIndex, 'CUID');
+      if (detectedRailwayLine || lcsTask.liniaKolejowa) {
+        setTimeout(() => {
+          const newIndex = (subsystem.taskDetails?.length ?? 0);
+          onUpdateTask(subsystemIndex, newIndex, {
+            liniaKolejowa: lcsTask.liniaKolejowa || detectedRailwayLine,
+            miejscowosc: lcsTask.miejscowosc,
+            nazwa: lcsTask.nazwa,
+          });
+        }, 0);
+      }
+    } else {
+      const cuidIndex = taskDetails.findIndex((t, i) => i > lcsTaskIndex && t.taskType === 'CUID');
+      if (cuidIndex !== -1) {
+        onRemoveTask(subsystemIndex, cuidIndex);
+      }
     }
   };
 
@@ -152,58 +110,24 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
                   onChange={(e) => onUpdateTask(subsystemIndex, idx, { liniaKolejowa: e.target.value })}
                   onBlur={(e) => handleLiniaKolejowaBlur(idx, e.target.value)}
                 />
-                <small className="form-help">Format: LK-XXX lub E-XX (auto-normalizacja)</small>
+                {detectedRailwayLine && !detail.liniaKolejowa && (
+                  <small className="form-help text-success">
+                    ✓ Wykryto automatycznie z nazwy kontraktu: {detectedRailwayLine}
+                  </small>
+                )}
+                {!detectedRailwayLine && (
+                  <small className="form-help">Format: LK-XXX lub E-XX (auto-normalizacja)</small>
+                )}
               </div>
 
               <div className="form-group">
                 <label>Lokalizacja GPS <span className="text-muted">(opcjonalne)</span></label>
-                <div className="gps-input-wrapper">
-                  <input
-                    type="text"
-                    placeholder="Wklej link Google Maps lub współrzędne (lat, lon)"
-                    value={gpsInputValues[idx] || ''}
-                    onChange={(e) => handleGpsInputChange(idx, e.target.value)}
-                    className="gps-url-input"
-                  />
-                  <button
-                    type="button"
-                    className="btn-icon btn-gps"
-                    onClick={() => handleGetCurrentLocation(idx)}
-                    title="Użyj aktualnej lokalizacji"
-                    disabled={gpsLoading}
-                  >
-                    📍
-                  </button>
-                </div>
-                {(detail.gpsLatitude || detail.gpsLongitude) && (
-                  <div className="gps-coordinates-display">
-                    <span className="gps-coords">
-                      📌 {detail.gpsLatitude}, {detail.gpsLongitude}
-                    </span>
-                    <button
-                      type="button"
-                      className="btn-link"
-                      onClick={() => openInGoogleMaps(detail.gpsLatitude!, detail.gpsLongitude!)}
-                      title="Otwórz w Google Maps"
-                    >
-                      🗺️ Otwórz mapę
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-link btn-danger-link"
-                      onClick={() => {
-                        onUpdateTask(subsystemIndex, idx, { gpsLatitude: undefined, gpsLongitude: undefined });
-                        setGpsInputValues(prev => ({ ...prev, [idx]: '' }));
-                      }}
-                      title="Usuń lokalizację"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                )}
-                <small className="form-help">
-                  Obsługiwane formaty: link Google Maps (także skrócony), współrzędne "52.2297, 21.0122"
-                </small>
+                <GPSLocationInput
+                  gpsLatitude={detail.gpsLatitude}
+                  gpsLongitude={detail.gpsLongitude}
+                  googleMapsUrl={detail.googleMapsUrl}
+                  onUpdate={(updates) => onUpdateTask(subsystemIndex, idx, updates)}
+                />
               </div>
             </div>
 
@@ -304,26 +228,17 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
                   <small className="form-help">{OPTIONAL_KILOMETRAZ_HELP}</small>
                 </div>
                 <div className="form-group">
-                  <label>Połączenia światłowodowe <span className="text-muted">(opcjonalne)</span></label>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => setFiberModalTaskIndex(idx)}
-                  >
-                    ⚡ {(() => {
-                        const n = detail.fiberConnections?.length || 0;
-                        if (!n) return 'Konfiguruj połączenia';
-                        const mod10 = n % 10;
-                        const mod100 = n % 100;
-                        const plural =
-                          n === 1
-                            ? 'połączenie'
-                            : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)
-                              ? 'połączenia'
-                              : 'połączeń';
-                        return `Konfiguruj (${n} ${plural})`;
-                      })()}
-                  </button>
+                  <label className="checkbox-inline-group">
+                    <input
+                      type="checkbox"
+                      checked={detail.hasCUID || false}
+                      onChange={(e) => handleCuidCheckbox(idx, e.target.checked)}
+                    />
+                    <span>CUiD (Centrum Utrzymania i Diagnostyki)</span>
+                  </label>
+                  <small className="form-help">
+                    Zaznacz, jeśli LCS ma CUiD. Automatycznie tworzy dodatkowe zadanie CUID.
+                  </small>
                 </div>
               </div>
             )}
@@ -361,55 +276,34 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={() => onAddTask(subsystemIndex, 'PRZEJAZD_KAT_B')}
+              onClick={() => handleAddTask('PRZEJAZD_KAT_B')}
             >
               ➕ Przejazd Kat B
             </button>
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={() => onAddTask(subsystemIndex, 'NASTAWNIA')}
+              onClick={() => handleAddTask('NASTAWNIA')}
             >
               ➕ Nastawnia
             </button>
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={() => onAddTask(subsystemIndex, 'LCS')}
+              onClick={() => handleAddTask('LCS')}
             >
               ➕ LCS
             </button>
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={() => onAddTask(subsystemIndex, 'CUID')}
+              onClick={() => handleAddTask('CUID')}
             >
               ➕ CUID
             </button>
           </div>
         </div>
       </div>
-
-      {fiberModalTaskIndex !== null && (() => {
-        const detail = taskDetails[fiberModalTaskIndex];
-        return (
-          <WizardFiberModal
-            taskLabel={detail?.nazwa || `LCS ${fiberModalTaskIndex + 1}`}
-            initialConnections={detail?.fiberConnections || []}
-            gpsLatitude={detail?.gpsLatitude}
-            gpsLongitude={detail?.gpsLongitude}
-            kilometraz={detail?.kilometraz}
-            availableEndpoints={taskDetails
-              .filter((_, i) => i !== fiberModalTaskIndex)
-              .map(taskDetailToAvailableEndpoint)}
-            onSave={(connections: FiberConnection[]) => {
-              onUpdateTask(subsystemIndex, fiberModalTaskIndex, { fiberConnections: connections });
-              setFiberModalTaskIndex(null);
-            }}
-            onClose={() => setFiberModalTaskIndex(null)}
-          />
-        );
-      })()}
     </div>
   );
 };

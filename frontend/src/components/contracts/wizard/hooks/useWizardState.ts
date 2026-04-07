@@ -2,7 +2,7 @@
 // Custom hook for managing wizard state and operations
 
 import { useState, useEffect } from 'react';
-import { detectSubsystemTypes } from '../../../../config/subsystemWizardConfig';
+import { detectSubsystemTypes, detectRailwayLine } from '../../../../config/subsystemWizardConfig';
 import type { SubsystemType } from '../../../../config/subsystemWizardConfig';
 import contractService, { type Contract } from '../../../../services/contract.service';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../config/subsystemWizardConfig';
@@ -84,22 +84,17 @@ export const useWizardState = ({
   };
 
   /**
-   * Helper to get boolean value from params
-   */
-  const getBooleanValue = (params: Record<string, number | boolean>, key: string): boolean => {
-    const value = params[key];
-    return typeof value === 'boolean' ? value : false;
-  };
-
-  /**
    * Detect subsystems from contract name and update wizard data
    */
   const detectSubsystems = (name: string) => {
     const detected = detectSubsystemTypes(name);
+    const railwayLine = detectRailwayLine(name);
     setDetectedSubsystems(detected);
     setWizardData(prev => ({
       ...prev,
       customName: name,
+      liniaKolejowa: railwayLine || prev.liniaKolejowa,
+      detectedRailwayLine: railwayLine || undefined,
       subsystems: detected.map(type => ({ type, params: {} }))
     }));
   };
@@ -177,18 +172,10 @@ export const useWizardState = ({
       for (let i = 0; i < getNumericValue(simpleParams, 'iloscNastawni'); i++) {
         taskDetails.push({ taskType: 'NASTAWNIA', nazwa: '', miejscowosc: '' });
       }
-      // LCS
-      if (getBooleanValue(simpleParams, 'hasLCS')) {
+      // LCS (hasLCS is now a count)
+      const lcsCount = getNumericValue(simpleParams, 'hasLCS');
+      for (let i = 0; i < lcsCount; i++) {
         taskDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '' });
-      }
-      // CUID - copy data from LCS
-      if (getBooleanValue(simpleParams, 'hasCUID')) {
-        const lcsTask = taskDetails.find(t => t.taskType === 'LCS');
-        taskDetails.push({ 
-          taskType: 'CUID', 
-          nazwa: lcsTask?.nazwa || '', 
-          miejscowosc: lcsTask?.miejscowosc || '' 
-        });
       }
     } else if (subsystem.type === 'SMOKIP_B') {
       // PRZEJAZD_KAT_B
@@ -199,18 +186,10 @@ export const useWizardState = ({
       for (let i = 0; i < getNumericValue(simpleParams, 'iloscNastawni'); i++) {
         taskDetails.push({ taskType: 'NASTAWNIA', nazwa: '', miejscowosc: '' });
       }
-      // LCS
-      if (getBooleanValue(simpleParams, 'hasLCS')) {
+      // LCS (hasLCS is now a count)
+      const lcsCountB = getNumericValue(simpleParams, 'hasLCS');
+      for (let i = 0; i < lcsCountB; i++) {
         taskDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '' });
-      }
-      // CUID - copy data from LCS
-      if (getBooleanValue(simpleParams, 'hasCUID')) {
-        const lcsTask = taskDetails.find(t => t.taskType === 'LCS');
-        taskDetails.push({ 
-          taskType: 'CUID', 
-          nazwa: lcsTask?.nazwa || '', 
-          miejscowosc: lcsTask?.miejscowosc || '' 
-        });
       }
     }
     
