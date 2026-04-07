@@ -16,6 +16,8 @@ export interface WizardProps {
 
 export interface TaskDetail {
   id?: number;
+  /** Stable wizard-session ID (UUID) assigned at creation; used for CUID-LCS linking. */
+  taskWizardId?: string;
   taskType: 'PRZEJAZD_KAT_A' | 'PRZEJAZD_KAT_B' | 'SKP' | 'NASTAWNIA' | 'LCS' | 'CUID' | 'SMW_PLATFORM' | 'SMW_SOK' | 'SMW_LCS' | 'SMW_EXTRA_VIEWING';
   kilometraz?: string;
   kategoria?: 'KAT A' | 'KAT B' | 'KAT C' | 'KAT E' | 'KAT F';
@@ -27,6 +29,9 @@ export interface TaskDetail {
   gpsLongitude?: string;
   googleMapsUrl?: string;
   fiberConnections?: FiberConnection[];
+  hasCUID?: boolean; // For LCS tasks: whether a CUiD task has been linked to this LCS
+  /** Stable LCS `taskWizardId` that this CUID task was created for (used for targeted removal). */
+  linkedLCSId?: string;
 }
 
 export interface SubsystemWizardData {
@@ -48,6 +53,7 @@ export interface WizardData {
   projectManagerId: string;
   managerCode: string;
   liniaKolejowa?: string; // Optional railway line field
+  detectedRailwayLine?: string; // Auto-detected from contract name (e.g. "LK123")
   subsystems: SubsystemWizardData[];
 }
 

@@ -13,14 +13,6 @@ const getNumericValue = (params: Record<string, number | boolean>, key: string):
 };
 
 /**
- * Helper to get boolean value from params
- */
-const getBooleanValue = (params: Record<string, number | boolean>, key: string): boolean => {
-  const value = params[key];
-  return typeof value === 'boolean' ? value : false;
-};
-
-/**
  * Resolve task variant including category information.
  * For PRZEJAZD tasks, the variant depends on the category (KAT A, KAT E, KAT F etc.)
  * rather than just the taskType.
@@ -126,22 +118,17 @@ const generateSmokipATasks = (subsystem: SubsystemWizardData, liniaKolejowa?: st
         subsystemType: subsystem.type
       });
     }
-    if (getBooleanValue(params, 'hasLCS')) {
+    // hasLCS is now a count (number of LCS tasks)
+    const lcsCountA = getNumericValue(params, 'hasLCS');
+    for (let i = 0; i < lcsCountA; i++) {
       tasks.push({
         number: '',
-        name: 'LCS',
+        name: lcsCountA > 1 ? `LCS #${i + 1}` : 'LCS',
         type: 'LCS',
         subsystemType: subsystem.type
       });
     }
-    if (getBooleanValue(params, 'hasCUID')) {
-      tasks.push({
-        number: '',
-        name: 'CUID',
-        type: 'CUID',
-        subsystemType: subsystem.type
-      });
-    }
+    // hasCUID removed from step 3 - CUID tasks created per LCS in step 4
   }
   
   return tasks;
@@ -183,22 +170,17 @@ const generateSmokipBTasks = (subsystem: SubsystemWizardData, liniaKolejowa?: st
         subsystemType: subsystem.type
       });
     }
-    if (getBooleanValue(params, 'hasLCS')) {
+    // hasLCS is now a count (number of LCS tasks)
+    const lcsCountB = getNumericValue(params, 'hasLCS');
+    for (let i = 0; i < lcsCountB; i++) {
       tasks.push({
         number: '',
-        name: 'LCS',
+        name: lcsCountB > 1 ? `LCS #${i + 1}` : 'LCS',
         type: 'LCS',
         subsystemType: subsystem.type
       });
     }
-    if (getBooleanValue(params, 'hasCUID')) {
-      tasks.push({
-        number: '',
-        name: 'CUID',
-        type: 'CUID',
-        subsystemType: subsystem.type
-      });
-    }
+    // hasCUID removed from step 3 - CUID tasks created per LCS in step 4
   }
   
   return tasks;

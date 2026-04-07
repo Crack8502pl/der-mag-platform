@@ -9,8 +9,10 @@ export const GenericConfigStep: React.FC<SubsystemConfigStepProps> = ({
 }) => {
   const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
 
-  // Hide IP Pool field for SMOKIP - these subsystems manage IP addresses per CUID
+  // Hide IP Pool field for SMOKIP - managed separately by NetworkPoolFields component
   const hideIpPool = subsystem.type === 'SMOKIP_A' || subsystem.type === 'SMOKIP_B';
+  // Hide gateway/subnet mask for SMOKIP - managed by NetworkPoolFields
+  const hideNetworkFields = subsystem.type === 'SMOKIP_A' || subsystem.type === 'SMOKIP_B';
 
   const updateParams = (paramName: string, value: number | boolean | string) => {
     const params = (subsystem.params || {}) as Record<string, number | boolean | string>;
@@ -60,6 +62,11 @@ export const GenericConfigStep: React.FC<SubsystemConfigStepProps> = ({
       {/* Dynamic Fields from Config */}
       {config.fields.map((field) => {
         const paramValue = params[field.name];
+
+        // For SMOKIP subsystems, skip gatewayIP and subnetMask - rendered by NetworkPoolFields
+        if (hideNetworkFields && (field.name === 'gatewayIP' || field.name === 'subnetMask')) {
+          return null;
+        }
 
         // Check dependency - hide if dependsOn field is not checked
         if (field.dependsOn && !params[field.dependsOn]) {

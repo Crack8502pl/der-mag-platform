@@ -1,15 +1,16 @@
 // src/components/contracts/wizard/ContractWizardModal.tsx
 // Main orchestrator for contract wizard - coordinates all step components
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import contractService from '../../../services/contract.service';
 import type { Contract } from '../../../services/contract.service';
 // SUBSYSTEM_WIZARD_CONFIG imported in child components
 import { useWizardState } from './hooks/useWizardState';
+import { useWizardDraft } from '../../../hooks/useWizardDraft';
 import { generateAllTasks, buildTaskNameFromDetails, resolveTaskVariant } from './utils/taskGenerator';
 import { validateUniqueIPPools } from './utils/validation';
-import type { WizardProps, GeneratedTask } from './types/wizard.types';
+import type { WizardProps, WizardData, GeneratedTask } from './types/wizard.types';
 
 // Step Components
 import { BasicDataStep } from './steps/BasicDataStep';
@@ -76,6 +77,42 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     editMode,
     contractToEdit
   });
+
+  // Draft management – load from step 1 so restore modal shows on open;
+  // auto-save only starts from step 3 to avoid overwriting a real draft with empty initial state.
+  const {
+    setData: setDraftData,
+    setCurrentStep: setDraftCurrentStep,
+    saveDraft: saveDraftNow,
+    isSaving: draftIsSaving,
+    lastSaveTime: draftLastSaveTime,
+    showRestoreModal: showDraftRestoreModal,
+    savedDraft,
+    restoreDraft: handleRestoreDraft,
+    discardDraft: handleDiscardDraft,
+    clearDraft,
+  } = useWizardDraft<WizardData>({
+    wizardType: 'contract-wizard',
+    initialData: wizardData,
+    autoSaveInterval: 30000,
+    enabled: !editMode,                        // always load for new contracts
+    autoSaveEnabled: !editMode && currentStep >= 3, // auto-save from step 3 onward
+    onRestore: (data) => {
+      updateWizardData(data);
+    },
+  });
+
+  // Keep draft data and step in sync with live wizard state (from step 3 onward)
+  useEffect(() => {
+    if (!editMode && currentStep >= 3) {
+      setDraftData(wizardData);
+    }
+    setDraftCurrentStep(currentStep);
+  }, [wizardData, currentStep, editMode, setDraftData, setDraftCurrentStep]);
+
+  // Step at which draft save button is shown (config, details, preview, success)
+  const isDraftStep = (stepType: string) =>
+    ['config', 'details', 'preview'].includes(stepType);
 
   const getTotalSteps = (): number => {
     let steps = 3; // Basic + Selection + Preview
@@ -145,13 +182,11 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           expectedTaskCount += (typeof params.przejazdyKatA === 'number' ? params.przejazdyKatA : 0);
           expectedTaskCount += (typeof params.iloscSKP === 'number' ? params.iloscSKP : 0);
           expectedTaskCount += (typeof params.iloscNastawni === 'number' ? params.iloscNastawni : 0);
-          if (params.hasLCS) expectedTaskCount += 1;
-          if (params.hasCUID) expectedTaskCount += 1;
+          expectedTaskCount += (typeof params.hasLCS === 'number' ? params.hasLCS : 0);
         } else if (subsystem.type === 'SMOKIP_B') {
           expectedTaskCount += (typeof params.przejazdyKatB === 'number' ? params.przejazdyKatB : 0);
           expectedTaskCount += (typeof params.iloscNastawni === 'number' ? params.iloscNastawni : 0);
-          if (params.hasLCS) expectedTaskCount += 1;
-          if (params.hasCUID) expectedTaskCount += 1;
+          expectedTaskCount += (typeof params.hasLCS === 'number' ? params.hasLCS : 0);
         }
 
         const currentTaskCount = subsystem.taskDetails?.length || 0;
@@ -379,6 +414,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         
         setGeneratedTasks(fetchedTasks);
         setCurrentStep(getTotalSteps()); // Success step
+        // Clear draft on successful creation
+        clearDraft();
       }
     } catch (err: any) {
       console.error('❌ Error creating/updating contract:', err);
@@ -479,6 +516,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     const props = {
       subsystem,
       subsystemIndex,
+      detectedRailwayLine: wizardData.detectedRailwayLine,
       onUpdate: (index: number, updates: any) => {
         const newSubsystems = [...wizardData.subsystems];
         newSubsystems[index] = { ...newSubsystems[index], ...updates };
@@ -588,6 +626,30 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         {!shippingActive && renderStepIndicator()}
         
         {error && <div className="alert alert-error">{error}</div>}
+
+        {/* Draft restore modal */}
+        {showDraftRestoreModal && savedDraft && (
+          <div className="modal-overlay" style={{ zIndex: 1100 }}>
+            <div className="modal-content" style={{ maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>📋 Przywróć draft</h2>
+              </div>
+              <div className="modal-body">
+                <p>Znaleziono zapisany draft kontraktu z dnia <strong>{new Date(savedDraft.updatedAt).toLocaleString('pl-PL')}</strong>.</p>
+                <p>Czy chcesz przywrócić poprzednią sesję?</p>
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-secondary" onClick={handleDiscardDraft}>
+                  🗑️ Odrzuć
+                </button>
+                <div className="footer-spacer" />
+                <button className="btn btn-primary" onClick={handleRestoreDraft}>
+                  ✅ Przywróć
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         
         <div className="modal-body">
           {renderCurrentStep()}
@@ -598,6 +660,17 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
             {currentStep > 1 && (
               <button className="btn btn-secondary" onClick={handlePrevStep}>
                 ← Wstecz
+              </button>
+            )}
+            {/* Draft save button for steps 3+ (config, details, preview) */}
+            {!editMode && isDraftStep(stepInfo.type) && (
+              <button
+                className="btn btn-secondary"
+                onClick={() => saveDraftNow()}
+                disabled={draftIsSaving}
+                title={draftLastSaveTime ? `Ostatni zapis: ${draftLastSaveTime.toLocaleTimeString('pl-PL')}` : 'Zapisz draft'}
+              >
+                {draftIsSaving ? '💾 Zapisuję...' : '💾 Zapisz draft'}
               </button>
             )}
             <div className="footer-spacer"></div>

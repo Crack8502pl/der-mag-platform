@@ -2,7 +2,7 @@
 // Custom hook for managing wizard state and operations
 
 import { useState, useEffect } from 'react';
-import { detectSubsystemTypes } from '../../../../config/subsystemWizardConfig';
+import { detectSubsystemTypes, detectRailwayLine } from '../../../../config/subsystemWizardConfig';
 import type { SubsystemType } from '../../../../config/subsystemWizardConfig';
 import contractService, { type Contract } from '../../../../services/contract.service';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../config/subsystemWizardConfig';
@@ -84,22 +84,17 @@ export const useWizardState = ({
   };
 
   /**
-   * Helper to get boolean value from params
-   */
-  const getBooleanValue = (params: Record<string, number | boolean>, key: string): boolean => {
-    const value = params[key];
-    return typeof value === 'boolean' ? value : false;
-  };
-
-  /**
    * Detect subsystems from contract name and update wizard data
    */
   const detectSubsystems = (name: string) => {
     const detected = detectSubsystemTypes(name);
+    const railwayLine = detectRailwayLine(name);
     setDetectedSubsystems(detected);
     setWizardData(prev => ({
       ...prev,
       customName: name,
+      liniaKolejowa: railwayLine || prev.liniaKolejowa,
+      detectedRailwayLine: railwayLine || undefined,
       subsystems: detected.map(type => ({ type, params: {} }))
     }));
   };
@@ -177,18 +172,10 @@ export const useWizardState = ({
       for (let i = 0; i < getNumericValue(simpleParams, 'iloscNastawni'); i++) {
         taskDetails.push({ taskType: 'NASTAWNIA', nazwa: '', miejscowosc: '' });
       }
-      // LCS
-      if (getBooleanValue(simpleParams, 'hasLCS')) {
+      // LCS (hasLCS is now a count)
+      const lcsCount = getNumericValue(simpleParams, 'hasLCS');
+      for (let i = 0; i < lcsCount; i++) {
         taskDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '' });
-      }
-      // CUID - copy data from LCS
-      if (getBooleanValue(simpleParams, 'hasCUID')) {
-        const lcsTask = taskDetails.find(t => t.taskType === 'LCS');
-        taskDetails.push({ 
-          taskType: 'CUID', 
-          nazwa: lcsTask?.nazwa || '', 
-          miejscowosc: lcsTask?.miejscowosc || '' 
-        });
       }
     } else if (subsystem.type === 'SMOKIP_B') {
       // PRZEJAZD_KAT_B
@@ -199,18 +186,10 @@ export const useWizardState = ({
       for (let i = 0; i < getNumericValue(simpleParams, 'iloscNastawni'); i++) {
         taskDetails.push({ taskType: 'NASTAWNIA', nazwa: '', miejscowosc: '' });
       }
-      // LCS
-      if (getBooleanValue(simpleParams, 'hasLCS')) {
+      // LCS (hasLCS is now a count)
+      const lcsCountB = getNumericValue(simpleParams, 'hasLCS');
+      for (let i = 0; i < lcsCountB; i++) {
         taskDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '' });
-      }
-      // CUID - copy data from LCS
-      if (getBooleanValue(simpleParams, 'hasCUID')) {
-        const lcsTask = taskDetails.find(t => t.taskType === 'LCS');
-        taskDetails.push({ 
-          taskType: 'CUID', 
-          nazwa: lcsTask?.nazwa || '', 
-          miejscowosc: lcsTask?.miejscowosc || '' 
-        });
       }
     }
     
@@ -257,7 +236,7 @@ export const useWizardState = ({
   /**
    * Add a new task detail
    */
-  const addTaskDetail = (subsystemIndex: number, taskType: TaskDetail['taskType']) => {
+  const addTaskDetail = (subsystemIndex: number, taskType: TaskDetail['taskType'], initialData?: Partial<TaskDetail>) => {
     const newSubsystems = [...wizardData.subsystems];
     if (!newSubsystems[subsystemIndex].taskDetails) {
       newSubsystems[subsystemIndex].taskDetails = [];
@@ -265,6 +244,10 @@ export const useWizardState = ({
     
     // Create new task detail with appropriate defaults
     const newDetail: TaskDetail = { taskType };
+    // Assign a stable wizard-session UUID for LCS tasks (used for CUID-LCS linking)
+    if (taskType === 'LCS') {
+      newDetail.taskWizardId = crypto.randomUUID();
+    }
     if (taskType === 'PRZEJAZD_KAT_A') {
       newDetail.kilometraz = '';
       newDetail.kategoria = 'KAT A';
@@ -277,20 +260,44 @@ export const useWizardState = ({
       newDetail.nazwa = '';
       newDetail.miejscowosc = '';
     }
+
+    // Merge optional caller-supplied initial data (e.g. detected railway line, linkedLCSId)
+    if (initialData) {
+      Object.assign(newDetail, initialData);
+    }
     
     newSubsystems[subsystemIndex].taskDetails!.push(newDetail);
     setWizardData(prev => ({ ...prev, subsystems: newSubsystems }));
   };
 
   /**
-   * Remove a task detail
+   * Remove a task detail; if the task is an LCS with a linked CUID, remove the CUID too.
    */
   const removeTaskDetail = (subsystemIndex: number, taskIndex: number) => {
     const newSubsystems = [...wizardData.subsystems];
-    if (newSubsystems[subsystemIndex].taskDetails) {
-      newSubsystems[subsystemIndex].taskDetails!.splice(taskIndex, 1);
-      setWizardData(prev => ({ ...prev, subsystems: newSubsystems }));
+    if (!newSubsystems[subsystemIndex].taskDetails) return;
+
+    const taskDetails = newSubsystems[subsystemIndex].taskDetails!;
+    const taskBeingRemoved = taskDetails[taskIndex];
+
+    // Collect all indices to remove in descending order so splicing doesn't shift remaining indices
+    const indicesToRemove: number[] = [taskIndex];
+
+    // If removing an LCS, also remove its linked CUID task
+    if (taskBeingRemoved?.taskType === 'LCS' && taskBeingRemoved.taskWizardId) {
+      const lcsId = taskBeingRemoved.taskWizardId;
+      taskDetails.forEach((t, i) => {
+        if (t.taskType === 'CUID' && t.linkedLCSId === lcsId) {
+          indicesToRemove.push(i);
+        }
+      });
     }
+
+    // Remove in descending order to maintain correct indices
+    indicesToRemove.sort((a, b) => b - a);
+    indicesToRemove.forEach(i => taskDetails.splice(i, 1));
+
+    setWizardData(prev => ({ ...prev, subsystems: newSubsystems }));
   };
 
   /**

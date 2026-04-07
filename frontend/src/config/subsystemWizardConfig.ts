@@ -91,11 +91,9 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
       { name: 'przejazdyKatA', label: '1.1 Ilość przejazdów Kat A', type: 'number' },
       { name: 'iloscSKP', label: '1.2 Ilość SKP', type: 'number' },
       { name: 'iloscNastawni', label: '1.3 Ilość Nastawni', type: 'number' },
-      { name: 'hasLCS', label: '1.4 LCS (obecny)', type: 'checkbox' },
-      { name: 'nastawniaSamodzielna', label: '1.3.1 Nastawnia samodzielna (brak LCS)', type: 'checkbox', optional: true },
-      { name: 'hasCUID', label: '1.5 CUID (obecny)', type: 'checkbox' },
-      { name: 'gatewayIP', label: 'Gateway IP', type: 'text', optional: true },
-      { name: 'subnetMask', label: 'Subnet Mask', type: 'text', optional: true }
+      { name: 'hasLCS', label: '1.4 LCS', type: 'number' },
+      { name: 'gatewayIP', label: 'Brama Domyślna', type: 'text', optional: true },
+      { name: 'subnetMask', label: 'Maska Podsieci', type: 'text', optional: true }
     ]
   },
   'SMOKIP_B': {
@@ -103,10 +101,9 @@ export const SUBSYSTEM_WIZARD_CONFIG: Record<SubsystemType, SubsystemConfig> = {
     fields: [
       { name: 'przejazdyKatB', label: '1.1 Ilość przejazdów Kat B', type: 'number' },
       { name: 'iloscNastawni', label: '1.3 Ilość Nastawni', type: 'number' },
-      { name: 'hasLCS', label: '1.4 LCS (obecny)', type: 'checkbox' },
-      { name: 'hasCUID', label: '1.5 CUID (obecny)', type: 'checkbox' },
-      { name: 'gatewayIP', label: 'Gateway IP', type: 'text', optional: true },
-      { name: 'subnetMask', label: 'Subnet Mask', type: 'text', optional: true }
+      { name: 'hasLCS', label: '1.4 LCS', type: 'number' },
+      { name: 'gatewayIP', label: 'Brama Domyślna', type: 'text', optional: true },
+      { name: 'subnetMask', label: 'Maska Podsieci', type: 'text', optional: true }
     ]
   },
   'SKD': {
@@ -215,10 +212,16 @@ export const detectSubsystemTypes = (name: string): SubsystemType[] => {
   }
   
   // Detect individual systems
-  if (upperName.includes('SMOK-A') || upperName.includes('SMOKIP-A') || upperName.includes('CMOKIP-A')) {
+  if (
+    upperName.includes('SMOK-A') || upperName.includes('SMOKIP-A') || upperName.includes('CMOKIP-A') ||
+    upperName.includes('KAT A') || upperName.includes('SKP') || upperName.includes('TVU')
+  ) {
     detected.push('SMOKIP_A');
   }
-  if (upperName.includes('SMOK-B') || upperName.includes('SMOKIP-B') || upperName.includes('CMOKIP-B')) {
+  if (
+    upperName.includes('SMOK-B') || upperName.includes('SMOKIP-B') || upperName.includes('CMOKIP-B') ||
+    upperName.includes('KAT B') || upperName.includes('TVP')
+  ) {
     detected.push('SMOKIP_B');
   }
   if (upperName.includes('SKD') || upperName.includes('KONTROLI DOSTĘPU')) {
@@ -259,4 +262,15 @@ export const detectSubsystemTypes = (name: string): SubsystemType[] => {
 export const detectSubsystemType = (name: string): SubsystemType | null => {
   const types = detectSubsystemTypes(name);
   return types.length > 0 ? types[0] : null;
+};
+
+// Detect railway line (LK followed by 1-3 digits) from contract name
+export const detectRailwayLine = (name: string): string | null => {
+  // Allow optional separator (dash or space) between LK and digits.
+  // Use a non-digit boundary (?!\d) to prevent matching LK1234 as LK123.
+  const match = name.match(/LK[-\s]?(\d{1,3})(?!\d)/i);
+  if (match) {
+    return `LK${match[1]}`;
+  }
+  return null;
 };
