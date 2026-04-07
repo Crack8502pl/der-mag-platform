@@ -50,7 +50,7 @@ export class User {
   forcePasswordChange: boolean;
 
   @Column({ name: 'password_changed_at', type: 'timestamp', nullable: true })
-  passwordChangedAt: Date;
+  passwordChangedAt: Date | null;
 
   @Column({ name: 'otp_expires_at', type: 'timestamp', nullable: true })
   otpExpiresAt: Date | null;
