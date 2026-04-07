@@ -89,15 +89,26 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
       </p>
 
       <div className="task-details-form">
-        {taskDetails.map((detail, idx) => (
-          <div key={idx} className="task-detail-item">
+        {taskDetails.map((detail, idx) => {
+          const isExisting = !!detail.id;
+          return (
+          <div key={idx} className={`task-detail-item ${isExisting ? 'existing-task' : 'new-task'}`}>
             <div className="task-header">
-              <strong>Zadanie {idx + 1}: {detail.taskType}</strong>
+              <strong>
+                Zadanie {idx + 1}: {detail.taskType}
+                {isExisting && (
+                  <span className="badge-task-created">
+                    ✅ Utworzone
+                  </span>
+                )}
+              </strong>
               <button
                 type="button"
                 className="btn-icon btn-danger"
                 onClick={() => onRemoveTask(subsystemIndex, idx)}
-                title="Usuń zadanie"
+                title={isExisting ? 'Nie można usunąć utworzonego zadania' : 'Usuń zadanie'}
+                disabled={isExisting}
+                style={isExisting ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
               >
                 🗑️
               </button>
@@ -286,7 +297,8 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
 
         <div className="add-task-section">
           <p><strong>Dodaj nowe zadanie:</strong></p>
