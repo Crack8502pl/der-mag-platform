@@ -78,9 +78,11 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     contractToEdit
   });
 
-  // Draft management – only for new contracts, from step 3 onward
+  // Draft management – load from step 1 so restore modal shows on open;
+  // auto-save only starts from step 3 to avoid overwriting a real draft with empty initial state.
   const {
     setData: setDraftData,
+    setCurrentStep: setDraftCurrentStep,
     saveDraft: saveDraftNow,
     isSaving: draftIsSaving,
     lastSaveTime: draftLastSaveTime,
@@ -93,18 +95,20 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     wizardType: 'contract-wizard',
     initialData: wizardData,
     autoSaveInterval: 30000,
-    enabled: !editMode && currentStep >= 3,
+    enabled: !editMode,                        // always load for new contracts
+    autoSaveEnabled: !editMode && currentStep >= 3, // auto-save from step 3 onward
     onRestore: (data) => {
       updateWizardData(data);
     },
   });
 
-  // Keep draft data in sync with live wizard data (from step 3 onward)
+  // Keep draft data and step in sync with live wizard state (from step 3 onward)
   useEffect(() => {
     if (!editMode && currentStep >= 3) {
       setDraftData(wizardData);
     }
-  }, [wizardData, currentStep, editMode, setDraftData]);
+    setDraftCurrentStep(currentStep);
+  }, [wizardData, currentStep, editMode, setDraftData, setDraftCurrentStep]);
 
   // Step at which draft save button is shown (config, details, preview, success)
   const isDraftStep = (stepType: string) =>

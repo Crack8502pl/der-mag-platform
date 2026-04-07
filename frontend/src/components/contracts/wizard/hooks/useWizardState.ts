@@ -244,6 +244,10 @@ export const useWizardState = ({
     
     // Create new task detail with appropriate defaults
     const newDetail: TaskDetail = { taskType };
+    // Assign a stable wizard-session UUID for LCS tasks (used for CUID-LCS linking)
+    if (taskType === 'LCS') {
+      newDetail.taskWizardId = crypto.randomUUID();
+    }
     if (taskType === 'PRZEJAZD_KAT_A') {
       newDetail.kilometraz = '';
       newDetail.kategoria = 'KAT A';
@@ -257,7 +261,7 @@ export const useWizardState = ({
       newDetail.miejscowosc = '';
     }
 
-    // Merge optional caller-supplied initial data (e.g. detected railway line)
+    // Merge optional caller-supplied initial data (e.g. detected railway line, linkedLCSId)
     if (initialData) {
       Object.assign(newDetail, initialData);
     }
@@ -267,14 +271,33 @@ export const useWizardState = ({
   };
 
   /**
-   * Remove a task detail
+   * Remove a task detail; if the task is an LCS with a linked CUID, remove the CUID too.
    */
   const removeTaskDetail = (subsystemIndex: number, taskIndex: number) => {
     const newSubsystems = [...wizardData.subsystems];
-    if (newSubsystems[subsystemIndex].taskDetails) {
-      newSubsystems[subsystemIndex].taskDetails!.splice(taskIndex, 1);
-      setWizardData(prev => ({ ...prev, subsystems: newSubsystems }));
+    if (!newSubsystems[subsystemIndex].taskDetails) return;
+
+    const taskDetails = newSubsystems[subsystemIndex].taskDetails!;
+    const taskBeingRemoved = taskDetails[taskIndex];
+
+    // Collect all indices to remove in descending order so splicing doesn't shift remaining indices
+    const indicesToRemove: number[] = [taskIndex];
+
+    // If removing an LCS, also remove its linked CUID task
+    if (taskBeingRemoved?.taskType === 'LCS' && taskBeingRemoved.taskWizardId) {
+      const lcsId = taskBeingRemoved.taskWizardId;
+      taskDetails.forEach((t, i) => {
+        if (t.taskType === 'CUID' && t.linkedLCSId === lcsId) {
+          indicesToRemove.push(i);
+        }
+      });
     }
+
+    // Remove in descending order to maintain correct indices
+    indicesToRemove.sort((a, b) => b - a);
+    indicesToRemove.forEach(i => taskDetails.splice(i, 1));
+
+    setWizardData(prev => ({ ...prev, subsystems: newSubsystems }));
   };
 
   /**

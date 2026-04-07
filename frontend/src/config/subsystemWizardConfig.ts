@@ -266,7 +266,9 @@ export const detectSubsystemType = (name: string): SubsystemType | null => {
 
 // Detect railway line (LK followed by 1-3 digits) from contract name
 export const detectRailwayLine = (name: string): string | null => {
-  const match = name.match(/LK(\d{1,3})/i);
+  // Allow optional separator (dash or space) between LK and digits.
+  // Use a non-digit boundary (?!\d) to prevent matching LK1234 as LK123.
+  const match = name.match(/LK[-\s]?(\d{1,3})(?!\d)/i);
   if (match) {
     return `LK${match[1]}`;
   }

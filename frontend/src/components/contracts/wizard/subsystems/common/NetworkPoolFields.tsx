@@ -25,7 +25,9 @@ export const prefixToSubnetMask = (prefix: number): string => {
 };
 
 /** Calculate network address (first IP in CIDR) and return the first usable host address.
- * Returns empty string for /32 (no usable hosts) or the network address itself for /31 (RFC 3021). */
+ * /32: returns the single host address itself (gateway is the host itself).
+ * /31: returns the lower address per RFC 3021.
+ * Otherwise: returns network address + 1 (first usable host). */
 export const calculateFirstIP = (ip: string, prefix: number): string => {
   const parts = ip.split('.').map(Number);
   if (parts.length !== 4 || parts.some(p => isNaN(p) || p < 0 || p > 255)) return '';
@@ -59,7 +61,17 @@ export const calculateFirstIP = (ip: string, prefix: number): string => {
   ].join('.');
 };
 
-const CIDR_PATTERN = /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\/(\d{1,2})$/;
+const CIDR_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\/(\d{1,2})$/;
+
+/** Returns true only when the pool string is a valid IPv4 CIDR with all octets 0-255 and prefix 0-32. */
+const isValidCidr = (pool: string): boolean => {
+  const match = pool.trim().match(CIDR_PATTERN);
+  if (!match) return false;
+  const octets = [match[1], match[2], match[3], match[4]].map(Number);
+  if (octets.some(o => o < 0 || o > 255)) return false;
+  const prefix = parseInt(match[5], 10);
+  return prefix >= 0 && prefix <= 32;
+};
 
 export const NetworkPoolFields: React.FC<NetworkPoolFieldsProps> = ({
   ipPool,
@@ -69,18 +81,17 @@ export const NetworkPoolFields: React.FC<NetworkPoolFieldsProps> = ({
   onUpdateGateway,
   onUpdateSubnetMask,
 }) => {
-  const poolIsSet = !!ipPool && CIDR_PATTERN.test(ipPool);
+  const poolIsSet = isValidCidr(ipPool);
 
   const handleIpPoolChange = (value: string) => {
     onUpdateIpPool(value);
 
-    const match = value.match(CIDR_PATTERN);
-    if (match) {
-      const prefix = parseInt(match[2], 10);
-      if (prefix >= 0 && prefix <= 32) {
-        onUpdateGateway(calculateFirstIP(match[1], prefix));
-        onUpdateSubnetMask(prefixToSubnetMask(prefix));
-      }
+    if (isValidCidr(value)) {
+      const match = value.trim().match(CIDR_PATTERN)!;
+      const ip = `${match[1]}.${match[2]}.${match[3]}.${match[4]}`;
+      const prefix = parseInt(match[5], 10);
+      onUpdateGateway(calculateFirstIP(ip, prefix));
+      onUpdateSubnetMask(prefixToSubnetMask(prefix));
     }
   };
 

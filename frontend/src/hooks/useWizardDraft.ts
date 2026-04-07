@@ -9,7 +9,10 @@ interface UseWizardDraftOptions<T> {
   initialData: T;
   autoSaveInterval?: number;
   onRestore?: (data: T) => void;
+  /** Gates draft loading and the restore modal. Set to false to disable the whole hook. */
   enabled?: boolean;
+  /** Gates auto-save only; defaults to `enabled`. Set to false to suppress auto-save while still loading the draft. */
+  autoSaveEnabled?: boolean;
 }
 
 interface SavedDraft<T> {
@@ -30,6 +33,7 @@ export function useWizardDraft<T extends Record<string, any>>({
   autoSaveInterval = 30000,
   onRestore,
   enabled = true,
+  autoSaveEnabled,
 }: UseWizardDraftOptions<T>) {
   const [data, setData] = useState<T>(initialData);
   const [currentStep, setCurrentStep] = useState(1);
@@ -83,15 +87,18 @@ export function useWizardDraft<T extends Record<string, any>>({
   // Auto-save — paused while the restore modal is open so that the initial
   // (empty) state cannot overwrite an existing server-side draft before the
   // user has had a chance to choose "restore" or "discard".
+  // autoSaveEnabled allows callers to suppress auto-save (e.g. before step 3)
+  // while still loading the draft on open.
   useEffect(() => {
-    if (!enabled || showRestoreModal) return;
+    const shouldAutoSave = autoSaveEnabled !== undefined ? autoSaveEnabled : enabled;
+    if (!shouldAutoSave || showRestoreModal) return;
 
     const interval = setInterval(() => {
       saveDraft(data, currentStep);
     }, autoSaveInterval);
 
     return () => clearInterval(interval);
-  }, [data, currentStep, autoSaveInterval, enabled, showRestoreModal, saveDraft]);
+  }, [data, currentStep, autoSaveInterval, autoSaveEnabled, enabled, showRestoreModal, saveDraft]);
 
   const restoreDraft = () => {
     if (savedDraft) {

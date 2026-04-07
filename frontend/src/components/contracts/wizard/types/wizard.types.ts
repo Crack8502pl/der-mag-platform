@@ -16,6 +16,8 @@ export interface WizardProps {
 
 export interface TaskDetail {
   id?: number;
+  /** Stable wizard-session ID (UUID) assigned at creation; used for CUID-LCS linking. */
+  taskWizardId?: string;
   taskType: 'PRZEJAZD_KAT_A' | 'PRZEJAZD_KAT_B' | 'SKP' | 'NASTAWNIA' | 'LCS' | 'CUID' | 'SMW_PLATFORM' | 'SMW_SOK' | 'SMW_LCS' | 'SMW_EXTRA_VIEWING';
   kilometraz?: string;
   kategoria?: 'KAT A' | 'KAT B' | 'KAT C' | 'KAT E' | 'KAT F';
@@ -28,8 +30,8 @@ export interface TaskDetail {
   googleMapsUrl?: string;
   fiberConnections?: FiberConnection[];
   hasCUID?: boolean; // For LCS tasks: whether a CUiD task has been linked to this LCS
-  /** Stable index (at time of creation) linking a CUID task back to the LCS that created it */
-  linkedLCSTaskIndex?: number;
+  /** Stable LCS `taskWizardId` that this CUID task was created for (used for targeted removal). */
+  linkedLCSId?: string;
 }
 
 export interface SubsystemWizardData {

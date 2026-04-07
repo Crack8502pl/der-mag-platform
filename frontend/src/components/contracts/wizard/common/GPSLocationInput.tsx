@@ -32,6 +32,9 @@ const parseDms = (dms: DmsValue): number | null => {
   return d + sign * (m / 60 + s / 3600);
 };
 
+const isValidLatitude = (v: number): boolean => v >= -90 && v <= 90;
+const isValidLongitude = (v: number): boolean => v >= -180 && v <= 180;
+
 export const GPSLocationInput: React.FC<GPSLocationInputProps> = ({
   gpsLatitude,
   gpsLongitude,
@@ -45,6 +48,7 @@ export const GPSLocationInput: React.FC<GPSLocationInputProps> = ({
   const [latDms, setLatDms] = useState<DmsValue>({ degrees: '', minutes: '', seconds: '' });
   const [lonDms, setLonDms] = useState<DmsValue>({ degrees: '', minutes: '', seconds: '' });
   const [mapsError, setMapsError] = useState('');
+  const [dmsError, setDmsError] = useState('');
 
   const { parseUrl, parseUrlLocal, loading: gpsLoading } = useGoogleMaps();
 
@@ -83,27 +87,40 @@ export const GPSLocationInput: React.FC<GPSLocationInputProps> = ({
       setLatInput(value);
       const lon = lonInput;
       if (value && lon) {
-        onUpdate({ gpsLatitude: value, gpsLongitude: lon });
+        // Clear stale Google Maps URL since the user is now entering coordinates directly
+        onUpdate({ gpsLatitude: value, gpsLongitude: lon, googleMapsUrl: undefined });
       }
     } else {
       setLonInput(value);
       const lat = latInput;
       if (lat && value) {
-        onUpdate({ gpsLatitude: lat, gpsLongitude: value });
+        onUpdate({ gpsLatitude: lat, gpsLongitude: value, googleMapsUrl: undefined });
       }
     }
   };
 
   const handleConvertAngular = () => {
+    setDmsError('');
     const lat = parseDms(latDms);
     const lon = parseDms(lonDms);
-    if (lat !== null && lon !== null) {
-      const latStr = lat.toFixed(6);
-      const lonStr = lon.toFixed(6);
-      setLatInput(latStr);
-      setLonInput(lonStr);
-      onUpdate({ gpsLatitude: latStr, gpsLongitude: lonStr });
+    if (lat === null || lon === null) {
+      setDmsError('Nieprawidłowe wartości DMS (minuty i sekundy muszą być w zakresie 0–59).');
+      return;
     }
+    if (!isValidLatitude(lat)) {
+      setDmsError('Szerokość geograficzna musi być w zakresie -90°..90°.');
+      return;
+    }
+    if (!isValidLongitude(lon)) {
+      setDmsError('Długość geograficzna musi być w zakresie -180°..180°.');
+      return;
+    }
+    const latStr = lat.toFixed(6);
+    const lonStr = lon.toFixed(6);
+    setLatInput(latStr);
+    setLonInput(lonStr);
+    // Clear stale Google Maps URL when converting from DMS
+    onUpdate({ gpsLatitude: latStr, gpsLongitude: lonStr, googleMapsUrl: undefined });
   };
 
   const openInGoogleMaps = () => {
@@ -265,6 +282,7 @@ export const GPSLocationInput: React.FC<GPSLocationInputProps> = ({
             </button>
           </div>
           <small className="form-help">Format: DD°MM′SS″ (stopnie, minuty, sekundy)</small>
+          {dmsError && <small className="error-text">{dmsError}</small>}
         </div>
       )}
 
