@@ -12,6 +12,7 @@ import { Task } from '../entities/Task';
 import { TaskType } from '../entities/TaskType';
 import { TaskNumberGenerator } from '../services/TaskNumberGenerator';
 import { serverLogger } from '../utils/logger';
+import { NetworkAllocationService } from '../services/NetworkAllocationService';
 
 interface FiberConnectionData {
   odleglosc?: number;
@@ -480,7 +481,22 @@ export class ContractController {
             quantity: subsystemTasks?.length || 0,
             ipPool: ipPool?.trim() || null
           });
-          
+
+          // Jeśli podsystem ma pulę IP, spróbuj automatycznie zarezerwować sieć
+          if (ipPool?.trim()) {
+            try {
+              const networkAllocationService = new NetworkAllocationService();
+              await networkAllocationService.allocateNetwork(subsystem.id);
+            } catch (networkError: any) {
+              // Nie przerywaj tworzenia kontraktu jeśli alokacja się nie powiodła
+              serverLogger.warn('Nie udało się automatycznie zarezerwować puli IP dla podsystemu', {
+                subsystemId: subsystem.id,
+                ipPool: ipPool?.trim(),
+                error: networkError.message
+              });
+            }
+          }
+
           // Zapisz zadania do bazy (SubsystemTask i Task)
           const createdTasks = [];
           const createdMainTasks = [];

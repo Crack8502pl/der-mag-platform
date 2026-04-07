@@ -13,6 +13,7 @@ import api from '../../services/api';
 import { ShipmentWizardModal } from './ShipmentWizardModal';
 import { ShipmentWizardSmokB } from './ShipmentWizardSmokB';
 import { ShipmentWizardSmokA } from './ShipmentWizardSmokA';
+import { ShipmentDataModal } from './ShipmentDataModal';
 import { TaskStatusBadge } from '../tasks/TaskStatusBadge';
 import './ContractListPage.css';
 
@@ -31,6 +32,7 @@ export const ContractDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [shipmentSubsystem, setShipmentSubsystem] = useState<Subsystem | null>(null);
+  const [shipmentDataSubsystem, setShipmentDataSubsystem] = useState<Subsystem | null>(null);
   const [completionTask, setCompletionTask] = useState<SubsystemTask | null>(null);
   const [completionWorkers, setCompletionWorkers] = useState<UserOption[]>([]);
   const [selectedWorkerId, setSelectedWorkerId] = useState<number | ''>('');
@@ -286,6 +288,13 @@ export const ContractDetailPage: React.FC = () => {
                         📦 Kreator wysyłki
                       </button>
                     )}
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setShipmentDataSubsystem(subsystem)}
+                      title="Wyświetl dane wysyłkowe"
+                    >
+                      📋 Dane wysyłki
+                    </button>
                   </div>
                 </div>
                 <div className="subsystem-card-body">
@@ -366,6 +375,13 @@ export const ContractDetailPage: React.FC = () => {
             }}
           />
         )
+      )}
+
+      {shipmentDataSubsystem && (
+        <ShipmentDataModal
+          subsystem={shipmentDataSubsystem}
+          onClose={() => setShipmentDataSubsystem(null)}
+        />
       )}
 
       {completionTask && (

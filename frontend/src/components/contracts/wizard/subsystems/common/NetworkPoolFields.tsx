@@ -82,6 +82,8 @@ export const NetworkPoolFields: React.FC<NetworkPoolFieldsProps> = ({
   onUpdateSubnetMask,
 }) => {
   const poolIsSet = isValidCidr(ipPool);
+  const poolHasInput = ipPool.trim().length > 0;
+  const poolIsInvalid = poolHasInput && !poolIsSet;
 
   const handleIpPoolChange = (value: string) => {
     onUpdateIpPool(value);
@@ -104,10 +106,19 @@ export const NetworkPoolFields: React.FC<NetworkPoolFieldsProps> = ({
           value={ipPool}
           onChange={(e) => handleIpPoolChange(e.target.value)}
           placeholder="np. 192.168.1.0/24"
+          autoComplete="off"
+          spellCheck={false}
         />
-        <small className="form-help">
-          Format IPv4 CIDR: XXX.XXX.XXX.XXX/Y. Automatycznie uzupełni bramę i maskę.
-        </small>
+        {poolIsInvalid && (
+          <small className="form-help text-error">
+            ⚠️ Nieprawidłowy format. Użyj zapisu CIDR, np. 192.168.1.0/24
+          </small>
+        )}
+        {!poolIsInvalid && (
+          <small className="form-help">
+            Format IPv4 CIDR: XXX.XXX.XXX.XXX/Y. Automatycznie uzupełni bramę i maskę.
+          </small>
+        )}
       </div>
 
       <div className="form-group">

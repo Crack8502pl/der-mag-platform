@@ -24,6 +24,32 @@ import { serverLogger } from '../utils/logger';
 // Minimalnie blokujemy tworzenie wysyłki z innej wysyłki.
 const NO_SHIPMENT_TYPES: string[] = ['KOMPLETACJA_WYSYLKI'];
 
+// Typy zadań wymagające dodatkowego zadania kompletacji szafy
+const CABINET_COMPLETION_TYPES: string[] = ['SKP', 'NASTAWNIA', 'LCS'];
+
+/**
+ * Generuje punkty kamerowe dla zadania na podstawie ilości słupów i typu zadania.
+ * Dla SKP: S-KP-1, S-KP-2, ..., S-KP-10 (max 10)
+ * Dla pozostałych (przejazd): PK-1, PK-2, ..., PK-10 (max 10)
+ */
+function generateCameraPoints(
+  poleQuantity: number,
+  taskType: string,
+  poleType: string | null
+): Array<{ id: number; name: string; poleType: string | null }> {
+  const count = Math.min(Math.max(0, Math.floor(poleQuantity)), 10);
+  if (count === 0) return [];
+
+  const isSkp = taskType.toUpperCase() === 'SKP';
+  const prefix = isSkp ? 'S-KP-' : 'PK-';
+
+  return Array.from({ length: count }, (_, i) => ({
+    id: i + 1,
+    name: `${prefix}${i + 1}`,
+    poleType: poleType || null,
+  }));
+}
+
 export class TaskController {
   /**
    * GET /api/tasks
@@ -807,12 +833,32 @@ export class TaskController {
 
       // Determine shipment task name based on source task type
       const INTERNAL_CABINET_TYPE = 'SZAFA_WEWNĘTRZNA';
-      const shipmentTaskName = sourceTask.taskType === INTERNAL_CABINET_TYPE
-        ? 'Kompletacja szafy wewnętrznej'
-        : 'Kompletacja szafy przejazdowej';
+      let shipmentTaskName: string;
+      if (sourceTask.taskType === INTERNAL_CABINET_TYPE) {
+        shipmentTaskName = 'Kompletacja szafy wewnętrznej';
+      } else if (CABINET_COMPLETION_TYPES.includes(sourceTask.taskType.toUpperCase())) {
+        shipmentTaskName = `Kompletacja wysyłki - ${sourceTask.taskType}`;
+      } else {
+        shipmentTaskName = 'Kompletacja szafy przejazdowej';
+      }
 
-      // Generate task number outside transaction (read-only)
+      // Generate task numbers outside transaction (read-only)
       const newTaskNumber = await TaskNumberGenerator.generate();
+      // Derive the cabinet task number by incrementing the sequence by 1.
+      // We cannot call generate() twice because both calls see the same committed DB state
+      // and would return the same number (the uncommitted newTask is not visible).
+      const needsCabinetTask = CABINET_COMPLETION_TYPES.includes(sourceTask.taskType.toUpperCase());
+      let cabinetTaskNumber: string | null = null;
+      if (needsCabinetTask) {
+        const match = newTaskNumber.match(/^Z(\d{4})(\d{4})$/);
+        if (match) {
+          const seq = parseInt(match[1], 10) + 1;
+          if (seq > 9999) {
+            throw new Error('Maksymalna liczba zadań (9999) osiągnięta dla bieżącego miesiąca');
+          }
+          cabinetTaskNumber = `Z${String(seq).padStart(4, '0')}${match[2]}`;
+        }
+      }
 
       // Atomically create shipment task and update source task substatus
       const queryRunner = AppDataSource.createQueryRunner();
@@ -847,6 +893,9 @@ export class TaskController {
             poleQuantity: typeof poleQuantity === 'number' ? poleQuantity : null,
             poleType: typeof poleType === 'string' ? poleType : null,
             poleProductInfo: typeof poleProductInfo === 'string' ? poleProductInfo : null,
+            cameraPoints: (typeof poleQuantity === 'number' && poleQuantity > 0)
+              ? generateCameraPoints(poleQuantity, sourceTask.taskType, typeof poleType === 'string' ? poleType : null)
+              : [],
           },
           bomGenerated: false,
           bomId: null,
@@ -863,6 +912,36 @@ export class TaskController {
           realizationCompletedAt: null,
         });
         newTask = await taskRepo.save(newTaskEntity);
+
+        // Utwórz dodatkowe zadanie kompletacji szafy dla SKP, Nastawni i LCS
+        if (needsCabinetTask && cabinetTaskNumber) {
+          const cabinetTaskEntity = taskRepo.create({
+            subsystemId: sourceTask.subsystemId,
+            taskNumber: cabinetTaskNumber,
+            taskName: `Kompletacja szafy - ${sourceTask.taskType}`,
+            taskType: 'KOMPLETACJA_SZAF',
+            status: TaskWorkflowStatus.CREATED,
+            substatus: null,
+            metadata: {
+              sourceTaskNumber: taskNumber,
+              sourceTaskType: sourceTask.taskType,
+            },
+            bomGenerated: false,
+            bomId: null,
+            completionOrderId: null,
+            completionStartedAt: null,
+            completionCompletedAt: null,
+            prefabricationTaskId: null,
+            prefabricationStartedAt: null,
+            prefabricationCompletedAt: null,
+            deploymentScheduledAt: null,
+            deploymentCompletedAt: null,
+            verificationCompletedAt: null,
+            realizationStartedAt: null,
+            realizationCompletedAt: null,
+          });
+          await taskRepo.save(cabinetTaskEntity);
+        }
 
         // Update source task substatus (both column and metadata for frontend compatibility)
         sourceTask.substatus = 'wysyłka_zlecona';

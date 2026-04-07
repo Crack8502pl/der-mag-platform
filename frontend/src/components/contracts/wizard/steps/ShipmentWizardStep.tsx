@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import contractService from '../../../../services/contract.service';
 import type { Contract, Subsystem } from '../../../../services/contract.service';
 import { ShipmentWizardModal } from '../../ShipmentWizardModal';
+import { ShipmentWizardSmokA } from '../../ShipmentWizardSmokA';
 import { ShipmentWizardSmokB } from '../../ShipmentWizardSmokB';
 
 interface ShipmentWizardStepProps {
@@ -103,7 +104,13 @@ export const ShipmentWizardStep: React.FC<ShipmentWizardStepProps> = ({
       </div>
 
       {activeSubsystem && (
-        activeSubsystem.systemType === 'SMOKIP_B' ? (
+        activeSubsystem.systemType === 'SMOKIP_A' ? (
+          <ShipmentWizardSmokA
+            subsystem={activeSubsystem}
+            onClose={() => setActiveSubsystem(null)}
+            onSuccess={() => handleShippingSuccess(activeSubsystem.id)}
+          />
+        ) : activeSubsystem.systemType === 'SMOKIP_B' ? (
           <ShipmentWizardSmokB
             subsystem={activeSubsystem}
             onClose={() => setActiveSubsystem(null)}
