@@ -17,7 +17,8 @@ export class User {
   @Column({ type: 'varchar', unique: true, length: 100 })
   email: string;
 
-  @Column({ type: 'text', name: 'password_hash', select: false })
+  // Explicit type 'varchar' required - must match PostgreSQL schema to avoid recreation
+  @Column({ type: 'varchar', name: 'password_hash', select: false, nullable: false })
   password: string;
 
   @Column({ type: 'varchar', name: 'first_name', length: 100 })
@@ -50,6 +51,9 @@ export class User {
 
   @Column({ name: 'password_changed_at', type: 'timestamp', nullable: true })
   passwordChangedAt: Date;
+
+  @Column({ name: 'otp_expires_at', type: 'timestamp', nullable: true })
+  otpExpiresAt: Date | null;
 
   @OneToMany(() => TaskAssignment, assignment => assignment.user)
   taskAssignments: TaskAssignment[];
