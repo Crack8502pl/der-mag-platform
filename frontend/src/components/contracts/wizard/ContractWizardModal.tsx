@@ -710,7 +710,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
               <button 
                 className="btn btn-success" 
                 onClick={handleSubmit}
-                disabled={loading || generatedTasks.length === 0}
+                disabled={loading || (!editMode && generatedTasks.length === 0)}
               >
                 {loading ? (editMode ? 'Zapisywanie...' : 'Tworzenie...') : (editMode ? '💾 Zapisz zmiany' : '✅ Utwórz kontrakt')}
               </button>
