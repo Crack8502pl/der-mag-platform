@@ -33,6 +33,16 @@ export class User {
   @Column({ name: 'employee_code', type: 'varchar', length: 5, unique: true, nullable: true })
   employeeCode: string | null;
 
+  // Explicit type required for tsx (esbuild doesn't emit decorator metadata)
+  @Column({ name: 'alt_employee_code_1', type: 'varchar', length: 5, nullable: true })
+  altEmployeeCode1: string | null;
+
+  @Column({ name: 'alt_employee_code_2', type: 'varchar', length: 5, nullable: true })
+  altEmployeeCode2: string | null;
+
+  @Column({ name: 'alt_employee_code_3', type: 'varchar', length: 5, nullable: true })
+  altEmployeeCode3: string | null;
+
   @ManyToOne(() => Role, role => role.users)
   @JoinColumn({ name: 'role_id' })
   role: Role;
@@ -87,5 +97,25 @@ export class User {
   // Getter dla pełnego imienia
   get fullName(): string {
     return `${this.firstName} ${this.lastName}`;
+  }
+
+  /**
+   * Zwraca wszystkie kody pracownika (główny + alternatywne, bez pustych)
+   */
+  getAllEmployeeCodes(): string[] {
+    return [
+      this.employeeCode,
+      this.altEmployeeCode1,
+      this.altEmployeeCode2,
+      this.altEmployeeCode3,
+    ].filter((code): code is string => code !== null && code !== '');
+  }
+
+  /**
+   * Sprawdza czy podany kod pasuje do użytkownika (główny lub alternatywny)
+   */
+  hasEmployeeCode(code: string): boolean {
+    if (!code) return false;
+    return this.getAllEmployeeCodes().includes(code);
   }
 }

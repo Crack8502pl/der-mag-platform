@@ -415,8 +415,23 @@ export class SymfoniaContractSyncService {
         const users = await userRepo
           .createQueryBuilder('u')
           .where('u.employeeCode IN (:...codes)', { codes: allEmployeeCodes })
+          .orWhere('u.altEmployeeCode1 IN (:...codes)', { codes: allEmployeeCodes })
+          .orWhere('u.altEmployeeCode2 IN (:...codes)', { codes: allEmployeeCodes })
+          .orWhere('u.altEmployeeCode3 IN (:...codes)', { codes: allEmployeeCodes })
           .getMany();
-        userMap = new Map(users.filter((u) => u.employeeCode).map((u) => [u.employeeCode as string, u]));
+
+        // Map ALL codes (main + alternative) to the user
+        userMap = new Map();
+        users.forEach((user) => {
+          user.getAllEmployeeCodes().forEach((code) => {
+            userMap.set(code, user);
+          });
+        });
+
+        contractsSyncLogger.info(
+          `🔍 Sync: Znaleziono ${users.length} użytkowników dla ${allEmployeeCodes.length} kodów ` +
+          `(rozpoznawanie głównych + alternatywnych kodów)`
+        );
       }
 
       // Pobierz istniejące rekordy jednym zapytaniem
@@ -551,8 +566,23 @@ export class SymfoniaContractSyncService {
       const users = await userRepo
         .createQueryBuilder('u')
         .where('u.employeeCode IN (:...codes)', { codes: allEmployeeCodes })
+        .orWhere('u.altEmployeeCode1 IN (:...codes)', { codes: allEmployeeCodes })
+        .orWhere('u.altEmployeeCode2 IN (:...codes)', { codes: allEmployeeCodes })
+        .orWhere('u.altEmployeeCode3 IN (:...codes)', { codes: allEmployeeCodes })
         .getMany();
-      userMap = new Map(users.filter((u) => u.employeeCode).map((u) => [u.employeeCode as string, u]));
+
+      // Map ALL codes (main + alternative) to the user
+      userMap = new Map();
+      users.forEach((user) => {
+        user.getAllEmployeeCodes().forEach((code) => {
+          userMap.set(code, user);
+        });
+      });
+
+      contractsSyncLogger.info(
+        `🔍 Sync: Znaleziono ${users.length} użytkowników dla ${allEmployeeCodes.length} kodów ` +
+        `(rozpoznawanie głównych + alternatywnych kodów)`
+      );
     }
 
     for (const { item, contractNumber, employeeCodes } of items) {

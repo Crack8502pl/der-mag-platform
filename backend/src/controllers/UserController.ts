@@ -494,7 +494,7 @@ export class UserController {
   static async update(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { firstName, lastName, email, phone, employeeCode } = req.body;
+      const { firstName, lastName, email, phone, employeeCode, altEmployeeCode1, altEmployeeCode2, altEmployeeCode3 } = req.body;
 
       const userRepository = AppDataSource.getRepository(User);
       
@@ -541,14 +541,21 @@ export class UserController {
             return;
           }
           
-          const codeUpper = employeeCode.toUpperCase();
+          const codeUpper = employeeCode.trim().toUpperCase();
+
+          // Check global uniqueness across all four employee code columns
+          const codeExists = await userRepository
+            .createQueryBuilder('u')
+            .where('u.id != :userId', { userId: user.id })
+            .andWhere('u.deletedAt IS NULL')
+            .andWhere(
+              '(u.employeeCode = :code OR u.altEmployeeCode1 = :code OR ' +
+              'u.altEmployeeCode2 = :code OR u.altEmployeeCode3 = :code)',
+              { code: codeUpper }
+            )
+            .getOne();
           
-          // Check uniqueness
-          const codeExists = await userRepository.findOne({
-            where: { employeeCode: codeUpper, deletedAt: IsNull() }
-          });
-          
-          if (codeExists && codeExists.id !== user.id) {
+          if (codeExists) {
             res.status(400).json({
               success: false,
               error: 'EMPLOYEE_CODE_EXISTS',
@@ -561,6 +568,74 @@ export class UserController {
         } else {
           // Allow clearing the employee code
           user.employeeCode = null;
+        }
+      }
+
+      // Sprawdź i zaktualizuj alternatywne kody pracownika
+      const altCodeFields = [
+        { value: altEmployeeCode1, field: 'altEmployeeCode1' as const },
+        { value: altEmployeeCode2, field: 'altEmployeeCode2' as const },
+        { value: altEmployeeCode3, field: 'altEmployeeCode3' as const },
+      ];
+
+      // Validate format, normalize, and collect non-empty alt codes being set
+      const newAltCodes: Array<{ field: 'altEmployeeCode1' | 'altEmployeeCode2' | 'altEmployeeCode3'; codeUpper: string }> = [];
+
+      for (const { value, field } of altCodeFields) {
+        if (value !== undefined && value) {
+          const codeUpper = (value as string).trim().toUpperCase();
+          if (!codeUpper) {
+            // Whitespace-only input — treat as clearing the field
+            user[field] = null;
+            continue;
+          }
+
+          const validation = EmployeeCodeGenerator.validateCode(codeUpper);
+          if (!validation.valid) {
+            res.status(400).json({
+              success: false,
+              error: 'INVALID_EMPLOYEE_CODE',
+              message: validation.error
+            });
+            return;
+          }
+
+          newAltCodes.push({ field, codeUpper });
+        }
+      }
+
+      if (newAltCodes.length > 0) {
+        // Single query to check global uniqueness of all provided codes at once
+        const codeValues = newAltCodes.map(({ codeUpper }) => codeUpper);
+        const conflictUser = await userRepository
+          .createQueryBuilder('u')
+          .where('u.id != :userId', { userId: user.id })
+          .andWhere('u.deletedAt IS NULL')
+          .andWhere(
+            '(u.employeeCode IN (:...codes) OR u.altEmployeeCode1 IN (:...codes) OR ' +
+            'u.altEmployeeCode2 IN (:...codes) OR u.altEmployeeCode3 IN (:...codes))',
+            { codes: codeValues }
+          )
+          .getOne();
+
+        if (conflictUser) {
+          res.status(400).json({
+            success: false,
+            error: 'EMPLOYEE_CODE_EXISTS',
+            message: 'Jeden z podanych kodów jest już używany przez innego użytkownika'
+          });
+          return;
+        }
+
+        for (const { field, codeUpper } of newAltCodes) {
+          user[field] = codeUpper;
+        }
+      }
+
+      // Clear alt codes that were explicitly set to empty string
+      for (const { value, field } of altCodeFields) {
+        if (value !== undefined && typeof value === 'string' && value.trim() === '') {
+          user[field] = null;
         }
       }
 

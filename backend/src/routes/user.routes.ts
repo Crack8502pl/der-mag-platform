@@ -121,6 +121,47 @@ router.put('/me/preferences', authenticate, UserPreferencesController.updatePref
 router.put('/me/profile', authenticate, UserPreferencesController.updateProfile);
 router.put('/me/password', authenticate, UserPreferencesController.changePassword);
 
+/**
+ * GET /api/users/check-employee-code/:code
+ * Sprawdź czy kod pracownika (główny lub alternatywny) jest dostępny w systemie
+ */
+router.get('/check-employee-code/:code', authenticate, checkPermission('users', 'update'), async (req: Request, res: Response) => {
+  try {
+    const { code } = req.params;
+    const { excludeUserId } = req.query;
+
+    if (!code || code.trim() === '') {
+      res.status(400).json({ success: false, error: 'INVALID_CODE', message: 'Kod jest wymagany' });
+      return;
+    }
+
+    const trimmedCode = code.trim().toUpperCase();
+    const userRepository = AppDataSource.getRepository(User);
+
+    const query = userRepository
+      .createQueryBuilder('u')
+      .where('u.deletedAt IS NULL')
+      .andWhere(
+        '(u.employeeCode = :code OR u.altEmployeeCode1 = :code OR ' +
+        'u.altEmployeeCode2 = :code OR u.altEmployeeCode3 = :code)',
+        { code: trimmedCode }
+      );
+
+    if (excludeUserId) {
+      query.andWhere('u.id != :userId', { userId: parseInt(excludeUserId as string, 10) });
+    }
+
+    const conflictUser = await query.getOne();
+
+    res.json({
+      available: conflictUser === null,
+    });
+  } catch (error) {
+    console.error('Błąd sprawdzania kodu pracownika:', error);
+    res.status(500).json({ success: false, error: 'SERVER_ERROR', message: 'Błąd serwera' });
+  }
+});
+
 // Permission-based routes
 router.get('/', authenticate, checkPermission('users', 'read'), UserController.list);
 router.get('/:id', authenticate, checkPermission('users', 'read'), UserController.getById);
