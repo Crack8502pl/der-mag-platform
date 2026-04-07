@@ -14,7 +14,7 @@ export class DocumentTemplate {
   @Column({ type: 'uuid', unique: true, default: () => 'gen_random_uuid()' })
   uuid: string;
 
-  @Column({ length: 255 })
+  @Column({ type: 'varchar', length: 255 })
   name: string;
 
   @Column({ type: 'text', nullable: true })
@@ -27,7 +27,7 @@ export class DocumentTemplate {
   })
   type: string;
 
-  @Column({ name: 'file_path', length: 500 })
+  @Column({ type: 'varchar', name: 'file_path', length: 500 })
   filePath: string;
 
   @Column({ 
@@ -41,10 +41,10 @@ export class DocumentTemplate {
   @JoinColumn({ name: 'task_type_id' })
   taskType?: TaskType;
 
-  @Column({ name: 'task_type_id', nullable: true })
+  @Column({ type: 'int', name: 'task_type_id', nullable: true })
   taskTypeId?: number;
 
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   active: boolean;
 
   @CreateDateColumn({ name: 'created_at' })

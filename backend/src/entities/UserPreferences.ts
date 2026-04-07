@@ -16,7 +16,7 @@ export class UserPreferences {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'user_id', unique: true })
+  @Column({ type: 'int', name: 'user_id', unique: true })
   userId: number;
 
   @OneToOne(() => User)

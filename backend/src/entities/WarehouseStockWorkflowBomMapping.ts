@@ -25,24 +25,24 @@ export class WarehouseStockWorkflowBomMapping {
   @JoinColumn({ name: 'warehouse_stock_id' })
   warehouseStock: WarehouseStock;
 
-  @Column({ name: 'warehouse_stock_id' })
+  @Column({ type: 'int', name: 'warehouse_stock_id' })
   warehouseStockId: number;
 
   @ManyToOne(() => WorkflowBomTemplateItem, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'workflow_bom_template_item_id' })
   workflowBomTemplateItem: WorkflowBomTemplateItem;
 
-  @Column({ name: 'workflow_bom_template_item_id' })
+  @Column({ type: 'int', name: 'workflow_bom_template_item_id' })
   workflowBomTemplateItemId: number;
 
   // Parametry mapowania
   @Column({ name: 'quantity_per_unit', type: 'decimal', precision: 10, scale: 2, default: 1 })
   quantityPerUnit: number;
 
-  @Column({ name: 'is_optional', default: false })
+  @Column({ type: 'boolean', name: 'is_optional', default: false })
   isOptional: boolean;
 
-  @Column({ name: 'is_alternative', default: false })
+  @Column({ type: 'boolean', name: 'is_alternative', default: false })
   isAlternative: boolean;
 
   @Column({ type: 'text', nullable: true })
@@ -53,7 +53,7 @@ export class WarehouseStockWorkflowBomMapping {
   @JoinColumn({ name: 'created_by' })
   createdBy: User;
 
-  @Column({ name: 'created_by', nullable: true })
+  @Column({ type: 'int', name: 'created_by', nullable: true })
   createdById: number;
 
   @CreateDateColumn({ name: 'created_at' })

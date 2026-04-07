@@ -24,7 +24,7 @@ export class RecorderSpecification {
   @JoinColumn({ name: 'warehouse_stock_id' })
   warehouseStock: WarehouseStock;
 
-  @Column({ name: 'warehouse_stock_id' })
+  @Column({ type: 'int', name: 'warehouse_stock_id' })
   warehouseStockId: number;
 
   @Column({ name: 'model_name', type: 'varchar', length: 100 })
@@ -56,7 +56,7 @@ export class RecorderSpecification {
   @JoinColumn({ name: 'extension_warehouse_stock_id' })
   extensionWarehouseStock: WarehouseStock | null;
 
-  @Column({ name: 'extension_warehouse_stock_id', nullable: true })
+  @Column({ type: 'int', name: 'extension_warehouse_stock_id', nullable: true })
   extensionWarehouseStockId: number | null;
 
   @Column({ name: 'is_active', type: 'boolean', default: true })

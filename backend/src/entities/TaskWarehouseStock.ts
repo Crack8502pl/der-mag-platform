@@ -34,14 +34,14 @@ export class TaskWarehouseStock {
   @JoinColumn({ name: 'task_id' })
   task: Task;
 
-  @Column({ name: 'task_id' })
+  @Column({ type: 'int', name: 'task_id' })
   taskId: number;
 
   @ManyToOne(() => WarehouseStock, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'warehouse_stock_id' })
   warehouseStock: WarehouseStock;
 
-  @Column({ name: 'warehouse_stock_id' })
+  @Column({ type: 'int', name: 'warehouse_stock_id' })
   warehouseStockId: number;
 
   // Ilości
@@ -79,7 +79,7 @@ export class TaskWarehouseStock {
   @JoinColumn({ name: 'assigned_by' })
   assignedBy: User;
 
-  @Column({ name: 'assigned_by', nullable: true })
+  @Column({ type: 'int', name: 'assigned_by', nullable: true })
   assignedById: number;
 
   @CreateDateColumn({ name: 'assigned_at' })

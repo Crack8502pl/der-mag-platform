@@ -53,7 +53,7 @@ export class BomTemplateDependencyRule {
   @JoinColumn({ name: 'template_id' })
   template: BomSubsystemTemplate;
 
-  @Column({ name: 'template_id' })
+  @Column({ type: 'int', name: 'template_id' })
   templateId: number;
 
   @Column({ name: 'rule_name', type: 'varchar', length: 200 })
@@ -91,7 +91,7 @@ export class BomTemplateDependencyRule {
   @JoinColumn({ name: 'target_item_id' })
   targetItem: BomSubsystemTemplateItem;
 
-  @Column({ name: 'target_item_id' })
+  @Column({ type: 'int', name: 'target_item_id' })
   targetItemId: number;
 
   @Column({ name: 'is_active', type: 'boolean', default: true })

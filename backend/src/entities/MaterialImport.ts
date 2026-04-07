@@ -14,7 +14,7 @@ export class MaterialImport {
   @Column({ type: 'uuid', unique: true, default: () => 'gen_random_uuid()' })
   uuid: string;
 
-  @Column({ length: 255 })
+  @Column({ type: 'varchar', length: 255 })
   filename: string;
 
   @Column({ 
@@ -24,16 +24,16 @@ export class MaterialImport {
   })
   status: string;
 
-  @Column({ name: 'total_rows', default: 0 })
+  @Column({ type: 'int', name: 'total_rows', default: 0 })
   totalRows: number;
 
-  @Column({ name: 'new_items', default: 0 })
+  @Column({ type: 'int', name: 'new_items', default: 0 })
   newItems: number;
 
-  @Column({ name: 'existing_items', default: 0 })
+  @Column({ type: 'int', name: 'existing_items', default: 0 })
   existingItems: number;
 
-  @Column({ name: 'error_items', default: 0 })
+  @Column({ type: 'int', name: 'error_items', default: 0 })
   errorItems: number;
 
   @Column({ 
@@ -56,7 +56,7 @@ export class MaterialImport {
   @JoinColumn({ name: 'imported_by' })
   importedBy?: User;
 
-  @Column({ name: 'imported_by', nullable: true })
+  @Column({ type: 'int', name: 'imported_by', nullable: true })
   importedById?: number;
 
   @CreateDateColumn({ name: 'created_at' })

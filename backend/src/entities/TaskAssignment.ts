@@ -15,14 +15,14 @@ export class TaskAssignment {
   @JoinColumn({ name: 'task_id' })
   task: Task;
 
-  @Column({ name: 'task_id' })
+  @Column({ type: 'int', name: 'task_id' })
   taskId: number;
 
   @ManyToOne(() => User, user => user.taskAssignments)
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ name: 'user_id' })
+  @Column({ type: 'int', name: 'user_id' })
   userId: number;
 
   @Column({ type: 'varchar', length: 50, default: 'assigned' })
@@ -35,7 +35,7 @@ export class TaskAssignment {
   @JoinColumn({ name: 'assigned_by' })
   assignedBy: User;
 
-  @Column({ name: 'assigned_by' })
+  @Column({ type: 'int', name: 'assigned_by' })
   assignedById: number;
 
   @CreateDateColumn({ name: 'created_at' })

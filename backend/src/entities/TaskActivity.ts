@@ -15,17 +15,17 @@ export class TaskActivity {
   @JoinColumn({ name: 'task_id' })
   task: Task;
 
-  @Column({ name: 'task_id' })
+  @Column({ type: 'int', name: 'task_id' })
   taskId: number;
 
   @ManyToOne(() => ActivityTemplate)
   @JoinColumn({ name: 'activity_template_id' })
   activityTemplate: ActivityTemplate;
 
-  @Column({ name: 'activity_template_id' })
+  @Column({ type: 'int', name: 'activity_template_id' })
   activityTemplateId: number;
 
-  @Column({ length: 200 })
+  @Column({ type: 'varchar', length: 200 })
   name: string;
 
   @Column({ type: 'text', nullable: true })
@@ -34,7 +34,7 @@ export class TaskActivity {
   @Column({ type: 'int', default: 0 })
   sequence: number;
 
-  @Column({ name: 'is_completed', default: false })
+  @Column({ type: 'boolean', name: 'is_completed', default: false })
   isCompleted: boolean;
 
   @Column({ name: 'completed_at', type: 'timestamp', nullable: true })
@@ -44,10 +44,10 @@ export class TaskActivity {
   @JoinColumn({ name: 'completed_by' })
   completedBy: User;
 
-  @Column({ name: 'completed_by', nullable: true })
+  @Column({ type: 'int', name: 'completed_by', nullable: true })
   completedById: number;
 
-  @Column({ name: 'requires_photo', default: false })
+  @Column({ type: 'boolean', name: 'requires_photo', default: false })
   requiresPhoto: boolean;
 
   @Column({ name: 'photo_count', type: 'int', default: 0 })

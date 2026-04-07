@@ -24,7 +24,7 @@ export class Pallet {
   @JoinColumn({ name: 'completion_order_id' })
   completionOrder: CompletionOrder;
 
-  @Column({ name: 'completion_order_id' })
+  @Column({ type: 'int', name: 'completion_order_id' })
   completionOrderId: number;
 
   @OneToMany(() => CompletionItem, item => item.pallet)

@@ -30,7 +30,7 @@ export class DiskSpecification {
   @JoinColumn({ name: 'warehouse_stock_id' })
   warehouseStock: WarehouseStock;
 
-  @Column({ name: 'warehouse_stock_id' })
+  @Column({ type: 'int', name: 'warehouse_stock_id' })
   warehouseStockId: number;
 
   @Column({ name: 'capacity_tb', type: 'decimal', precision: 10, scale: 2 })

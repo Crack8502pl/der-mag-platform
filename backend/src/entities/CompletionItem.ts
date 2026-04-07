@@ -24,7 +24,7 @@ export class CompletionItem {
   @JoinColumn({ name: 'completion_order_id' })
   completionOrder: CompletionOrder;
 
-  @Column({ name: 'completion_order_id' })
+  @Column({ type: 'int', name: 'completion_order_id' })
   completionOrderId: number;
 
   @ManyToOne(() => WorkflowGeneratedBomItem, { nullable: true })
@@ -64,7 +64,7 @@ export class CompletionItem {
   @JoinColumn({ name: 'pallet_id' })
   pallet: Pallet;
 
-  @Column({ name: 'pallet_id', nullable: true })
+  @Column({ type: 'int', name: 'pallet_id', nullable: true })
   palletId: number;
 
   @Column({ name: 'scanned_quantity', type: 'int', default: 0 })

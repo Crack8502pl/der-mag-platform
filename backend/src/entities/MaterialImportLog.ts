@@ -17,13 +17,13 @@ export class MaterialImportLog {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'file_name', length: 255 })
+  @Column({ type: 'varchar', name: 'file_name', length: 255 })
   fileName: string;
 
-  @Column({ name: 'file_type', length: 20 })
+  @Column({ type: 'varchar', name: 'file_type', length: 20 })
   fileType: string;
 
-  @Column({ name: 'file_size' })
+  @Column({ type: 'int', name: 'file_size' })
   fileSize: number;
 
   @Column({
@@ -33,19 +33,19 @@ export class MaterialImportLog {
   })
   status: ImportStatus;
 
-  @Column({ name: 'total_rows', default: 0 })
+  @Column({ type: 'int', name: 'total_rows', default: 0 })
   totalRows: number;
 
-  @Column({ name: 'imported_rows', default: 0 })
+  @Column({ type: 'int', name: 'imported_rows', default: 0 })
   importedRows: number;
 
-  @Column({ name: 'updated_rows', default: 0 })
+  @Column({ type: 'int', name: 'updated_rows', default: 0 })
   updatedRows: number;
 
-  @Column({ name: 'skipped_rows', default: 0 })
+  @Column({ type: 'int', name: 'skipped_rows', default: 0 })
   skippedRows: number;
 
-  @Column({ name: 'error_rows', default: 0 })
+  @Column({ type: 'int', name: 'error_rows', default: 0 })
   errorRows: number;
 
   @Column({ type: 'jsonb', nullable: true })
@@ -58,10 +58,10 @@ export class MaterialImportLog {
   @JoinColumn({ name: 'imported_by' })
   importedBy: User;
 
-  @Column({ name: 'started_at', nullable: true })
+  @Column({ type: 'timestamp', name: 'started_at', nullable: true })
   startedAt: Date;
 
-  @Column({ name: 'completed_at', nullable: true })
+  @Column({ type: 'timestamp', name: 'completed_at', nullable: true })
   completedAt: Date;
 
   @CreateDateColumn({ name: 'created_at' })

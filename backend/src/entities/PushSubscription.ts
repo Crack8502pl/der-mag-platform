@@ -16,7 +16,7 @@ export class PushSubscription {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'user_id' })
+  @Column({ type: 'int', name: 'user_id' })
   userId: number;
 
   @ManyToOne(() => User)

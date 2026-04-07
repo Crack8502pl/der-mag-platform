@@ -14,10 +14,10 @@ export class ActivityTemplate {
   @JoinColumn({ name: 'task_type_id' })
   taskType: TaskType;
 
-  @Column({ name: 'task_type_id' })
+  @Column({ type: 'int', name: 'task_type_id' })
   taskTypeId: number;
 
-  @Column({ length: 200 })
+  @Column({ type: 'varchar', length: 200 })
   name: string;
 
   @Column({ type: 'text', nullable: true })
@@ -26,26 +26,26 @@ export class ActivityTemplate {
   @Column({ type: 'int', default: 0 })
   sequence: number;
 
-  @Column({ name: 'parent_id', nullable: true })
+  @Column({ type: 'int', name: 'parent_id', nullable: true })
   parentId: number;
 
   @ManyToOne(() => ActivityTemplate, { nullable: true })
   @JoinColumn({ name: 'parent_id' })
   parent: ActivityTemplate;
 
-  @Column({ name: 'requires_photo', default: false })
+  @Column({ type: 'boolean', name: 'requires_photo', default: false })
   requiresPhoto: boolean;
 
   @Column({ name: 'min_photos', type: 'int', default: 0 })
   minPhotos: number;
 
-  @Column({ name: 'is_mandatory', default: true })
+  @Column({ type: 'boolean', name: 'is_mandatory', default: true })
   isMandatory: boolean;
 
   @Column({ type: 'jsonb', default: {} })
   configuration: Record<string, any>;
 
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   active: boolean;
 
   @CreateDateColumn({ name: 'created_at' })

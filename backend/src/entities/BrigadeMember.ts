@@ -21,14 +21,14 @@ export class BrigadeMember {
   @JoinColumn({ name: 'brigade_id' })
   brigade: Brigade;
 
-  @Column({ name: 'brigade_id' })
+  @Column({ type: 'int', name: 'brigade_id' })
   brigadeId: number;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ name: 'user_id' })
+  @Column({ type: 'int', name: 'user_id' })
   userId: number;
 
   // Dni tygodnia jako array
@@ -42,7 +42,7 @@ export class BrigadeMember {
   @Column({ name: 'valid_to', type: 'date', nullable: true })
   validTo: Date;
 
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   active: boolean;
 
   @CreateDateColumn({ name: 'created_at' })

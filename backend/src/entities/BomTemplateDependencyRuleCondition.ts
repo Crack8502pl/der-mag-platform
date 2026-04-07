@@ -34,7 +34,7 @@ export class BomTemplateDependencyRuleCondition {
   @JoinColumn({ name: 'rule_id' })
   rule: BomTemplateDependencyRule;
 
-  @Column({ name: 'rule_id' })
+  @Column({ type: 'int', name: 'rule_id' })
   ruleId: number;
 
   @Column({ name: 'condition_order', type: 'integer', default: 0 })

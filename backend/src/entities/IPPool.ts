@@ -14,10 +14,10 @@ export class IPPool {
   @JoinColumn({ name: 'task_type_id' })
   taskType: TaskType;
 
-  @Column({ name: 'task_type_id' })
+  @Column({ type: 'int', name: 'task_type_id' })
   taskTypeId: number;
 
-  @Column({ length: 100 })
+  @Column({ type: 'varchar', length: 100 })
   name: string;
 
   @Column({ type: 'varchar', length: 50 })
@@ -44,7 +44,7 @@ export class IPPool {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   active: boolean;
 
   @CreateDateColumn({ name: 'created_at' })

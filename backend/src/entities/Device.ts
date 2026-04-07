@@ -13,23 +13,23 @@ export class Device {
   @Column({ name: 'serial_number', type: 'varchar', length: 100, unique: true })
   serialNumber: string;
 
-  @Column({ name: 'device_type', length: 100 })
+  @Column({ type: 'varchar', name: 'device_type', length: 100 })
   deviceType: string;
 
-  @Column({ name: 'device_model', length: 100, nullable: true })
+  @Column({ type: 'varchar', name: 'device_model', length: 100, nullable: true })
   deviceModel: string;
 
-  @Column({ length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   manufacturer: string;
 
   @ManyToOne(() => Task, task => task.devices, { nullable: true })
   @JoinColumn({ name: 'task_id' })
   task: Task;
 
-  @Column({ name: 'task_id', nullable: true })
+  @Column({ type: 'int', name: 'task_id', nullable: true })
   taskId: number;
 
-  @Column({ length: 50, default: 'prefabricated' })
+  @Column({ type: 'varchar', length: 50, default: 'prefabricated' })
   status: string;
 
   @Column({ name: 'prefabrication_date', type: 'timestamp', nullable: true })

@@ -26,7 +26,7 @@ export class Task {
   @Column({ name: 'task_number', type: 'varchar', length: 9, unique: true })
   taskNumber: string;
 
-  @Column({ length: 200 })
+  @Column({ type: 'varchar', length: 200 })
   title: string;
 
   @Column({ type: 'text', nullable: true })
@@ -36,10 +36,10 @@ export class Task {
   @JoinColumn({ name: 'task_type_id' })
   taskType: TaskType;
 
-  @Column({ name: 'task_type_id' })
+  @Column({ type: 'int', name: 'task_type_id' })
   taskTypeId: number;
 
-  @Column({ length: 50, default: 'created' })
+  @Column({ type: 'varchar', length: 50, default: 'created' })
   status: string;
 
   @Column({ type: 'varchar', length: 200, nullable: true })
@@ -51,7 +51,7 @@ export class Task {
   @Column({ name: 'contract_number', type: 'varchar', length: 100, nullable: true })
   contractNumber: string;
 
-  @Column({ name: 'parent_task_id', nullable: true })
+  @Column({ type: 'int', name: 'parent_task_id', nullable: true })
   parentTaskId: number;
 
   @ManyToOne(() => Task, task => task.childTasks)
@@ -65,21 +65,21 @@ export class Task {
   @JoinColumn({ name: 'contract_id' })
   contract: Contract;
 
-  @Column({ name: 'contract_id', nullable: true })
+  @Column({ type: 'int', name: 'contract_id', nullable: true })
   contractId: number;
 
   @ManyToOne(() => Subsystem, { nullable: true })
   @JoinColumn({ name: 'subsystem_id' })
   subsystem: Subsystem;
 
-  @Column({ name: 'subsystem_id', nullable: true })
+  @Column({ type: 'int', name: 'subsystem_id', nullable: true })
   subsystemId: number;
 
   @ManyToOne(() => TaskGeneratedBom, { nullable: true })
   @JoinColumn({ name: 'task_bom_id' })
   taskBom: TaskGeneratedBom;
 
-  @Column({ name: 'task_bom_id', nullable: true })
+  @Column({ type: 'int', name: 'task_bom_id', nullable: true })
   taskBomId: number;
 
   @Column({ name: 'planned_start_date', type: 'date', nullable: true })

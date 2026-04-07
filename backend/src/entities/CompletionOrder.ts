@@ -33,14 +33,14 @@ export class CompletionOrder {
   @JoinColumn({ name: 'subsystem_id' })
   subsystem: Subsystem;
 
-  @Column({ name: 'subsystem_id' })
+  @Column({ type: 'int', name: 'subsystem_id' })
   subsystemId: number;
 
   @ManyToOne(() => WorkflowGeneratedBom, { nullable: true })
   @JoinColumn({ name: 'generated_bom_id' })
   generatedBom: WorkflowGeneratedBom | null;
 
-  @Column({ name: 'generated_bom_id', nullable: true })
+  @Column({ type: 'int', name: 'generated_bom_id', nullable: true })
   generatedBomId: number | null;
 
   @Column({ name: 'task_number', type: 'varchar', length: 20, nullable: true })
@@ -50,7 +50,7 @@ export class CompletionOrder {
   @JoinColumn({ name: 'assigned_to' })
   assignedTo: User;
 
-  @Column({ name: 'assigned_to' })
+  @Column({ type: 'int', name: 'assigned_to' })
   assignedToId: number;
 
   @Column({

@@ -21,10 +21,10 @@ export class Document {
   @JoinColumn({ name: 'task_id' })
   task?: Task;
 
-  @Column({ name: 'task_id', nullable: true })
+  @Column({ type: 'int', name: 'task_id', nullable: true })
   taskId?: number;
 
-  @Column({ length: 255 })
+  @Column({ type: 'varchar', length: 255 })
   name: string;
 
   @Column({ type: 'text', nullable: true })
@@ -44,30 +44,30 @@ export class Document {
   })
   category: string;
 
-  @Column({ name: 'file_path', length: 500 })
+  @Column({ type: 'varchar', name: 'file_path', length: 500 })
   filePath: string;
 
-  @Column({ name: 'file_size' })
+  @Column({ type: 'int', name: 'file_size' })
   fileSize: number;
 
-  @Column({ name: 'mime_type', length: 100 })
+  @Column({ type: 'varchar', name: 'mime_type', length: 100 })
   mimeType: string;
 
-  @Column({ name: 'original_filename', length: 255 })
+  @Column({ type: 'varchar', name: 'original_filename', length: 255 })
   originalFilename: string;
 
   @ManyToOne(() => DocumentTemplate, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'generated_from_template_id' })
   generatedFromTemplate?: DocumentTemplate;
 
-  @Column({ name: 'generated_from_template_id', nullable: true })
+  @Column({ type: 'int', name: 'generated_from_template_id', nullable: true })
   generatedFromTemplateId?: number;
 
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'created_by' })
   createdBy?: User;
 
-  @Column({ name: 'created_by', nullable: true })
+  @Column({ type: 'int', name: 'created_by', nullable: true })
   createdById?: number;
 
   @CreateDateColumn({ name: 'created_at' })

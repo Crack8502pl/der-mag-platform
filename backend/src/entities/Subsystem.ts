@@ -55,7 +55,7 @@ export class Subsystem {
   @JoinColumn({ name: 'contract_id' })
   contract: Contract;
 
-  @Column({ name: 'contract_id' })
+  @Column({ type: 'int', name: 'contract_id' })
   contractId: number;
 
   @OneToOne(() => NetworkAllocation, allocation => allocation.subsystem, { nullable: true })

@@ -44,7 +44,7 @@ export class Contract {
   @JoinColumn({ name: 'project_manager_id' })
   projectManager: User | null;
 
-  @Column({ name: 'project_manager_id', nullable: true })
+  @Column({ type: 'int', name: 'project_manager_id', nullable: true })
   projectManagerId: number | null;
 
   @Column({

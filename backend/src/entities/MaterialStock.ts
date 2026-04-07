@@ -16,10 +16,10 @@ export class MaterialStock {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'part_number', length: 100 })
+  @Column({ type: 'varchar', name: 'part_number', length: 100 })
   partNumber: string; // Numer katalogowy / Indeks
 
-  @Column({ length: 255 })
+  @Column({ type: 'varchar', length: 255 })
   name: string;
 
   @Column({ type: 'text', nullable: true })
@@ -31,34 +31,34 @@ export class MaterialStock {
   @Column({ name: 'quantity_reserved', type: 'decimal', precision: 10, scale: 2, default: 0 })
   quantityReserved: number;
 
-  @Column({ length: 20, default: 'szt' })
+  @Column({ type: 'varchar', length: 20, default: 'szt' })
   unit: string;
 
   @Column({ name: 'unit_price', type: 'decimal', precision: 10, scale: 2, nullable: true })
   unitPrice: number;
 
-  @Column({ length: 3, default: 'PLN' })
+  @Column({ type: 'varchar', length: 3, default: 'PLN' })
   currency: string;
 
-  @Column({ name: 'warehouse_location', length: 100, nullable: true })
+  @Column({ type: 'varchar', name: 'warehouse_location', length: 100, nullable: true })
   warehouseLocation: string;
 
-  @Column({ length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   supplier: string;
 
   @Column({ name: 'min_stock_level', type: 'decimal', precision: 10, scale: 2, nullable: true })
   minStockLevel: number;
 
-  @Column({ name: 'symfonia_id', length: 100, nullable: true })
+  @Column({ type: 'varchar', name: 'symfonia_id', length: 100, nullable: true })
   symfoniaId: string;
 
-  @Column({ name: 'symfonia_index', length: 100, nullable: true })
+  @Column({ type: 'varchar', name: 'symfonia_index', length: 100, nullable: true })
   symfoniaIndex: string;
 
-  @Column({ name: 'barcode', length: 100, nullable: true })
+  @Column({ type: 'varchar', name: 'barcode', length: 100, nullable: true })
   barcode: string;
 
-  @Column({ name: 'ean_code', length: 20, nullable: true })
+  @Column({ type: 'varchar', name: 'ean_code', length: 20, nullable: true })
   eanCode: string;
 
   @Column({
@@ -68,13 +68,13 @@ export class MaterialStock {
   })
   source: StockSource;
 
-  @Column({ name: 'last_import_at', nullable: true })
+  @Column({ type: 'timestamp', name: 'last_import_at', nullable: true })
   lastImportAt: Date;
 
-  @Column({ name: 'last_import_file', length: 255, nullable: true })
+  @Column({ type: 'varchar', name: 'last_import_file', length: 255, nullable: true })
   lastImportFile: string;
 
-  @Column({ name: 'is_active', default: true })
+  @Column({ type: 'boolean', name: 'is_active', default: true })
   isActive: boolean;
 
   @CreateDateColumn({ name: 'created_at' })

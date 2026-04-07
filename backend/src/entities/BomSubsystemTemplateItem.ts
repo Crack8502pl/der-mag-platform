@@ -34,14 +34,14 @@ export class BomSubsystemTemplateItem {
   @JoinColumn({ name: 'template_id' })
   template: BomSubsystemTemplate;
 
-  @Column({ name: 'template_id' })
+  @Column({ type: 'int', name: 'template_id' })
   templateId: number;
 
   @ManyToOne(() => WarehouseStock, { nullable: true })
   @JoinColumn({ name: 'warehouse_stock_id' })
   warehouseStock: WarehouseStock;
 
-  @Column({ name: 'warehouse_stock_id', nullable: true })
+  @Column({ type: 'int', name: 'warehouse_stock_id', nullable: true })
   warehouseStockId: number | null;
 
   @Column({ name: 'material_name', type: 'varchar', length: 200 })
@@ -71,7 +71,7 @@ export class BomSubsystemTemplateItem {
   @JoinColumn({ name: 'depends_on_item_id' })
   dependsOnItem: BomSubsystemTemplateItem;
 
-  @Column({ name: 'depends_on_item_id', nullable: true })
+  @Column({ type: 'int', name: 'depends_on_item_id', nullable: true })
   dependsOnItemId: number | null | undefined;
 
   @Column({ name: 'dependency_formula', type: 'varchar', length: 200, nullable: true })

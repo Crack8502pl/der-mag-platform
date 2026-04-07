@@ -21,14 +21,14 @@ export class PrefabricationDevice {
   @JoinColumn({ name: 'prefab_task_id' })
   prefabTask: PrefabricationTask;
 
-  @Column({ name: 'prefab_task_id' })
+  @Column({ type: 'int', name: 'prefab_task_id' })
   prefabTaskId: number;
 
   @ManyToOne(() => DeviceIPAssignment)
   @JoinColumn({ name: 'ip_assignment_id' })
   ipAssignment: DeviceIPAssignment;
 
-  @Column({ name: 'ip_assignment_id' })
+  @Column({ type: 'int', name: 'ip_assignment_id' })
   ipAssignmentId: number;
 
   @Column({

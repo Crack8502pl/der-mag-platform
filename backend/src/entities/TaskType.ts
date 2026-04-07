@@ -12,16 +12,16 @@ export class TaskType {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true, length: 100 })
+  @Column({ type: 'varchar', unique: true, length: 100 })
   name: string;
 
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ unique: true, length: 50 })
+  @Column({ type: 'varchar', unique: true, length: 50 })
   code: string;
 
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   active: boolean;
 
   @Column({ type: 'jsonb', default: {} })

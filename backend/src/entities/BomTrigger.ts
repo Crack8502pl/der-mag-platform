@@ -19,7 +19,7 @@ export class BomTrigger {
   @Column({ type: 'uuid', unique: true, nullable: true, default: () => 'gen_random_uuid()' })
   uuid?: string;
 
-  @Column({ length: 200 })
+  @Column({ type: 'varchar', length: 200 })
   name: string;
 
   @Column({ type: 'text', nullable: true })
@@ -41,27 +41,27 @@ export class BomTrigger {
   @JoinColumn({ name: 'source_task_type_id' })
   sourceTaskType?: TaskType;
 
-  @Column({ name: 'source_task_type_id', nullable: true })
+  @Column({ type: 'int', name: 'source_task_type_id', nullable: true })
   sourceTaskTypeId?: number;
 
   @ManyToOne(() => TaskType, { nullable: true })
   @JoinColumn({ name: 'target_task_type_id' })
   targetTaskType?: TaskType;
 
-  @Column({ name: 'target_task_type_id', nullable: true })
+  @Column({ type: 'int', name: 'target_task_type_id', nullable: true })
   targetTaskTypeId?: number;
 
   @Column({ type: 'int', default: 10 })
   priority: number;
 
-  @Column({ name: 'is_active', default: true })
+  @Column({ type: 'boolean', name: 'is_active', default: true })
   isActive: boolean;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'created_by' })
   creator: User;
 
-  @Column({ name: 'created_by' })
+  @Column({ type: 'int', name: 'created_by' })
   createdBy: number;
 
   @CreateDateColumn({ name: 'created_at' })

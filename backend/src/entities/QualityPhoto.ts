@@ -16,14 +16,14 @@ export class QualityPhoto {
   @JoinColumn({ name: 'task_id' })
   task: Task;
 
-  @Column({ name: 'task_id' })
+  @Column({ type: 'int', name: 'task_id' })
   taskId: number;
 
   @ManyToOne(() => TaskActivity, { nullable: true })
   @JoinColumn({ name: 'activity_id' })
   activity: TaskActivity;
 
-  @Column({ name: 'activity_id', nullable: true })
+  @Column({ type: 'int', name: 'activity_id', nullable: true })
   activityId?: number;
 
   @Column({ name: 'file_path', type: 'varchar', length: 500 })
@@ -63,17 +63,17 @@ export class QualityPhoto {
   @JoinColumn({ name: 'uploaded_by' })
   uploadedBy: User;
 
-  @Column({ name: 'uploaded_by' })
+  @Column({ type: 'int', name: 'uploaded_by' })
   uploadedById: number;
 
-  @Column({ length: 50, default: 'pending' })
+  @Column({ type: 'varchar', length: 50, default: 'pending' })
   status: string;
 
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'approved_by' })
   approvedBy: User;
 
-  @Column({ name: 'approved_by', nullable: true })
+  @Column({ type: 'int', name: 'approved_by', nullable: true })
   approvedById: number;
 
   @Column({ name: 'approved_at', type: 'timestamp', nullable: true })
