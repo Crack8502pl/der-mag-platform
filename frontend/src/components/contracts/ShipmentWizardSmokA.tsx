@@ -13,8 +13,8 @@ import './WizardStepIndicator.css';
 
 // ─── Typy zadań ──────────────────────────────────────────────────────────────
 
-const PRZEJAZD_TYPES = ['SMOKIP_A', 'PRZEJAZD_KAT_A'];
-const LCS_ND_SKP_TYPES = ['LCS', 'ND', 'NASTAWNIA', 'SKP'];
+const PRZEJAZD_TYPES = ['SMOKIP_A', 'PRZEJAZD_KAT_A', 'SKP'];
+const LCS_ND_TYPES = ['LCS', 'ND', 'NASTAWNIA'];
 
 type CabinetOption = 'SZAFA_TERENOWA' | 'SZAFA_WEWNETRZNA' | 'KONTENER' | '42U' | '24U';
 type PoleType = 'STALOWY' | 'KOMPOZYT' | 'INNY';
@@ -31,20 +31,12 @@ interface PoleConfig {
   };
 }
 
-interface SKPConfig {
-  [taskNumber: string]: {
-    typ: 'SAMODZIELNY' | 'Z_NASTAWNIA';
-    uwagi?: string;
-  };
-}
-
 interface WizardDraftData {
   selectedTasks: string[];
   deliveryAddress: string;
   contactPhone: string;
   cabinetConfig: CabinetConfig;
   poleConfig: PoleConfig;
-  skpConfig: SKPConfig;
 }
 
 interface ShipmentWizardSmokAProps {
@@ -89,8 +81,8 @@ const isPrzejazdTask = (taskType: string): boolean => {
   );
 };
 
-const isLcsNdSkpTask = (taskType: string): boolean =>
-  LCS_ND_SKP_TYPES.some((t) => taskType.toUpperCase() === t);
+const isLcsNdTask = (taskType: string): boolean =>
+  LCS_ND_TYPES.some((t) => taskType.toUpperCase() === t);
 
 // ─── Komponent główny ────────────────────────────────────────────────────────
 
@@ -107,7 +99,6 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
     contactPhone: '',
     cabinetConfig: {},
     poleConfig: {},
-    skpConfig: {},
   };
 
   // ── Draft management via server-side hook ─────────────────────────────────
@@ -136,7 +127,6 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
   const contactPhone = draftData.contactPhone;
   const cabinetConfig = draftData.cabinetConfig;
   const poleConfig = draftData.poleConfig;
-  const skpConfig = draftData.skpConfig;
 
   // ── Setters that update draftData ─────────────────────────────────────────
   const setSelectedTasks = (tasks: string[]) =>
@@ -153,9 +143,6 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
 
   const setPoleConfigState = (updater: (prev: PoleConfig) => PoleConfig) =>
     setDraftData((prev) => ({ ...prev, poleConfig: updater(prev.poleConfig) }));
-
-  const setSkpConfigState = (updater: (prev: SKPConfig) => SKPConfig) =>
-    setDraftData((prev) => ({ ...prev, skpConfig: updater(prev.skpConfig) }));
 
   // Intersect selectedTasks with eligible tasks when a draft is restored,
   // to drop tasks that received substatus='wysyłka_zlecona' since the draft was saved.
@@ -202,13 +189,9 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
       selectedTasks.includes(t.taskNumber)
     );
     for (const task of activeTasks) {
-      if (isPrzejazdTask(task.taskType) || isLcsNdSkpTask(task.taskType)) {
+      if (isPrzejazdTask(task.taskType) || isLcsNdTask(task.taskType)) {
         if (!cabinetConfig[task.taskNumber]) {
           return `Wybierz typ szafy/wysokość dla zadania ${task.taskNumber}`;
-        }
-        // Walidacja SKP
-        if (task.taskType.toUpperCase() === 'SKP' && !skpConfig[task.taskNumber]?.typ) {
-          return `Wybierz typ SKP dla zadania ${task.taskNumber}`;
         }
       }
     }
@@ -260,8 +243,6 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
             poleQuantity: poleConfig[task.taskNumber]?.quantity ?? 0,
             poleType: poleConfig[task.taskNumber]?.type || null,
             poleProductInfo: poleConfig[task.taskNumber]?.productInfo || null,
-            skpType: skpConfig[task.taskNumber]?.typ || null,
-            skpNotes: skpConfig[task.taskNumber]?.uwagi || null,
           })
         )
       );
@@ -316,21 +297,6 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
           ...existing,
           [field]: value,
         },
-      };
-    });
-  };
-
-  // ── Obsługa konfiguracji SKP ──────────────────────────────────────────────
-  const setSkpField = <K extends keyof SKPConfig[string]>(
-    taskNumber: string,
-    field: K,
-    value: SKPConfig[string][K]
-  ) => {
-    setSkpConfigState((prev) => {
-      const existing = prev[taskNumber] || { typ: 'SAMODZIELNY' as const };
-      return {
-        ...prev,
-        [taskNumber]: { ...existing, [field]: value },
       };
     });
   };
@@ -443,10 +409,9 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
       )}
       {activeTasks.map((task) => {
         const isPrzejazd = isPrzejazdTask(task.taskType);
-        const isLcsNdSkp = isLcsNdSkpTask(task.taskType);
-        const isSkp = task.taskType.toUpperCase() === 'SKP';
+        const isLcsNd = isLcsNdTask(task.taskType);
 
-        if (!isPrzejazd && !isLcsNdSkp) return null;
+        if (!isPrzejazd && !isLcsNd) return null;
 
         return (
           <div key={task.taskNumber} className="cabinet-config-section">
@@ -491,7 +456,7 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
                   </label>
                 </>
               )}
-              {isLcsNdSkp && (
+              {isLcsNd && (
                 <>
                   <label className="radio-option">
                     <input
@@ -516,48 +481,6 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
                 </>
               )}
             </div>
-
-            {/* Konfiguracja dla SKP */}
-            {isSkp && (
-              <div className="skp-config-section">
-                <label style={{ fontWeight: 600, marginBottom: '8px', display: 'block' }}>
-                  Typ SKP:
-                </label>
-                <div className="radio-group" role="radiogroup" aria-label={`Typ SKP dla ${task.taskNumber}`}>
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name={`skp-type-${task.taskNumber}`}
-                      value="SAMODZIELNY"
-                      checked={skpConfig[task.taskNumber]?.typ === 'SAMODZIELNY'}
-                      onChange={() => setSkpField(task.taskNumber, 'typ', 'SAMODZIELNY')}
-                    />
-                    SKP Samodzielny
-                  </label>
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name={`skp-type-${task.taskNumber}`}
-                      value="Z_NASTAWNIA"
-                      checked={skpConfig[task.taskNumber]?.typ === 'Z_NASTAWNIA'}
-                      onChange={() => setSkpField(task.taskNumber, 'typ', 'Z_NASTAWNIA')}
-                    />
-                    SKP z Nastawni
-                  </label>
-                </div>
-                <div className="form-group" style={{ marginTop: '12px' }}>
-                  <label htmlFor={`skp-notes-${task.taskNumber}`}>Uwagi (opcjonalnie):</label>
-                  <input
-                    id={`skp-notes-${task.taskNumber}`}
-                    type="text"
-                    className="form-control"
-                    placeholder="Dodatkowe informacje o SKP"
-                    value={skpConfig[task.taskNumber]?.uwagi || ''}
-                    onChange={(e) => setSkpField(task.taskNumber, 'uwagi', e.target.value)}
-                  />
-                </div>
-              </div>
-            )}
           </div>
         );
       })}
@@ -671,9 +594,6 @@ export const ShipmentWizardSmokA: React.FC<ShipmentWizardSmokAProps> = ({
             </span>
             <span>
               {cabinetConfig[task.taskNumber] || '—'}
-              {skpConfig[task.taskNumber]?.typ
-                ? `, SKP: ${skpConfig[task.taskNumber].typ}`
-                : ''}
               {poleConfig[task.taskNumber]?.quantity
                 ? `, ${poleConfig[task.taskNumber].quantity} szt. słupów`
                 : ''}

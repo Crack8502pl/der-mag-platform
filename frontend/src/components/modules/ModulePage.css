@@ -8,7 +8,7 @@
 
 .module-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -16,13 +16,21 @@
 .module-icon {
   font-size: 36px;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .module-header h1 {
   color: var(--text-primary);
-  font-size: 32px;
+  font-size: clamp(24px, 4vw, 32px);
   font-weight: 600;
   margin: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .module-content {

@@ -92,11 +92,11 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     discardDraft: handleDiscardDraft,
     clearDraft,
   } = useWizardDraft<WizardData>({
-    wizardType: 'contract-wizard',
+    wizardType: editMode && contractToEdit ? `contract-wizard-edit-${contractToEdit.id}` : 'contract-wizard',
     initialData: wizardData,
     autoSaveInterval: 30000,
-    enabled: !editMode,                        // always load for new contracts
-    autoSaveEnabled: !editMode && currentStep >= 3, // auto-save from step 3 onward
+    enabled: true,
+    autoSaveEnabled: currentStep >= 3, // auto-save from step 3 onward
     onRestore: (data) => {
       updateWizardData(data);
     },
@@ -104,11 +104,11 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
   // Keep draft data and step in sync with live wizard state (from step 3 onward)
   useEffect(() => {
-    if (!editMode && currentStep >= 3) {
+    if (currentStep >= 3) {
       setDraftData(wizardData);
     }
     setDraftCurrentStep(currentStep);
-  }, [wizardData, currentStep, editMode, setDraftData, setDraftCurrentStep]);
+  }, [wizardData, currentStep, setDraftData, setDraftCurrentStep]);
 
   // Step at which draft save button is shown (config, details, preview, success)
   const isDraftStep = (stepType: string) =>
@@ -167,7 +167,24 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         setError(validation.error!);
         return;
       }
-      setGeneratedTasks(generateAllTasks(wizardData.subsystems, wizardData.liniaKolejowa));
+      const allTasks = generateAllTasks(wizardData.subsystems, wizardData.liniaKolejowa);
+      
+      if (editMode) {
+        // In edit mode, show only NEW tasks (without id) in the preview
+        const newTasks: GeneratedTask[] = [];
+        wizardData.subsystems.forEach((subsystem) => {
+          const subsystemTasks = allTasks.filter(t => t.subsystemType === subsystem.type);
+          const taskDetails = subsystem.taskDetails || [];
+          subsystemTasks.forEach((task, index) => {
+            if (!taskDetails[index]?.id) {
+              newTasks.push(task);
+            }
+          });
+        });
+        setGeneratedTasks(newTasks);
+      } else {
+        setGeneratedTasks(allTasks);
+      }
     }
     
     // Initialize taskDetails for SMOKIP when leaving config step
@@ -399,6 +416,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         if (response.id) {
           setCreatedContractId(response.id);
           setCreatedContract(response);
+          setShippingActive(true);  // Auto-activate shipping wizard
         }
         
         // Update generated tasks with actual task numbers from backend
@@ -413,9 +431,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         );
         
         setGeneratedTasks(fetchedTasks);
-        setCurrentStep(getTotalSteps()); // Success step
         // Clear draft on successful creation
-        clearDraft();
+        await clearDraft();
       }
     } catch (err: any) {
       console.error('❌ Error creating/updating contract:', err);
@@ -571,6 +588,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         <PreviewStep
           wizardData={wizardData}
           generatedTasks={generatedTasks}
+          editMode={editMode}
           onNext={handleSubmit}
           onPrev={handlePrevStep}
         />
@@ -663,7 +681,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
               </button>
             )}
             {/* Draft save button for steps 3+ (config, details, preview) */}
-            {!editMode && isDraftStep(stepInfo.type) && (
+            {isDraftStep(stepInfo.type) && (
               <button
                 className="btn btn-secondary"
                 onClick={() => saveDraftNow()}
