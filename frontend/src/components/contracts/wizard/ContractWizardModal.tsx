@@ -79,7 +79,6 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
   });
 
   // Draft management – only for new contracts, from step 3 onward
-  const draftWizardType = editMode ? null : 'contract-wizard';
   const {
     setData: setDraftData,
     saveDraft: saveDraftNow,
@@ -91,7 +90,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     discardDraft: handleDiscardDraft,
     clearDraft,
   } = useWizardDraft<WizardData>({
-    wizardType: draftWizardType || 'contract-wizard',
+    wizardType: 'contract-wizard',
     initialData: wizardData,
     autoSaveInterval: 30000,
     enabled: !editMode && currentStep >= 3,

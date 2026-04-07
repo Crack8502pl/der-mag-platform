@@ -236,7 +236,7 @@ export const useWizardState = ({
   /**
    * Add a new task detail
    */
-  const addTaskDetail = (subsystemIndex: number, taskType: TaskDetail['taskType']) => {
+  const addTaskDetail = (subsystemIndex: number, taskType: TaskDetail['taskType'], initialData?: Partial<TaskDetail>) => {
     const newSubsystems = [...wizardData.subsystems];
     if (!newSubsystems[subsystemIndex].taskDetails) {
       newSubsystems[subsystemIndex].taskDetails = [];
@@ -255,6 +255,11 @@ export const useWizardState = ({
     } else if (taskType === 'NASTAWNIA' || taskType === 'LCS' || taskType === 'CUID') {
       newDetail.nazwa = '';
       newDetail.miejscowosc = '';
+    }
+
+    // Merge optional caller-supplied initial data (e.g. detected railway line)
+    if (initialData) {
+      Object.assign(newDetail, initialData);
     }
     
     newSubsystems[subsystemIndex].taskDetails!.push(newDetail);

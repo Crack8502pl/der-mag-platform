@@ -9,7 +9,7 @@ interface SmokipADetailsStepProps {
   subsystemIndex: number;
   detectedRailwayLine?: string;
   onUpdate: (index: number, updates: Partial<SubsystemWizardData>) => void;
-  onAddTask: (subsystemIndex: number, taskType: TaskDetail['taskType']) => void;
+  onAddTask: (subsystemIndex: number, taskType: TaskDetail['taskType'], initialData?: Partial<TaskDetail>) => void;
   onRemoveTask: (subsystemIndex: number, taskIndex: number) => void;
   onUpdateTask: (subsystemIndex: number, taskIndex: number, updates: Partial<TaskDetail>) => void;
   onNext: () => void;
@@ -39,15 +39,10 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
   };
 
   const handleAddTask = (taskType: TaskDetail['taskType']) => {
-    onAddTask(subsystemIndex, taskType);
-    // After adding, if we have a detected railway line, the newly added task will be the last one
-    // We set liniaKolejowa in a timeout to ensure the task has been added to state first
-    if (detectedRailwayLine) {
-      setTimeout(() => {
-        const newIndex = (subsystem.taskDetails?.length ?? 0);
-        onUpdateTask(subsystemIndex, newIndex, { liniaKolejowa: detectedRailwayLine });
-      }, 0);
-    }
+    const initialData: Partial<TaskDetail> = detectedRailwayLine
+      ? { liniaKolejowa: detectedRailwayLine }
+      : {};
+    onAddTask(subsystemIndex, taskType, Object.keys(initialData).length ? initialData : undefined);
   };
 
   const handleCuidCheckbox = (lcsTaskIndex: number, checked: boolean) => {
@@ -55,19 +50,14 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
     onUpdateTask(subsystemIndex, lcsTaskIndex, { hasCUID: checked });
     if (checked) {
       // Add CUID task inheriting location from LCS
-      onAddTask(subsystemIndex, 'CUID');
-      if (detectedRailwayLine || lcsTask.liniaKolejowa) {
-        setTimeout(() => {
-          const newIndex = (subsystem.taskDetails?.length ?? 0);
-          onUpdateTask(subsystemIndex, newIndex, {
-            liniaKolejowa: lcsTask.liniaKolejowa || detectedRailwayLine,
-            miejscowosc: lcsTask.miejscowosc,
-            nazwa: lcsTask.nazwa,
-          });
-        }, 0);
-      }
+      const cuidInitial: Partial<TaskDetail> = {
+        liniaKolejowa: lcsTask.liniaKolejowa || detectedRailwayLine,
+        miejscowosc: lcsTask.miejscowosc,
+        nazwa: lcsTask.nazwa,
+      };
+      onAddTask(subsystemIndex, 'CUID', cuidInitial);
     } else {
-      // Remove the last CUID task that follows this LCS
+      // Remove the first CUID task that appears after this LCS in the list
       const cuidIndex = taskDetails.findIndex((t, i) => i > lcsTaskIndex && t.taskType === 'CUID');
       if (cuidIndex !== -1) {
         onRemoveTask(subsystemIndex, cuidIndex);

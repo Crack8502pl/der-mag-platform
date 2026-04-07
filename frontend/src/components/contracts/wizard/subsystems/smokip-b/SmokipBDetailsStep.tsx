@@ -9,7 +9,7 @@ interface SmokipBDetailsStepProps {
   subsystemIndex: number;
   detectedRailwayLine?: string;
   onUpdate: (index: number, updates: Partial<SubsystemWizardData>) => void;
-  onAddTask: (subsystemIndex: number, taskType: TaskDetail['taskType']) => void;
+  onAddTask: (subsystemIndex: number, taskType: TaskDetail['taskType'], initialData?: Partial<TaskDetail>) => void;
   onRemoveTask: (subsystemIndex: number, taskIndex: number) => void;
   onUpdateTask: (subsystemIndex: number, taskIndex: number, updates: Partial<TaskDetail>) => void;
   onNext: () => void;
@@ -39,31 +39,24 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
   };
 
   const handleAddTask = (taskType: TaskDetail['taskType']) => {
-    onAddTask(subsystemIndex, taskType);
-    if (detectedRailwayLine) {
-      setTimeout(() => {
-        const newIndex = (subsystem.taskDetails?.length ?? 0);
-        onUpdateTask(subsystemIndex, newIndex, { liniaKolejowa: detectedRailwayLine });
-      }, 0);
-    }
+    const initialData: Partial<TaskDetail> = detectedRailwayLine
+      ? { liniaKolejowa: detectedRailwayLine }
+      : {};
+    onAddTask(subsystemIndex, taskType, Object.keys(initialData).length ? initialData : undefined);
   };
 
   const handleCuidCheckbox = (lcsTaskIndex: number, checked: boolean) => {
     const lcsTask = taskDetails[lcsTaskIndex];
     onUpdateTask(subsystemIndex, lcsTaskIndex, { hasCUID: checked });
     if (checked) {
-      onAddTask(subsystemIndex, 'CUID');
-      if (detectedRailwayLine || lcsTask.liniaKolejowa) {
-        setTimeout(() => {
-          const newIndex = (subsystem.taskDetails?.length ?? 0);
-          onUpdateTask(subsystemIndex, newIndex, {
-            liniaKolejowa: lcsTask.liniaKolejowa || detectedRailwayLine,
-            miejscowosc: lcsTask.miejscowosc,
-            nazwa: lcsTask.nazwa,
-          });
-        }, 0);
-      }
+      const cuidInitial: Partial<TaskDetail> = {
+        liniaKolejowa: lcsTask.liniaKolejowa || detectedRailwayLine,
+        miejscowosc: lcsTask.miejscowosc,
+        nazwa: lcsTask.nazwa,
+      };
+      onAddTask(subsystemIndex, 'CUID', cuidInitial);
     } else {
+      // Remove the first CUID task that appears after this LCS in the list
       const cuidIndex = taskDetails.findIndex((t, i) => i > lcsTaskIndex && t.taskType === 'CUID');
       if (cuidIndex !== -1) {
         onRemoveTask(subsystemIndex, cuidIndex);
