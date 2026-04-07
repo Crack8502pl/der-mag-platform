@@ -1,7 +1,7 @@
 // src/components/users/UserEditModal.tsx
 // Modal for editing user information
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import api from '../../services/api';
 
 interface User {
@@ -12,6 +12,9 @@ interface User {
   lastName: string;
   phone?: string;
   employeeCode?: string;
+  altEmployeeCode1?: string | null;
+  altEmployeeCode2?: string | null;
+  altEmployeeCode3?: string | null;
   roleId?: number;
   role?: {
     id: number;
@@ -45,16 +48,63 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
     email: user.email,
     phone: user.phone || '',
     employeeCode: user.employeeCode || '',
+    altEmployeeCode1: user.altEmployeeCode1 || '',
+    altEmployeeCode2: user.altEmployeeCode2 || '',
+    altEmployeeCode3: user.altEmployeeCode3 || '',
     roleId: user.roleId ?? user.role?.id ?? 0,
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [codeAvailability, setCodeAvailability] = useState<Record<string, boolean | null>>({});
+  const [codeValidating, setCodeValidating] = useState<Record<string, boolean>>({});
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const EMPLOYEE_CODE_FIELDS = ['employeeCode', 'altEmployeeCode1', 'altEmployeeCode2', 'altEmployeeCode3'];
+
+  // Clean up all pending debounce timers on unmount
+  useEffect(() => {
+    const timers = debounceTimers.current;
+    return () => {
+      Object.values(timers).forEach(clearTimeout);
+    };
+  }, []);
+
+  const validateEmployeeCode = useCallback(
+    (fieldName: string, code: string) => {
+      if (debounceTimers.current[fieldName]) {
+        clearTimeout(debounceTimers.current[fieldName]);
+      }
+
+      if (!code || code.trim() === '') {
+        setCodeAvailability((prev) => ({ ...prev, [fieldName]: null }));
+        setCodeValidating((prev) => ({ ...prev, [fieldName]: false }));
+        return;
+      }
+
+      debounceTimers.current[fieldName] = setTimeout(async () => {
+        try {
+          setCodeValidating((prev) => ({ ...prev, [fieldName]: true }));
+          const response = await api.get(
+            `/users/check-employee-code/${encodeURIComponent(code)}?excludeUserId=${user.id}`
+          );
+          setCodeAvailability((prev) => ({ ...prev, [fieldName]: response.data.available }));
+        } catch {
+          setCodeAvailability((prev) => ({ ...prev, [fieldName]: null }));
+        } finally {
+          setCodeValidating((prev) => ({ ...prev, [fieldName]: false }));
+        }
+      }, 500);
+    },
+    [user.id]
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
-    // Convert employeeCode to uppercase
-    let finalValue: string | number = name === 'employeeCode' ? value.toUpperCase() : value;
+    // Convert employee codes to uppercase, limit to 5 chars
+    let finalValue: string | number = EMPLOYEE_CODE_FIELDS.includes(name)
+      ? value.toUpperCase().slice(0, 5)
+      : value;
     
     // Convert roleId to number
     if (name === 'roleId') {
@@ -65,6 +115,11 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
       ...formData,
       [name]: finalValue,
     });
+
+    // Live validate employee code fields
+    if (EMPLOYEE_CODE_FIELDS.includes(name)) {
+      validateEmployeeCode(name, finalValue as string);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,6 +135,9 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
         email: formData.email,
         phone: formData.phone,
         employeeCode: formData.employeeCode || null,
+        altEmployeeCode1: formData.altEmployeeCode1 || null,
+        altEmployeeCode2: formData.altEmployeeCode2 || null,
+        altEmployeeCode3: formData.altEmployeeCode3 || null,
       });
 
       // Update role if changed
@@ -193,19 +251,61 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({
 
           <div className="form-group">
             <label htmlFor="employeeCode">Kod pracownika</label>
-            <input
-              type="text"
-              id="employeeCode"
-              name="employeeCode"
-              value={formData.employeeCode}
-              onChange={handleChange}
-              className="input"
-              maxLength={5}
-              placeholder="Brak kodu"
-            />
+            <div className="input-with-indicator">
+              <input
+                type="text"
+                id="employeeCode"
+                name="employeeCode"
+                value={formData.employeeCode}
+                onChange={handleChange}
+                className="input"
+                maxLength={5}
+                placeholder="Brak kodu"
+              />
+              {formData.employeeCode && (
+                <span className="code-status-indicator">
+                  {codeValidating.employeeCode ? '⏳' : codeAvailability.employeeCode === true ? '✅' : codeAvailability.employeeCode === false ? '❌' : ''}
+                </span>
+              )}
+            </div>
             <small className="form-help">
-              3-5 znaków (wielkie litery)
+              {formData.employeeCode && codeAvailability.employeeCode === false
+                ? '⚠️ Ten kod jest już używany przez innego użytkownika'
+                : '3-5 znaków (wielkie litery)'}
             </small>
+          </div>
+
+          <div className="form-group">
+            <label>Alternatywne kody pracownika</label>
+            <small className="form-help" style={{ display: 'block', marginBottom: '8px' }}>
+              Np. stare kody po zmianie nazwiska — rozpoznawane przez synchronizację z Symfonią
+            </small>
+
+            {(['altEmployeeCode1', 'altEmployeeCode2', 'altEmployeeCode3'] as const).map((field, idx) => (
+              <div key={field} style={{ marginBottom: '8px' }}>
+                <div className="input-with-indicator">
+                  <input
+                    type="text"
+                    name={field}
+                    value={formData[field]}
+                    onChange={handleChange}
+                    className="input"
+                    maxLength={5}
+                    placeholder={`Alternatywny kod ${idx + 1} (opcjonalny)`}
+                  />
+                  {formData[field] && (
+                    <span className="code-status-indicator">
+                      {codeValidating[field] ? '⏳' : codeAvailability[field] === true ? '✅' : codeAvailability[field] === false ? '❌' : ''}
+                    </span>
+                  )}
+                </div>
+                {formData[field] && codeAvailability[field] === false && (
+                  <small className="form-help" style={{ color: 'red' }}>
+                    ⚠️ Ten kod jest już używany przez innego użytkownika
+                  </small>
+                )}
+              </div>
+            ))}
           </div>
 
           <div className="form-group">

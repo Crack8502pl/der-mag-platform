@@ -414,9 +414,24 @@ export class SymfoniaContractSyncService {
       if (allEmployeeCodes.length > 0) {
         const users = await userRepo
           .createQueryBuilder('u')
-          .where('u.employeeCode IN (:...codes)', { codes: allEmployeeCodes })
+          .where('u.employee_code IN (:...codes)', { codes: allEmployeeCodes })
+          .orWhere('u.alt_employee_code_1 IN (:...codes)', { codes: allEmployeeCodes })
+          .orWhere('u.alt_employee_code_2 IN (:...codes)', { codes: allEmployeeCodes })
+          .orWhere('u.alt_employee_code_3 IN (:...codes)', { codes: allEmployeeCodes })
           .getMany();
-        userMap = new Map(users.filter((u) => u.employeeCode).map((u) => [u.employeeCode as string, u]));
+
+        // Map ALL codes (main + alternative) to the user
+        userMap = new Map();
+        users.forEach((user) => {
+          user.getAllEmployeeCodes().forEach((code) => {
+            userMap.set(code, user);
+          });
+        });
+
+        contractsSyncLogger.info(
+          `🔍 Sync: Znaleziono ${users.length} użytkowników dla ${allEmployeeCodes.length} kodów ` +
+          `(rozpoznawanie głównych + alternatywnych kodów)`
+        );
       }
 
       // Pobierz istniejące rekordy jednym zapytaniem
@@ -550,9 +565,24 @@ export class SymfoniaContractSyncService {
     if (allEmployeeCodes.length > 0) {
       const users = await userRepo
         .createQueryBuilder('u')
-        .where('u.employeeCode IN (:...codes)', { codes: allEmployeeCodes })
+        .where('u.employee_code IN (:...codes)', { codes: allEmployeeCodes })
+        .orWhere('u.alt_employee_code_1 IN (:...codes)', { codes: allEmployeeCodes })
+        .orWhere('u.alt_employee_code_2 IN (:...codes)', { codes: allEmployeeCodes })
+        .orWhere('u.alt_employee_code_3 IN (:...codes)', { codes: allEmployeeCodes })
         .getMany();
-      userMap = new Map(users.filter((u) => u.employeeCode).map((u) => [u.employeeCode as string, u]));
+
+      // Map ALL codes (main + alternative) to the user
+      userMap = new Map();
+      users.forEach((user) => {
+        user.getAllEmployeeCodes().forEach((code) => {
+          userMap.set(code, user);
+        });
+      });
+
+      contractsSyncLogger.info(
+        `🔍 Sync: Znaleziono ${users.length} użytkowników dla ${allEmployeeCodes.length} kodów ` +
+        `(rozpoznawanie głównych + alternatywnych kodów)`
+      );
     }
 
     for (const { item, contractNumber, employeeCodes } of items) {

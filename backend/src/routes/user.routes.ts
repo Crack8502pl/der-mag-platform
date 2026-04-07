@@ -121,6 +121,55 @@ router.put('/me/preferences', authenticate, UserPreferencesController.updatePref
 router.put('/me/profile', authenticate, UserPreferencesController.updateProfile);
 router.put('/me/password', authenticate, UserPreferencesController.changePassword);
 
+/**
+ * GET /api/users/check-employee-code/:code
+ * Sprawdź czy kod pracownika (główny lub alternatywny) jest dostępny w systemie
+ */
+router.get('/check-employee-code/:code', authenticate, async (req: Request, res: Response) => {
+  try {
+    const { code } = req.params;
+    const { excludeUserId } = req.query;
+
+    if (!code || code.trim() === '') {
+      res.status(400).json({ error: 'Code is required' });
+      return;
+    }
+
+    const trimmedCode = code.trim().toUpperCase();
+    const userRepository = AppDataSource.getRepository(User);
+
+    const query = userRepository
+      .createQueryBuilder('u')
+      .where('u.deleted_at IS NULL')
+      .andWhere(
+        '(u.employee_code = :code OR u.alt_employee_code_1 = :code OR ' +
+        'u.alt_employee_code_2 = :code OR u.alt_employee_code_3 = :code)',
+        { code: trimmedCode }
+      );
+
+    if (excludeUserId) {
+      query.andWhere('u.id != :userId', { userId: parseInt(excludeUserId as string, 10) });
+    }
+
+    const conflictUser = await query.getOne();
+
+    res.json({
+      available: conflictUser === null,
+      conflictUser: conflictUser
+        ? {
+            id: conflictUser.id,
+            fullName: `${conflictUser.firstName} ${conflictUser.lastName}`,
+            email: conflictUser.email,
+            employeeCode: conflictUser.employeeCode,
+          }
+        : null,
+    });
+  } catch (error) {
+    console.error('Error checking employee code:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Permission-based routes
 router.get('/', authenticate, checkPermission('users', 'read'), UserController.list);
 router.get('/:id', authenticate, checkPermission('users', 'read'), UserController.getById);

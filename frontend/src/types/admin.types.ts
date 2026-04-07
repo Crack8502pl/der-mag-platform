@@ -9,6 +9,9 @@ export interface User {
   lastName: string;
   phone?: string;
   employeeCode?: string;
+  altEmployeeCode1?: string | null;
+  altEmployeeCode2?: string | null;
+  altEmployeeCode3?: string | null;
   roleId: number;
   role?: Role;
   active: boolean;

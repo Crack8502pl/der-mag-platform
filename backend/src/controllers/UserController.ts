@@ -494,7 +494,7 @@ export class UserController {
   static async update(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { firstName, lastName, email, phone, employeeCode } = req.body;
+      const { firstName, lastName, email, phone, employeeCode, altEmployeeCode1, altEmployeeCode2, altEmployeeCode3 } = req.body;
 
       const userRepository = AppDataSource.getRepository(User);
       
@@ -561,6 +561,53 @@ export class UserController {
         } else {
           // Allow clearing the employee code
           user.employeeCode = null;
+        }
+      }
+
+      // Sprawdź i zaktualizuj alternatywne kody pracownika
+      const altCodeFields = [
+        { value: altEmployeeCode1, field: 'altEmployeeCode1' as const },
+        { value: altEmployeeCode2, field: 'altEmployeeCode2' as const },
+        { value: altEmployeeCode3, field: 'altEmployeeCode3' as const },
+      ];
+
+      // Collect all non-empty alt codes being set
+      const newAltCodes = altCodeFields
+        .filter(({ value }) => value !== undefined && value)
+        .map(({ value, field }) => ({ field, codeUpper: (value as string).trim().toUpperCase() }));
+
+      if (newAltCodes.length > 0) {
+        // Single query to check uniqueness of all provided codes at once
+        const codeValues = newAltCodes.map(({ codeUpper }) => codeUpper);
+        const conflictUser = await userRepository
+          .createQueryBuilder('u')
+          .where('u.id != :userId', { userId: user.id })
+          .andWhere('u.deleted_at IS NULL')
+          .andWhere(
+            '(u.employee_code IN (:...codes) OR u.alt_employee_code_1 IN (:...codes) OR ' +
+            'u.alt_employee_code_2 IN (:...codes) OR u.alt_employee_code_3 IN (:...codes))',
+            { codes: codeValues }
+          )
+          .getOne();
+
+        if (conflictUser) {
+          res.status(400).json({
+            success: false,
+            error: 'EMPLOYEE_CODE_EXISTS',
+            message: 'Jeden z podanych kodów jest już używany przez innego użytkownika'
+          });
+          return;
+        }
+
+        for (const { field, codeUpper } of newAltCodes) {
+          user[field] = codeUpper;
+        }
+      }
+
+      // Clear alt codes that were explicitly set to empty
+      for (const { value, field } of altCodeFields) {
+        if (value !== undefined && !value) {
+          user[field] = null;
         }
       }
 
