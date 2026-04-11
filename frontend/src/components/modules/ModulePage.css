@@ -6,7 +6,8 @@
   margin: 0 auto;
 }
 
-.module-header {
+.module-header,
+.page-header {
   display: flex;
   align-items: flex-start;
   gap: 16px;
@@ -19,7 +20,8 @@
   flex-shrink: 0;
 }
 
-.module-header h1 {
+.module-header h1,
+.page-header h1 {
   color: var(--text-primary);
   font-size: clamp(24px, 4vw, 32px);
   font-weight: 600;
