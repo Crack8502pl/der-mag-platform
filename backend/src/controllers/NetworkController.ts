@@ -334,6 +334,19 @@ export class NetworkController {
         return;
       }
 
+      // Validate octet ranges (0-255) and prefix range (0-32)
+      const parts = cidr.split('/');
+      const octets = parts[0].split('.').map(Number);
+      const prefix = parseInt(parts[1], 10);
+      if (octets.some(o => o < 0 || o > 255) || prefix < 0 || prefix > 32) {
+        res.status(400).json({
+          success: false,
+          available: false,
+          message: 'Nieprawidłowy format CIDR'
+        });
+        return;
+      }
+
       const pools = await this.poolService.getAllPools(true);
 
       const exactMatch = pools.find(pool => pool.cidrRange === cidr);

@@ -131,8 +131,9 @@ export const NetworkPoolFields: React.FC<NetworkPoolFieldsProps> = ({
           text: `❌ ${result.message}`
         });
       }
-    } catch {
+    } catch (err) {
       onApplyNetworkResult('', '');
+      console.error('NetworkPoolFields: error checking CIDR availability', err);
       setValidationMessage({
         type: 'error',
         text: '❌ Błąd sprawdzania dostępności puli IP'
