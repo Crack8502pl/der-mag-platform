@@ -145,13 +145,12 @@ class NetworkService {
   }
 
   async checkCIDRAvailability(cidr: string): Promise<{
-    success: boolean;
     available: boolean;
     message: string;
     conflicts?: Array<{ id: number; name: string; cidr: string }>;
   }> {
     const response = await api.post('/network/check-cidr-availability', { cidr });
-    return response.data;
+    return response.data.data;
   }
 }
 

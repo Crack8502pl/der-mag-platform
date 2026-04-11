@@ -1,5 +1,5 @@
 // NetworkPoolFields.tsx
-// Component for IP pool, default gateway and subnet mask with auto-fill from CIDR notation
+// Component for IP pool, default gateway and subnet mask; gateway and mask values are generated only after an explicit "Sprawdź" action
 
 import React, { useState } from 'react';
 import networkService from '../../../../../services/network.service';
@@ -99,7 +99,11 @@ export const NetworkPoolFields: React.FC<NetworkPoolFieldsProps> = ({
   };
 
   const handleCheckAvailability = async () => {
-    if (!isValidCidr(ipPool)) {
+    // Capture CIDR before await so the closure is not stale if the user
+    // edits the field while the request is in-flight
+    const cidrSnapshot = ipPool.trim();
+
+    if (!isValidCidr(cidrSnapshot)) {
       setValidationMessage({
         type: 'error',
         text: '⚠️ Nieprawidłowy format CIDR. Użyj zapisu jak 192.168.1.0/24'
@@ -111,10 +115,15 @@ export const NetworkPoolFields: React.FC<NetworkPoolFieldsProps> = ({
     setValidationMessage(null);
 
     try {
-      const result = await networkService.checkCIDRAvailability(ipPool.trim());
+      const result = await networkService.checkCIDRAvailability(cidrSnapshot);
+
+      // Ignore stale response if the user changed the CIDR while in-flight
+      if (ipPool.trim() !== cidrSnapshot) {
+        return;
+      }
 
       if (result.available) {
-        const match = ipPool.trim().match(CIDR_PATTERN)!;
+        const match = cidrSnapshot.match(CIDR_PATTERN)!;
         const ip = `${match[1]}.${match[2]}.${match[3]}.${match[4]}`;
         const prefix = parseInt(match[5], 10);
 

@@ -72,6 +72,7 @@ router.post(
 router.post(
   '/check-cidr-availability',
   authenticate,
+  requirePermission('network', 'read'),
   networkController.checkCIDRAvailability
 );
 

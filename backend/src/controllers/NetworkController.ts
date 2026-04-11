@@ -314,9 +314,9 @@ export class NetworkController {
    */
   checkCIDRAvailability = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { cidr } = req.body;
+      const { cidr: rawCidr } = req.body;
 
-      if (!cidr || typeof cidr !== 'string') {
+      if (!rawCidr || typeof rawCidr !== 'string') {
         res.status(400).json({
           success: false,
           message: 'Brak parametru cidr'
@@ -324,11 +324,12 @@ export class NetworkController {
         return;
       }
 
+      const cidr = rawCidr.trim();
+
       const cidrRegex = /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/;
       if (!cidrRegex.test(cidr)) {
         res.status(400).json({
           success: false,
-          available: false,
           message: 'Nieprawidłowy format CIDR'
         });
         return;
@@ -341,7 +342,6 @@ export class NetworkController {
       if (octets.some(o => o < 0 || o > 255) || prefix < 0 || prefix > 32) {
         res.status(400).json({
           success: false,
-          available: false,
           message: 'Nieprawidłowy format CIDR'
         });
         return;
@@ -353,17 +353,21 @@ export class NetworkController {
       if (exactMatch) {
         res.json({
           success: true,
-          available: false,
-          message: `Pula ${cidr} już istnieje jako "${exactMatch.name}"`,
-          conflicts: [{ id: exactMatch.id, name: exactMatch.name, cidr: exactMatch.cidrRange }]
+          data: {
+            available: false,
+            message: `Pula ${cidr} już istnieje jako "${exactMatch.name}"`,
+            conflicts: [{ id: exactMatch.id, name: exactMatch.name, cidr: exactMatch.cidrRange }]
+          }
         });
         return;
       }
 
       res.json({
         success: true,
-        available: true,
-        message: 'Pula dostępna'
+        data: {
+          available: true,
+          message: 'Pula dostępna'
+        }
       });
     } catch (error: any) {
       res.status(500).json({
