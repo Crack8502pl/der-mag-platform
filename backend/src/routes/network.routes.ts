@@ -68,4 +68,12 @@ router.post(
   networkController.verifyDevice
 );
 
+// CIDR availability check (used by contract wizard)
+router.post(
+  '/check-cidr-availability',
+  authenticate,
+  requirePermission('network', 'read'),
+  networkController.checkCIDRAvailability
+);
+
 export default router;

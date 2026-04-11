@@ -33,6 +33,7 @@ interface UseWizardStateReturn {
   canProceedFromDetails: (subsystemIndex: number) => boolean;
   loadContractDataForEdit: (contract: Contract, setLoading: (loading: boolean) => void, setError: (error: string) => void) => Promise<void>;
   updateWizardData: (updates: Partial<WizardData>) => void;
+  updateSubsystem: (index: number, updates: Partial<SubsystemWizardData>) => void;
 }
 
 /**
@@ -421,6 +422,17 @@ export const useWizardState = ({
     }));
   };
 
+  /**
+   * Atomic subsystem update using functional form to avoid stale closure issues
+   */
+  const updateSubsystem = (index: number, updates: Partial<SubsystemWizardData>) => {
+    setWizardData(prev => {
+      const newSubsystems = [...prev.subsystems];
+      newSubsystems[index] = { ...newSubsystems[index], ...updates };
+      return { ...prev, subsystems: newSubsystems };
+    });
+  };
+
   return {
     wizardData,
     detectedSubsystems,
@@ -437,6 +449,7 @@ export const useWizardState = ({
     handleKilometrazBlur,
     canProceedFromDetails,
     loadContractDataForEdit,
-    updateWizardData
+    updateWizardData,
+    updateSubsystem
   };
 };

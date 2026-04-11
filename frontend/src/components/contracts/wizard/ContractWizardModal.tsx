@@ -70,7 +70,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     handleKilometrazInput,
     handleKilometrazBlur,
     canProceedFromDetails,
-    updateWizardData
+    updateWizardData,
+    updateSubsystem
   } = useWizardState({
     initialUserId: user?.id?.toString() || '',
     initialEmployeeCode: user?.employeeCode || '',
@@ -506,11 +507,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       subsystem,
       subsystemIndex,
       onUpdate: (index: number, updates: any) => {
-        const newSubsystems = [...wizardData.subsystems];
-        newSubsystems[index] = { ...newSubsystems[index], ...updates };
-        updateWizardData({ subsystems: newSubsystems });
+        updateSubsystem(index, updates);
       },
-      // SmwConfigStep needs these for internal multi-step navigation
       onNext: subsystem.type === 'SMW' ? handleNextStep : undefined,
       onPrev: subsystem.type === 'SMW' ? handlePrevStep : undefined
     };
@@ -535,9 +533,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       subsystemIndex,
       detectedRailwayLine: wizardData.detectedRailwayLine,
       onUpdate: (index: number, updates: any) => {
-        const newSubsystems = [...wizardData.subsystems];
-        newSubsystems[index] = { ...newSubsystems[index], ...updates };
-        updateWizardData({ subsystems: newSubsystems });
+        updateSubsystem(index, updates);
       },
       onAddTask: addTaskDetail,
       onRemoveTask: removeTaskDetail,

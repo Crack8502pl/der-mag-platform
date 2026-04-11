@@ -7,14 +7,9 @@ export const SmokipAConfigStep: React.FC<SubsystemConfigStepProps> = (props) => 
   const { subsystem, subsystemIndex, onUpdate } = props;
   const params = (subsystem.params || {}) as unknown as Record<string, string>;
 
-  const handleUpdateGateway = (value: string) => {
+  const handleApplyNetworkResult = (gateway: string, subnet: string) => {
     const current = (subsystem.params || {}) as Record<string, string | number | boolean>;
-    onUpdate(subsystemIndex, { params: { ...current, gatewayIP: value } as any });
-  };
-
-  const handleUpdateSubnetMask = (value: string) => {
-    const current = (subsystem.params || {}) as Record<string, string | number | boolean>;
-    onUpdate(subsystemIndex, { params: { ...current, subnetMask: value } as any });
+    onUpdate(subsystemIndex, { params: { ...current, gatewayIP: gateway, subnetMask: subnet } as any });
   };
 
   const handleUpdateIpPool = (value: string) => {
@@ -30,8 +25,7 @@ export const SmokipAConfigStep: React.FC<SubsystemConfigStepProps> = (props) => 
           gatewayIP={params.gatewayIP || ''}
           subnetMask={params.subnetMask || ''}
           onUpdateIpPool={handleUpdateIpPool}
-          onUpdateGateway={handleUpdateGateway}
-          onUpdateSubnetMask={handleUpdateSubnetMask}
+          onApplyNetworkResult={handleApplyNetworkResult}
         />
       </div>
     </>
