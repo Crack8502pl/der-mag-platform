@@ -307,4 +307,57 @@ export class NetworkController {
       });
     }
   };
+
+  /**
+   * POST /api/network/check-cidr-availability
+   * Sprawdza czy podany CIDR nie koliduje z istniejącymi pulami
+   */
+  checkCIDRAvailability = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { cidr } = req.body;
+
+      if (!cidr || typeof cidr !== 'string') {
+        res.status(400).json({
+          success: false,
+          message: 'Brak parametru cidr'
+        });
+        return;
+      }
+
+      const cidrRegex = /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/;
+      if (!cidrRegex.test(cidr)) {
+        res.status(400).json({
+          success: false,
+          available: false,
+          message: 'Nieprawidłowy format CIDR'
+        });
+        return;
+      }
+
+      const pools = await this.poolService.getAllPools(true);
+
+      const exactMatch = pools.find(pool => pool.cidrRange === cidr);
+      if (exactMatch) {
+        res.json({
+          success: true,
+          available: false,
+          message: `Pula ${cidr} już istnieje jako "${exactMatch.name}"`,
+          conflicts: [{ id: exactMatch.id, name: exactMatch.name, cidr: exactMatch.cidrRange }]
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        available: true,
+        message: 'Pula dostępna'
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: 'Błąd sprawdzania dostępności',
+        error: error.message
+      });
+    }
+  };
 }

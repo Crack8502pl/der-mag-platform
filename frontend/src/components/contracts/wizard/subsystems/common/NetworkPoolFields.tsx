@@ -1,15 +1,15 @@
 // NetworkPoolFields.tsx
 // Component for IP pool, default gateway and subnet mask with auto-fill from CIDR notation
 
-import React from 'react';
+import React, { useState } from 'react';
+import networkService from '../../../../../services/network.service';
 
 interface NetworkPoolFieldsProps {
   ipPool: string;
   gatewayIP: string;
   subnetMask: string;
   onUpdateIpPool: (value: string) => void;
-  onUpdateGateway: (value: string) => void;
-  onUpdateSubnetMask: (value: string) => void;
+  onApplyNetworkResult: (gateway: string, subnet: string) => void;
 }
 
 /** Convert CIDR prefix to dotted subnet mask */
@@ -78,22 +78,67 @@ export const NetworkPoolFields: React.FC<NetworkPoolFieldsProps> = ({
   gatewayIP,
   subnetMask,
   onUpdateIpPool,
-  onUpdateGateway,
-  onUpdateSubnetMask,
+  onApplyNetworkResult,
 }) => {
-  const poolIsSet = isValidCidr(ipPool);
+  const [checking, setChecking] = useState(false);
+  const [validationMessage, setValidationMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
+
   const poolHasInput = ipPool.trim().length > 0;
-  const poolIsInvalid = poolHasInput && !poolIsSet;
+  const poolIsInvalid = poolHasInput && !isValidCidr(ipPool);
 
   const handleIpPoolChange = (value: string) => {
     onUpdateIpPool(value);
+    setValidationMessage(null);
+    // Clear derived fields when the user modifies the CIDR
+    if (gatewayIP || subnetMask) {
+      onApplyNetworkResult('', '');
+    }
+  };
 
-    if (isValidCidr(value)) {
-      const match = value.trim().match(CIDR_PATTERN)!;
-      const ip = `${match[1]}.${match[2]}.${match[3]}.${match[4]}`;
-      const prefix = parseInt(match[5], 10);
-      onUpdateGateway(calculateFirstIP(ip, prefix));
-      onUpdateSubnetMask(prefixToSubnetMask(prefix));
+  const handleCheckAvailability = async () => {
+    if (!isValidCidr(ipPool)) {
+      setValidationMessage({
+        type: 'error',
+        text: '⚠️ Nieprawidłowy format CIDR. Użyj zapisu jak 192.168.1.0/24'
+      });
+      return;
+    }
+
+    setChecking(true);
+    setValidationMessage(null);
+
+    try {
+      const result = await networkService.checkCIDRAvailability(ipPool.trim());
+
+      if (result.available) {
+        const match = ipPool.trim().match(CIDR_PATTERN)!;
+        const ip = `${match[1]}.${match[2]}.${match[3]}.${match[4]}`;
+        const prefix = parseInt(match[5], 10);
+
+        onApplyNetworkResult(calculateFirstIP(ip, prefix), prefixToSubnetMask(prefix));
+
+        setValidationMessage({
+          type: 'success',
+          text: '✅ Pula dostępna - wygenerowano bramę i maskę podsieci'
+        });
+      } else {
+        onApplyNetworkResult('', '');
+        setValidationMessage({
+          type: 'error',
+          text: `❌ ${result.message}`
+        });
+      }
+    } catch {
+      onApplyNetworkResult('', '');
+      setValidationMessage({
+        type: 'error',
+        text: '❌ Błąd sprawdzania dostępności puli IP'
+      });
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -101,53 +146,71 @@ export const NetworkPoolFields: React.FC<NetworkPoolFieldsProps> = ({
     <>
       <div className="form-group">
         <label>Pula adresacji <span className="text-muted">(opcjonalnie)</span></label>
-        <input
-          type="text"
-          value={ipPool}
-          onChange={(e) => handleIpPoolChange(e.target.value)}
-          placeholder="np. 192.168.1.0/24"
-          autoComplete="off"
-          spellCheck={false}
-        />
-        {poolIsInvalid && (
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+          <input
+            type="text"
+            value={ipPool}
+            onChange={(e) => handleIpPoolChange(e.target.value)}
+            placeholder="np. 192.168.1.0/24"
+            autoComplete="off"
+            spellCheck={false}
+            style={{ flex: 1 }}
+          />
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleCheckAvailability}
+            disabled={!poolHasInput || checking}
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            {checking ? '⏳ Sprawdzam...' : '🔄 Sprawdź'}
+          </button>
+        </div>
+
+        {poolIsInvalid && !validationMessage && (
           <small className="form-help text-error">
             ⚠️ Nieprawidłowy format. Użyj zapisu CIDR, np. 192.168.1.0/24
           </small>
         )}
-        {!poolIsInvalid && (
+
+        {validationMessage && (
+          <small className={`form-help ${validationMessage.type === 'error' ? 'text-error' : 'text-success'}`}>
+            {validationMessage.text}
+          </small>
+        )}
+
+        {!poolIsInvalid && !validationMessage && (
           <small className="form-help">
-            Format IPv4 CIDR: XXX.XXX.XXX.XXX/Y. Automatycznie uzupełni bramę i maskę.
+            Format IPv4 CIDR: XXX.XXX.XXX.XXX/Y. Kliknij "Sprawdź" aby walidować i wygenerować parametry sieci.
           </small>
         )}
       </div>
 
       <div className="form-group">
-        <label>Brama Domyślna <span className="text-muted">(opcjonalnie)</span></label>
+        <label>Brama Domyślna <span className="text-muted">(auto)</span></label>
         <input
           type="text"
           value={gatewayIP}
-          onChange={(e) => onUpdateGateway(e.target.value)}
-          placeholder="np. 192.168.1.1"
-          readOnly={poolIsSet}
-          className={poolIsSet ? 'form-control-readonly' : ''}
+          readOnly
+          placeholder="Zostanie wygenerowana automatycznie"
+          className="form-control-readonly"
         />
-        {poolIsSet && (
-          <small className="form-help text-success">✓ Uzupełnione automatycznie z puli adresacji</small>
+        {gatewayIP && (
+          <small className="form-help text-success">✓ Wygenerowane z puli adresacji</small>
         )}
       </div>
 
       <div className="form-group">
-        <label>Maska Podsieci <span className="text-muted">(opcjonalnie)</span></label>
+        <label>Maska Podsieci <span className="text-muted">(auto)</span></label>
         <input
           type="text"
           value={subnetMask}
-          onChange={(e) => onUpdateSubnetMask(e.target.value)}
-          placeholder="np. 255.255.255.0"
-          readOnly={poolIsSet}
-          className={poolIsSet ? 'form-control-readonly' : ''}
+          readOnly
+          placeholder="Zostanie wygenerowana automatycznie"
+          className="form-control-readonly"
         />
-        {poolIsSet && (
-          <small className="form-help text-success">✓ Uzupełnione automatycznie z puli adresacji</small>
+        {subnetMask && (
+          <small className="form-help text-success">✓ Wygenerowane z puli adresacji</small>
         )}
       </div>
     </>

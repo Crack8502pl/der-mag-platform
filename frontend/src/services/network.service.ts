@@ -143,6 +143,16 @@ class NetworkService {
     const response = await api.post(`/network/assignments/${id}/verify`, { testResults });
     return response.data.data;
   }
+
+  async checkCIDRAvailability(cidr: string): Promise<{
+    success: boolean;
+    available: boolean;
+    message: string;
+    conflicts?: Array<{ id: number; name: string; cidr: string }>;
+  }> {
+    const response = await api.post('/network/check-cidr-availability', { cidr });
+    return response.data;
+  }
 }
 
 export default new NetworkService();

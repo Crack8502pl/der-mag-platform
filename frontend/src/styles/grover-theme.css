@@ -603,6 +603,12 @@ a:hover {
   color: var(--success);
 }
 
+.form-control-readonly {
+  background-color: var(--bg-secondary);
+  cursor: not-allowed;
+  color: var(--text-secondary);
+}
+
 .modal-wizard .detected-subsystem {
   margin-top: 8px;
   padding: 8px 12px;
