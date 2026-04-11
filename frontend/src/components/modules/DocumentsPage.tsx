@@ -9,7 +9,7 @@ export const DocumentsPage: React.FC = () => {
     <div className="module-page">
       <BackButton to="/dashboard" />
       
-      <div className="module-header">
+      <div className="page-header">
         <div className="module-icon">
           <ModuleIcon name="documents" emoji={MODULE_ICONS.documents} size={36} />
         </div>
