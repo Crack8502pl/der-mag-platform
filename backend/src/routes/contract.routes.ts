@@ -4,12 +4,14 @@
 import { Router } from 'express';
 import { ContractController } from '../controllers/ContractController';
 import { SubsystemController } from '../controllers/SubsystemController';
+import { AssetController } from '../controllers/AssetController';
 import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/PermissionMiddleware';
 
 const router = Router();
 const contractController = new ContractController();
 const subsystemController = new SubsystemController();
+const assetController = new AssetController();
 
 // Kontrakty
 router.get(
@@ -89,6 +91,14 @@ router.post(
   authenticate,
   requirePermission('subsystems', 'create'),
   subsystemController.createSubsystem
+);
+
+// Obiekty kontraktu
+router.get(
+  '/:contractId/assets',
+  authenticate,
+  requirePermission('contracts', 'read'),
+  assetController.getContractAssets
 );
 
 export default router;
