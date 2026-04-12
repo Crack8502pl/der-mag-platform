@@ -2,7 +2,7 @@
 // Encja historii zmian statusu zasobu (audit trail)
 
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
-import { Asset } from './Asset';
+import { Asset, AssetStatus } from './Asset';
 import { User } from './User';
 
 @Entity('asset_status_history')
@@ -20,10 +20,10 @@ export class AssetStatusHistory {
   assetId: number;
 
   @Column({ name: 'old_status', type: 'varchar', length: 50, nullable: true })
-  oldStatus: string | null;
+  oldStatus: AssetStatus | null;
 
   @Column({ name: 'new_status', type: 'varchar', length: 50 })
-  newStatus: string;
+  newStatus: AssetStatus;
 
   @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'changed_by' })

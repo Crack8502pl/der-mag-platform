@@ -5,6 +5,8 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { Task } from './Task';
 import { Asset } from './Asset';
 
+export type DeviceInventoryStatus = 'in_stock' | 'reserved' | 'installed' | 'faulty' | 'returned' | 'decommissioned';
+
 @Entity('devices')
 @Index(['serialNumber'], { unique: true })
 export class Device {
@@ -36,6 +38,9 @@ export class Device {
 
   @Column({ name: 'installed_asset_id', type: 'int', nullable: true })
   installedAssetId: number | null;
+
+  @Column({ name: 'inventory_status', type: 'varchar', length: 50, default: 'in_stock', nullable: true })
+  inventoryStatus: DeviceInventoryStatus | null; // in_stock, reserved, installed, faulty, returned, decommissioned
 
   @Column({ type: 'varchar', length: 50, default: 'prefabricated' })
   status: string;

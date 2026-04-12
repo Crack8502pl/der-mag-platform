@@ -2,7 +2,7 @@
 // Encja relacji wiele-do-wielu między zasobami (Asset) a zadaniami (SubsystemTask)
 
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
-import { Asset } from './Asset';
+import { Asset, AssetTaskRole } from './Asset';
 import { SubsystemTask } from './SubsystemTask';
 
 @Entity('asset_tasks')
@@ -29,7 +29,7 @@ export class AssetTask {
   taskId: number;
 
   @Column({ name: 'task_role', type: 'varchar', length: 50 })
-  taskRole: string; // installation, warranty_service, repair, maintenance, decommission
+  taskRole: AssetTaskRole; // installation, warranty_service, repair, maintenance, decommission
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

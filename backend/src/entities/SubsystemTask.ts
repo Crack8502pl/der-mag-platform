@@ -7,7 +7,7 @@ import { WorkflowGeneratedBom } from './WorkflowGeneratedBom';
 import { CompletionOrder } from './CompletionOrder';
 import { PrefabricationTask } from './PrefabricationTask';
 import { TaskGeneratedBom } from './TaskGeneratedBom';
-import { Asset } from './Asset';
+import { Asset, AssetTaskRole } from './Asset';
 
 export enum TaskWorkflowStatus {
   CREATED = 'CREATED',
@@ -132,7 +132,7 @@ export class SubsystemTask {
   linkedAssetId: number | null;
 
   @Column({ name: 'task_role', type: 'varchar', length: 50, nullable: true })
-  taskRole: string | null; // installation, warranty_service, repair, maintenance, decommission
+  taskRole: AssetTaskRole | null; // installation, warranty_service, repair, maintenance, decommission
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

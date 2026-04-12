@@ -10,6 +10,11 @@ import { AssetTask } from './AssetTask';
 import { AssetStatusHistory } from './AssetStatusHistory';
 import { Device } from './Device';
 
+export type AssetType = 'PRZEJAZD' | 'SKP' | 'NASTAWNIA' | 'LCS' | 'CUID';
+export type AssetCategory = 'KAT A' | 'KAT B' | 'KAT C' | 'KAT E' | 'KAT F';
+export type AssetStatus = 'planned' | 'installed' | 'active' | 'in_service' | 'faulty' | 'inactive' | 'decommissioned';
+export type AssetTaskRole = 'installation' | 'warranty_service' | 'repair' | 'maintenance' | 'decommission';
+
 @Entity('assets')
 @Index(['assetNumber'], { unique: true })
 @Index(['assetType'])
@@ -24,13 +29,13 @@ export class Asset {
   assetNumber: string; // Format: OBJ-XXXXXXMMRR
 
   @Column({ name: 'asset_type', type: 'varchar', length: 50 })
-  assetType: string; // PRZEJAZD, LCS, CUID, NASTAWNIA, SKP
+  assetType: AssetType; // PRZEJAZD, LCS, CUID, NASTAWNIA, SKP
 
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
   @Column({ type: 'varchar', length: 10, nullable: true })
-  category: string | null; // KAT A, KAT B, KAT C, KAT E, KAT F
+  category: AssetCategory | null; // KAT A, KAT B, KAT C, KAT E, KAT F
 
   // Location data
   @Column({ name: 'linia_kolejowa', type: 'varchar', length: 20, nullable: true })
@@ -75,7 +80,7 @@ export class Asset {
 
   // Lifecycle status
   @Column({ type: 'varchar', length: 50, default: 'planned' })
-  status: string;
+  status: AssetStatus;
 
   // Lifecycle dates
   @Column({ name: 'planned_installation_date', type: 'date', nullable: true })
