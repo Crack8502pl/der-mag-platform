@@ -4,6 +4,7 @@
 import { AppDataSource } from '../config/database';
 import { Asset } from '../entities/Asset';
 import { Repository } from 'typeorm';
+import { AssetNumberingService } from './AssetNumberingService';
 
 export class AssetService {
   private assetRepository: Repository<Asset>;
@@ -224,5 +225,207 @@ export class AssetService {
       byType,
       byCategory
     };
+  }
+
+  /**
+   * Create new asset
+   */
+  async createAsset(data: {
+    assetType: string;
+    name: string;
+    category?: string | null;
+    liniaKolejowa?: string | null;
+    kilometraz?: string | null;
+    gpsLatitude?: number | null;
+    gpsLongitude?: number | null;
+    googleMapsUrl?: string | null;
+    miejscowosc?: string | null;
+    contractId?: number | null;
+    subsystemId?: number | null;
+    installationTaskId?: number | null;
+    status?: string;
+    plannedInstallationDate?: Date | null;
+    actualInstallationDate?: Date | null;
+    warrantyExpiryDate?: Date | null;
+    bomSnapshot?: Record<string, any> | null;
+    notes?: string | null;
+    photosFolder?: string | null;
+    createdBy?: number;
+  }): Promise<Asset> {
+    // Validation
+    if (!data.assetType || !data.name) {
+      throw new Error('Typ obiektu i nazwa są wymagane');
+    }
+
+    // Validate assetType
+    const validTypes = ['PRZEJAZD', 'SKP', 'NASTAWNIA', 'LCS', 'CUID'];
+    if (!validTypes.includes(data.assetType)) {
+      throw new Error(`Nieprawidłowy typ obiektu. Dozwolone: ${validTypes.join(', ')}`);
+    }
+
+    // Validate category if assetType is PRZEJAZD; auto-null for other types
+    if (data.assetType === 'PRZEJAZD' && data.category) {
+      const validCategories = ['KAT A', 'KAT B', 'KAT C', 'KAT E', 'KAT F'];
+      if (!validCategories.includes(data.category)) {
+        throw new Error(`Nieprawidłowa kategoria przejazdu. Dozwolone: ${validCategories.join(', ')}`);
+      }
+    }
+    const normalizedCategory = data.assetType === 'PRZEJAZD' ? (data.category || null) : null;
+
+    // Validate status
+    const validStatuses = ['planned', 'installed', 'active', 'in_service', 'faulty', 'inactive', 'decommissioned'];
+    const status = data.status || 'planned';
+    if (!validStatuses.includes(status)) {
+      throw new Error(`Nieprawidłowy status. Dozwolone: ${validStatuses.join(', ')}`);
+    }
+
+    // Generate unique asset number using AssetNumberingService
+    const numberingService = new AssetNumberingService(AppDataSource);
+    const assetNumber = await numberingService.generateAssetNumber();
+
+    // Create asset
+    const asset = this.assetRepository.create({
+      assetNumber,
+      assetType: data.assetType as any,
+      name: data.name,
+      category: normalizedCategory as any,
+      liniaKolejowa: data.liniaKolejowa || null,
+      kilometraz: data.kilometraz || null,
+      gpsLatitude: data.gpsLatitude ?? null,
+      gpsLongitude: data.gpsLongitude ?? null,
+      googleMapsUrl: data.googleMapsUrl || null,
+      miejscowosc: data.miejscowosc || null,
+      contractId: data.contractId ?? null,
+      subsystemId: data.subsystemId ?? null,
+      installationTaskId: data.installationTaskId ?? null,
+      status: status as any,
+      plannedInstallationDate: data.plannedInstallationDate ?? null,
+      actualInstallationDate: data.actualInstallationDate ?? null,
+      warrantyExpiryDate: data.warrantyExpiryDate ?? null,
+      bomSnapshot: data.bomSnapshot ?? null,
+      notes: data.notes || null,
+      photosFolder: data.photosFolder || null,
+      createdBy: data.createdBy ?? null
+    });
+
+    return await this.assetRepository.save(asset);
+  }
+
+  /**
+   * Update existing asset
+   */
+  async updateAsset(id: number, data: Partial<Asset>): Promise<Asset> {
+    const asset = await this.assetRepository.findOneBy({ id });
+
+    if (!asset) {
+      throw new Error('Obiekt nie znaleziony');
+    }
+
+    // Don't allow changing asset number
+    if (data.assetNumber && data.assetNumber !== asset.assetNumber) {
+      throw new Error('Nie można zmienić numeru obiektu');
+    }
+
+    // Status must be changed through updateStatus()
+    if (data.status !== undefined) {
+      throw new Error('Użyj PATCH /status do zmiany statusu obiektu');
+    }
+
+    // Determine effective assetType after update
+    const effectiveType = data.assetType ?? asset.assetType;
+
+    // Validate assetType if being changed
+    if (data.assetType) {
+      const validTypes = ['PRZEJAZD', 'SKP', 'NASTAWNIA', 'LCS', 'CUID'];
+      if (!validTypes.includes(data.assetType)) {
+        throw new Error(`Nieprawidłowy typ obiektu. Dozwolone: ${validTypes.join(', ')}`);
+      }
+    }
+
+    // Validate and normalize category based on effective type
+    if (data.category !== undefined || data.assetType !== undefined) {
+      if (effectiveType !== 'PRZEJAZD') {
+        // Auto-null category for non-PRZEJAZD types
+        data = { ...data, category: null as any };
+      } else if (data.category !== undefined && data.category !== null) {
+        const validCategories = ['KAT A', 'KAT B', 'KAT C', 'KAT E', 'KAT F'];
+        if (!validCategories.includes(data.category)) {
+          throw new Error(`Nieprawidłowa kategoria. Dozwolone: ${validCategories.join(', ')}`);
+        }
+      }
+    }
+
+    // Apply only whitelisted updatable fields
+    const allowedFields: (keyof Asset)[] = [
+      'assetType', 'name', 'category',
+      'liniaKolejowa', 'kilometraz', 'gpsLatitude', 'gpsLongitude', 'googleMapsUrl', 'miejscowosc',
+      'contractId', 'subsystemId', 'installationTaskId',
+      'plannedInstallationDate', 'actualInstallationDate', 'warrantyExpiryDate',
+      'lastServiceDate', 'nextServiceDueDate',
+      'bomSnapshot', 'notes', 'photosFolder'
+    ];
+
+    for (const field of allowedFields) {
+      if (field in data) {
+        (asset as any)[field] = (data as any)[field];
+      }
+    }
+
+    return await this.assetRepository.save(asset);
+  }
+
+  /**
+   * Update asset status (with automatic history logging via trigger)
+   */
+  async updateStatus(id: number, newStatus: string, userId?: number): Promise<Asset> {
+    const asset = await this.assetRepository.findOneBy({ id });
+
+    if (!asset) {
+      throw new Error('Obiekt nie znaleziony');
+    }
+
+    // Validate status
+    const validStatuses = ['planned', 'installed', 'active', 'in_service', 'faulty', 'inactive', 'decommissioned'];
+    if (!validStatuses.includes(newStatus)) {
+      throw new Error(`Nieprawidłowy status. Dozwolone: ${validStatuses.join(', ')}`);
+    }
+
+    // Validate status transitions (business logic)
+    const oldStatus = asset.status;
+
+    // Can't go from decommissioned back to any other status
+    if (oldStatus === 'decommissioned' && newStatus !== 'decommissioned') {
+      throw new Error('Nie można przywrócić obiektu po wycofaniu z użytku');
+    }
+
+    // Update status
+    asset.status = newStatus as any;
+
+    return await this.assetRepository.save(asset);
+  }
+
+  /**
+   * Delete asset (soft delete - set status to decommissioned)
+   */
+  async deleteAsset(id: number): Promise<void> {
+    const asset = await this.assetRepository.findOne({
+      where: { id },
+      relations: ['installedDevices']
+    });
+
+    if (!asset) {
+      throw new Error('Obiekt nie znaleziony');
+    }
+
+    // Check if asset has installed devices
+    if (asset.installedDevices && asset.installedDevices.length > 0) {
+      throw new Error('Nie można usunąć obiektu z zainstalowanymi urządzeniami. Najpierw usuń urządzenia.');
+    }
+
+    // Soft delete by setting status to decommissioned
+    asset.status = 'decommissioned';
+    asset.decommissionDate = new Date();
+
+    await this.assetRepository.save(asset);
   }
 }
