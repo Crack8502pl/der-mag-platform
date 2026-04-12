@@ -53,6 +53,8 @@ import tilesRoutes from './tiles.routes';
 import pushRoutes from './push.routes';
 // Honeypot routes
 import honeypotRoutes from './honeypot.routes';
+// Asset routes
+import assetRoutes from './asset.routes';
 // Cars routes
 import carRoutes from './car.routes';
 // Health/connection monitoring routes
@@ -133,6 +135,9 @@ router.use('/admin/honeypot', honeypotRoutes);
 
 // Cars routes
 router.use('/cars', carRoutes);
+
+// Asset routes
+router.use('/assets', assetRoutes);
 
 // Health/connection monitoring routes (no auth required - lightweight endpoints)
 router.use('/', healthRoutes);

@@ -4,6 +4,7 @@
 import { Router } from 'express';
 import { SubsystemController } from '../controllers/SubsystemController';
 import { NetworkController } from '../controllers/NetworkController';
+import { AssetController } from '../controllers/AssetController';
 import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/PermissionMiddleware';
 import { uploadSubsystemDocument } from '../middleware/fileUpload';
@@ -11,6 +12,7 @@ import { uploadSubsystemDocument } from '../middleware/fileUpload';
 const router = Router();
 const subsystemController = new SubsystemController();
 const networkController = new NetworkController();
+const assetController = new AssetController();
 
 // Lista podsystemów z filtrami
 router.get(
@@ -107,6 +109,14 @@ router.get(
   authenticate,
   requirePermission('network', 'viewMatrix'),
   networkController.getIPMatrix
+);
+
+// Obiekty podsystemu
+router.get(
+  '/:subsystemId/assets',
+  authenticate,
+  requirePermission('subsystems', 'read'),
+  assetController.getSubsystemAssets
 );
 
 export default router;
