@@ -488,15 +488,7 @@ export class AssetController {
         return;
       }
 
-      const normalizedSerialNumbers = serialNumbers.map((sn: unknown) =>
-        typeof sn === 'string' ? sn.trim() : sn
-      );
-
-      if (
-        normalizedSerialNumbers.some(
-          (sn) => typeof sn !== 'string' || sn.length === 0
-        )
-      ) {
+      if (serialNumbers.some((sn: unknown) => typeof sn !== 'string' || (sn as string).trim().length === 0)) {
         res.status(400).json({
           success: false,
           message: 'Każdy numer seryjny musi być niepustym tekstem'
@@ -504,9 +496,11 @@ export class AssetController {
         return;
       }
 
+      const normalizedSerialNumbers: string[] = serialNumbers.map((sn: string) => sn.trim());
+
       const result = await this.deviceLinkingService.linkDevicesAndUpdateBOM(
         assetId,
-        normalizedSerialNumbers as string[],
+        normalizedSerialNumbers,
         bomSnapshot
       );
 
