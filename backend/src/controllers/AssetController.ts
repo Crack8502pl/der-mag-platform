@@ -468,6 +468,16 @@ export class AssetController {
   linkDevices = async (req: Request, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
+      const assetId = parseInt(id, 10);
+
+      if (!Number.isInteger(assetId) || assetId <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Nieprawidłowe ID obiektu'
+        });
+        return;
+      }
+
       const { serialNumbers, bomSnapshot } = req.body;
 
       if (!serialNumbers || !Array.isArray(serialNumbers) || serialNumbers.length === 0) {
@@ -478,9 +488,25 @@ export class AssetController {
         return;
       }
 
+      const normalizedSerialNumbers = serialNumbers.map((sn: unknown) =>
+        typeof sn === 'string' ? sn.trim() : sn
+      );
+
+      if (
+        normalizedSerialNumbers.some(
+          (sn) => typeof sn !== 'string' || sn.length === 0
+        )
+      ) {
+        res.status(400).json({
+          success: false,
+          message: 'Każdy numer seryjny musi być niepustym tekstem'
+        });
+        return;
+      }
+
       const result = await this.deviceLinkingService.linkDevicesAndUpdateBOM(
-        parseInt(id, 10),
-        serialNumbers,
+        assetId,
+        normalizedSerialNumbers as string[],
         bomSnapshot
       );
 
@@ -507,7 +533,8 @@ export class AssetController {
       });
     } catch (error: any) {
       console.error('Error linking devices:', error);
-      res.status(400).json({
+      const statusCode = error.message === 'Obiekt nie znaleziony' ? 404 : 400;
+      res.status(statusCode).json({
         success: false,
         message: error.message || 'Błąd podczas łączenia urządzeń',
         error: error.message
@@ -522,10 +549,28 @@ export class AssetController {
   unlinkDevice = async (req: Request, res: Response): Promise<void> => {
     try {
       const { id, deviceId } = req.params;
+      const assetId = parseInt(id, 10);
+      const parsedDeviceId = parseInt(deviceId, 10);
+
+      if (!Number.isInteger(assetId) || assetId <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Nieprawidłowe ID obiektu'
+        });
+        return;
+      }
+
+      if (!Number.isInteger(parsedDeviceId) || parsedDeviceId <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Nieprawidłowe ID urządzenia'
+        });
+        return;
+      }
 
       const device = await this.deviceLinkingService.unlinkDeviceFromAsset(
-        parseInt(id, 10),
-        parseInt(deviceId, 10)
+        assetId,
+        parsedDeviceId
       );
 
       res.json({
@@ -535,7 +580,9 @@ export class AssetController {
       });
     } catch (error: any) {
       console.error('Error unlinking device:', error);
-      res.status(400).json({
+      const statusCode =
+        error.message === 'Urządzenie nie znalezione' ? 404 : 400;
+      res.status(statusCode).json({
         success: false,
         message: error.message || 'Błąd podczas odłączania urządzenia',
         error: error.message
@@ -550,8 +597,17 @@ export class AssetController {
   getAssetDevices = async (req: Request, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
+      const assetId = parseInt(id, 10);
 
-      const devices = await this.deviceLinkingService.getAssetDevices(parseInt(id, 10));
+      if (!Number.isInteger(assetId) || assetId <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Nieprawidłowe ID obiektu'
+        });
+        return;
+      }
+
+      const devices = await this.deviceLinkingService.getAssetDevices(assetId);
 
       res.json({
         success: true,
@@ -575,8 +631,17 @@ export class AssetController {
   validateBOM = async (req: Request, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
+      const assetId = parseInt(id, 10);
 
-      const validation = await this.deviceLinkingService.validateAgainstBOM(parseInt(id, 10));
+      if (!Number.isInteger(assetId) || assetId <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Nieprawidłowe ID obiektu'
+        });
+        return;
+      }
+
+      const validation = await this.deviceLinkingService.validateAgainstBOM(assetId);
 
       res.json({
         success: true,
@@ -584,9 +649,10 @@ export class AssetController {
       });
     } catch (error: any) {
       console.error('Error validating BOM:', error);
-      res.status(500).json({
+      const statusCode = error.message === 'Obiekt nie znaleziony' ? 404 : 500;
+      res.status(statusCode).json({
         success: false,
-        message: 'Błąd podczas walidacji BOM',
+        message: error.message || 'Błąd podczas walidacji BOM',
         error: error.message
       });
     }

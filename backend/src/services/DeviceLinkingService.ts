@@ -4,7 +4,7 @@
 import { AppDataSource } from '../config/database';
 import { Asset } from '../entities/Asset';
 import { Device } from '../entities/Device';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 
 export class DeviceLinkingService {
   private assetRepository: Repository<Asset>;
@@ -16,30 +16,31 @@ export class DeviceLinkingService {
   }
 
   /**
-   * Link devices to asset by serial numbers
+   * Core linking logic executed inside a caller-provided transaction manager.
+   * Normalizes + deduplicates serial numbers; batch-fetches devices in one query;
+   * saves all updates in one batch call.
    */
-  async linkDevicesToAsset(
+  private async performLinking(
+    manager: EntityManager,
     assetId: number,
     serialNumbers: string[]
   ): Promise<{ linked: Device[]; notFound: string[]; alreadyInstalled: string[] }> {
-    const asset = await this.assetRepository.findOne({
-      where: { id: assetId },
-      relations: ['installedDevices']
-    });
+    const deviceRepo = manager.getRepository(Device);
 
-    if (!asset) {
-      throw new Error('Obiekt nie znaleziony');
+    // Deduplicate and normalize serial numbers (case-insensitive)
+    const normalizedMap = new Map<string, string>(); // lowercase → original (first occurrence)
+    for (const sn of serialNumbers) {
+      const key = sn.toLowerCase();
+      if (!normalizedMap.has(key)) {
+        normalizedMap.set(key, sn);
+      }
     }
+    const uniqueLower = Array.from(normalizedMap.keys());
 
-    const linked: Device[] = [];
-    const notFound: string[] = [];
-    const alreadyInstalled: string[] = [];
-
-    // Fetch all requested devices in a single query (case-insensitive lookup)
-    const lowerSerialNumbers = serialNumbers.map(sn => sn.toLowerCase());
-    const foundDevices = await this.deviceRepository
+    // Batch-fetch all requested devices in a single query
+    const foundDevices = await deviceRepo
       .createQueryBuilder('device')
-      .where('LOWER(device.serial_number) IN (:...serialNumbers)', { serialNumbers: lowerSerialNumbers })
+      .where('LOWER(device.serial_number) IN (:...serialNumbers)', { serialNumbers: uniqueLower })
       .getMany();
 
     // Build a lookup map keyed by lowercased serial number
@@ -47,36 +48,63 @@ export class DeviceLinkingService {
       foundDevices.map(d => [d.serialNumber.toLowerCase(), d])
     );
 
-    for (const serialNumber of serialNumbers) {
-      const device = deviceMap.get(serialNumber.toLowerCase());
+    const linked: Device[] = [];
+    const notFound: string[] = [];
+    const alreadyInstalled: string[] = [];
+
+    for (const [lowerSn, originalSn] of normalizedMap) {
+      const device = deviceMap.get(lowerSn);
 
       if (!device) {
-        notFound.push(serialNumber);
+        notFound.push(originalSn);
         continue;
       }
 
       // Check if already installed on another asset
       if (device.installedAssetId !== null && device.installedAssetId !== assetId) {
-        alreadyInstalled.push(serialNumber);
+        alreadyInstalled.push(originalSn);
         continue;
       }
 
       // Check if device inventory status allows installation
       if (device.inventoryStatus === 'faulty' || device.inventoryStatus === 'decommissioned') {
         throw new Error(
-          `Urządzenie ${serialNumber} ma status ${device.inventoryStatus} i nie może być zainstalowane`
+          `Urządzenie ${originalSn} ma status ${device.inventoryStatus} i nie może być zainstalowane`
         );
       }
 
-      // Link device to asset
+      // Mark device as linked (actual save done in batch below)
       device.installedAssetId = assetId;
       device.inventoryStatus = 'installed';
-      await this.deviceRepository.save(device);
-
       linked.push(device);
     }
 
+    // Save all linked devices in a single batch operation
+    if (linked.length > 0) {
+      await deviceRepo.save(linked);
+    }
+
     return { linked, notFound, alreadyInstalled };
+  }
+
+  /**
+   * Link devices to asset by serial numbers.
+   * The entire operation is wrapped in a single DB transaction.
+   */
+  async linkDevicesToAsset(
+    assetId: number,
+    serialNumbers: string[]
+  ): Promise<{ linked: Device[]; notFound: string[]; alreadyInstalled: string[] }> {
+    return AppDataSource.transaction(async manager => {
+      const assetRepo = manager.getRepository(Asset);
+
+      const asset = await assetRepo.findOne({ where: { id: assetId } });
+      if (!asset) {
+        throw new Error('Obiekt nie znaleziony');
+      }
+
+      return this.performLinking(manager, assetId, serialNumbers);
+    });
   }
 
   /**
@@ -137,7 +165,8 @@ export class DeviceLinkingService {
       throw new Error('Obiekt nie znaleziony');
     }
 
-    const installedDevices = await this.getAssetDevices(assetId);
+    // Use the already-loaded relation instead of a second query
+    const installedDevices = asset.installedDevices || [];
 
     // If no BOM snapshot, can't validate
     if (!asset.bomSnapshot) {
@@ -162,35 +191,36 @@ export class DeviceLinkingService {
       ? asset.bomSnapshot
       : (asset.bomSnapshot as any).items || [];
 
-    // Flatten expected serial numbers from BOM
+    // Flatten expected serial numbers from BOM, normalized to lowercase for comparison
     const expectedSerialNumbers: string[] = [];
     expectedFromBOM.forEach((item: any) => {
       if (item.serialNumbers && Array.isArray(item.serialNumbers)) {
-        expectedSerialNumbers.push(...item.serialNumbers);
+        expectedSerialNumbers.push(...item.serialNumbers.map((sn: string) => sn.trim().toLowerCase()));
       }
     });
 
-    const installedSerialNumbers = new Set(installedDevices.map(d => d.serialNumber));
+    // Build a Set of installed serial numbers (normalized) for O(1) lookups
+    const installedSerialNumberSet = new Set(installedDevices.map(d => d.serialNumber.trim().toLowerCase()));
 
     // Find missing devices (in BOM but not installed)
-    const missingSerialNumbers = expectedSerialNumbers.filter(
-      sn => !installedSerialNumbers.has(sn)
-    );
+    const missingSerialNumbers = expectedSerialNumbers.filter(sn => !installedSerialNumberSet.has(sn));
     const missingSerialNumberSet = new Set(missingSerialNumbers);
+
     const missing = expectedFromBOM
       .map((item: any) => ({
         ...item,
         missingSerialNumbers: (item.serialNumbers || []).filter((sn: string) =>
-          missingSerialNumberSet.has(sn)
+          missingSerialNumberSet.has(sn.trim().toLowerCase())
         )
       }))
       .filter((item: any) => item.missingSerialNumbers.length > 0);
 
+    // Build a Set of expected serial numbers (normalized) for O(1) lookups
     const expectedSerialNumberSet = new Set(expectedSerialNumbers);
 
     // Find extra devices (installed but not in BOM)
     const extra = installedDevices.filter(
-      d => !expectedSerialNumberSet.has(d.serialNumber)
+      d => !expectedSerialNumberSet.has(d.serialNumber.trim().toLowerCase())
     );
 
     const valid = missing.length === 0 && extra.length === 0;
@@ -211,33 +241,36 @@ export class DeviceLinkingService {
   }
 
   /**
-   * Bulk link devices and update asset BOM snapshot
+   * Bulk link devices and update asset BOM snapshot.
+   * All operations run inside a single DB transaction — asset is fetched once.
    */
   async linkDevicesAndUpdateBOM(
     assetId: number,
     serialNumbers: string[],
     bomSnapshot?: any
   ): Promise<{ asset: Asset; linked: Device[]; notFound: string[]; alreadyInstalled: string[] }> {
-    const result = await this.linkDevicesToAsset(assetId, serialNumbers);
+    return AppDataSource.transaction(async manager => {
+      const assetRepo = manager.getRepository(Asset);
 
-    const asset = await this.assetRepository.findOne({
-      where: { id: assetId },
-      relations: ['installedDevices', 'contract', 'subsystem']
+      // Fetch asset once with all relations needed for the response
+      const asset = await assetRepo.findOne({
+        where: { id: assetId },
+        relations: ['installedDevices', 'contract', 'subsystem']
+      });
+
+      if (!asset) {
+        throw new Error('Obiekt nie znaleziony');
+      }
+
+      const result = await this.performLinking(manager, assetId, serialNumbers);
+
+      // Update asset BOM snapshot if provided
+      if (bomSnapshot) {
+        asset.bomSnapshot = bomSnapshot;
+        await assetRepo.save(asset);
+      }
+
+      return { asset, ...result };
     });
-
-    if (!asset) {
-      throw new Error('Obiekt nie znaleziony');
-    }
-
-    // Update asset BOM snapshot if provided
-    if (bomSnapshot) {
-      asset.bomSnapshot = bomSnapshot;
-      await this.assetRepository.save(asset);
-    }
-
-    return {
-      asset,
-      ...result
-    };
   }
 }
