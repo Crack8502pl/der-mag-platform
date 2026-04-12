@@ -3,6 +3,11 @@ import { AssetNumberingService } from '../../../src/services/AssetNumberingServi
 import { Asset } from '../../../src/entities/Asset';
 import { createMockRepository, createMockQueryBuilder } from '../../mocks/database.mock';
 
+// Fixed point in time used throughout the suite: 15 April 2026
+const FIXED_DATE = new Date('2026-04-15T10:00:00.000Z');
+const FIXED_MONTH = '04';
+const FIXED_YEAR = '26';
+
 describe('AssetNumberingService', () => {
   let mockAssetRepository: any;
   let mockDataSource: any;
@@ -10,6 +15,9 @@ describe('AssetNumberingService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.useFakeTimers();
+    jest.setSystemTime(FIXED_DATE);
+
     mockAssetRepository = createMockRepository<Asset>();
 
     // Mock DataSource with transaction support
@@ -18,6 +26,7 @@ describe('AssetNumberingService', () => {
       transaction: jest.fn().mockImplementation(async (callback: any) => {
         const manager = {
           getRepository: jest.fn().mockReturnValue(mockAssetRepository),
+          query: jest.fn().mockResolvedValue([]),
         };
         return callback(manager);
       }),
@@ -26,56 +35,44 @@ describe('AssetNumberingService', () => {
     service = new AssetNumberingService(mockDataSource);
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   describe('generateAssetNumber', () => {
     it('should generate first asset number when no assets exist', async () => {
       const mockQb = createMockQueryBuilder<Asset>();
       mockQb.getOne.mockResolvedValue(null);
       mockAssetRepository.createQueryBuilder.mockReturnValue(mockQb);
 
-      const now = new Date();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const year = String(now.getFullYear()).slice(-2);
-
       const result = await service.generateAssetNumber();
 
-      expect(result).toBe(`OBJ-000001${month}${year}`);
+      expect(result).toBe(`OBJ-000001${FIXED_MONTH}${FIXED_YEAR}`);
     });
 
     it('should increment sequence for same month', async () => {
-      const now = new Date();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const year = String(now.getFullYear()).slice(-2);
-
       const mockQb = createMockQueryBuilder<Asset>();
-      mockQb.getOne.mockResolvedValue({ assetNumber: `OBJ-000001${month}${year}` } as Asset);
+      mockQb.getOne.mockResolvedValue({ assetNumber: `OBJ-000001${FIXED_MONTH}${FIXED_YEAR}` } as Asset);
       mockAssetRepository.createQueryBuilder.mockReturnValue(mockQb);
 
       const result = await service.generateAssetNumber();
 
-      expect(result).toBe(`OBJ-000002${month}${year}`);
+      expect(result).toBe(`OBJ-000002${FIXED_MONTH}${FIXED_YEAR}`);
     });
 
     it('should handle large sequence numbers correctly', async () => {
-      const now = new Date();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const year = String(now.getFullYear()).slice(-2);
-
       const mockQb = createMockQueryBuilder<Asset>();
-      mockQb.getOne.mockResolvedValue({ assetNumber: `OBJ-123456${month}${year}` } as Asset);
+      mockQb.getOne.mockResolvedValue({ assetNumber: `OBJ-123456${FIXED_MONTH}${FIXED_YEAR}` } as Asset);
       mockAssetRepository.createQueryBuilder.mockReturnValue(mockQb);
 
       const result = await service.generateAssetNumber();
 
-      expect(result).toBe(`OBJ-123457${month}${year}`);
+      expect(result).toBe(`OBJ-123457${FIXED_MONTH}${FIXED_YEAR}`);
     });
 
     it('should throw error when capacity exceeded', async () => {
-      const now = new Date();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const year = String(now.getFullYear()).slice(-2);
-
       const mockQb = createMockQueryBuilder<Asset>();
-      mockQb.getOne.mockResolvedValue({ assetNumber: `OBJ-999999${month}${year}` } as Asset);
+      mockQb.getOne.mockResolvedValue({ assetNumber: `OBJ-999999${FIXED_MONTH}${FIXED_YEAR}` } as Asset);
       mockAssetRepository.createQueryBuilder.mockReturnValue(mockQb);
 
       await expect(service.generateAssetNumber()).rejects.toThrow('capacity exceeded');
@@ -91,18 +88,36 @@ describe('AssetNumberingService', () => {
       expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
     });
 
-    it('should format sequence with leading zeros', async () => {
-      const now = new Date();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const year = String(now.getFullYear()).slice(-2);
-
+    it('should acquire advisory lock within transaction', async () => {
       const mockQb = createMockQueryBuilder<Asset>();
-      mockQb.getOne.mockResolvedValue({ assetNumber: `OBJ-000009${month}${year}` } as Asset);
+      mockQb.getOne.mockResolvedValue(null);
+      mockAssetRepository.createQueryBuilder.mockReturnValue(mockQb);
+
+      let capturedManager: any;
+      mockDataSource.transaction.mockImplementation(async (callback: any) => {
+        capturedManager = {
+          getRepository: jest.fn().mockReturnValue(mockAssetRepository),
+          query: jest.fn().mockResolvedValue([]),
+        };
+        return callback(capturedManager);
+      });
+
+      await service.generateAssetNumber();
+
+      expect(capturedManager.query).toHaveBeenCalledWith(
+        'SELECT pg_advisory_xact_lock($1)',
+        [parseInt(`${FIXED_MONTH}${FIXED_YEAR}`, 10)]
+      );
+    });
+
+    it('should format sequence with leading zeros', async () => {
+      const mockQb = createMockQueryBuilder<Asset>();
+      mockQb.getOne.mockResolvedValue({ assetNumber: `OBJ-000009${FIXED_MONTH}${FIXED_YEAR}` } as Asset);
       mockAssetRepository.createQueryBuilder.mockReturnValue(mockQb);
 
       const result = await service.generateAssetNumber();
 
-      expect(result).toBe(`OBJ-000010${month}${year}`);
+      expect(result).toBe(`OBJ-000010${FIXED_MONTH}${FIXED_YEAR}`);
     });
 
     it('should include correct month and year suffix', async () => {
@@ -110,21 +125,13 @@ describe('AssetNumberingService', () => {
       mockQb.getOne.mockResolvedValue(null);
       mockAssetRepository.createQueryBuilder.mockReturnValue(mockQb);
 
-      const now = new Date();
-      const expectedMonth = String(now.getMonth() + 1).padStart(2, '0');
-      const expectedYear = String(now.getFullYear()).slice(-2);
-
       const result = await service.generateAssetNumber();
 
-      expect(result.substring(10, 12)).toBe(expectedMonth);
-      expect(result.substring(12, 14)).toBe(expectedYear);
+      expect(result.substring(10, 12)).toBe(FIXED_MONTH);
+      expect(result.substring(12, 14)).toBe(FIXED_YEAR);
     });
 
     it('should query with correct LIKE pattern for current month/year', async () => {
-      const now = new Date();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const year = String(now.getFullYear()).slice(-2);
-
       const mockQb = createMockQueryBuilder<Asset>();
       mockQb.getOne.mockResolvedValue(null);
       mockAssetRepository.createQueryBuilder.mockReturnValue(mockQb);
@@ -132,8 +139,8 @@ describe('AssetNumberingService', () => {
       await service.generateAssetNumber();
 
       expect(mockQb.where).toHaveBeenCalledWith(
-        'asset.asset_number LIKE :pattern',
-        { pattern: `OBJ-______${month}${year}` }
+        'asset.assetNumber LIKE :pattern',
+        { pattern: `OBJ-______${FIXED_MONTH}${FIXED_YEAR}` }
       );
     });
   });
@@ -143,6 +150,10 @@ describe('AssetNumberingService', () => {
       expect(service.validateAssetNumber('OBJ-0000010426')).toBe(true);
       expect(service.validateAssetNumber('OBJ-9999991231')).toBe(true);
       expect(service.validateAssetNumber('OBJ-1234560126')).toBe(true);
+    });
+
+    it('should reject sequence 000000', () => {
+      expect(service.validateAssetNumber('OBJ-0000000426')).toBe(false);
     });
 
     it('should reject too short asset numbers', () => {
@@ -203,6 +214,10 @@ describe('AssetNumberingService', () => {
         month: 12,
         year: 31,
       });
+    });
+
+    it('should return null for sequence 000000', () => {
+      expect(service.parseAssetNumber('OBJ-0000000426')).toBeNull();
     });
 
     it('should return null for invalid format', () => {

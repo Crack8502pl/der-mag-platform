@@ -1,19 +1,15 @@
 // src/services/AssetNumberingService.ts
 // Serwis generowania unikalnych numerów obiektów w formacie OBJ-XXXXXXMMRR
 
-import { DataSource, Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Asset } from '../entities/Asset';
 
 export class AssetNumberingService {
-  private assetRepository: Repository<Asset>;
-
-  constructor(private dataSource: DataSource) {
-    this.assetRepository = dataSource.getRepository(Asset);
-  }
+  constructor(private dataSource: DataSource) {}
 
   /**
    * Generates a unique asset number in format OBJ-XXXXXXMMRR
-   * Thread-safe implementation using database transaction
+   * Thread-safe implementation using database transaction with advisory lock
    *
    * @returns Promise<string> - Generated asset number
    * @throws Error if month capacity exceeded (>999999)
@@ -28,12 +24,17 @@ export class AssetNumberingService {
       const year = String(now.getFullYear()).slice(-2); // Last 2 digits
       const suffix = `${month}${year}`; // e.g., "0426"
 
+      // Acquire a transaction-scoped advisory lock keyed by the numeric MMYY value
+      // (e.g., April 2026 → 426). This ensures only one transaction at a time
+      // generates a number for the same month/year, preventing duplicate sequences.
+      await manager.query('SELECT pg_advisory_xact_lock($1)', [parseInt(suffix, 10)]);
+
       // Find highest sequence number for current month/year
       const pattern = `OBJ-______${suffix}`;
       const lastAsset = await assetRepo
         .createQueryBuilder('asset')
-        .where('asset.asset_number LIKE :pattern', { pattern })
-        .orderBy('asset.asset_number', 'DESC')
+        .where('asset.assetNumber LIKE :pattern', { pattern })
+        .orderBy('asset.assetNumber', 'DESC')
         .take(1)
         .getOne();
 
@@ -67,7 +68,7 @@ export class AssetNumberingService {
    * @returns boolean - True if valid format
    */
   validateAssetNumber(assetNumber: string): boolean {
-    const regex = /^OBJ-\d{6}(0[1-9]|1[0-2])\d{2}$/;
+    const regex = /^OBJ-(?!000000)\d{6}(0[1-9]|1[0-2])\d{2}$/;
     return regex.test(assetNumber);
   }
 
