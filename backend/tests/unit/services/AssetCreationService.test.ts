@@ -4,6 +4,7 @@ import { AppDataSource } from '../../../src/config/database';
 import { SubsystemTask, TaskWorkflowStatus } from '../../../src/entities/SubsystemTask';
 import { Asset } from '../../../src/entities/Asset';
 import { Device } from '../../../src/entities/Device';
+import { SystemType } from '../../../src/entities/Subsystem';
 import { createMockRepository } from '../../mocks/database.mock';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
@@ -15,17 +16,27 @@ jest.mock('../../../src/config/database', () => ({
   },
 }));
 
-jest.mock('../../../src/services/AssetService');
-jest.mock('../../../src/services/DeviceLinkingService');
+jest.mock('../../../src/services/AssetNumberingService', () => ({
+  AssetNumberingService: jest.fn().mockImplementation(() => ({
+    generateAssetNumber: jest.fn().mockResolvedValue('OBJ-0000150426'),
+  })),
+}));
 
-import { AssetService } from '../../../src/services/AssetService';
+jest.mock('../../../src/services/DeviceLinkingService');
+jest.mock('../../../src/services/TaskSyncService', () => ({
+  TaskSyncService: {
+    syncFromSubsystemTask: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
 import { DeviceLinkingService } from '../../../src/services/DeviceLinkingService';
+import { TaskSyncService } from '../../../src/services/TaskSyncService';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const makeSubsystem = (overrides: any = {}) => ({
   id: 10,
-  systemType: 'SMOKIP_A',
+  systemType: SystemType.SMOKIP_A,
   contractId: 5,
   contract: { id: 5 },
   ...overrides,
@@ -134,26 +145,32 @@ const makeDevice = (overrides: Partial<Device> = {}): Device => ({
 describe('AssetCreationService', () => {
   let service: AssetCreationService;
   let mockTaskRepository: ReturnType<typeof createMockRepository<SubsystemTask>>;
-  let mockAssetService: jest.Mocked<AssetService>;
-  let mockDeviceLinkingService: jest.Mocked<DeviceLinkingService>;
+  let mockDeviceLinkingService: jest.Mocked<Pick<DeviceLinkingService, 'linkDevicesWithManager'>>;
+
+  /** Build a mock transaction manager with repositories for Asset and SubsystemTask */
+  const buildMockManager = (savedAsset: Asset, savedTask: SubsystemTask) => {
+    const assetRepo = { create: jest.fn().mockReturnValue(savedAsset), save: jest.fn().mockResolvedValue(savedAsset) };
+    const taskRepo = { save: jest.fn().mockResolvedValue(savedTask) };
+    return {
+      getRepository: jest.fn().mockImplementation((entity: any) => {
+        if (entity === Asset) return assetRepo;
+        if (entity === SubsystemTask) return taskRepo;
+        return createMockRepository();
+      }),
+      assetRepo,
+      taskRepo,
+    };
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
 
     mockTaskRepository = createMockRepository<SubsystemTask>();
-
     (AppDataSource.getRepository as jest.Mock).mockReturnValue(mockTaskRepository);
 
-    // Provide mock implementations for the injected services
-    mockAssetService = {
-      createAsset: jest.fn(),
-    } as any;
-
     mockDeviceLinkingService = {
-      linkDevicesAndUpdateBOM: jest.fn(),
+      linkDevicesWithManager: jest.fn(),
     } as any;
-
-    (AssetService as jest.Mock).mockImplementation(() => mockAssetService);
     (DeviceLinkingService as jest.Mock).mockImplementation(() => mockDeviceLinkingService);
 
     service = new AssetCreationService();
@@ -200,31 +217,28 @@ describe('AssetCreationService', () => {
       ).rejects.toThrow('Podsystem nie ma przypisanego kontraktu');
     });
 
-    it('should create asset and complete task on happy path', async () => {
+    it('should create asset and complete task on happy path (no devices)', async () => {
       const task = makeTask();
       const asset = makeAsset();
+      const savedTask = { ...task, status: TaskWorkflowStatus.VERIFIED };
 
       mockTaskRepository.findOne.mockResolvedValue(task);
-      mockAssetService.createAsset.mockResolvedValue(asset);
-      mockDeviceLinkingService.linkDevicesAndUpdateBOM.mockResolvedValue({
-        asset,
-        linked: [],
-        notFound: [],
-        alreadyInstalled: [],
-      });
-      mockTaskRepository.save.mockResolvedValue({ ...task, status: TaskWorkflowStatus.VERIFIED });
+
+      const { assetRepo, taskRepo, ...mockManager } = buildMockManager(asset, savedTask as SubsystemTask);
+      (AppDataSource.transaction as jest.Mock).mockImplementation(async (cb: any) => cb(mockManager));
 
       const result = await service.createAssetFromTask(42, { name: 'Test Asset' });
 
-      expect(mockAssetService.createAsset).toHaveBeenCalledWith(
+      expect(assetRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
+          assetNumber: 'OBJ-0000150426',
           contractId: 5,
           subsystemId: 10,
           installationTaskId: 42,
           status: 'installed',
         })
       );
-      expect(mockTaskRepository.save).toHaveBeenCalledWith(
+      expect(taskRepo.save).toHaveBeenCalledWith(
         expect.objectContaining({
           status: TaskWorkflowStatus.VERIFIED,
           linkedAssetId: 15,
@@ -233,32 +247,50 @@ describe('AssetCreationService', () => {
         })
       );
       expect(result.asset).toEqual(asset);
-      expect(result.task).toBeDefined();
       expect(result.linkedDevices).toEqual([]);
       expect(result.warnings).toBeUndefined();
     });
 
-    it('should link devices and return them', async () => {
+    it('should call TaskSyncService after the transaction', async () => {
+      const task = makeTask();
+      const asset = makeAsset();
+      const savedTask = { ...task, status: TaskWorkflowStatus.VERIFIED };
+
+      mockTaskRepository.findOne.mockResolvedValue(task);
+      const mockManager = buildMockManager(asset, savedTask as SubsystemTask);
+      (AppDataSource.transaction as jest.Mock).mockImplementation(async (cb: any) => cb(mockManager));
+
+      await service.createAssetFromTask(42, { name: 'Test' });
+
+      expect(TaskSyncService.syncFromSubsystemTask).toHaveBeenCalledWith(
+        savedTask.taskNumber,
+        TaskWorkflowStatus.VERIFIED
+      );
+    });
+
+    it('should link devices within the same transaction and return them', async () => {
       const task = makeTask();
       const asset = makeAsset();
       const device = makeDevice({ id: 20, serialNumber: 'CAM001' });
+      const savedTask = { ...task, status: TaskWorkflowStatus.VERIFIED };
 
       mockTaskRepository.findOne.mockResolvedValue(task);
-      mockAssetService.createAsset.mockResolvedValue(asset);
-      mockDeviceLinkingService.linkDevicesAndUpdateBOM.mockResolvedValue({
-        asset,
+      mockDeviceLinkingService.linkDevicesWithManager.mockResolvedValue({
         linked: [device],
         notFound: [],
         alreadyInstalled: [],
       });
-      mockTaskRepository.save.mockResolvedValue(task);
+
+      const mockManager = buildMockManager(asset, savedTask as SubsystemTask);
+      (AppDataSource.transaction as jest.Mock).mockImplementation(async (cb: any) => cb(mockManager));
 
       const result = await service.createAssetFromTask(42, { name: 'Test' }, ['CAM001']);
 
-      expect(mockDeviceLinkingService.linkDevicesAndUpdateBOM).toHaveBeenCalledWith(
-        15,
+      expect(mockDeviceLinkingService.linkDevicesWithManager).toHaveBeenCalledWith(
+        mockManager,
+        15,         // asset.id
         ['CAM001'],
-        null
+        null        // bomSnapshot
       );
       expect(result.linkedDevices).toHaveLength(1);
       expect(result.warnings).toBeUndefined();
@@ -268,16 +300,17 @@ describe('AssetCreationService', () => {
       const task = makeTask();
       const asset = makeAsset();
       const device = makeDevice();
+      const savedTask = { ...task, status: TaskWorkflowStatus.VERIFIED };
 
       mockTaskRepository.findOne.mockResolvedValue(task);
-      mockAssetService.createAsset.mockResolvedValue(asset);
-      mockDeviceLinkingService.linkDevicesAndUpdateBOM.mockResolvedValue({
-        asset,
+      mockDeviceLinkingService.linkDevicesWithManager.mockResolvedValue({
         linked: [device],
         notFound: ['SN999'],
         alreadyInstalled: ['SN111'],
       });
-      mockTaskRepository.save.mockResolvedValue(task);
+
+      const mockManager = buildMockManager(asset, savedTask as SubsystemTask);
+      (AppDataSource.transaction as jest.Mock).mockImplementation(async (cb: any) => cb(mockManager));
 
       const result = await service.createAssetFromTask(42, { name: 'Test' }, ['CAM001', 'SN999', 'SN111']);
 
@@ -286,44 +319,49 @@ describe('AssetCreationService', () => {
       expect(result.warnings![1]).toContain('SN111');
     });
 
-    it('should not call linkDevicesAndUpdateBOM when no deviceSerialNumbers', async () => {
+    it('should not call linkDevicesWithManager when no deviceSerialNumbers', async () => {
       const task = makeTask();
       const asset = makeAsset();
+      const savedTask = { ...task, status: TaskWorkflowStatus.VERIFIED };
 
       mockTaskRepository.findOne.mockResolvedValue(task);
-      mockAssetService.createAsset.mockResolvedValue(asset);
-      mockTaskRepository.save.mockResolvedValue(task);
+      const mockManager = buildMockManager(asset, savedTask as SubsystemTask);
+      (AppDataSource.transaction as jest.Mock).mockImplementation(async (cb: any) => cb(mockManager));
 
       await service.createAssetFromTask(42, { name: 'Test' });
 
-      expect(mockDeviceLinkingService.linkDevicesAndUpdateBOM).not.toHaveBeenCalled();
+      expect(mockDeviceLinkingService.linkDevicesWithManager).not.toHaveBeenCalled();
     });
 
-    it('should not call linkDevicesAndUpdateBOM for empty deviceSerialNumbers array', async () => {
+    it('should not call linkDevicesWithManager for empty deviceSerialNumbers array', async () => {
       const task = makeTask();
       const asset = makeAsset();
+      const savedTask = { ...task, status: TaskWorkflowStatus.VERIFIED };
 
       mockTaskRepository.findOne.mockResolvedValue(task);
-      mockAssetService.createAsset.mockResolvedValue(asset);
-      mockTaskRepository.save.mockResolvedValue(task);
+      const mockManager = buildMockManager(asset, savedTask as SubsystemTask);
+      (AppDataSource.transaction as jest.Mock).mockImplementation(async (cb: any) => cb(mockManager));
 
       await service.createAssetFromTask(42, { name: 'Test' }, []);
 
-      expect(mockDeviceLinkingService.linkDevicesAndUpdateBOM).not.toHaveBeenCalled();
+      expect(mockDeviceLinkingService.linkDevicesWithManager).not.toHaveBeenCalled();
     });
 
-    it('should extract BOM from task.metadata.bom and pass to asset creation', async () => {
+    it('should extract BOM from task.metadata.bom and pass to asset/device creation', async () => {
       const bom = { items: [{ name: 'Camera', qty: 2 }] };
       const task = makeTask({ metadata: { bom } });
-      const asset = makeAsset();
+      const asset = makeAsset({ bomSnapshot: bom });
+      const savedTask = { ...task, status: TaskWorkflowStatus.VERIFIED };
 
       mockTaskRepository.findOne.mockResolvedValue(task);
-      mockAssetService.createAsset.mockResolvedValue(asset);
-      mockTaskRepository.save.mockResolvedValue(task);
+      mockDeviceLinkingService.linkDevicesWithManager.mockResolvedValue({ linked: [], notFound: [], alreadyInstalled: [] });
 
-      await service.createAssetFromTask(42, { name: 'Test' });
+      const mockManager = buildMockManager(asset, savedTask as SubsystemTask);
+      (AppDataSource.transaction as jest.Mock).mockImplementation(async (cb: any) => cb(mockManager));
 
-      expect(mockAssetService.createAsset).toHaveBeenCalledWith(
+      await service.createAssetFromTask(42, { name: 'Test' }, ['SN1']);
+
+      expect(mockManager.assetRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ bomSnapshot: bom })
       );
     });
@@ -331,31 +369,47 @@ describe('AssetCreationService', () => {
     it('should extract BOM from task.metadata.configParams.bom as fallback', async () => {
       const bom = { items: [{ name: 'Switch', qty: 1 }] };
       const task = makeTask({ metadata: { configParams: { bom } } });
-      const asset = makeAsset();
+      const asset = makeAsset({ bomSnapshot: bom });
+      const savedTask = { ...task, status: TaskWorkflowStatus.VERIFIED };
 
       mockTaskRepository.findOne.mockResolvedValue(task);
-      mockAssetService.createAsset.mockResolvedValue(asset);
-      mockTaskRepository.save.mockResolvedValue(task);
+      mockDeviceLinkingService.linkDevicesWithManager.mockResolvedValue({ linked: [], notFound: [], alreadyInstalled: [] });
 
-      await service.createAssetFromTask(42, { name: 'Test' });
+      const mockManager = buildMockManager(asset, savedTask as SubsystemTask);
+      (AppDataSource.transaction as jest.Mock).mockImplementation(async (cb: any) => cb(mockManager));
 
-      expect(mockAssetService.createAsset).toHaveBeenCalledWith(
+      await service.createAssetFromTask(42, { name: 'Test' }, ['SN1']);
+
+      expect(mockManager.assetRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ bomSnapshot: bom })
       );
+    });
+
+    it('should roll back (reject) when the transaction callback throws', async () => {
+      const task = makeTask();
+      mockTaskRepository.findOne.mockResolvedValue(task);
+      (AppDataSource.transaction as jest.Mock).mockRejectedValue(new Error('DB error'));
+
+      await expect(service.createAssetFromTask(42, { name: 'Test' }))
+        .rejects.toThrow('DB error');
     });
   });
 
   // ── deriveAssetTypeFromTask ──────────────────────────────────────────────────
 
   describe('asset type derivation', () => {
+    /** Helper: run a createAssetFromTask call and return the assetType that was passed to assetRepo.create */
     const runDerivation = async (taskOverrides: any) => {
       const task = makeTask(taskOverrides);
       const asset = makeAsset();
+      const savedTask = { ...task, status: TaskWorkflowStatus.VERIFIED };
+
       mockTaskRepository.findOne.mockResolvedValue(task);
-      mockAssetService.createAsset.mockResolvedValue(asset);
-      mockTaskRepository.save.mockResolvedValue(task);
+      const mockManager = buildMockManager(asset, savedTask as SubsystemTask);
+      (AppDataSource.transaction as jest.Mock).mockImplementation(async (cb: any) => cb(mockManager));
+
       await service.createAssetFromTask(42, { name: 'Test' });
-      return (mockAssetService.createAsset as jest.Mock).mock.calls[0][0].assetType as string;
+      return (mockManager.assetRepo.create as jest.Mock).mock.calls[0][0].assetType as string;
     };
 
     it('uses metadata.configParams.assetType when set', async () => {
@@ -388,27 +442,32 @@ describe('AssetCreationService', () => {
       expect(type).toBe('CUID');
     });
 
-    it('derives PRZEJAZD from systemType prefix when taskType has no keyword', async () => {
+    it('maps SMOKIP_A systemType to PRZEJAZD', async () => {
       const type = await runDerivation({
         taskType: 'GENERIC',
         metadata: {},
-        subsystem: makeSubsystem({ systemType: 'PRZEJAZD_X' }),
+        subsystem: makeSubsystem({ systemType: SystemType.SMOKIP_A }),
       });
       expect(type).toBe('PRZEJAZD');
     });
 
-    it('derives SKP from systemType prefix when taskType has no keyword', async () => {
+    it('maps SMOKIP_B systemType to PRZEJAZD', async () => {
       const type = await runDerivation({
         taskType: 'GENERIC',
         metadata: {},
-        subsystem: makeSubsystem({ systemType: 'SKP_Y' }),
+        subsystem: makeSubsystem({ systemType: SystemType.SMOKIP_B }),
       });
-      expect(type).toBe('SKP');
+      expect(type).toBe('PRZEJAZD');
     });
 
-    it('falls back to PRZEJAZD when no keyword matches', async () => {
-      const type = await runDerivation({ taskType: 'GENERIC', metadata: {}, subsystem: makeSubsystem({ systemType: 'SMOKIP_A' }) });
+    it('falls back to PRZEJAZD for unmapped systemType (e.g. CCTV)', async () => {
+      const type = await runDerivation({
+        taskType: 'GENERIC',
+        metadata: {},
+        subsystem: makeSubsystem({ systemType: SystemType.CCTV }),
+      });
       expect(type).toBe('PRZEJAZD');
     });
   });
 });
+

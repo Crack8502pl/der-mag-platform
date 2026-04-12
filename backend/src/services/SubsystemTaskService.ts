@@ -6,7 +6,7 @@ import { SubsystemTask, TaskWorkflowStatus } from '../entities/SubsystemTask';
 import { Subsystem } from '../entities/Subsystem';
 import { TaskNumberGenerator } from './TaskNumberGenerator';
 import { TaskSyncService } from './TaskSyncService';
-import { AssetCreationService } from './AssetCreationService';
+import { AssetCreationService, AssetCreationResult } from './AssetCreationService';
 
 export class SubsystemTaskService {
   private taskRepository = AppDataSource.getRepository(SubsystemTask);
@@ -213,12 +213,7 @@ export class SubsystemTaskService {
       photosFolder?: string | null;
     },
     deviceSerialNumbers?: string[]
-  ): Promise<{
-    asset: any;
-    linkedDevices: any[];
-    task: any;
-    warnings?: string[];
-  }> {
+  ): Promise<AssetCreationResult> {
     const assetCreationService = new AssetCreationService();
     return await assetCreationService.createAssetFromTask(
       taskId,

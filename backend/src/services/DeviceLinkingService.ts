@@ -88,6 +88,31 @@ export class DeviceLinkingService {
   }
 
   /**
+   * Link devices to an asset using a caller-provided transaction manager.
+   * Intended for use inside an outer transaction (e.g. AssetCreationService).
+   */
+  async linkDevicesWithManager(
+    manager: EntityManager,
+    assetId: number,
+    serialNumbers: string[],
+    bomSnapshot?: any
+  ): Promise<{ linked: Device[]; notFound: string[]; alreadyInstalled: string[] }> {
+    const result = await this.performLinking(manager, assetId, serialNumbers);
+
+    // Update asset BOM snapshot within the same manager/transaction if provided
+    if (bomSnapshot) {
+      const assetRepo = manager.getRepository(Asset);
+      const asset = await assetRepo.findOne({ where: { id: assetId } });
+      if (asset) {
+        asset.bomSnapshot = bomSnapshot;
+        await assetRepo.save(asset);
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Link devices to asset by serial numbers.
    * The entire operation is wrapped in a single DB transaction.
    */

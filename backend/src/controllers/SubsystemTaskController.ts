@@ -3,6 +3,24 @@
 
 import { Request, Response } from 'express';
 import { SubsystemTaskService } from '../services/SubsystemTaskService';
+import { ASSET_CREATION_BUSINESS_ERRORS } from '../services/AssetCreationService';
+
+// Business error messages that map to HTTP 404
+const NOT_FOUND_ERRORS = new Set(['Zadanie nie znalezione']);
+
+/**
+ * Parse a date string/value and return a Date.
+ * Returns null when the input is null/undefined.
+ * Throws a descriptive error when the input is present but invalid.
+ */
+function parseDateField(value: any, fieldName: string): Date | null {
+  if (value == null) return null;
+  const d = new Date(value);
+  if (isNaN(d.getTime())) {
+    throw new Error(`Nieprawidłowa data w polu ${fieldName}`);
+  }
+  return d;
+}
 
 export class SubsystemTaskController {
   private subsystemTaskService: SubsystemTaskService;
@@ -44,35 +62,68 @@ export class SubsystemTaskController {
         return;
       }
 
-      // Parse dates if provided as strings
+      // Validate deviceSerialNumbers: must be an array of non-empty strings if provided
+      if (deviceSerialNumbers !== undefined && deviceSerialNumbers !== null) {
+        if (!Array.isArray(deviceSerialNumbers)) {
+          res.status(400).json({
+            success: false,
+            message: 'deviceSerialNumbers musi być tablicą stringów'
+          });
+          return;
+        }
+        const invalidElement = deviceSerialNumbers.find(
+          (sn: any) => typeof sn !== 'string' || sn.trim() === ''
+        );
+        if (invalidElement !== undefined) {
+          res.status(400).json({
+            success: false,
+            message: 'Każdy element tablicy deviceSerialNumbers musi być niepustym stringiem'
+          });
+          return;
+        }
+      }
+
+      // Parse and validate dates
+      let parsedActualInstallationDate: Date | null;
+      let parsedWarrantyExpiryDate: Date | null;
+      let parsedAssetActualInstallationDate: Date | null;
+      let parsedAssetWarrantyExpiryDate: Date | null;
+      try {
+        parsedActualInstallationDate = parseDateField(actualInstallationDate, 'actualInstallationDate');
+        parsedWarrantyExpiryDate = parseDateField(warrantyExpiryDate, 'warrantyExpiryDate');
+        parsedAssetActualInstallationDate = parseDateField(assetData.actualInstallationDate, 'assetData.actualInstallationDate');
+        parsedAssetWarrantyExpiryDate = parseDateField(assetData.warrantyExpiryDate, 'assetData.warrantyExpiryDate');
+      } catch (dateError: any) {
+        res.status(400).json({
+          success: false,
+          message: dateError.message
+        });
+        return;
+      }
+
+      // Parse GPS coordinates
+      const rawLat = assetData.gpsLatitude;
+      const rawLng = assetData.gpsLongitude;
+      const gpsLatitude = rawLat != null ? parseFloat(rawLat) : null;
+      const gpsLongitude = rawLng != null ? parseFloat(rawLng) : null;
+
+      if (gpsLatitude !== null && isNaN(gpsLatitude)) {
+        res.status(400).json({ success: false, message: 'Nieprawidłowa wartość gpsLatitude' });
+        return;
+      }
+      if (gpsLongitude !== null && isNaN(gpsLongitude)) {
+        res.status(400).json({ success: false, message: 'Nieprawidłowa wartość gpsLongitude' });
+        return;
+      }
+
       const parsedAssetData = {
         ...assetData,
         status: status || assetData.status,
-        actualInstallationDate: actualInstallationDate
-          ? new Date(actualInstallationDate)
-          : (assetData.actualInstallationDate ? new Date(assetData.actualInstallationDate) : null),
-        warrantyExpiryDate: warrantyExpiryDate
-          ? new Date(warrantyExpiryDate)
-          : (assetData.warrantyExpiryDate ? new Date(assetData.warrantyExpiryDate) : null),
-        gpsLatitude: assetData.gpsLatitude != null ? parseFloat(assetData.gpsLatitude) : null,
-        gpsLongitude: assetData.gpsLongitude != null ? parseFloat(assetData.gpsLongitude) : null
+        actualInstallationDate: parsedActualInstallationDate ?? parsedAssetActualInstallationDate,
+        warrantyExpiryDate: parsedWarrantyExpiryDate ?? parsedAssetWarrantyExpiryDate,
+        gpsLatitude,
+        gpsLongitude
       };
-
-      // Validate parsed GPS values
-      if (parsedAssetData.gpsLatitude !== null && isNaN(parsedAssetData.gpsLatitude)) {
-        res.status(400).json({
-          success: false,
-          message: 'Nieprawidłowa wartość gpsLatitude'
-        });
-        return;
-      }
-      if (parsedAssetData.gpsLongitude !== null && isNaN(parsedAssetData.gpsLongitude)) {
-        res.status(400).json({
-          success: false,
-          message: 'Nieprawidłowa wartość gpsLongitude'
-        });
-        return;
-      }
 
       const result = await this.subsystemTaskService.completeAndCreateAsset(
         parsedTaskId,
@@ -95,12 +146,28 @@ export class SubsystemTaskController {
     } catch (error: any) {
       console.error('Error completing task and creating asset:', error);
 
-      // Return 404 for "not found" errors, 400 for business logic errors
-      const status = error.message === 'Zadanie nie znalezione' ? 404 : 400;
+      if (NOT_FOUND_ERRORS.has(error.message)) {
+        res.status(404).json({
+          success: false,
+          message: error.message,
+          error: error.message
+        });
+        return;
+      }
 
-      res.status(status).json({
+      if (ASSET_CREATION_BUSINESS_ERRORS.has(error.message)) {
+        res.status(400).json({
+          success: false,
+          message: error.message,
+          error: error.message
+        });
+        return;
+      }
+
+      // Unexpected / server-side error
+      res.status(500).json({
         success: false,
-        message: error.message || 'Błąd podczas kończenia zadania i tworzenia obiektu',
+        message: 'Błąd podczas kończenia zadania i tworzenia obiektu',
         error: error.message
       });
     }
