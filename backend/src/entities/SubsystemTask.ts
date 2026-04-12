@@ -7,6 +7,7 @@ import { WorkflowGeneratedBom } from './WorkflowGeneratedBom';
 import { CompletionOrder } from './CompletionOrder';
 import { PrefabricationTask } from './PrefabricationTask';
 import { TaskGeneratedBom } from './TaskGeneratedBom';
+import { Asset } from './Asset';
 
 export enum TaskWorkflowStatus {
   CREATED = 'CREATED',
@@ -121,6 +122,17 @@ export class SubsystemTask {
   // Metadata
   @Column({ type: 'jsonb', default: '{}' })
   metadata: Record<string, any>;
+
+  // Asset Management relations
+  @ManyToOne(() => Asset, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'linked_asset_id' })
+  linkedAsset: Asset | null;
+
+  @Column({ name: 'linked_asset_id', type: 'int', nullable: true })
+  linkedAssetId: number | null;
+
+  @Column({ name: 'task_role', type: 'varchar', length: 50, nullable: true })
+  taskRole: string | null; // installation, warranty_service, repair, maintenance, decommission
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
