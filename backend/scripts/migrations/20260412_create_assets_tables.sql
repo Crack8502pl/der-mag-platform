@@ -14,7 +14,8 @@
 CREATE TABLE IF NOT EXISTS assets (
   -- Primary identification
   id                        SERIAL PRIMARY KEY,
-  asset_number              VARCHAR(20)  UNIQUE NOT NULL, -- Format: OBJ-XXXXXXMMRR
+  -- Format: OBJ-XXXXXXMMRR  (OBJ- + 6-digit seq + 2-digit month + 2-digit year)
+  asset_number              VARCHAR(20)  UNIQUE NOT NULL,
 
   -- Asset classification
   asset_type                VARCHAR(50)  NOT NULL,        -- PRZEJAZD, LCS, CUID, NASTAWNIA, SKP
@@ -58,6 +59,9 @@ CREATE TABLE IF NOT EXISTS assets (
   created_by                INTEGER REFERENCES users(id) ON DELETE SET NULL,
 
   -- Constraints
+  CONSTRAINT chk_asset_number CHECK (
+    asset_number ~ '^OBJ-[0-9]{6}(0[1-9]|1[0-2])[0-9]{2}$'
+  ),
   CONSTRAINT chk_asset_type CHECK (asset_type IN (
     'PRZEJAZD', 'SKP', 'NASTAWNIA', 'LCS', 'CUID'
   )),
@@ -130,66 +134,100 @@ CREATE TABLE IF NOT EXISTS asset_status_history (
 CREATE INDEX IF NOT EXISTS idx_asset_status_history_asset      ON asset_status_history(asset_id);
 CREATE INDEX IF NOT EXISTS idx_asset_status_history_changed_at ON asset_status_history(changed_at DESC);
 
+-- Immutability: prevent any UPDATE or DELETE on audit records.
+-- History rows must be append-only; any modification is a programming error.
+CREATE OR REPLACE FUNCTION deny_asset_status_history_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'asset_status_history record (id=%) is immutable; UPDATE/DELETE is not allowed', OLD.id;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_asset_status_history_immutable ON asset_status_history;
+CREATE TRIGGER trg_asset_status_history_immutable
+  BEFORE UPDATE OR DELETE ON asset_status_history
+  FOR EACH ROW
+  EXECUTE FUNCTION deny_asset_status_history_mutation();
+
 -- ----------------------------------------------------------------------------
 -- 4. EXTEND EXISTING TABLES  (backwards-compatible – all new columns nullable)
 -- ----------------------------------------------------------------------------
 
--- 4a. devices: link device to the asset it is installed in
+-- 4a. devices: link device to the asset it is installed in.
+-- Note: devices.status already exists in the application (values: prefabricated/verified/installed).
+-- The new inventory_status column tracks warehouse/asset lifecycle separately to avoid conflict.
 ALTER TABLE devices
   ADD COLUMN IF NOT EXISTS installed_asset_id INTEGER REFERENCES assets(id) ON DELETE SET NULL,
-  ADD COLUMN IF NOT EXISTS status             VARCHAR(50) DEFAULT 'in_stock';
+  ADD COLUMN IF NOT EXISTS inventory_status   VARCHAR(50) DEFAULT 'in_stock';
 
-ALTER TABLE devices
-  ADD CONSTRAINT chk_device_status CHECK (status IN (
-    'in_stock', 'reserved', 'installed', 'faulty', 'returned', 'decommissioned'
-  ));
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'chk_device_inventory_status'
+      AND conrelid = 'devices'::regclass
+  ) THEN
+    ALTER TABLE devices
+      ADD CONSTRAINT chk_device_inventory_status CHECK (
+        inventory_status IS NULL OR inventory_status IN (
+          'in_stock', 'reserved', 'installed', 'faulty', 'returned', 'decommissioned'
+        )
+      );
+  END IF;
+END
+$$;
 
-CREATE INDEX IF NOT EXISTS idx_devices_installed_asset ON devices(installed_asset_id);
-CREATE INDEX IF NOT EXISTS idx_devices_status          ON devices(status);
+CREATE INDEX IF NOT EXISTS idx_devices_installed_asset  ON devices(installed_asset_id);
+CREATE INDEX IF NOT EXISTS idx_devices_inventory_status ON devices(inventory_status);
+CREATE INDEX IF NOT EXISTS idx_devices_status           ON devices(status);
 
 -- 4b. subsystem_tasks: link task to an asset and describe its role
 ALTER TABLE subsystem_tasks
   ADD COLUMN IF NOT EXISTS linked_asset_id INTEGER REFERENCES assets(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS task_role       VARCHAR(50);
 
-ALTER TABLE subsystem_tasks
-  ADD CONSTRAINT chk_subsystem_task_role CHECK (
-    task_role IS NULL OR task_role IN (
-      'installation', 'warranty_service', 'repair', 'maintenance', 'decommission'
-    )
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'chk_subsystem_task_role'
+      AND conrelid = 'subsystem_tasks'::regclass
+  ) THEN
+    ALTER TABLE subsystem_tasks
+      ADD CONSTRAINT chk_subsystem_task_role CHECK (
+        task_role IS NULL OR task_role IN (
+          'installation', 'warranty_service', 'repair', 'maintenance', 'decommission'
+        )
+      );
+  END IF;
+END
+$$;
 
 CREATE INDEX IF NOT EXISTS idx_subsystem_tasks_linked_asset ON subsystem_tasks(linked_asset_id);
 
 -- ----------------------------------------------------------------------------
 -- 5. TRIGGER: auto-update assets.updated_at on every UPDATE
 -- ----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION update_asset_timestamp()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
+-- Reuses the shared update_updated_at_column() function already defined in
+-- init-db.sql, avoiding duplication with other tables.
 DROP TRIGGER IF EXISTS asset_updated_at ON assets;
 CREATE TRIGGER asset_updated_at
   BEFORE UPDATE ON assets
   FOR EACH ROW
-  EXECUTE FUNCTION update_asset_timestamp();
+  EXECUTE FUNCTION update_updated_at_column();
 
 -- ----------------------------------------------------------------------------
 -- 6. TRIGGER: auto-log status changes into asset_status_history
 -- ----------------------------------------------------------------------------
--- Note: changed_by is populated from NEW.created_by (the asset owner/creator).
--- A future migration will add an updated_by column so that the actual updater
--- can be tracked. For now the trigger follows the spec from PR #1.
+-- changed_by is left NULL: the actor identity is not reliably available in a
+-- trigger context at this stage. A future migration adding an updated_by column
+-- (or a session-variable mechanism) will populate this field correctly.
 CREATE OR REPLACE FUNCTION log_asset_status_change()
 RETURNS TRIGGER AS $$
 BEGIN
   IF OLD.status IS DISTINCT FROM NEW.status THEN
     INSERT INTO asset_status_history (asset_id, old_status, new_status, changed_by)
-    VALUES (NEW.id, OLD.status, NEW.status, NEW.created_by);
+    VALUES (NEW.id, OLD.status, NEW.status, NULL);
   END IF;
   RETURN NEW;
 END;
