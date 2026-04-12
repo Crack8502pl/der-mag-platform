@@ -34,7 +34,7 @@ export class AssetNumberingService {
         .createQueryBuilder('asset')
         .where('asset.asset_number LIKE :pattern', { pattern })
         .orderBy('asset.asset_number', 'DESC')
-        .limit(1)
+        .take(1)
         .getOne();
 
       // Extract sequence number
