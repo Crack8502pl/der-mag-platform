@@ -55,6 +55,8 @@ import pushRoutes from './push.routes';
 import honeypotRoutes from './honeypot.routes';
 // Asset routes
 import assetRoutes from './asset.routes';
+// Subsystem task routes
+import subsystemTaskRoutes from './subsystem-task.routes';
 // Cars routes
 import carRoutes from './car.routes';
 // Health/connection monitoring routes
@@ -138,6 +140,9 @@ router.use('/cars', carRoutes);
 
 // Asset routes
 router.use('/assets', assetRoutes);
+
+// Subsystem task routes
+router.use('/subsystem-tasks', subsystemTaskRoutes);
 
 // Health/connection monitoring routes (no auth required - lightweight endpoints)
 router.use('/', healthRoutes);

@@ -6,6 +6,7 @@ import { SubsystemTask, TaskWorkflowStatus } from '../entities/SubsystemTask';
 import { Subsystem } from '../entities/Subsystem';
 import { TaskNumberGenerator } from './TaskNumberGenerator';
 import { TaskSyncService } from './TaskSyncService';
+import { AssetCreationService } from './AssetCreationService';
 
 export class SubsystemTaskService {
   private taskRepository = AppDataSource.getRepository(SubsystemTask);
@@ -189,6 +190,41 @@ export class SubsystemTaskService {
       where: { id: taskId },
       relations: ['subsystem', 'bom', 'completionOrder', 'prefabricationTask']
     });
+  }
+
+  /**
+   * Complete task and create asset in one operation
+   */
+  async completeAndCreateAsset(
+    taskId: number,
+    assetData: {
+      name: string;
+      category?: string | null;
+      liniaKolejowa?: string | null;
+      kilometraz?: string | null;
+      gpsLatitude?: number | null;
+      gpsLongitude?: number | null;
+      googleMapsUrl?: string | null;
+      miejscowosc?: string | null;
+      status?: string;
+      actualInstallationDate?: Date | null;
+      warrantyExpiryDate?: Date | null;
+      notes?: string | null;
+      photosFolder?: string | null;
+    },
+    deviceSerialNumbers?: string[]
+  ): Promise<{
+    asset: any;
+    linkedDevices: any[];
+    task: any;
+    warnings?: string[];
+  }> {
+    const assetCreationService = new AssetCreationService();
+    return await assetCreationService.createAssetFromTask(
+      taskId,
+      assetData,
+      deviceSerialNumbers
+    );
   }
 }
 
