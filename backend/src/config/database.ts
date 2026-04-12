@@ -79,6 +79,10 @@ import { RecorderSpecification } from '../entities/RecorderSpecification';
 import { DiskSpecification } from '../entities/DiskSpecification';
 // Wizard Drafts
 import { WizardDraft } from '../entities/WizardDraft';
+// Asset Management
+import { Asset } from '../entities/Asset';
+import { AssetTask } from '../entities/AssetTask';
+import { AssetStatusHistory } from '../entities/AssetStatusHistory';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -185,6 +189,10 @@ export const AppDataSource = new DataSource({
     DiskSpecification,
     // Wizard Drafts
     WizardDraft,
+    // Asset Management
+    Asset,
+    AssetTask,
+    AssetStatusHistory,
   ],
   subscribers: [],
   migrations: [],
