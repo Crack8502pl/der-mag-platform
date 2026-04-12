@@ -189,6 +189,16 @@ export interface BrigadePermissions {
 }
 
 /**
+ * Granularne uprawnienia dla obiektów (assets)
+ */
+export interface AssetPermissions {
+  read?: boolean;
+  create?: boolean;
+  update?: boolean;
+  delete?: boolean;
+}
+
+/**
  * Granularne uprawnienia dla samochodów
  */
 export interface CarsPermissions {
@@ -219,6 +229,7 @@ export interface RolePermissions {
   warehouse_stock?: WarehouseStockPermissions;
   brigades?: BrigadePermissions;
   cars?: CarsPermissions;
+  assets?: AssetPermissions;
   // Zachowanie kompatybilności z istniejącymi uprawnieniami
   [key: string]: any;
 }

@@ -263,13 +263,14 @@ export class AssetService {
       throw new Error(`Nieprawidłowy typ obiektu. Dozwolone: ${validTypes.join(', ')}`);
     }
 
-    // Validate category if assetType is PRZEJAZD
+    // Validate category if assetType is PRZEJAZD; auto-null for other types
     if (data.assetType === 'PRZEJAZD' && data.category) {
       const validCategories = ['KAT A', 'KAT B', 'KAT C', 'KAT E', 'KAT F'];
       if (!validCategories.includes(data.category)) {
         throw new Error(`Nieprawidłowa kategoria przejazdu. Dozwolone: ${validCategories.join(', ')}`);
       }
     }
+    const normalizedCategory = data.assetType === 'PRZEJAZD' ? (data.category || null) : null;
 
     // Validate status
     const validStatuses = ['planned', 'installed', 'active', 'in_service', 'faulty', 'inactive', 'decommissioned'];
@@ -287,7 +288,7 @@ export class AssetService {
       assetNumber,
       assetType: data.assetType as any,
       name: data.name,
-      category: (data.category || null) as any,
+      category: normalizedCategory as any,
       liniaKolejowa: data.liniaKolejowa || null,
       kilometraz: data.kilometraz || null,
       gpsLatitude: data.gpsLatitude ?? null,
@@ -314,7 +315,7 @@ export class AssetService {
    * Update existing asset
    */
   async updateAsset(id: number, data: Partial<Asset>): Promise<Asset> {
-    const asset = await this.getAssetById(id);
+    const asset = await this.assetRepository.findOneBy({ id });
 
     if (!asset) {
       throw new Error('Obiekt nie znaleziony');
@@ -325,6 +326,14 @@ export class AssetService {
       throw new Error('Nie można zmienić numeru obiektu');
     }
 
+    // Status must be changed through updateStatus()
+    if (data.status !== undefined) {
+      throw new Error('Użyj PATCH /status do zmiany statusu obiektu');
+    }
+
+    // Determine effective assetType after update
+    const effectiveType = data.assetType ?? asset.assetType;
+
     // Validate assetType if being changed
     if (data.assetType) {
       const validTypes = ['PRZEJAZD', 'SKP', 'NASTAWNIA', 'LCS', 'CUID'];
@@ -333,24 +342,34 @@ export class AssetService {
       }
     }
 
-    // Validate category if being changed
-    if (data.category !== undefined) {
-      const validCategories = ['KAT A', 'KAT B', 'KAT C', 'KAT E', 'KAT F', null];
-      if (data.category !== null && !validCategories.includes(data.category)) {
-        throw new Error(`Nieprawidłowa kategoria. Dozwolone: ${validCategories.filter(c => c !== null).join(', ')}`);
+    // Validate and normalize category based on effective type
+    if (data.category !== undefined || data.assetType !== undefined) {
+      if (effectiveType !== 'PRZEJAZD') {
+        // Auto-null category for non-PRZEJAZD types
+        data = { ...data, category: null as any };
+      } else if (data.category !== undefined && data.category !== null) {
+        const validCategories = ['KAT A', 'KAT B', 'KAT C', 'KAT E', 'KAT F'];
+        if (!validCategories.includes(data.category)) {
+          throw new Error(`Nieprawidłowa kategoria. Dozwolone: ${validCategories.join(', ')}`);
+        }
       }
     }
 
-    // Validate status if being changed
-    if (data.status) {
-      const validStatuses = ['planned', 'installed', 'active', 'in_service', 'faulty', 'inactive', 'decommissioned'];
-      if (!validStatuses.includes(data.status)) {
-        throw new Error(`Nieprawidłowy status. Dozwolone: ${validStatuses.join(', ')}`);
+    // Apply only whitelisted updatable fields
+    const allowedFields: (keyof Asset)[] = [
+      'assetType', 'name', 'category',
+      'liniaKolejowa', 'kilometraz', 'gpsLatitude', 'gpsLongitude', 'googleMapsUrl', 'miejscowosc',
+      'contractId', 'subsystemId', 'installationTaskId',
+      'plannedInstallationDate', 'actualInstallationDate', 'warrantyExpiryDate',
+      'lastServiceDate', 'nextServiceDueDate',
+      'bomSnapshot', 'notes', 'photosFolder'
+    ];
+
+    for (const field of allowedFields) {
+      if (field in data) {
+        (asset as any)[field] = (data as any)[field];
       }
     }
-
-    // Update fields
-    Object.assign(asset, data);
 
     return await this.assetRepository.save(asset);
   }
@@ -359,7 +378,7 @@ export class AssetService {
    * Update asset status (with automatic history logging via trigger)
    */
   async updateStatus(id: number, newStatus: string, userId?: number): Promise<Asset> {
-    const asset = await this.getAssetById(id);
+    const asset = await this.assetRepository.findOneBy({ id });
 
     if (!asset) {
       throw new Error('Obiekt nie znaleziony');
@@ -382,11 +401,6 @@ export class AssetService {
     // Update status
     asset.status = newStatus as any;
 
-    // Update userId for audit (used by trigger to log who changed status)
-    if (userId) {
-      asset.createdBy = userId;
-    }
-
     return await this.assetRepository.save(asset);
   }
 
@@ -394,7 +408,10 @@ export class AssetService {
    * Delete asset (soft delete - set status to decommissioned)
    */
   async deleteAsset(id: number): Promise<void> {
-    const asset = await this.getAssetById(id);
+    const asset = await this.assetRepository.findOne({
+      where: { id },
+      relations: ['installedDevices']
+    });
 
     if (!asset) {
       throw new Error('Obiekt nie znaleziony');

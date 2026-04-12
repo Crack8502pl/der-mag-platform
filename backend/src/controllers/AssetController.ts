@@ -313,6 +313,16 @@ export class AssetController {
   updateAsset = async (req: Request, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
+      const assetId = parseInt(id, 10);
+
+      if (isNaN(assetId) || assetId <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Nieprawidłowe ID obiektu'
+        });
+        return;
+      }
+
       const updates = { ...req.body };
 
       // Convert date strings to Date objects
@@ -342,8 +352,11 @@ export class AssetController {
       if (updates.subsystemId != null) {
         updates.subsystemId = isNaN(parseInt(updates.subsystemId)) ? null : parseInt(updates.subsystemId);
       }
+      if (updates.installationTaskId != null) {
+        updates.installationTaskId = isNaN(parseInt(updates.installationTaskId)) ? null : parseInt(updates.installationTaskId);
+      }
 
-      const asset = await this.assetService.updateAsset(parseInt(id), updates);
+      const asset = await this.assetService.updateAsset(assetId, updates);
 
       res.json({
         success: true,
@@ -369,6 +382,16 @@ export class AssetController {
     try {
       const userId = (req as any).user?.id;
       const { id } = req.params;
+      const assetId = parseInt(id, 10);
+
+      if (isNaN(assetId) || assetId <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Nieprawidłowe ID obiektu'
+        });
+        return;
+      }
+
       const { status } = req.body;
 
       if (!status) {
@@ -380,7 +403,7 @@ export class AssetController {
       }
 
       const asset = await this.assetService.updateStatus(
-        parseInt(id),
+        assetId,
         status,
         userId
       );
@@ -408,7 +431,17 @@ export class AssetController {
   deleteAsset = async (req: Request, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
-      await this.assetService.deleteAsset(parseInt(id));
+      const assetId = parseInt(id, 10);
+
+      if (isNaN(assetId) || assetId <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Nieprawidłowe ID obiektu'
+        });
+        return;
+      }
+
+      await this.assetService.deleteAsset(assetId);
 
       res.json({
         success: true,
