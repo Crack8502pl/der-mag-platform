@@ -68,10 +68,26 @@ export class AssetService {
     // Count total before pagination
     const total = await query.getCount();
 
-    // Apply sorting
-    const sortBy = options?.sortBy || 'createdAt';
-    const sortOrder = options?.sortOrder || 'DESC';
-    query.orderBy(`asset.${sortBy}`, sortOrder);
+    // Apply sorting — whitelist column names to prevent SQL injection
+    const allowedSortFields: Record<string, string> = {
+      createdAt: 'asset.createdAt',
+      updatedAt: 'asset.updatedAt',
+      assetNumber: 'asset.assetNumber',
+      name: 'asset.name',
+      assetType: 'asset.assetType',
+      status: 'asset.status',
+      category: 'asset.category',
+      liniaKolejowa: 'asset.liniaKolejowa',
+      miejscowosc: 'asset.miejscowosc'
+    };
+    const sortByKey = options?.sortBy;
+    const sortColumn = sortByKey && allowedSortFields[sortByKey]
+      ? allowedSortFields[sortByKey]
+      : allowedSortFields.createdAt;
+    const sortOrder = options?.sortOrder === 'ASC' || options?.sortOrder === 'DESC'
+      ? options.sortOrder
+      : 'DESC';
+    query.orderBy(sortColumn, sortOrder);
 
     // Apply pagination
     const page = options?.page || 1;

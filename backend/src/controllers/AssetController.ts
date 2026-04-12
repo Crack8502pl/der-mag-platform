@@ -74,7 +74,17 @@ export class AssetController {
   getAssetById = async (req: Request, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
-      const asset = await this.assetService.getAssetById(parseInt(id));
+      const assetId = parseInt(id, 10);
+
+      if (!Number.isInteger(assetId) || assetId <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Nieprawidłowe ID obiektu'
+        });
+        return;
+      }
+
+      const asset = await this.assetService.getAssetById(assetId);
 
       if (!asset) {
         res.status(404).json({
@@ -136,7 +146,17 @@ export class AssetController {
   getContractAssets = async (req: Request, res: Response): Promise<void> => {
     try {
       const { contractId } = req.params;
-      const assets = await this.assetService.getAssetsByContract(parseInt(contractId));
+      const parsedContractId = parseInt(contractId, 10);
+
+      if (!Number.isInteger(parsedContractId) || parsedContractId <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'contractId musi być dodatnią liczbą całkowitą'
+        });
+        return;
+      }
+
+      const assets = await this.assetService.getAssetsByContract(parsedContractId);
 
       res.json({
         success: true,
@@ -160,7 +180,17 @@ export class AssetController {
   getSubsystemAssets = async (req: Request, res: Response): Promise<void> => {
     try {
       const { subsystemId } = req.params;
-      const assets = await this.assetService.getAssetsBySubsystem(parseInt(subsystemId));
+      const parsedSubsystemId = parseInt(subsystemId, 10);
+
+      if (!Number.isInteger(parsedSubsystemId) || parsedSubsystemId <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'subsystemId musi być dodatnią liczbą całkowitą'
+        });
+        return;
+      }
+
+      const assets = await this.assetService.getAssetsBySubsystem(parsedSubsystemId);
 
       res.json({
         success: true,
@@ -199,5 +229,3 @@ export class AssetController {
     }
   };
 }
-
-export default new AssetController();
