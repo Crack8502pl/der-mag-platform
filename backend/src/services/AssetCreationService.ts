@@ -108,6 +108,10 @@ export class AssetCreationService {
     const bomSnapshot = task.metadata?.bom || task.metadata?.configParams?.bom || null;
 
     // ── 4. Generate asset number (advisory-locked sub-transaction) ────────────
+    // Note: asset number generation uses its own sub-transaction with an advisory
+    // lock. If the main transaction below fails, the generated number is consumed
+    // (a gap appears in the sequence). This is by design — gaps are acceptable
+    // and retrying is safe.
     const numberingService = new AssetNumberingService(AppDataSource);
     const assetNumber = await numberingService.generateAssetNumber();
 
@@ -233,8 +237,7 @@ export class AssetCreationService {
     //    SMOKIP_A / SMOKIP_B are level-crossing (przejazd) protection systems.
     //    Other system types don't correspond to the 5 asset types — fall through.
     if (task.subsystem?.systemType) {
-      const systemType = task.subsystem.systemType as string;
-      if (systemType === SystemType.SMOKIP_A || systemType === SystemType.SMOKIP_B) {
+      if (task.subsystem.systemType === SystemType.SMOKIP_A || task.subsystem.systemType === SystemType.SMOKIP_B) {
         return 'PRZEJAZD';
       }
     }
