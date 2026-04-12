@@ -21,4 +21,10 @@ router.put('/:id', authenticate, requirePermission('assets', 'update'), controll
 router.patch('/:id/status', authenticate, requirePermission('assets', 'update'), controller.updateAssetStatus);
 router.delete('/:id', authenticate, requirePermission('assets', 'delete'), controller.deleteAsset);
 
+// Device linking endpoints
+router.post('/:id/devices', authenticate, requirePermission('assets', 'update'), controller.linkDevices);
+router.delete('/:id/devices/:deviceId', authenticate, requirePermission('assets', 'update'), controller.unlinkDevice);
+router.get('/:id/devices', authenticate, requirePermission('assets', 'read'), controller.getAssetDevices);
+router.get('/:id/bom-validation', authenticate, requirePermission('assets', 'read'), controller.validateBOM);
+
 export default router;

@@ -3,12 +3,15 @@
 
 import { Request, Response } from 'express';
 import { AssetService } from '../services/AssetService';
+import { DeviceLinkingService } from '../services/DeviceLinkingService';
 
 export class AssetController {
   private assetService: AssetService;
+  private deviceLinkingService: DeviceLinkingService;
 
   constructor() {
     this.assetService = new AssetService();
+    this.deviceLinkingService = new DeviceLinkingService();
   }
 
   /**
@@ -453,6 +456,137 @@ export class AssetController {
       res.status(statusCode).json({
         success: false,
         message: error.message || 'Błąd podczas usuwania obiektu',
+        error: error.message
+      });
+    }
+  };
+
+  /**
+   * POST /api/assets/:id/devices
+   * Link devices to asset by serial numbers
+   */
+  linkDevices = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { serialNumbers, bomSnapshot } = req.body;
+
+      if (!serialNumbers || !Array.isArray(serialNumbers) || serialNumbers.length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Lista numerów seryjnych jest wymagana'
+        });
+        return;
+      }
+
+      const result = await this.deviceLinkingService.linkDevicesAndUpdateBOM(
+        parseInt(id, 10),
+        serialNumbers,
+        bomSnapshot
+      );
+
+      const warnings: string[] = [];
+
+      if (result.notFound.length > 0) {
+        warnings.push(`Nie znaleziono urządzeń: ${result.notFound.join(', ')}`);
+      }
+
+      if (result.alreadyInstalled.length > 0) {
+        warnings.push(`Urządzenia już zainstalowane na innym obiekcie: ${result.alreadyInstalled.join(', ')}`);
+      }
+
+      res.status(201).json({
+        success: true,
+        message: `Połączono ${result.linked.length} urządzeń pomyślnie`,
+        warnings: warnings.length > 0 ? warnings : undefined,
+        data: {
+          asset: result.asset,
+          linked: result.linked,
+          notFound: result.notFound,
+          alreadyInstalled: result.alreadyInstalled
+        }
+      });
+    } catch (error: any) {
+      console.error('Error linking devices:', error);
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Błąd podczas łączenia urządzeń',
+        error: error.message
+      });
+    }
+  };
+
+  /**
+   * DELETE /api/assets/:id/devices/:deviceId
+   * Unlink device from asset
+   */
+  unlinkDevice = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id, deviceId } = req.params;
+
+      const device = await this.deviceLinkingService.unlinkDeviceFromAsset(
+        parseInt(id, 10),
+        parseInt(deviceId, 10)
+      );
+
+      res.json({
+        success: true,
+        message: 'Urządzenie odłączone od obiektu',
+        data: device
+      });
+    } catch (error: any) {
+      console.error('Error unlinking device:', error);
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Błąd podczas odłączania urządzenia',
+        error: error.message
+      });
+    }
+  };
+
+  /**
+   * GET /api/assets/:id/devices
+   * Get all devices installed on asset
+   */
+  getAssetDevices = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+
+      const devices = await this.deviceLinkingService.getAssetDevices(parseInt(id, 10));
+
+      res.json({
+        success: true,
+        data: devices,
+        count: devices.length
+      });
+    } catch (error: any) {
+      console.error('Error getting asset devices:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Błąd podczas pobierania urządzeń',
+        error: error.message
+      });
+    }
+  };
+
+  /**
+   * GET /api/assets/:id/bom-validation
+   * Validate installed devices against BOM snapshot
+   */
+  validateBOM = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+
+      const validation = await this.deviceLinkingService.validateAgainstBOM(parseInt(id, 10));
+
+      res.json({
+        success: true,
+        data: validation
+      });
+    } catch (error: any) {
+      console.error('Error validating BOM:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Błąd podczas walidacji BOM',
         error: error.message
       });
     }
