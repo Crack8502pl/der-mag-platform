@@ -228,4 +228,200 @@ export class AssetController {
       });
     }
   };
+
+  /**
+   * POST /api/assets
+   * Create new asset
+   */
+  createAsset = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = (req as any).user?.id;
+
+      const {
+        assetType,
+        name,
+        category,
+        liniaKolejowa,
+        kilometraz,
+        gpsLatitude,
+        gpsLongitude,
+        googleMapsUrl,
+        miejscowosc,
+        contractId,
+        subsystemId,
+        installationTaskId,
+        status,
+        plannedInstallationDate,
+        actualInstallationDate,
+        warrantyExpiryDate,
+        bomSnapshot,
+        notes,
+        photosFolder
+      } = req.body;
+
+      // Basic validation
+      if (!assetType || !name) {
+        res.status(400).json({
+          success: false,
+          message: 'Typ obiektu i nazwa są wymagane'
+        });
+        return;
+      }
+
+      const asset = await this.assetService.createAsset({
+        assetType,
+        name,
+        category,
+        liniaKolejowa,
+        kilometraz,
+        gpsLatitude: gpsLatitude != null ? (isNaN(parseFloat(gpsLatitude)) ? null : parseFloat(gpsLatitude)) : null,
+        gpsLongitude: gpsLongitude != null ? (isNaN(parseFloat(gpsLongitude)) ? null : parseFloat(gpsLongitude)) : null,
+        googleMapsUrl,
+        miejscowosc,
+        contractId: contractId != null ? (isNaN(parseInt(contractId)) ? null : parseInt(contractId)) : null,
+        subsystemId: subsystemId != null ? (isNaN(parseInt(subsystemId)) ? null : parseInt(subsystemId)) : null,
+        installationTaskId: installationTaskId != null ? (isNaN(parseInt(installationTaskId)) ? null : parseInt(installationTaskId)) : null,
+        status,
+        plannedInstallationDate: plannedInstallationDate ? new Date(plannedInstallationDate) : null,
+        actualInstallationDate: actualInstallationDate ? new Date(actualInstallationDate) : null,
+        warrantyExpiryDate: warrantyExpiryDate ? new Date(warrantyExpiryDate) : null,
+        bomSnapshot,
+        notes,
+        photosFolder,
+        createdBy: userId
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Obiekt utworzony pomyślnie',
+        data: asset
+      });
+    } catch (error: any) {
+      console.error('Error creating asset:', error);
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Błąd podczas tworzenia obiektu',
+        error: error.message
+      });
+    }
+  };
+
+  /**
+   * PUT /api/assets/:id
+   * Update asset
+   */
+  updateAsset = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const updates = { ...req.body };
+
+      // Convert date strings to Date objects
+      if (updates.plannedInstallationDate) {
+        updates.plannedInstallationDate = new Date(updates.plannedInstallationDate);
+      }
+      if (updates.actualInstallationDate) {
+        updates.actualInstallationDate = new Date(updates.actualInstallationDate);
+      }
+      if (updates.warrantyExpiryDate) {
+        updates.warrantyExpiryDate = new Date(updates.warrantyExpiryDate);
+      }
+      if (updates.decommissionDate) {
+        updates.decommissionDate = new Date(updates.decommissionDate);
+      }
+
+      // Convert numeric strings
+      if (updates.gpsLatitude != null) {
+        updates.gpsLatitude = isNaN(parseFloat(updates.gpsLatitude)) ? null : parseFloat(updates.gpsLatitude);
+      }
+      if (updates.gpsLongitude != null) {
+        updates.gpsLongitude = isNaN(parseFloat(updates.gpsLongitude)) ? null : parseFloat(updates.gpsLongitude);
+      }
+      if (updates.contractId != null) {
+        updates.contractId = isNaN(parseInt(updates.contractId)) ? null : parseInt(updates.contractId);
+      }
+      if (updates.subsystemId != null) {
+        updates.subsystemId = isNaN(parseInt(updates.subsystemId)) ? null : parseInt(updates.subsystemId);
+      }
+
+      const asset = await this.assetService.updateAsset(parseInt(id), updates);
+
+      res.json({
+        success: true,
+        message: 'Obiekt zaktualizowany pomyślnie',
+        data: asset
+      });
+    } catch (error: any) {
+      console.error('Error updating asset:', error);
+      const statusCode = error.message === 'Obiekt nie znaleziony' ? 404 : 400;
+      res.status(statusCode).json({
+        success: false,
+        message: error.message || 'Błąd podczas aktualizacji obiektu',
+        error: error.message
+      });
+    }
+  };
+
+  /**
+   * PATCH /api/assets/:id/status
+   * Update asset status
+   */
+  updateAssetStatus = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = (req as any).user?.id;
+      const { id } = req.params;
+      const { status } = req.body;
+
+      if (!status) {
+        res.status(400).json({
+          success: false,
+          message: 'Status jest wymagany'
+        });
+        return;
+      }
+
+      const asset = await this.assetService.updateStatus(
+        parseInt(id),
+        status,
+        userId
+      );
+
+      res.json({
+        success: true,
+        message: 'Status obiektu zaktualizowany pomyślnie',
+        data: asset
+      });
+    } catch (error: any) {
+      console.error('Error updating asset status:', error);
+      const statusCode = error.message === 'Obiekt nie znaleziony' ? 404 : 400;
+      res.status(statusCode).json({
+        success: false,
+        message: error.message || 'Błąd podczas aktualizacji statusu',
+        error: error.message
+      });
+    }
+  };
+
+  /**
+   * DELETE /api/assets/:id
+   * Delete (soft delete) asset
+   */
+  deleteAsset = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      await this.assetService.deleteAsset(parseInt(id));
+
+      res.json({
+        success: true,
+        message: 'Obiekt usunięty pomyślnie'
+      });
+    } catch (error: any) {
+      console.error('Error deleting asset:', error);
+      const statusCode = error.message === 'Obiekt nie znaleziony' ? 404 : 400;
+      res.status(statusCode).json({
+        success: false,
+        message: error.message || 'Błąd podczas usuwania obiektu',
+        error: error.message
+      });
+    }
+  };
 }
