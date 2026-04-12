@@ -170,24 +170,27 @@ export class DeviceLinkingService {
       }
     });
 
-    const installedSerialNumbers = installedDevices.map(d => d.serialNumber);
+    const installedSerialNumbers = new Set(installedDevices.map(d => d.serialNumber));
 
     // Find missing devices (in BOM but not installed)
     const missingSerialNumbers = expectedSerialNumbers.filter(
-      sn => !installedSerialNumbers.includes(sn)
+      sn => !installedSerialNumbers.has(sn)
     );
+    const missingSerialNumberSet = new Set(missingSerialNumbers);
     const missing = expectedFromBOM
       .map((item: any) => ({
         ...item,
         missingSerialNumbers: (item.serialNumbers || []).filter((sn: string) =>
-          missingSerialNumbers.includes(sn)
+          missingSerialNumberSet.has(sn)
         )
       }))
       .filter((item: any) => item.missingSerialNumbers.length > 0);
 
+    const expectedSerialNumberSet = new Set(expectedSerialNumbers);
+
     // Find extra devices (installed but not in BOM)
     const extra = installedDevices.filter(
-      d => !expectedSerialNumbers.includes(d.serialNumber)
+      d => !expectedSerialNumberSet.has(d.serialNumber)
     );
 
     const valid = missing.length === 0 && extra.length === 0;
@@ -217,15 +220,6 @@ export class DeviceLinkingService {
   ): Promise<{ asset: Asset; linked: Device[]; notFound: string[]; alreadyInstalled: string[] }> {
     const result = await this.linkDevicesToAsset(assetId, serialNumbers);
 
-    // Update asset BOM snapshot if provided
-    if (bomSnapshot) {
-      const assetToUpdate = await this.assetRepository.findOne({ where: { id: assetId } });
-      if (assetToUpdate) {
-        assetToUpdate.bomSnapshot = bomSnapshot;
-        await this.assetRepository.save(assetToUpdate);
-      }
-    }
-
     const asset = await this.assetRepository.findOne({
       where: { id: assetId },
       relations: ['installedDevices', 'contract', 'subsystem']
@@ -233,6 +227,12 @@ export class DeviceLinkingService {
 
     if (!asset) {
       throw new Error('Obiekt nie znaleziony');
+    }
+
+    // Update asset BOM snapshot if provided
+    if (bomSnapshot) {
+      asset.bomSnapshot = bomSnapshot;
+      await this.assetRepository.save(asset);
     }
 
     return {
