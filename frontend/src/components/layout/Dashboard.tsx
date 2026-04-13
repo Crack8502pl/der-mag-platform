@@ -7,7 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { usePermissions } from '../../hooks/usePermissions';
 import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
-import { TasksMapTile } from '../dashboard';
+import { TasksMapTile, AssetSummaryWidget } from '../dashboard';
 import { PendingDraftsButton } from '../common/PendingDraftsButton';
 import './Dashboard.css';
 
@@ -319,6 +319,9 @@ export const Dashboard: React.FC = () => {
 
         <PendingDraftsButton />
       </div>
+
+      {/* Asset Summary Widget */}
+      {hasPermission('assets', 'read') && <AssetSummaryWidget />}
 
       {/* Cards */}
       {preferences.grouped ? (
