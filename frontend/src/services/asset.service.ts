@@ -20,6 +20,7 @@ export interface Asset {
   actualInstallationDate: string | null;
   warrantyExpiryDate: string | null;
   lastServiceDate: string | null;
+  notes: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -55,6 +56,35 @@ export interface AssetFilters {
   sortOrder?: 'ASC' | 'DESC';
 }
 
+export interface AssetDetails extends Asset {
+  contract?: { id: number; contractNumber: string; name: string } | null;
+  subsystem?: { id: number; name: string; subsystemType: string } | null;
+  devices?: Array<{
+    id: number;
+    serialNumber: string;
+    materialName: string;
+    status: string;
+  }>;
+  tasks?: Array<{
+    id: number;
+    taskNumber: string;
+    name: string;
+    status: string;
+    taskRole: string;
+    scheduledStartDate?: string | null;
+    actualStartDate?: string | null;
+    actualCompletionDate?: string | null;
+  }>;
+  statusHistory?: Array<{
+    id: number;
+    oldStatus: string | null;
+    newStatus: string;
+    reason?: string | null;
+    changedAt: string;
+    changedBy: { firstName: string; lastName: string } | null;
+  }>;
+}
+
 const assetService = {
   /**
    * Get all assets with filters and pagination
@@ -83,6 +113,94 @@ const assetService = {
   async getAssetById(id: number): Promise<Asset> {
     const response = await api.get(`/assets/${id}`);
     return response.data.data;
+  },
+
+  /**
+   * Get asset by ID with all relations, normalized for display.
+   * Maps backend fields: installedDevices→devices, assetTasks→tasks,
+   * changedByUser→changedBy, taskName→name, taskRole from AssetTask join.
+   */
+  async getAssetDetails(id: number): Promise<AssetDetails> {
+    const response = await api.get(`/assets/${id}`);
+    const raw = response.data.data as Asset & {
+      contract?: { id: number; contractNumber: string; name: string } | null;
+      subsystem?: { id: number; name: string; subsystemType: string } | null;
+      installedDevices?: Array<{
+        id: number;
+        serialNumber: string;
+        deviceType: string;
+        deviceModel?: string | null;
+        inventoryStatus?: string | null;
+        status?: string | null;
+      }>;
+      assetTasks?: Array<{
+        taskRole: string;
+        task?: {
+          id: number;
+          taskNumber: string;
+          taskName: string;
+          status: string;
+          deploymentScheduledAt?: string | null;
+          realizationStartedAt?: string | null;
+          realizationCompletedAt?: string | null;
+        } | null;
+      }>;
+      statusHistory?: Array<{
+        id: number;
+        oldStatus: string | null;
+        newStatus: string;
+        reason?: string | null;
+        changedAt: string;
+        changedByUser?: { firstName: string; lastName: string } | null;
+      }>;
+    };
+
+    return {
+      ...raw,
+      devices: raw.installedDevices?.map(d => ({
+        id: d.id,
+        serialNumber: d.serialNumber,
+        materialName: d.deviceModel || d.deviceType,
+        status: d.inventoryStatus || d.status || ''
+      })),
+      tasks: raw.assetTasks
+        ?.filter(at => at.task != null)
+        .map(at => ({
+          id: at.task!.id,
+          taskNumber: at.task!.taskNumber,
+          name: at.task!.taskName,
+          status: at.task!.status,
+          taskRole: at.taskRole,
+          scheduledStartDate: at.task!.deploymentScheduledAt,
+          actualStartDate: at.task!.realizationStartedAt,
+          actualCompletionDate: at.task!.realizationCompletedAt
+        })),
+      statusHistory: raw.statusHistory?.map(h => ({
+        id: h.id,
+        oldStatus: h.oldStatus,
+        newStatus: h.newStatus,
+        reason: h.reason,
+        changedAt: h.changedAt,
+        changedBy: h.changedByUser ?? null
+      }))
+    };
+  },
+
+  /**
+   * Get devices installed on an asset (GET /assets/:id/devices)
+   */
+  async getAssetBOM(id: number): Promise<{
+    success: boolean;
+    data: Array<{
+      id: number;
+      serialNumber: string;
+      deviceType: string;
+      deviceModel?: string | null;
+      inventoryStatus?: string | null;
+    }>;
+  }> {
+    const response = await api.get(`/assets/${id}/devices`);
+    return response.data;
   },
 
   /**
