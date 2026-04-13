@@ -1,0 +1,308 @@
+/* Device Detail Page Styles */
+
+.device-detail-page {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header */
+.device-detail-page .device-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 30px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.device-detail-page .header-left {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.device-detail-page .header-info h1 {
+  margin: 0 0 10px 0;
+  font-size: 28px;
+  color: var(--text-primary);
+}
+
+.device-detail-page .device-type {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+
+.device-detail-page .device-meta {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.device-detail-page .device-serial {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-color);
+  font-family: monospace;
+}
+
+/* Detail Sections */
+.device-detail-page .detail-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 25px;
+  margin-bottom: 20px;
+}
+
+.device-detail-page .detail-section h2 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.device-detail-page .detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.device-detail-page .detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.device-detail-page .detail-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.device-detail-page .detail-value {
+  font-size: 14px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Installed Asset Card */
+.device-detail-page .installed-asset-card {
+  background: var(--bg-secondary);
+  border: 2px solid var(--primary-color);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.device-detail-page .asset-card-header {
+  margin-bottom: 15px;
+}
+
+.device-detail-page .asset-number-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.device-detail-page .asset-number {
+  font-family: monospace;
+  font-size: 16px;
+  font-weight: 600;
+  background: var(--bg-card);
+  padding: 6px 12px;
+  border-radius: 4px;
+  color: var(--primary-color);
+}
+
+.device-detail-page .asset-name {
+  margin: 0 0 15px 0;
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+.device-detail-page .asset-details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.device-detail-page .asset-detail-row {
+  display: flex;
+  gap: 10px;
+}
+
+.device-detail-page .asset-detail-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 140px;
+}
+
+.device-detail-page .asset-detail-value {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.device-detail-page .asset-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+/* Empty State - Not Installed */
+.device-detail-page .empty-state-asset {
+  text-align: center;
+  padding: 40px 20px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.device-detail-page .empty-icon {
+  font-size: 64px;
+  margin-bottom: 15px;
+}
+
+.device-detail-page .empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 10px 0;
+}
+
+.device-detail-page .empty-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Status Badges */
+.device-detail-page .status-badge {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: inline-block;
+}
+
+.device-detail-page .status-in-stock {
+  background: rgba(66, 153, 225, 0.15);
+  color: var(--info, #4299e1);
+}
+
+.device-detail-page .status-reserved {
+  background: rgba(237, 137, 54, 0.15);
+  color: var(--warning, #ed8936);
+}
+
+.device-detail-page .status-installed {
+  background: rgba(72, 187, 120, 0.15);
+  color: var(--success, #48bb78);
+}
+
+.device-detail-page .status-faulty {
+  background: rgba(245, 101, 101, 0.15);
+  color: var(--danger, #f56565);
+}
+
+.device-detail-page .status-returned {
+  background: rgba(160, 174, 192, 0.15);
+  color: var(--text-secondary, #a0aec0);
+}
+
+.device-detail-page .status-decommissioned {
+  background: rgba(108, 117, 125, 0.3);
+  color: var(--text-muted, #6c757d);
+}
+
+/* Asset status badges */
+.device-detail-page .status-active {
+  background: rgba(72, 187, 120, 0.15);
+  color: var(--success, #48bb78);
+}
+
+.device-detail-page .status-in-service {
+  background: rgba(237, 137, 54, 0.15);
+  color: var(--warning, #ed8936);
+}
+
+.device-detail-page .status-planned {
+  background: rgba(66, 153, 225, 0.15);
+  color: var(--info, #4299e1);
+}
+
+.device-detail-page .status-inactive {
+  background: rgba(108, 117, 125, 0.15);
+  color: var(--text-muted, #718096);
+}
+
+/* Buttons */
+.device-detail-page .btn-primary {
+  padding: 10px 20px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.device-detail-page .btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+/* Loading and Error States */
+.device-detail-page .loading-state,
+.device-detail-page .error-state {
+  padding: 40px;
+  text-align: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+.device-detail-page .error-state button {
+  margin-top: 15px;
+  padding: 8px 20px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .device-detail-page .device-header {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .device-detail-page .header-left {
+    flex-direction: column;
+  }
+
+  .device-detail-page .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .device-detail-page .asset-number-wrapper {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

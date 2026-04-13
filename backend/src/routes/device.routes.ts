@@ -6,6 +6,7 @@ import { authenticate } from '../middleware/auth';
 const router = Router();
 
 router.post('/serial', authenticate, DeviceController.registerDevice);
+router.get('/:id(\\d+)', authenticate, DeviceController.getDeviceById);
 router.get('/:serialNumber', authenticate, DeviceController.getDevice);
 router.put('/:id/verify', authenticate, DeviceController.verifyDevice);
 

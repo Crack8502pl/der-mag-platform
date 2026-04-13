@@ -6,6 +6,35 @@ import { AppDataSource } from '../config/database';
 import { Device } from '../entities/Device';
 
 export class DeviceController {
+  static async getDeviceById(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const deviceId = parseInt(id, 10);
+
+      if (isNaN(deviceId) || deviceId <= 0) {
+        res.status(400).json({ success: false, message: 'Nieprawidłowe ID urządzenia' });
+        return;
+      }
+
+      const deviceRepository = AppDataSource.getRepository(Device);
+
+      const device = await deviceRepository.findOne({
+        where: { id: deviceId },
+        relations: ['installedAsset', 'task']
+      });
+
+      if (!device) {
+        res.status(404).json({ success: false, message: 'Urządzenie nie znalezione' });
+        return;
+      }
+
+      res.json({ success: true, data: device });
+    } catch (error) {
+      console.error('Error getting device by id:', error);
+      res.status(500).json({ success: false, message: 'Błąd serwera' });
+    }
+  }
+
   static async registerDevice(req: Request, res: Response): Promise<void> {
     try {
       const deviceRepository = AppDataSource.getRepository(Device);

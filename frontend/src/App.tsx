@@ -30,6 +30,7 @@ import { PrefabricationPage } from './components/modules/PrefabricationPage';
 import { NetworkPage } from './components/modules/NetworkPage';
 import { BOMPage } from './components/modules/BOMPage';
 import { DevicesPage } from './components/modules/DevicesPage';
+import { DeviceDetailPage } from './components/devices/DeviceDetailPage';
 import { UsersPage } from './components/modules/UsersPage';
 import { ReportsPage } from './components/modules/ReportsPage';
 import { DocumentsPage } from './components/modules/DocumentsPage';
@@ -220,6 +221,16 @@ function App() {
             <ProtectedRoute>
               <RoleBasedRoute requiredPermission={{ module: 'devices', action: 'read' }}>
                 <DevicesPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/devices/:id"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'devices', action: 'read' }}>
+                <DeviceDetailPage />
               </RoleBasedRoute>
             </ProtectedRoute>
           }
