@@ -245,7 +245,7 @@ export const AssetListPage: React.FC = () => {
                       key={asset.id}
                       onClick={() => navigate(`/assets/${asset.id}`)}
                       onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+                        if (event.key === 'Enter' || event.key === ' ') {
                           event.preventDefault();
                           navigate(`/assets/${asset.id}`);
                         }
