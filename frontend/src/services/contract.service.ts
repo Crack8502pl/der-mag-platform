@@ -159,6 +159,11 @@ class ContractService {
     const response = await api.post(`/subsystems/${subsystemId}/tasks`, data);
     return response.data;
   }
+
+  async getContractAssets(contractId: number): Promise<import('./asset.service').Asset[]> {
+    const response = await api.get(`/contracts/${contractId}/assets`);
+    return response.data.data;
+  }
 }
 
 export default new ContractService();
