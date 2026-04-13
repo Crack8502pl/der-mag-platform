@@ -92,6 +92,7 @@ export interface AssetDetails extends Asset {
     id: number;
     serialNumber: string;
     materialName: string;
+    catalogNumber?: string | null;
     status: string;
   }>;
   tasks?: Array<{
@@ -159,6 +160,7 @@ const assetService = {
         serialNumber: string;
         deviceType: string;
         deviceModel?: string | null;
+        catalogNumber?: string | null;
         inventoryStatus?: string | null;
         status?: string | null;
       }>;
@@ -190,6 +192,7 @@ const assetService = {
         id: d.id,
         serialNumber: d.serialNumber,
         materialName: d.deviceModel || d.deviceType,
+        catalogNumber: d.catalogNumber,
         status: d.inventoryStatus || d.status || ''
       })),
       tasks: raw.assetTasks
