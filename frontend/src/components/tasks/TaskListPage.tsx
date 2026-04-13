@@ -9,6 +9,7 @@ import { TaskCreateModal } from './TaskCreateModal';
 import { TaskEditModal } from './TaskEditModal';
 import { TaskDetailModal } from './TaskDetailModal';
 import { TaskStatusBadge } from './TaskStatusBadge';
+import { CompleteTaskAndCreateAssetModal } from './CompleteTaskAndCreateAssetModal';
 import { useAuth } from '../../hooks/useAuth';
 import taskService from '../../services/task.service';
 import type { Task, TaskType } from '../../types/task.types';
@@ -41,11 +42,21 @@ export const TaskListPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [viewingTaskNumber, setViewingTaskNumber] = useState<string | null>(null);
+  const [completingTask, setCompletingTask] = useState<Task | null>(null);
 
   // Permission checks
   const canCreate = hasPermission('tasks', 'create');
   const canUpdate = hasPermission('tasks', 'update');
   const canDelete = hasPermission('tasks', 'delete');
+  const canCreateAsset = hasPermission('assets', 'create');
+
+  const INSTALLATION_TASK_TYPES = ['PRZEJAZD', 'LCS', 'CUID', 'NASTAWNIA', 'SKP'];
+
+  const canCompleteTask = (task: Task): boolean =>
+    canUpdate &&
+    canCreateAsset &&
+    ['in_progress', 'configured'].includes(task.status) &&
+    INSTALLATION_TASK_TYPES.includes(task.taskType?.code || '');
 
   useEffect(() => {
     loadTaskTypes();
@@ -306,6 +317,15 @@ export const TaskListPage: React.FC = () => {
                           ✏️
                         </button>
                       )}
+                      {canCompleteTask(task) && (
+                        <button
+                          className="btn btn-icon btn-success"
+                          title="Zakończ i utwórz obiekt"
+                          onClick={() => setCompletingTask(task)}
+                        >
+                          ✅
+                        </button>
+                      )}
                       {canDelete && (
                         <button 
                           className="btn btn-icon btn-danger" 
@@ -367,6 +387,19 @@ export const TaskListPage: React.FC = () => {
         <TaskDetailModal
           taskNumber={viewingTaskNumber}
           onClose={() => setViewingTaskNumber(null)}
+        />
+      )}
+
+      {completingTask && (
+        <CompleteTaskAndCreateAssetModal
+          task={completingTask}
+          onClose={() => setCompletingTask(null)}
+          onSuccess={() => {
+            setCompletingTask(null);
+            setSuccess('Zadanie zakończone i obiekt utworzony pomyślnie');
+            loadTasks();
+            setTimeout(() => setSuccess(''), 5000);
+          }}
         />
       )}
     </div>

@@ -6,6 +6,7 @@ import { TaskStatusBadge } from './TaskStatusBadge';
 import { LCSConfigModal } from './LCSConfigModal';
 import { NastawniConfigModal } from './NastawniConfigModal';
 import { FiberSchemaModal } from './FiberSchemaModal';
+import { CompleteTaskAndCreateAssetModal } from './CompleteTaskAndCreateAssetModal';
 import taskService from '../../services/task.service';
 import type { Task } from '../../types/task.types';
 import { getPriorityDisplay } from '../../utils/priority';
@@ -23,9 +24,13 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
   const [showLCSConfig, setShowLCSConfig] = useState(false);
   const [showNastawniConfig, setShowNastawniConfig] = useState(false);
   const [showFiberSchema, setShowFiberSchema] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
 
   const { hasPermission } = usePermissions();
   const canEdit = hasPermission('tasks', 'update');
+  const canCreateAsset = hasPermission('assets', 'create');
+
+  const INSTALLATION_TASK_TYPES = ['PRZEJAZD', 'LCS', 'CUID', 'NASTAWNIA', 'SKP'];
 
   useEffect(() => {
     loadTask();
@@ -54,6 +59,13 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
   const taskVariant: string = task?.metadata?.taskVariant || task?.taskType?.code || '';
   const isLCS = taskVariant === 'LCS';
   const isNastawnia = taskVariant === 'NASTAWNIA';
+
+  const canCompleteTask =
+    task !== null &&
+    canEdit &&
+    canCreateAsset &&
+    ['in_progress', 'configured'].includes(task.status) &&
+    INSTALLATION_TASK_TYPES.includes(task.taskType?.code || '');
 
   return (
     <>
@@ -261,6 +273,14 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
               ⚙️ Konfiguruj Nastawnie
             </button>
           )}
+          {canCompleteTask && (
+            <button
+              className="btn btn-success"
+              onClick={() => setShowCompleteModal(true)}
+            >
+              ✅ Zakończ i utwórz obiekt
+            </button>
+          )}
           <button className="btn btn-secondary" onClick={onClose}>
             Zamknij
           </button>
@@ -292,6 +312,17 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
         task={task}
         onClose={() => setShowFiberSchema(false)}
         onSuccess={handleConfigSuccess}
+      />
+    )}
+    {/* Complete Task and Create Asset Modal */}
+    {task && showCompleteModal && (
+      <CompleteTaskAndCreateAssetModal
+        task={task}
+        onClose={() => setShowCompleteModal(false)}
+        onSuccess={() => {
+          setShowCompleteModal(false);
+          loadTask();
+        }}
       />
     )}
     </>
