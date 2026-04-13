@@ -1,7 +1,7 @@
 // src/components/assets/AssetListPage.tsx
 // Asset list page - read-only view with filters and pagination
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import assetService, { Asset, AssetFilters } from '../../services/asset.service';
 import { BackButton } from '../common/BackButton';
@@ -33,17 +33,15 @@ export const AssetListPage: React.FC = () => {
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    fetchAssets();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, filters.assetType, filters.status, filters.category, filters.search]);
-
-  const fetchAssets = async () => {
+  const fetchAssets = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const response = await assetService.getAssets({
-        ...filters,
+        assetType: filters.assetType,
+        status: filters.status,
+        category: filters.category,
+        search: filters.search,
         page,
         limit: 20
       });
@@ -56,7 +54,20 @@ export const AssetListPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters.assetType, filters.status, filters.category, filters.search, page]);
+
+  useEffect(() => {
+    fetchAssets();
+  }, [fetchAssets]);
+
+  // Clear debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, []);
 
   const handleFilterChange = (key: keyof AssetFilters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -233,7 +244,15 @@ export const AssetListPage: React.FC = () => {
                     <tr
                       key={asset.id}
                       onClick={() => navigate(`/assets/${asset.id}`)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+                          event.preventDefault();
+                          navigate(`/assets/${asset.id}`);
+                        }
+                      }}
                       className="clickable-row"
+                      role="link"
+                      tabIndex={0}
                     >
                       <td className="asset-number">{asset.assetNumber}</td>
                       <td>{getAssetTypeLabel(asset.assetType)}</td>

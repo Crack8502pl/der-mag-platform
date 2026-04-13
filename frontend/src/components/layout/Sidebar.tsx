@@ -36,6 +36,7 @@ export const Sidebar: React.FC = () => {
     { label: 'Magazyn', path: '/warehouse-stock', icon: <ModuleIcon name="warehouse" emoji={MODULE_ICONS.warehouse} size={20} />, module: 'warehouse_stock', action: 'read' },
     { label: 'Materiały BOM', path: '/bom', icon: <ModuleIcon name="bom" emoji={MODULE_ICONS.bom} size={20} />, module: 'bom', action: 'read' },
     { label: 'Urządzenia', path: '/devices', icon: <ModuleIcon name="devices" emoji={MODULE_ICONS.devices} size={20} />, module: 'devices', action: 'read' },
+    { label: 'Obiekty', path: '/assets', icon: <ModuleIcon name="assets" emoji={MODULE_ICONS.assets} size={20} />, module: 'assets', action: 'read' },
     { label: 'Użytkownicy', path: '/admin/users', icon: <ModuleIcon name="users" emoji={MODULE_ICONS.users} size={20} />, module: 'users', action: 'read' },
     { label: 'Raporty', path: '/reports', icon: <ModuleIcon name="reports" emoji={MODULE_ICONS.reports} size={20} />, module: 'reports', action: 'read' },
     { label: 'Dokumenty', path: '/documents', icon: <ModuleIcon name="documents" emoji={MODULE_ICONS.documents} size={20} />, module: 'documents', action: 'read' },

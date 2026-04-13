@@ -60,20 +60,20 @@ const assetService = {
    * Get all assets with filters and pagination
    */
   async getAssets(filters: AssetFilters = {}): Promise<AssetListResponse> {
-    const params = new URLSearchParams();
+    const params: Record<string, string | number> = {};
 
-    if (filters.assetType) params.append('assetType', filters.assetType);
-    if (filters.status) params.append('status', filters.status);
-    if (filters.contractId) params.append('contractId', filters.contractId.toString());
-    if (filters.subsystemId) params.append('subsystemId', filters.subsystemId.toString());
-    if (filters.category) params.append('category', filters.category);
-    if (filters.search) params.append('search', filters.search);
-    if (filters.page) params.append('page', filters.page.toString());
-    if (filters.limit) params.append('limit', filters.limit.toString());
-    if (filters.sortBy) params.append('sortBy', filters.sortBy);
-    if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
+    if (filters.assetType) params.assetType = filters.assetType;
+    if (filters.status) params.status = filters.status;
+    if (filters.contractId) params.contractId = filters.contractId;
+    if (filters.subsystemId) params.subsystemId = filters.subsystemId;
+    if (filters.category) params.category = filters.category;
+    if (filters.search) params.search = filters.search;
+    if (filters.page) params.page = filters.page;
+    if (filters.limit) params.limit = filters.limit;
+    if (filters.sortBy) params.sortBy = filters.sortBy;
+    if (filters.sortOrder) params.sortOrder = filters.sortOrder;
 
-    const response = await api.get(`/assets?${params.toString()}`);
+    const response = await api.get('/assets', { params });
     return response.data;
   },
 
