@@ -487,14 +487,13 @@ export class AssetService {
       const taskNumber = `P${String(nextNumber).padStart(6, '0')}`;
 
       // Determine task type from role
-      const taskTypeMap: Record<AssetTaskRole, string> = {
+      const taskTypeMap: Partial<Record<AssetTaskRole, string>> = {
         'warranty_service': 'WARRANTY_SERVICE',
         'repair': 'REPAIR',
         'maintenance': 'MAINTENANCE',
-        'decommission': 'DECOMMISSION',
-        'installation': 'INSTALLATION'
+        'decommission': 'DECOMMISSION'
       };
-      const taskType = taskTypeMap[taskData.taskRole] || 'MAINTENANCE';
+      const taskType = taskTypeMap[taskData.taskRole] ?? 'MAINTENANCE';
 
       // Create task
       const task = taskRepo.create({

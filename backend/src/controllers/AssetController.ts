@@ -694,8 +694,8 @@ export class AssetController {
           taskRole,
           taskName,
           scheduledDate: scheduledDate ? new Date(scheduledDate) : undefined,
-          priority: priority != null ? parseInt(priority) : undefined,
-          assignedTo: assignedTo != null ? parseInt(assignedTo) : undefined,
+          priority: priority != null ? parseInt(priority, 10) : undefined,
+          assignedTo: assignedTo != null ? parseInt(assignedTo, 10) : undefined,
           description
         },
         userId
