@@ -8,7 +8,9 @@ import type { AssetDetails } from '../../services/asset.service';
 import { BackButton } from '../common/BackButton';
 import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
+import { CreateServiceTaskModal } from './CreateServiceTaskModal';
 import './AssetDetailPage.css';
+import './CreateServiceTaskModal.css';
 
 export const AssetDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +19,7 @@ export const AssetDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFullHistory, setShowFullHistory] = useState(false);
+  const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
 
   const fetchAssetDetails = useCallback(async () => {
     try {
@@ -114,8 +117,12 @@ export const AssetDetailPage: React.FC = () => {
   };
 
   const handleCreateServiceTask = () => {
-    // Navigate to create service task (will be implemented in PR#11)
-    alert('Funkcja tworzenia zadania serwisowego będzie dostępna w PR#11');
+    setShowCreateTaskModal(true);
+  };
+
+  const handleTaskCreated = () => {
+    setShowCreateTaskModal(false);
+    fetchAssetDetails();
   };
 
   if (loading) {
@@ -380,6 +387,15 @@ export const AssetDetailPage: React.FC = () => {
           <h2>📝 Notatki</h2>
           <div className="notes-content">{asset.notes}</div>
         </div>
+      )}
+
+      {/* Create Service Task Modal */}
+      {showCreateTaskModal && (
+        <CreateServiceTaskModal
+          asset={asset}
+          onClose={() => setShowCreateTaskModal(false)}
+          onSuccess={handleTaskCreated}
+        />
       )}
     </div>
   );
