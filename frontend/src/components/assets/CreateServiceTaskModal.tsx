@@ -20,21 +20,21 @@ interface User {
 
 interface CreateServiceTaskDto {
   taskRole: 'warranty_service' | 'repair' | 'maintenance' | 'decommission';
-  name: string;
+  taskName: string;
   description?: string;
   scheduledDate?: string;
   priority: number;
-  assigneeId?: number;
+  assignedTo?: number;
 }
 
 export const CreateServiceTaskModal: React.FC<Props> = ({ asset, onClose, onSuccess }) => {
   const [formData, setFormData] = useState<CreateServiceTaskDto>({
     taskRole: 'warranty_service',
-    name: '',
+    taskName: '',
     description: '',
     scheduledDate: '',
     priority: 2,
-    assigneeId: undefined,
+    assignedTo: undefined,
   });
 
   const [users, setUsers] = useState<User[]>([]);
@@ -45,14 +45,15 @@ export const CreateServiceTaskModal: React.FC<Props> = ({ asset, onClose, onSucc
   useEffect(() => {
     loadUsers();
     const defaultName = `Serwis ${asset.assetType} - ${asset.name}`;
-    setFormData(prev => ({ ...prev, name: defaultName }));
+    setFormData(prev => ({ ...prev, taskName: defaultName }));
   }, [asset]);
 
   const loadUsers = async () => {
     try {
       setLoadingUsers(true);
       const response = await api.get('/users');
-      setUsers(response.data.data || []);
+      const data = response.data.data || response.data;
+      setUsers(Array.isArray(data) ? data : data?.users || []);
     } catch (err: any) {
       console.error('Error loading users:', err);
     } finally {
@@ -63,7 +64,7 @@ export const CreateServiceTaskModal: React.FC<Props> = ({ asset, onClose, onSucc
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name.trim()) {
+    if (!formData.taskName.trim()) {
       setError('Nazwa zadania jest wymagana');
       return;
     }
@@ -91,7 +92,7 @@ export const CreateServiceTaskModal: React.FC<Props> = ({ asset, onClose, onSucc
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay create-service-task-modal" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>📅 Nowe zadanie dla obiektu</h2>
@@ -136,8 +137,8 @@ export const CreateServiceTaskModal: React.FC<Props> = ({ asset, onClose, onSucc
               </label>
               <input
                 type="text"
-                value={formData.name}
-                onChange={(e) => handleChange('name', e.target.value)}
+                value={formData.taskName}
+                onChange={(e) => handleChange('taskName', e.target.value)}
                 placeholder="Np. Serwis gwarancyjny - 12 miesięcy"
                 required
               />
@@ -187,8 +188,8 @@ export const CreateServiceTaskModal: React.FC<Props> = ({ asset, onClose, onSucc
                 <div className="loading-inline">Ładowanie użytkowników...</div>
               ) : (
                 <select
-                  value={formData.assigneeId || ''}
-                  onChange={(e) => handleChange('assigneeId', e.target.value ? Number(e.target.value) : undefined)}
+                  value={formData.assignedTo || ''}
+                  onChange={(e) => handleChange('assignedTo', e.target.value ? Number(e.target.value) : undefined)}
                 >
                   <option value="">Nie przypisano</option>
                   {users.map(u => (

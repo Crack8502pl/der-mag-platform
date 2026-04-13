@@ -56,14 +56,14 @@
   text-align: center;
 }
 
-/* Required Field Indicator */
-.required {
-  color: var(--error-color);
-  margin-left: 2px;
-}
+/* ====================================================
+   All generic selectors below are scoped under
+   .create-service-task-modal to prevent style collisions
+   with other components that share class names.
+   ==================================================== */
 
 /* Modal Overlay & Content */
-.modal-overlay {
+.create-service-task-modal.modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -77,7 +77,7 @@
   padding: 20px;
 }
 
-.modal-content {
+.create-service-task-modal .modal-content {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -88,7 +88,7 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-.modal-header {
+.create-service-task-modal .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -96,13 +96,13 @@
   border-bottom: 1px solid var(--border-color);
 }
 
-.modal-header h2 {
+.create-service-task-modal .modal-header h2 {
   margin: 0;
   font-size: 20px;
   color: var(--text-primary);
 }
 
-.modal-close {
+.create-service-task-modal .modal-close {
   background: none;
   border: none;
   font-size: 24px;
@@ -118,20 +118,20 @@
   transition: background-color 0.2s, color 0.2s;
 }
 
-.modal-close:hover {
+.create-service-task-modal .modal-close:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
 }
 
-.modal-form {
+.create-service-task-modal .modal-form {
   padding: 25px;
 }
 
-.form-group {
+.create-service-task-modal .form-group {
   margin-bottom: 20px;
 }
 
-.form-group label {
+.create-service-task-modal .form-group label {
   display: block;
   margin-bottom: 8px;
   font-size: 14px;
@@ -139,9 +139,9 @@
   color: var(--text-primary);
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
+.create-service-task-modal .form-group input,
+.create-service-task-modal .form-group select,
+.create-service-task-modal .form-group textarea {
   width: 100%;
   padding: 10px 12px;
   font-size: 14px;
@@ -153,20 +153,20 @@
   box-sizing: border-box;
 }
 
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
+.create-service-task-modal .form-group input:focus,
+.create-service-task-modal .form-group select:focus,
+.create-service-task-modal .form-group textarea:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.1);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 15%, transparent);
 }
 
-.form-group textarea {
+.create-service-task-modal .form-group textarea {
   resize: vertical;
   min-height: 100px;
 }
 
-.modal-footer {
+.create-service-task-modal .modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
@@ -174,7 +174,12 @@
   border-top: 1px solid var(--border-color);
 }
 
-.btn {
+.create-service-task-modal .required {
+  color: var(--error);
+  margin-left: 2px;
+}
+
+.create-service-task-modal .btn {
   padding: 10px 20px;
   font-size: 14px;
   font-weight: 600;
@@ -184,54 +189,54 @@
   transition: background-color 0.2s, transform 0.1s;
 }
 
-.btn:disabled {
+.create-service-task-modal .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.btn-secondary {
+.create-service-task-modal .btn-secondary {
   background: var(--bg-secondary);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
 }
 
-.btn-secondary:hover:not(:disabled) {
+.create-service-task-modal .btn-secondary:hover:not(:disabled) {
   background: var(--bg-hover);
 }
 
-.btn-primary {
+.create-service-task-modal .btn-primary {
   background: var(--primary-color);
   color: white;
 }
 
-.btn-primary:hover:not(:disabled) {
+.create-service-task-modal .btn-primary:hover:not(:disabled) {
   background: var(--primary-hover);
   transform: translateY(-1px);
 }
 
 /* Alert */
-.alert {
+.create-service-task-modal .alert {
   padding: 12px 16px;
   border-radius: var(--radius-md);
   margin-bottom: 20px;
   font-size: 14px;
 }
 
-.alert-error {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgb(239, 68, 68);
-  color: rgb(239, 68, 68);
+.create-service-task-modal .alert-error {
+  background: color-mix(in srgb, var(--error) 10%, transparent);
+  border: 1px solid var(--error);
+  color: var(--error);
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .modal-content {
+  .create-service-task-modal .modal-content {
     max-width: 100%;
   }
 
-  .modal-header,
-  .modal-form,
-  .modal-footer {
+  .create-service-task-modal .modal-header,
+  .create-service-task-modal .modal-form,
+  .create-service-task-modal .modal-footer {
     padding: 15px;
   }
 
