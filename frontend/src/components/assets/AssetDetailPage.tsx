@@ -4,41 +4,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import assetService from '../../services/asset.service';
-import type { Asset } from '../../services/asset.service';
+import type { AssetDetails } from '../../services/asset.service';
 import { BackButton } from '../common/BackButton';
 import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
 import './AssetDetailPage.css';
-
-interface AssetDetails extends Asset {
-  contract?: { id: number; contractNumber: string; name: string };
-  subsystem?: { id: number; name: string; subsystemType: string };
-  devices?: Array<{
-    id: number;
-    serialNumber: string;
-    materialName: string;
-    catalogNumber?: string;
-    status: string;
-  }>;
-  tasks?: Array<{
-    id: number;
-    taskNumber: string;
-    name: string;
-    status: string;
-    taskRole: string;
-    scheduledStartDate?: string;
-    actualStartDate?: string;
-    actualCompletionDate?: string;
-  }>;
-  statusHistory?: Array<{
-    id: number;
-    oldStatus: string;
-    newStatus: string;
-    reason?: string;
-    changedAt: string;
-    changedBy: { firstName: string; lastName: string };
-  }>;
-}
 
 export const AssetDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -52,8 +22,8 @@ export const AssetDetailPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await assetService.getAssetDetails(Number(id));
-      setAsset(response.data);
+      const data = await assetService.getAssetDetails(Number(id));
+      setAsset(data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd podczas pobierania szczegółów obiektu');
       console.error('Error fetching asset details:', err);
@@ -134,9 +104,12 @@ export const AssetDetailPage: React.FC = () => {
   };
 
   const openGoogleMaps = () => {
-    if (asset?.gpsLatitude && asset?.gpsLongitude) {
+    if (asset?.gpsLatitude != null && asset?.gpsLongitude != null) {
       const url = `https://www.google.com/maps?q=${asset.gpsLatitude},${asset.gpsLongitude}`;
-      window.open(url, '_blank');
+      const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+      if (newWindow) {
+        newWindow.opener = null;
+      }
     }
   };
 
@@ -222,11 +195,11 @@ export const AssetDetailPage: React.FC = () => {
               <span className="detail-value">{asset.miejscowosc}</span>
             </div>
           )}
-          {asset.gpsLatitude && asset.gpsLongitude && (
+          {asset.gpsLatitude != null && asset.gpsLongitude != null && (
             <div className="detail-item">
               <span className="detail-label">GPS:</span>
               <span className="detail-value">
-                {asset.gpsLatitude.toFixed(6)}, {asset.gpsLongitude.toFixed(6)}
+                {Number(asset.gpsLatitude).toFixed(6)}, {Number(asset.gpsLongitude).toFixed(6)}
                 <button className="btn-link" onClick={openGoogleMaps}>
                   📍 Pokaż na mapie
                 </button>
@@ -367,13 +340,17 @@ export const AssetDetailPage: React.FC = () => {
                   {new Date(entry.changedAt).toLocaleString('pl-PL')}
                 </div>
                 <div className="history-change">
-                  <span className="old-status">{getStatusLabel(entry.oldStatus)}</span>
-                  <span className="arrow">→</span>
+                  {entry.oldStatus && (
+                    <>
+                      <span className="old-status">{getStatusLabel(entry.oldStatus)}</span>
+                      <span className="arrow">→</span>
+                    </>
+                  )}
                   <span className="new-status">{getStatusLabel(entry.newStatus)}</span>
                 </div>
                 {entry.reason && <div className="history-reason">{entry.reason}</div>}
                 <div className="history-user">
-                  👤 {entry.changedBy.firstName} {entry.changedBy.lastName}
+                  👤 {entry.changedBy ? `${entry.changedBy.firstName} ${entry.changedBy.lastName}` : 'Nieznany'}
                 </div>
               </div>
             ))}

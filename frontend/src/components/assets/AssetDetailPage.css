@@ -324,6 +324,52 @@
   white-space: pre-wrap;
 }
 
+/* Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+}
+
+.status-planned {
+  background: rgba(66, 153, 225, 0.15);
+  color: var(--info, #4299e1);
+}
+
+.status-installed {
+  background: rgba(237, 137, 54, 0.15);
+  color: var(--warning, #ed8936);
+}
+
+.status-active {
+  background: rgba(72, 187, 120, 0.15);
+  color: var(--success, #48bb78);
+}
+
+.status-in-service {
+  background: rgba(237, 137, 54, 0.1);
+  color: var(--warning, #ed8936);
+}
+
+.status-faulty {
+  background: rgba(220, 53, 69, 0.15);
+  color: var(--danger, #dc3545);
+}
+
+.status-inactive {
+  background: rgba(108, 117, 125, 0.15);
+  color: var(--text-muted, #718096);
+}
+
+.status-decommissioned {
+  background: rgba(108, 117, 125, 0.3);
+  color: var(--text-secondary, #a0aec0);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .asset-header {
