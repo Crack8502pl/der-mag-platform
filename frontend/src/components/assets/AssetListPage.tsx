@@ -191,7 +191,11 @@ export const AssetListPage: React.FC = () => {
 
           <div className="assets-count">
             Znaleziono: <strong>{totalAssets}</strong>{' '}
-            {totalAssets === 1 ? 'obiekt' : totalAssets < 5 ? 'obiekty' : 'obiektów'}
+            {totalAssets === 1
+              ? 'obiekt'
+              : (totalAssets % 10 >= 2 && totalAssets % 10 <= 4 && (totalAssets % 100 < 10 || totalAssets % 100 >= 20))
+                ? 'obiekty'
+                : 'obiektów'}
           </div>
         </div>
       </div>
@@ -240,11 +244,11 @@ export const AssetListPage: React.FC = () => {
                     <span className="asset-name">{asset.name}</span>
                   </td>
                   <td>
-                    <span className="type-badge">{TYPE_LABELS[asset.assetType] ?? asset.assetType}</span>
+                    <span className="type-badge">{TYPE_LABELS[asset.assetType] ?? 'Nieznany typ'}</span>
                   </td>
                   <td>
                     <span className={`status-badge ${asset.status}`}>
-                      {STATUS_LABELS[asset.status] ?? asset.status}
+                      {STATUS_LABELS[asset.status] ?? 'Nieznany status'}
                     </span>
                   </td>
                   <td>
