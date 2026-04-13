@@ -43,7 +43,7 @@ export const ContractDetailPage: React.FC = () => {
   const [completionError, setCompletionError] = useState('');
   const [taskStatuses, setTaskStatuses] = useState<Map<string, string>>(new Map());
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [assetsLoading, setAssetsLoading] = useState(false);
+  const [assetsLoading, setAssetsLoading] = useState(true);
   const [assetsError, setAssetsError] = useState<string | null>(null);
 
   const canCreateTasks =
@@ -401,7 +401,9 @@ export const ContractDetailPage: React.FC = () => {
 
         {!assetsLoading && !assetsError && assets.length === 0 && (
           <div className="empty-state">
-            <p>Brak zainstalowanych obiektów dla tego kontraktu</p>
+            <div className="empty-state-icon">🏗️</div>
+            <p className="empty-state-title">Brak zainstalowanych obiektów</p>
+            <p className="empty-state-description">Ten kontrakt nie ma jeszcze żadnych zainstalowanych obiektów.</p>
           </div>
         )}
 

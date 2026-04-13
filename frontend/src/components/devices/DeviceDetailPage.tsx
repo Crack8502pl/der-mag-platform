@@ -8,6 +8,7 @@ import type { DeviceDetails } from '../../services/device.service';
 import { BackButton } from '../common/BackButton';
 import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
+import { getAssetTypeLabel, getAssetStatusLabel, getAssetStatusBadgeClass } from '../../utils/assetLabels';
 import './DeviceDetailPage.css';
 
 export const DeviceDetailPage: React.FC = () => {
@@ -69,42 +70,6 @@ export const DeviceDetailPage: React.FC = () => {
     return statusMap[status] || 'status-default';
   };
 
-  const getAssetTypeLabel = (type: string): string => {
-    const typeMap: Record<string, string> = {
-      'PRZEJAZD': 'Przejazd',
-      'LCS': 'LCS',
-      'CUID': 'CUID',
-      'NASTAWNIA': 'Nastawnia',
-      'SKP': 'SKP'
-    };
-    return typeMap[type] || type;
-  };
-
-  const getAssetStatusLabel = (status: string): string => {
-    const statusMap: Record<string, string> = {
-      'planned': 'Planowany',
-      'installed': 'Zainstalowany',
-      'active': 'Aktywny',
-      'in_service': 'W serwisie',
-      'faulty': 'Uszkodzony',
-      'inactive': 'Nieaktywny',
-      'decommissioned': 'Wycofany'
-    };
-    return statusMap[status] || status;
-  };
-
-  const getAssetStatusBadgeClass = (status: string): string => {
-    const statusMap: Record<string, string> = {
-      'planned': 'status-planned',
-      'installed': 'status-installed',
-      'active': 'status-active',
-      'in_service': 'status-in-service',
-      'faulty': 'status-faulty',
-      'inactive': 'status-inactive',
-      'decommissioned': 'status-decommissioned'
-    };
-    return statusMap[status] || 'status-default';
-  };
 
   if (loading) {
     return (
