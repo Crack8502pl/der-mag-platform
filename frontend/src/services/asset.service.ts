@@ -20,6 +20,7 @@ export interface Asset {
   actualInstallationDate: string | null;
   warrantyExpiryDate: string | null;
   lastServiceDate: string | null;
+  notes: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -83,6 +84,63 @@ const assetService = {
   async getAssetById(id: number): Promise<Asset> {
     const response = await api.get(`/assets/${id}`);
     return response.data.data;
+  },
+
+  /**
+   * Get asset by ID with all relations (BOM, tasks, history)
+   */
+  async getAssetDetails(id: number): Promise<{
+    success: boolean;
+    data: Asset & {
+      contract?: { id: number; contractNumber: string; name: string };
+      subsystem?: { id: number; name: string; subsystemType: string };
+      devices?: Array<{
+        id: number;
+        serialNumber: string;
+        materialName: string;
+        catalogNumber?: string;
+        status: string;
+      }>;
+      tasks?: Array<{
+        id: number;
+        taskNumber: string;
+        name: string;
+        status: string;
+        taskRole: string;
+        scheduledStartDate?: string;
+        actualStartDate?: string;
+        actualCompletionDate?: string;
+      }>;
+      statusHistory?: Array<{
+        id: number;
+        oldStatus: string;
+        newStatus: string;
+        reason?: string;
+        changedAt: string;
+        changedBy: { firstName: string; lastName: string };
+      }>;
+    };
+  }> {
+    const response = await api.get(`/assets/${id}`);
+    return response.data;
+  },
+
+  /**
+   * Get asset's BOM materials
+   */
+  async getAssetBOM(id: number): Promise<{
+    success: boolean;
+    data: Array<{
+      materialName: string;
+      catalogNumber?: string;
+      quantity: number;
+      unit: string;
+      serialNumber?: string;
+      deviceId?: number;
+    }>;
+  }> {
+    const response = await api.get(`/assets/${id}/bom`);
+    return response.data;
   },
 
   /**
