@@ -182,7 +182,8 @@ export type PermissionModule =
   | 'notifications'
   | 'warehouse_stock'
   | 'brigades'
-  | 'cars';
+  | 'cars'
+  | 'assets';
 
 export type PermissionAction = 
   | 'read'

@@ -42,6 +42,8 @@ import { WarehouseStockPage } from './components/modules/WarehouseStockPage';
 import { BrigadesPage } from './components/brigades/BrigadesPage';
 import { TasksMapPage } from './components/map/TasksMapPage';
 import { CarsPage } from './components/cars/CarsPage';
+import { AssetsPage } from './components/modules/AssetsPage';
+import { AssetDetailPage } from './components/assets/AssetDetailPage';
 import { useAuth } from './hooks/useAuth';
 import { useTokenExpirationWarning } from './hooks/useTokenExpirationWarning';
 import { usePermissionRefresh } from './hooks/usePermissionRefresh';
@@ -313,6 +315,28 @@ function App() {
             <ProtectedRoute>
               <RoleBasedRoute requiredPermission={{ module: 'cars', action: 'read' }}>
                 <CarsPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Assets Routes */}
+        <Route
+          path="/assets"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'assets', action: 'read' }}>
+                <AssetsPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/assets/:id"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'assets', action: 'read' }}>
+                <AssetDetailPage />
               </RoleBasedRoute>
             </ProtectedRoute>
           }

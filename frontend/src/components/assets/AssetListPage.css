@@ -1,0 +1,150 @@
+/* AssetListPage.css - Styles for assets module */
+
+/* Toolbar */
+.assets-toolbar {
+  margin-bottom: 20px;
+  padding: 20px;
+}
+
+/* Table */
+.assets-table-container {
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+.assets-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.assets-table th {
+  background: var(--bg-secondary);
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.assets-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.assets-table th.sortable:hover {
+  background: var(--bg-hover);
+}
+
+.assets-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.assets-table tbody tr {
+  cursor: pointer;
+}
+
+.assets-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+/* Asset number badge */
+.asset-number {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  background: var(--bg-secondary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: var(--primary-color);
+}
+
+/* Asset name */
+.asset-name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Status badge */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.status-badge.planned {
+  background: rgba(108, 117, 125, 0.15);
+  color: #6c757d;
+}
+
+.status-badge.installed {
+  background: rgba(23, 162, 184, 0.15);
+  color: #17a2b8;
+}
+
+.status-badge.active {
+  background: rgba(40, 167, 69, 0.15);
+  color: #28a745;
+}
+
+.status-badge.in_service {
+  background: rgba(255, 193, 7, 0.15);
+  color: #e0a800;
+}
+
+.status-badge.faulty {
+  background: rgba(220, 53, 69, 0.15);
+  color: #dc3545;
+}
+
+.status-badge.inactive {
+  background: rgba(108, 117, 125, 0.15);
+  color: #6c757d;
+}
+
+.status-badge.decommissioned {
+  background: rgba(52, 58, 64, 0.15);
+  color: #343a40;
+}
+
+/* Type badge */
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(0, 123, 255, 0.1);
+  color: var(--primary-color);
+  white-space: nowrap;
+}
+
+/* Contract / subsystem links */
+.asset-contract,
+.asset-subsystem {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  background: var(--bg-secondary);
+  padding: 3px 6px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+}
+
+/* Count info */
+.assets-count {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.assets-count strong {
+  color: var(--primary-color);
+  font-weight: 600;
+}
