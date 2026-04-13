@@ -651,4 +651,84 @@ export class AssetController {
       });
     }
   };
+
+  /**
+   * POST /api/assets/:id/tasks
+   * Create service task for asset
+   */
+  createServiceTask = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = (req as any).user?.id;
+      const { id } = req.params;
+      const assetId = parseInt(id, 10);
+
+      if (!Number.isInteger(assetId) || assetId <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Nieprawidłowe ID obiektu'
+        });
+        return;
+      }
+
+      const {
+        taskRole,
+        taskName,
+        scheduledDate,
+        priority,
+        assignedTo,
+        description
+      } = req.body;
+
+      // Validation
+      if (!taskRole || !taskName) {
+        res.status(400).json({
+          success: false,
+          message: 'Rola zadania (taskRole) i nazwa zadania (taskName) są wymagane'
+        });
+        return;
+      }
+
+      const result = await this.assetService.createServiceTask(
+        assetId,
+        {
+          taskRole,
+          taskName,
+          scheduledDate: scheduledDate ? new Date(scheduledDate) : undefined,
+          priority: priority != null ? parseInt(priority) : undefined,
+          assignedTo: assignedTo != null ? parseInt(assignedTo) : undefined,
+          description
+        },
+        userId
+      );
+
+      res.status(201).json({
+        success: true,
+        message: 'Zadanie serwisowe utworzone pomyślnie',
+        data: {
+          task: {
+            id: result.task.id,
+            number: result.task.taskNumber,
+            name: result.task.taskName,
+            type: result.task.taskType,
+            status: result.task.status,
+            linkedAssetId: result.task.linkedAssetId,
+            taskRole: result.task.taskRole
+          },
+          asset: {
+            id: result.asset.id,
+            assetNumber: result.asset.assetNumber,
+            status: result.asset.status
+          }
+        }
+      });
+    } catch (error: any) {
+      console.error('Error creating service task:', error);
+      const statusCode = error.message === 'Obiekt nie znaleziony' ? 404 : 400;
+      res.status(statusCode).json({
+        success: false,
+        message: error.message || 'Błąd podczas tworzenia zadania serwisowego',
+        error: error.message
+      });
+    }
+  };
 }

@@ -2,7 +2,9 @@
 // Business logic service for asset operations
 
 import { AppDataSource } from '../config/database';
-import { Asset } from '../entities/Asset';
+import { Asset, AssetTaskRole } from '../entities/Asset';
+import { AssetTask } from '../entities/AssetTask';
+import { SubsystemTask, TaskWorkflowStatus } from '../entities/SubsystemTask';
 import { Repository } from 'typeorm';
 import { AssetNumberingService } from './AssetNumberingService';
 
@@ -427,5 +429,115 @@ export class AssetService {
     asset.decommissionDate = new Date();
 
     await this.assetRepository.save(asset);
+  }
+
+  /**
+   * Create service task for asset
+   */
+  async createServiceTask(
+    assetId: number,
+    taskData: {
+      taskRole: AssetTaskRole;
+      taskName: string;
+      scheduledDate?: Date;
+      priority?: number;
+      assignedTo?: number;
+      description?: string;
+    },
+    createdBy: number
+  ): Promise<{
+    task: SubsystemTask;
+    asset: Asset;
+  }> {
+    // 1. Validate asset exists
+    const asset = await this.assetRepository.findOne({
+      where: { id: assetId },
+      relations: ['contract', 'subsystem']
+    });
+
+    if (!asset) {
+      throw new Error('Obiekt nie znaleziony');
+    }
+
+    if (!asset.subsystem) {
+      throw new Error('Obiekt nie ma przypisanego podsystemu');
+    }
+
+    if (!asset.contract) {
+      throw new Error('Obiekt nie ma przypisanego kontraktu');
+    }
+
+    // 2. Validate task role
+    const validRoles: AssetTaskRole[] = ['warranty_service', 'repair', 'maintenance', 'decommission'];
+    if (!validRoles.includes(taskData.taskRole)) {
+      throw new Error(`Nieprawidłowa rola zadania. Dozwolone: ${validRoles.join(', ')}`);
+    }
+
+    // 3. Create task in transaction
+    const result = await AppDataSource.transaction(async manager => {
+      const taskRepo = manager.getRepository(SubsystemTask);
+      const assetTaskRepo = manager.getRepository(AssetTask);
+      const assetRepo = manager.getRepository(Asset);
+
+      // Generate task number
+      const lastTask = await taskRepo.findOne({
+        order: { id: 'DESC' }
+      });
+      const nextNumber = lastTask ? lastTask.id + 1 : 1;
+      const taskNumber = `P${String(nextNumber).padStart(6, '0')}`;
+
+      // Determine task type from role
+      const taskTypeMap: Record<AssetTaskRole, string> = {
+        'warranty_service': 'WARRANTY_SERVICE',
+        'repair': 'REPAIR',
+        'maintenance': 'MAINTENANCE',
+        'decommission': 'DECOMMISSION',
+        'installation': 'INSTALLATION'
+      };
+      const taskType = taskTypeMap[taskData.taskRole] || 'MAINTENANCE';
+
+      // Create task
+      const task = taskRepo.create({
+        taskNumber,
+        taskName: taskData.taskName,
+        taskType,
+        status: TaskWorkflowStatus.CREATED,
+        subsystemId: asset.subsystemId!,
+        linkedAssetId: assetId,
+        taskRole: taskData.taskRole,
+        metadata: {
+          description: taskData.description || `Zadanie serwisowe dla ${asset.name}`,
+          scheduledDate: taskData.scheduledDate || null,
+          priority: taskData.priority || 0,
+          assignedToId: taskData.assignedTo || null,
+          createdById: createdBy,
+          contractId: asset.contractId
+        }
+      });
+
+      const savedTask = await taskRepo.save(task);
+
+      // Create asset_tasks entry
+      const assetTask = assetTaskRepo.create({
+        assetId: assetId,
+        taskId: savedTask.id,
+        taskRole: taskData.taskRole
+      });
+
+      await assetTaskRepo.save(assetTask);
+
+      // If task role is warranty_service or repair, update asset status to in_service
+      if (taskData.taskRole === 'warranty_service' || taskData.taskRole === 'repair') {
+        asset.status = 'in_service';
+        await assetRepo.save(asset);
+      }
+
+      return {
+        task: savedTask,
+        asset
+      };
+    });
+
+    return result;
   }
 }
