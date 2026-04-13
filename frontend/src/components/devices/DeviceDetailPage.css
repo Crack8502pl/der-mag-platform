@@ -7,7 +7,7 @@
 }
 
 /* Header */
-.device-header {
+.device-detail-page .device-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -18,31 +18,31 @@
   margin-bottom: 20px;
 }
 
-.header-left {
+.device-detail-page .header-left {
   display: flex;
   gap: 20px;
   align-items: flex-start;
 }
 
-.header-info h1 {
+.device-detail-page .header-info h1 {
   margin: 0 0 10px 0;
   font-size: 28px;
   color: var(--text-primary);
 }
 
-.device-type {
+.device-detail-page .device-type {
   font-size: 14px;
   color: var(--text-secondary);
   margin-bottom: 5px;
 }
 
-.device-meta {
+.device-detail-page .device-meta {
   display: flex;
   gap: 15px;
   align-items: center;
 }
 
-.device-serial {
+.device-detail-page .device-serial {
   font-size: 14px;
   font-weight: 600;
   color: var(--primary-color);
@@ -50,7 +50,7 @@
 }
 
 /* Detail Sections */
-.detail-section {
+.device-detail-page .detail-section {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -58,7 +58,7 @@
   margin-bottom: 20px;
 }
 
-.detail-section h2 {
+.device-detail-page .detail-section h2 {
   margin: 0 0 20px 0;
   font-size: 18px;
   color: var(--text-primary);
@@ -67,26 +67,26 @@
   gap: 10px;
 }
 
-.detail-grid {
+.device-detail-page .detail-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 20px;
 }
 
-.detail-item {
+.device-detail-page .detail-item {
   display: flex;
   flex-direction: column;
   gap: 5px;
 }
 
-.detail-label {
+.device-detail-page .detail-label {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
 }
 
-.detail-value {
+.device-detail-page .detail-value {
   font-size: 14px;
   color: var(--text-primary);
   display: flex;
@@ -95,25 +95,25 @@
 }
 
 /* Installed Asset Card */
-.installed-asset-card {
+.device-detail-page .installed-asset-card {
   background: var(--bg-secondary);
   border: 2px solid var(--primary-color);
   border-radius: 8px;
   padding: 20px;
 }
 
-.asset-card-header {
+.device-detail-page .asset-card-header {
   margin-bottom: 15px;
 }
 
-.asset-number-wrapper {
+.device-detail-page .asset-number-wrapper {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
 }
 
-.asset-number {
+.device-detail-page .asset-number {
   font-family: monospace;
   font-size: 16px;
   font-weight: 600;
@@ -123,63 +123,63 @@
   color: var(--primary-color);
 }
 
-.asset-name {
+.device-detail-page .asset-name {
   margin: 0 0 15px 0;
   font-size: 20px;
   color: var(--text-primary);
 }
 
-.asset-details-grid {
+.device-detail-page .asset-details-grid {
   display: flex;
   flex-direction: column;
   gap: 12px;
   margin-bottom: 20px;
 }
 
-.asset-detail-row {
+.device-detail-page .asset-detail-row {
   display: flex;
   gap: 10px;
 }
 
-.asset-detail-label {
+.device-detail-page .asset-detail-label {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
   min-width: 140px;
 }
 
-.asset-detail-value {
+.device-detail-page .asset-detail-value {
   font-size: 13px;
   color: var(--text-primary);
 }
 
-.asset-actions {
+.device-detail-page .asset-actions {
   display: flex;
   gap: 10px;
   margin-top: 15px;
 }
 
 /* Empty State - Not Installed */
-.empty-state-asset {
+.device-detail-page .empty-state-asset {
   text-align: center;
   padding: 40px 20px;
   background: var(--bg-secondary);
   border-radius: 8px;
 }
 
-.empty-icon {
+.device-detail-page .empty-icon {
   font-size: 64px;
   margin-bottom: 15px;
 }
 
-.empty-title {
+.device-detail-page .empty-title {
   font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 10px 0;
 }
 
-.empty-subtitle {
+.device-detail-page .empty-subtitle {
   font-size: 14px;
   color: var(--text-secondary);
   margin: 0;
@@ -187,7 +187,7 @@
 }
 
 /* Status Badges */
-.status-badge {
+.device-detail-page .status-badge {
   padding: 4px 10px;
   border-radius: 4px;
   font-size: 12px;
@@ -196,59 +196,59 @@
   display: inline-block;
 }
 
-.status-in-stock {
+.device-detail-page .status-in-stock {
   background: rgba(66, 153, 225, 0.15);
   color: var(--info, #4299e1);
 }
 
-.status-reserved {
+.device-detail-page .status-reserved {
   background: rgba(237, 137, 54, 0.15);
   color: var(--warning, #ed8936);
 }
 
-.status-installed {
+.device-detail-page .status-installed {
   background: rgba(72, 187, 120, 0.15);
   color: var(--success, #48bb78);
 }
 
-.status-faulty {
+.device-detail-page .status-faulty {
   background: rgba(245, 101, 101, 0.15);
   color: var(--danger, #f56565);
 }
 
-.status-returned {
+.device-detail-page .status-returned {
   background: rgba(160, 174, 192, 0.15);
   color: var(--text-secondary, #a0aec0);
 }
 
-.status-decommissioned {
+.device-detail-page .status-decommissioned {
   background: rgba(108, 117, 125, 0.3);
   color: var(--text-muted, #6c757d);
 }
 
 /* Asset status badges */
-.status-active {
+.device-detail-page .status-active {
   background: rgba(72, 187, 120, 0.15);
   color: var(--success, #48bb78);
 }
 
-.status-in-service {
+.device-detail-page .status-in-service {
   background: rgba(237, 137, 54, 0.15);
   color: var(--warning, #ed8936);
 }
 
-.status-planned {
+.device-detail-page .status-planned {
   background: rgba(66, 153, 225, 0.15);
   color: var(--info, #4299e1);
 }
 
-.status-inactive {
+.device-detail-page .status-inactive {
   background: rgba(108, 117, 125, 0.15);
   color: var(--text-muted, #718096);
 }
 
 /* Buttons */
-.btn-primary {
+.device-detail-page .btn-primary {
   padding: 10px 20px;
   background: var(--primary-color);
   color: white;
@@ -260,13 +260,13 @@
   transition: background-color 0.2s;
 }
 
-.btn-primary:hover {
+.device-detail-page .btn-primary:hover {
   background: var(--primary-hover);
 }
 
 /* Loading and Error States */
-.loading-state,
-.error-state {
+.device-detail-page .loading-state,
+.device-detail-page .error-state {
   padding: 40px;
   text-align: center;
   background: var(--bg-card);
@@ -275,7 +275,7 @@
   margin-top: 20px;
 }
 
-.error-state button {
+.device-detail-page .error-state button {
   margin-top: 15px;
   padding: 8px 20px;
   background: var(--primary-color);
@@ -288,20 +288,20 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .device-header {
+  .device-detail-page .device-header {
     flex-direction: column;
     gap: 20px;
   }
 
-  .header-left {
+  .device-detail-page .header-left {
     flex-direction: column;
   }
 
-  .detail-grid {
+  .device-detail-page .detail-grid {
     grid-template-columns: 1fr;
   }
 
-  .asset-number-wrapper {
+  .device-detail-page .asset-number-wrapper {
     flex-direction: column;
     align-items: flex-start;
   }

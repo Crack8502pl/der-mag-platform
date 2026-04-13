@@ -21,7 +21,14 @@ export const DeviceDetailPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await deviceService.getDeviceById(Number(id));
+      const deviceId = Number(id);
+      if (!Number.isInteger(deviceId) || deviceId <= 0) {
+        setDevice(null);
+        setError('Nieprawidłowy identyfikator urządzenia');
+        setLoading(false);
+        return;
+      }
+      const data = await deviceService.getDeviceById(deviceId);
       setDevice(data);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };

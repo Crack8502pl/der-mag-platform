@@ -39,7 +39,7 @@ export interface DeviceDetails extends Device {
   task?: {
     id: number;
     taskNumber: string;
-    name: string;
+    title: string;
   } | null;
 }
 
@@ -53,11 +53,11 @@ const deviceService = {
   },
 
   /**
-   * Get all devices with filters
+   * Get device by serial number
    */
-  async getDevices(filters?: Record<string, unknown>): Promise<{ data: Device[]; count: number }> {
-    const response = await api.get('/devices', { params: filters });
-    return response.data;
+  async getDeviceBySerialNumber(serialNumber: string): Promise<DeviceDetails> {
+    const response = await api.get(`/devices/${encodeURIComponent(serialNumber)}`);
+    return response.data.data;
   }
 };
 
