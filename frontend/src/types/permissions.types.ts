@@ -140,6 +140,13 @@ export interface CarsPermissions {
   update?: boolean;
 }
 
+export interface AssetPermissions {
+  read?: boolean;
+  create?: boolean;
+  update?: boolean;
+  delete?: boolean;
+}
+
 export interface RolePermissions {
   all?: boolean; // Admin - pełny dostęp
   dashboard?: DashboardPermissions;
@@ -160,6 +167,7 @@ export interface RolePermissions {
   warehouse_stock?: WarehouseStockPermissions;
   brigades?: BrigadePermissions;
   cars?: CarsPermissions;
+  assets?: AssetPermissions;
   [key: string]: any;
 }
 
@@ -182,7 +190,8 @@ export type PermissionModule =
   | 'notifications'
   | 'warehouse_stock'
   | 'brigades'
-  | 'cars';
+  | 'cars'
+  | 'assets';
 
 export type PermissionAction = 
   | 'read'

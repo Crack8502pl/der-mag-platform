@@ -69,6 +69,7 @@ export const Dashboard: React.FC = () => {
     { title: 'Samochody', path: '/cars', icon: <ModuleIcon name="cars" emoji={MODULE_ICONS.cars} size={48} />, module: 'cars', action: 'read', description: 'Lista samochodów firmowych', group: 'resources' },
     { title: 'Materiały BOM', path: '/bom', icon: <ModuleIcon name="bom" emoji={MODULE_ICONS.bom} size={48} />, module: 'bom', action: 'read', description: 'Szablony i materiały', group: 'resources' },
     { title: 'Urządzenia', path: '/devices', icon: <ModuleIcon name="devices" emoji={MODULE_ICONS.devices} size={48} />, module: 'devices', action: 'read', description: 'Rejestracja urządzeń', group: 'resources' },
+    { title: 'Obiekty', path: '/assets', icon: <ModuleIcon name="assets" emoji={MODULE_ICONS.assets} size={48} />, module: 'assets', action: 'read', description: 'Obiekty infrastruktury', group: 'resources' },
     { title: 'Raporty', path: '/reports', icon: <ModuleIcon name="reports" emoji={MODULE_ICONS.reports} size={48} />, module: 'reports', action: 'read', description: 'Generowanie raportów', group: 'docs' },
     { title: 'Dokumenty', path: '/documents', icon: <ModuleIcon name="documents" emoji={MODULE_ICONS.documents} size={48} />, module: 'documents', action: 'read', description: 'Zarządzanie dokumentami', group: 'docs' },
     { title: 'Zdjęcia', path: '/photos', icon: <ModuleIcon name="photos" emoji={MODULE_ICONS.photos} size={48} />, module: 'photos', action: 'read', description: 'Upload i zatwierdzanie', group: 'docs' },
