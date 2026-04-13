@@ -651,4 +651,128 @@ export class AssetController {
       });
     }
   };
+
+  /**
+   * POST /api/assets/:id/tasks
+   * Create service task for asset
+   */
+  createServiceTask = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Unauthorized'
+        });
+        return;
+      }
+
+      const { id } = req.params;
+      const assetId = parseInt(id, 10);
+
+      if (!Number.isInteger(assetId) || assetId <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Nieprawidłowe ID obiektu'
+        });
+        return;
+      }
+
+      const {
+        taskRole,
+        taskName,
+        scheduledDate,
+        priority,
+        assignedTo,
+        description
+      } = req.body;
+
+      // Validation
+      if (!taskRole || !taskName) {
+        res.status(400).json({
+          success: false,
+          message: 'Rola zadania (taskRole) i nazwa zadania (taskName) są wymagane'
+        });
+        return;
+      }
+
+      let parsedScheduledDate: Date | undefined;
+      if (scheduledDate != null && scheduledDate !== '') {
+        parsedScheduledDate = new Date(scheduledDate);
+        if (isNaN(parsedScheduledDate.getTime())) {
+          res.status(400).json({
+            success: false,
+            message: 'Nieprawidłowa wartość pola scheduledDate'
+          });
+          return;
+        }
+      }
+
+      let parsedPriority: number | undefined;
+      if (priority != null && priority !== '') {
+        parsedPriority = parseInt(priority, 10);
+        if (!Number.isFinite(parsedPriority)) {
+          res.status(400).json({
+            success: false,
+            message: 'Nieprawidłowa wartość pola priority'
+          });
+          return;
+        }
+      }
+
+      let parsedAssignedTo: number | undefined;
+      if (assignedTo != null && assignedTo !== '') {
+        parsedAssignedTo = parseInt(assignedTo, 10);
+        if (!Number.isFinite(parsedAssignedTo)) {
+          res.status(400).json({
+            success: false,
+            message: 'Nieprawidłowa wartość pola assignedTo'
+          });
+          return;
+        }
+      }
+
+      const result = await this.assetService.createServiceTask(
+        assetId,
+        {
+          taskRole,
+          taskName,
+          scheduledDate: parsedScheduledDate,
+          priority: parsedPriority,
+          assignedTo: parsedAssignedTo,
+          description
+        },
+        userId
+      );
+
+      res.status(201).json({
+        success: true,
+        message: 'Zadanie serwisowe utworzone pomyślnie',
+        data: {
+          task: {
+            id: result.task.id,
+            number: result.task.taskNumber,
+            name: result.task.taskName,
+            type: result.task.taskType,
+            status: result.task.status,
+            linkedAssetId: result.task.linkedAssetId,
+            taskRole: result.task.taskRole
+          },
+          asset: {
+            id: result.asset.id,
+            assetNumber: result.asset.assetNumber,
+            status: result.asset.status
+          }
+        }
+      });
+    } catch (error: any) {
+      console.error('Error creating service task:', error);
+      const statusCode = error.message === 'Obiekt nie znaleziony' ? 404 : 400;
+      res.status(statusCode).json({
+        success: false,
+        message: error.message || 'Błąd podczas tworzenia zadania serwisowego',
+        error: error.message
+      });
+    }
+  };
 }

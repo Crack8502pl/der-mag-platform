@@ -27,4 +27,7 @@ router.delete('/:id/devices/:deviceId', authenticate, requirePermission('assets'
 router.get('/:id/devices', authenticate, requirePermission('assets', 'read'), controller.getAssetDevices);
 router.get('/:id/bom-validation', authenticate, requirePermission('assets', 'read'), controller.validateBOM);
 
+// Service task creation endpoint
+router.post('/:id/tasks', authenticate, requirePermission('assets', 'update'), controller.createServiceTask);
+
 export default router;

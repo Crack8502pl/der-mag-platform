@@ -2,9 +2,13 @@
 // Business logic service for asset operations
 
 import { AppDataSource } from '../config/database';
-import { Asset } from '../entities/Asset';
+import { Asset, AssetTaskRole } from '../entities/Asset';
+import { AssetTask } from '../entities/AssetTask';
+import { SubsystemTask, TaskWorkflowStatus } from '../entities/SubsystemTask';
+import { Task } from '../entities/Task';
 import { Repository } from 'typeorm';
 import { AssetNumberingService } from './AssetNumberingService';
+import { TaskNumberGenerator } from './TaskNumberGenerator';
 
 export class AssetService {
   private assetRepository: Repository<Asset>;
@@ -427,5 +431,141 @@ export class AssetService {
     asset.decommissionDate = new Date();
 
     await this.assetRepository.save(asset);
+  }
+
+  /**
+   * Create service task for asset
+   */
+  async createServiceTask(
+    assetId: number,
+    taskData: {
+      taskRole: AssetTaskRole;
+      taskName: string;
+      scheduledDate?: Date;
+      priority?: number;
+      assignedTo?: number;
+      description?: string;
+    },
+    createdBy: number
+  ): Promise<{
+    task: SubsystemTask;
+    asset: Asset;
+  }> {
+    // 1. Validate asset exists
+    const asset = await this.assetRepository.findOne({
+      where: { id: assetId },
+      relations: ['contract', 'subsystem']
+    });
+
+    if (!asset) {
+      throw new Error('Obiekt nie znaleziony');
+    }
+
+    if (!asset.subsystem) {
+      throw new Error('Obiekt nie ma przypisanego podsystemu');
+    }
+
+    if (!asset.contract) {
+      throw new Error('Obiekt nie ma przypisanego kontraktu');
+    }
+
+    // 2. Validate task role
+    const validRoles: AssetTaskRole[] = ['warranty_service', 'repair', 'maintenance', 'decommission'];
+    if (!validRoles.includes(taskData.taskRole)) {
+      throw new Error(`Nieprawidłowa rola zadania. Dozwolone: ${validRoles.join(', ')}`);
+    }
+
+    // 3. Create task in transaction
+    // Generate task number before transaction (same pattern as AssetCreationService)
+    const taskNumber = await TaskNumberGenerator.generate();
+
+    const result = await AppDataSource.transaction(async manager => {
+      const taskRepo = manager.getRepository(SubsystemTask);
+      const legacyTaskRepo = manager.getRepository(Task);
+      const assetTaskRepo = manager.getRepository(AssetTask);
+      const assetRepo = manager.getRepository(Asset);
+
+      // Determine task type from role
+      const taskTypeMap: Partial<Record<AssetTaskRole, string>> = {
+        'warranty_service': 'WARRANTY_SERVICE',
+        'repair': 'REPAIR',
+        'maintenance': 'MAINTENANCE',
+        'decommission': 'DECOMMISSION'
+      };
+      const taskType = taskTypeMap[taskData.taskRole] ?? 'MAINTENANCE';
+
+      // Create SubsystemTask
+      const task = taskRepo.create({
+        taskNumber,
+        taskName: taskData.taskName,
+        taskType,
+        status: TaskWorkflowStatus.CREATED,
+        subsystemId: asset.subsystemId!,
+        linkedAssetId: assetId,
+        taskRole: taskData.taskRole,
+        metadata: {
+          description: taskData.description || `Zadanie serwisowe dla ${asset.name}`,
+          scheduledDate: taskData.scheduledDate || null,
+          priority: taskData.priority || 0,
+          assignedToId: taskData.assignedTo || null,
+          createdById: createdBy,
+          contractId: asset.contractId
+        }
+      });
+
+      const savedTask = await taskRepo.save(task);
+
+      // Create legacy Task record for compatibility with /api/tasks
+      try {
+        const mainTask = legacyTaskRepo.create({
+          taskNumber,
+          title: taskData.taskName,
+          description: taskData.description || `Zadanie serwisowe dla ${asset.name}`,
+          taskTypeId: 1,
+          status: 'created',
+          contractId: asset.contractId!,
+          contractNumber: asset.contract!.contractNumber,
+          subsystemId: asset.subsystemId!,
+          location: asset.contract!.customName || '',
+          priority: taskData.priority || 0,
+          metadata: {
+            assetId: assetId,
+            assetNumber: asset.assetNumber,
+            taskRole: taskData.taskRole,
+            createdById: createdBy
+          }
+        });
+        await legacyTaskRepo.save(mainTask);
+      } catch (legacyError) {
+        // Best-effort: don't abort the whole transaction if legacy task creation fails
+      }
+
+      // Create asset_tasks entry
+      const assetTask = assetTaskRepo.create({
+        assetId: assetId,
+        taskId: savedTask.id,
+        taskRole: taskData.taskRole
+      });
+
+      await assetTaskRepo.save(assetTask);
+
+      // If task role is warranty_service or repair, update asset status to in_service
+      if (taskData.taskRole === 'warranty_service' || taskData.taskRole === 'repair') {
+        if (asset.status === 'decommissioned') {
+          throw new Error('Nie można zmienić statusu wycofanego obiektu na w serwisie');
+        }
+        if (asset.status !== 'in_service') {
+          asset.status = 'in_service';
+          await assetRepo.save(asset);
+        }
+      }
+
+      return {
+        task: savedTask,
+        asset
+      };
+    });
+
+    return result;
   }
 }
