@@ -76,6 +76,36 @@ class TaskService {
   }
 
   /**
+   * Complete task and create an asset
+   */
+  async completeAndCreateAsset(
+    taskId: number,
+    payload: {
+      assetData: {
+        name: string;
+        category?: string;
+        liniaKolejowa?: string;
+        kilometraz?: string;
+        gpsLatitude?: number | null;
+        gpsLongitude?: number | null;
+        googleMapsUrl?: string;
+        miejscowosc?: string;
+        notes?: string;
+        actualInstallationDate?: string;
+        warrantyExpiryDate?: string;
+      };
+      deviceSerialNumbers?: string[];
+    }
+  ): Promise<{
+    task: { id: number; taskNumber: string; status: string; linkedAssetId: number };
+    asset: { id: number; assetNumber: string; name: string; status: string; actualInstallationDate?: string; warrantyExpiryDate?: string };
+    devicesLinked?: { deviceId: number; serialNumber: string; status: string }[];
+  }> {
+    const response = await api.post(`/tasks/${taskId}/complete-and-create-asset`, payload);
+    return response.data.data;
+  }
+
+  /**
    * Get all task types
    */
   async getTaskTypes(): Promise<TaskType[]> {

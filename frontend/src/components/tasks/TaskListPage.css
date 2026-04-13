@@ -171,6 +171,15 @@
   background: #ffebee;
 }
 
+.action-buttons .btn-icon.btn-success {
+  color: var(--success, #48bb78);
+  border-color: var(--success, #48bb78);
+}
+
+.action-buttons .btn-icon.btn-success:hover {
+  background: color-mix(in srgb, var(--success, #48bb78) 10%, transparent);
+}
+
 /* Pagination */
 .pagination {
   display: flex;

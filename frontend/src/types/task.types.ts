@@ -52,6 +52,7 @@ export interface Task {
   gpsLatitude?: number | null;
   gpsLongitude?: number | null;
   googleMapsUrl?: string | null;
+  linkedAssetId?: number | null;
 }
 
 export interface CreateTaskDto {
