@@ -15,6 +15,16 @@ interface Props {
   onSuccess: () => void;
 }
 
+interface BomMaterial {
+  materialName: string;
+  catalogNumber?: string;
+  plannedQuantity?: number;
+  quantity?: number;
+  unit?: string;
+  category?: string;
+  serialNumbers?: string[];
+}
+
 const PRZEJAZD_CATEGORIES = ['KAT A', 'KAT B', 'KAT C', 'KAT D'];
 
 function buildDefaultName(task: Task): string {
@@ -61,10 +71,10 @@ export const CompleteTaskAndCreateAssetModal: React.FC<Props> = ({ task, onClose
     taskNumber: string;
   } | null>(null);
 
-  const bomMaterials: any[] = task.metadata?.bomMaterials || [];
+  const bomMaterials: BomMaterial[] = task.metadata?.bomMaterials || [];
 
   // Group BOM by category
-  const bomByCategory = bomMaterials.reduce<Record<string, any[]>>((acc, mat) => {
+  const bomByCategory = bomMaterials.reduce<Record<string, BomMaterial[]>>((acc, mat) => {
     const cat = mat.category || 'Inne';
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(mat);
@@ -72,10 +82,7 @@ export const CompleteTaskAndCreateAssetModal: React.FC<Props> = ({ task, onClose
   }, {});
 
   const deviceSerialNumbers: string[] = bomMaterials
-    .flatMap((m: any) => {
-      if (Array.isArray(m.serialNumbers)) return m.serialNumbers as string[];
-      return [];
-    })
+    .flatMap((m) => (Array.isArray(m.serialNumbers) ? m.serialNumbers : []))
     .filter(Boolean);
 
   const handleChange = (field: string, value: string) => {
@@ -108,7 +115,7 @@ export const CompleteTaskAndCreateAssetModal: React.FC<Props> = ({ task, onClose
       setLoading(true);
       setError('');
 
-      const payload: any = {
+      const payload: Parameters<typeof taskService.completeAndCreateAsset>[1] = {
         assetData: {
           name: formData.name.trim(),
           liniaKolejowa: formData.liniaKolejowa || undefined,
@@ -120,16 +127,10 @@ export const CompleteTaskAndCreateAssetModal: React.FC<Props> = ({ task, onClose
           notes: formData.notes || undefined,
           actualInstallationDate: formData.actualInstallationDate || undefined,
           warrantyExpiryDate: formData.warrantyExpiryDate || undefined,
+          category: isPrzejazd && formData.category ? formData.category : undefined,
         },
+        deviceSerialNumbers: deviceSerialNumbers.length > 0 ? deviceSerialNumbers : undefined,
       };
-
-      if (isPrzejazd && formData.category) {
-        payload.assetData.category = formData.category;
-      }
-
-      if (deviceSerialNumbers.length > 0) {
-        payload.deviceSerialNumbers = deviceSerialNumbers;
-      }
 
       const result = await taskService.completeAndCreateAsset(task.id, payload);
 
@@ -321,7 +322,7 @@ export const CompleteTaskAndCreateAssetModal: React.FC<Props> = ({ task, onClose
                   {Object.entries(bomByCategory).map(([cat, materials]) => (
                     <div key={cat} className="bom-category-group">
                       <div className="bom-category-label">{cat}</div>
-                      {materials.map((mat: any, idx: number) => (
+                      {materials.map((mat, idx) => (
                         <div key={idx} className="bom-material-row">
                           <span className="bom-material-name">{mat.materialName}</span>
                           <span className="bom-material-qty">
@@ -329,7 +330,7 @@ export const CompleteTaskAndCreateAssetModal: React.FC<Props> = ({ task, onClose
                           </span>
                           {Array.isArray(mat.serialNumbers) && mat.serialNumbers.length > 0 && (
                             <div className="bom-serial-numbers">
-                              {mat.serialNumbers.map((sn: string, snIdx: number) => (
+                              {mat.serialNumbers.map((sn, snIdx) => (
                                 <span key={snIdx} className="bom-serial-badge">
                                   {sn}
                                 </span>
