@@ -1,0 +1,90 @@
+// src/services/asset.service.ts
+// Service for asset management
+
+import api from './api';
+
+export interface Asset {
+  id: number;
+  assetNumber: string;
+  assetType: 'PRZEJAZD' | 'SKP' | 'NASTAWNIA' | 'LCS' | 'CUID';
+  name: string;
+  category: 'KAT A' | 'KAT B' | 'KAT C' | 'KAT E' | 'KAT F' | null;
+  status: 'planned' | 'installed' | 'active' | 'in_service' | 'faulty' | 'inactive' | 'decommissioned';
+  liniaKolejowa: string | null;
+  kilometraz: string | null;
+  gpsLatitude: number | null;
+  gpsLongitude: number | null;
+  miejscowosc: string | null;
+  contractId: number | null;
+  subsystemId: number | null;
+  actualInstallationDate: string | null;
+  warrantyExpiryDate: string | null;
+  lastServiceDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AssetListResponse {
+  success: boolean;
+  data: Asset[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface AssetFilters {
+  assetType?: string;
+  status?: string;
+  contractId?: number;
+  subsystemId?: number;
+  category?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC';
+}
+
+const assetService = {
+  /**
+   * Get all assets with filters and pagination
+   */
+  async getAssets(filters: AssetFilters = {}): Promise<AssetListResponse> {
+    const params = new URLSearchParams();
+
+    if (filters.assetType) params.append('assetType', filters.assetType);
+    if (filters.status) params.append('status', filters.status);
+    if (filters.contractId) params.append('contractId', filters.contractId.toString());
+    if (filters.subsystemId) params.append('subsystemId', filters.subsystemId.toString());
+    if (filters.category) params.append('category', filters.category);
+    if (filters.search) params.append('search', filters.search);
+    if (filters.page) params.append('page', filters.page.toString());
+    if (filters.limit) params.append('limit', filters.limit.toString());
+    if (filters.sortBy) params.append('sortBy', filters.sortBy);
+    if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
+
+    const response = await api.get(`/assets?${params.toString()}`);
+    return response.data;
+  },
+
+  /**
+   * Get asset by ID
+   */
+  async getAssetById(id: number): Promise<Asset> {
+    const response = await api.get(`/assets/${id}`);
+    return response.data.data;
+  },
+
+  /**
+   * Get asset statistics
+   */
+  async getAssetStats(): Promise<any> {
+    const response = await api.get('/assets/stats');
+    return response.data.data;
+  }
+};
+
+export default assetService;

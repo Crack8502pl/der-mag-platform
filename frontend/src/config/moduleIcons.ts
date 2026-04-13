@@ -20,4 +20,5 @@ export const MODULE_ICONS: Record<string, string> = {
   logout: '🚪',
   mapa: '🗺️',
   cars: '🚗',
+  assets: '🏗️',
 };
