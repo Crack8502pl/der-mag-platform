@@ -28,6 +28,7 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
 
   const { hasPermission } = usePermissions();
   const canEdit = hasPermission('tasks', 'update');
+  const canCreateAsset = hasPermission('assets', 'create');
 
   const INSTALLATION_TASK_TYPES = ['PRZEJAZD', 'LCS', 'CUID', 'NASTAWNIA', 'SKP'];
 
@@ -62,9 +63,9 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
   const canCompleteTask =
     task !== null &&
     canEdit &&
+    canCreateAsset &&
     ['in_progress', 'configured'].includes(task.status) &&
-    INSTALLATION_TASK_TYPES.includes(task.taskType?.code || '') &&
-    !task.linkedAssetId;
+    INSTALLATION_TASK_TYPES.includes(task.taskType?.code || '');
 
   return (
     <>

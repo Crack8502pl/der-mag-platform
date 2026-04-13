@@ -54,12 +54,21 @@ export class SubsystemTaskController {
       }
 
       const parsedTaskId = parseInt(taskId, 10);
-      if (!Number.isInteger(parsedTaskId) || parsedTaskId <= 0) {
-        res.status(400).json({
-          success: false,
-          message: 'Nieprawidłowe ID zadania'
-        });
-        return;
+      let resolvedTaskId: number;
+
+      if (Number.isInteger(parsedTaskId) && parsedTaskId > 0) {
+        resolvedTaskId = parsedTaskId;
+      } else {
+        // Try resolving by taskNumber string (e.g. "P000001")
+        const taskByNumber = await this.subsystemTaskService.getTaskByNumber(taskId);
+        if (!taskByNumber) {
+          res.status(404).json({
+            success: false,
+            message: 'Zadanie nie znalezione'
+          });
+          return;
+        }
+        resolvedTaskId = taskByNumber.id;
       }
 
       // Validate deviceSerialNumbers: must be an array of non-empty strings if provided
@@ -126,7 +135,7 @@ export class SubsystemTaskController {
       };
 
       const result = await this.subsystemTaskService.completeAndCreateAsset(
-        parsedTaskId,
+        resolvedTaskId,
         parsedAssetData,
         deviceSerialNumbers
       );

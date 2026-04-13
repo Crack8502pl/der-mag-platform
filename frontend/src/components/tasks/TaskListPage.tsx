@@ -48,14 +48,15 @@ export const TaskListPage: React.FC = () => {
   const canCreate = hasPermission('tasks', 'create');
   const canUpdate = hasPermission('tasks', 'update');
   const canDelete = hasPermission('tasks', 'delete');
+  const canCreateAsset = hasPermission('assets', 'create');
 
   const INSTALLATION_TASK_TYPES = ['PRZEJAZD', 'LCS', 'CUID', 'NASTAWNIA', 'SKP'];
 
   const canCompleteTask = (task: Task): boolean =>
     canUpdate &&
+    canCreateAsset &&
     ['in_progress', 'configured'].includes(task.status) &&
-    INSTALLATION_TASK_TYPES.includes(task.taskType?.code || '') &&
-    !task.linkedAssetId;
+    INSTALLATION_TASK_TYPES.includes(task.taskType?.code || '');
 
   useEffect(() => {
     loadTaskTypes();

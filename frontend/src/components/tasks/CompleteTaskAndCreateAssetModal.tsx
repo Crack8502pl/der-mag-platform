@@ -132,7 +132,7 @@ export const CompleteTaskAndCreateAssetModal: React.FC<Props> = ({ task, onClose
         deviceSerialNumbers: deviceSerialNumbers.length > 0 ? deviceSerialNumbers : undefined,
       };
 
-      const result = await taskService.completeAndCreateAsset(task.id, payload);
+      const result = await taskService.completeAndCreateAsset(task.taskNumber, payload);
 
       setSuccessData({
         assetId: result.asset.id,
@@ -149,11 +149,11 @@ export const CompleteTaskAndCreateAssetModal: React.FC<Props> = ({ task, onClose
   // --- Success dialog ---
   if (successData) {
     return (
-      <div className="complete-task-modal modal-overlay" onClick={onClose}>
+      <div className="complete-task-modal modal-overlay" onClick={onSuccess}>
         <div className="modal-content complete-task-success-dialog" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
             <h2>✅ Zadanie zakończone!</h2>
-            <button className="modal-close" onClick={onClose} aria-label="Zamknij">✕</button>
+            <button className="modal-close" onClick={onSuccess} aria-label="Zamknij">✕</button>
           </div>
           <div className="modal-form">
             <div className="complete-task-success-info">

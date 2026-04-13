@@ -79,7 +79,7 @@ class TaskService {
    * Complete task and create an asset
    */
   async completeAndCreateAsset(
-    taskId: number,
+    taskNumber: string,
     payload: {
       assetData: {
         name: string;
@@ -99,9 +99,10 @@ class TaskService {
   ): Promise<{
     task: { id: number; taskNumber: string; status: string; linkedAssetId: number };
     asset: { id: number; assetNumber: string; name: string; status: string; actualInstallationDate?: string; warrantyExpiryDate?: string };
-    devicesLinked?: { deviceId: number; serialNumber: string; status: string }[];
+    linkedDevices?: { deviceId: number; serialNumber: string; status: string }[];
+    warnings?: string[];
   }> {
-    const response = await api.post(`/tasks/${taskId}/complete-and-create-asset`, payload);
+    const response = await api.post(`/subsystem-tasks/${taskNumber}/complete-and-create-asset`, payload);
     return response.data.data;
   }
 
