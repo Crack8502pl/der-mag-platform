@@ -209,39 +209,6 @@ const assetService = {
   async getAssetStats(): Promise<AssetStats> {
     const response = await api.get('/assets/stats');
     return response.data.data;
-  },
-
-  /**
-   * Complete a task and create an asset in one operation.
-   * Delegates to POST /api/subsystem-tasks/:taskId/complete-and-create-asset
-   */
-  async completeTaskAndCreateAsset(
-    taskId: string | number,
-    assetData: {
-      name: string;
-      category?: string;
-      liniaKolejowa?: string;
-      kilometraz?: string;
-      gpsLatitude?: number | null;
-      gpsLongitude?: number | null;
-      googleMapsUrl?: string;
-      miejscowosc?: string;
-      notes?: string;
-      actualInstallationDate?: string;
-      warrantyExpiryDate?: string;
-    },
-    deviceSerialNumbers?: string[]
-  ): Promise<{
-    task: { id: number; taskNumber: string; status: string; linkedAssetId: number };
-    asset: { id: number; assetNumber: string; name: string; status: string; actualInstallationDate?: string; warrantyExpiryDate?: string };
-    linkedDevices?: { deviceId: number; serialNumber: string; status: string }[];
-    warnings?: string[];
-  }> {
-    const response = await api.post(
-      `/subsystem-tasks/${taskId}/complete-and-create-asset`,
-      { assetData, deviceSerialNumbers }
-    );
-    return response.data.data;
   }
 };
 
