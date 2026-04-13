@@ -2,6 +2,7 @@
 // Service for contract management
 
 import api from './api';
+import type { Asset } from './asset.service';
 
 export interface SubsystemTask {
   id: number;
@@ -158,6 +159,11 @@ class ContractService {
   async addTasksToSubsystem(subsystemId: number, data: any): Promise<any> {
     const response = await api.post(`/subsystems/${subsystemId}/tasks`, data);
     return response.data;
+  }
+
+  async getContractAssets(contractId: number): Promise<Asset[]> {
+    const response = await api.get(`/contracts/${contractId}/assets`);
+    return response.data.data;
   }
 }
 

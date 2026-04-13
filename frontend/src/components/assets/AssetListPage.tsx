@@ -2,7 +2,7 @@
 // Asset list page - read-only view with filters and pagination
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import assetService, { Asset, AssetFilters } from '../../services/asset.service';
 import { BackButton } from '../common/BackButton';
 import { ModuleIcon } from '../common/ModuleIcon';
@@ -11,6 +11,7 @@ import './AssetListPage.css';
 
 export const AssetListPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,12 +21,17 @@ export const AssetListPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
-  // Filters
+  // Filters — initialize contractId from URL query param if provided
+  const initialContractId = searchParams.get('contractId')
+    ? Number(searchParams.get('contractId'))
+    : undefined;
+
   const [filters, setFilters] = useState<AssetFilters>({
     assetType: '',
     status: '',
     category: '',
     search: '',
+    contractId: initialContractId,
     page: 1,
     limit: 20
   });
@@ -42,6 +48,7 @@ export const AssetListPage: React.FC = () => {
         status: filters.status,
         category: filters.category,
         search: filters.search,
+        contractId: filters.contractId,
         page,
         limit: 20
       });
@@ -54,7 +61,7 @@ export const AssetListPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters.assetType, filters.status, filters.category, filters.search, page]);
+  }, [filters.assetType, filters.status, filters.category, filters.search, filters.contractId, page]);
 
   useEffect(() => {
     fetchAssets();

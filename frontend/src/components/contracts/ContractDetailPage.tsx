@@ -9,7 +9,10 @@ import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
 import { useAuth } from '../../hooks/useAuth';
 import type { Contract, Subsystem, SubsystemTask } from '../../services/contract.service';
+import contractService from '../../services/contract.service';
+import type { Asset } from '../../services/asset.service';
 import api from '../../services/api';
+import { getAssetTypeLabel, getAssetStatusLabel, getAssetStatusBadgeClass } from '../../utils/assetLabels';
 import { ShipmentWizardModal } from './ShipmentWizardModal';
 import { ShipmentWizardSmokB } from './ShipmentWizardSmokB';
 import { ShipmentWizardSmokA } from './ShipmentWizardSmokA';
@@ -39,6 +42,9 @@ export const ContractDetailPage: React.FC = () => {
   const [completionLoading, setCompletionLoading] = useState(false);
   const [completionError, setCompletionError] = useState('');
   const [taskStatuses, setTaskStatuses] = useState<Map<string, string>>(new Map());
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [assetsLoading, setAssetsLoading] = useState(false);
+  const [assetsError, setAssetsError] = useState<string | null>(null);
 
   const canCreateTasks =
     typeof hasPermission === 'function' ? hasPermission('tasks', 'create') : false;
@@ -89,6 +95,28 @@ export const ContractDetailPage: React.FC = () => {
       console.warn('Failed to sync task statuses', { error, taskNumbers });
     }
   };
+
+  const loadContractAssets = async (contractId: number) => {
+    try {
+      setAssetsLoading(true);
+      setAssetsError(null);
+      setAssets([]);
+      const data = await contractService.getContractAssets(contractId);
+      setAssets(data);
+    } catch (err: any) {
+      console.error('Error loading contract assets:', err);
+      setAssets([]);
+      setAssetsError(err.response?.data?.message || 'Błąd podczas ładowania obiektów');
+    } finally {
+      setAssetsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (contract?.id) {
+      loadContractAssets(contract.id);
+    }
+  }, [contract?.id]);
 
   const handleApprove = async () => {
     if (!contract || !confirm('Czy na pewno chcesz zatwierdzić ten kontrakt?')) return;
@@ -342,6 +370,90 @@ export const ContractDetailPage: React.FC = () => {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Installed Assets Section */}
+      <div className="assets-card card">
+        <div className="card-header">
+          <h2>🏗️ Zainstalowane obiekty</h2>
+          <div className="card-actions">
+            {!assetsLoading && !assetsError && assets.length > 0 && (
+              <span className="assets-count">{assets.length} obiektów</span>
+            )}
+            <button
+              className="btn btn-secondary"
+              onClick={() => navigate(`/assets?contractId=${contract.id}`)}
+            >
+              Zobacz wszystkie
+            </button>
+          </div>
+        </div>
+
+        {assetsLoading && (
+          <div className="loading">Ładowanie obiektów...</div>
+        )}
+
+        {assetsError && !assetsLoading && (
+          <div className="alert alert-error">{assetsError}</div>
+        )}
+
+        {!assetsLoading && !assetsError && assets.length === 0 && (
+          <div className="empty-state">
+            <p>Brak zainstalowanych obiektów dla tego kontraktu</p>
+          </div>
+        )}
+
+        {!assetsLoading && !assetsError && assets.length > 0 && (
+          <div className="assets-table-container">
+            <table className="assets-table">
+              <thead>
+                <tr>
+                  <th>Numer obiektu</th>
+                  <th>Typ</th>
+                  <th>Nazwa</th>
+                  <th>Lokalizacja</th>
+                  <th>Status</th>
+                  <th>Data instalacji</th>
+                  <th>Akcje</th>
+                </tr>
+              </thead>
+              <tbody>
+                {assets.map(asset => (
+                  <tr key={asset.id}>
+                    <td>
+                      <code className="asset-number">{asset.assetNumber}</code>
+                    </td>
+                    <td>{getAssetTypeLabel(asset.assetType)}</td>
+                    <td className="asset-name">{asset.name}</td>
+                    <td className="asset-location">
+                      {asset.liniaKolejowa && asset.kilometraz
+                        ? `${asset.liniaKolejowa} km ${asset.kilometraz}`
+                        : asset.miejscowosc || '-'}
+                    </td>
+                    <td>
+                      <span className={`status-badge ${getAssetStatusBadgeClass(asset.status)}`}>
+                        {getAssetStatusLabel(asset.status)}
+                      </span>
+                    </td>
+                    <td>
+                      {asset.actualInstallationDate
+                        ? new Date(asset.actualInstallationDate).toLocaleDateString('pl-PL')
+                        : '-'}
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-sm assets-card-btn-link"
+                        onClick={() => navigate(`/assets/${asset.id}`)}
+                      >
+                        👁️ Szczegóły
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

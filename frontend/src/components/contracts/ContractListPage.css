@@ -1441,3 +1441,133 @@
   max-width: 100%;
 }
 
+/* Assets Section */
+.assets-card {
+  margin-bottom: 24px;
+}
+
+.assets-card .assets-count {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-right: 12px;
+}
+
+.assets-card .assets-table-container {
+  overflow-x: auto;
+}
+
+.assets-card .assets-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.assets-card .assets-table th {
+  background: var(--bg-secondary);
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid var(--border-color);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.assets-card .assets-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 14px;
+}
+
+.assets-card .assets-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.assets-card .assets-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.assets-card .asset-number {
+  font-family: var(--font-mono), monospace;
+  background: var(--bg-secondary);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 13px;
+  color: var(--primary-color);
+}
+
+.assets-card .asset-name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.assets-card .asset-location {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Status badges scoped to assets-card */
+.assets-card .status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.assets-card .status-active {
+  background: rgba(40, 167, 69, 0.15);
+  color: #28a745;
+}
+
+.assets-card .status-installed {
+  background: rgba(0, 123, 255, 0.15);
+  color: #007bff;
+}
+
+.assets-card .status-in-service {
+  background: rgba(255, 193, 7, 0.15);
+  color: #e0a800;
+}
+
+.assets-card .status-faulty {
+  background: rgba(220, 53, 69, 0.15);
+  color: #dc3545;
+}
+
+.assets-card .status-planned {
+  background: rgba(23, 162, 184, 0.15);
+  color: #17a2b8;
+}
+
+.assets-card .status-inactive {
+  background: rgba(108, 117, 125, 0.15);
+  color: #6c757d;
+}
+
+.assets-card .status-decommissioned {
+  background: rgba(52, 58, 64, 0.15);
+  color: #495057;
+}
+
+.assets-card .status-default {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.assets-card-btn-link {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 13px;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+
+.assets-card-btn-link:hover {
+  background: var(--bg-hover);
+  text-decoration: underline;
+}
+
