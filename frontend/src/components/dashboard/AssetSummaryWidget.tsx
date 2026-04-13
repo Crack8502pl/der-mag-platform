@@ -52,10 +52,15 @@ export const AssetSummaryWidget: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
-    const fetchStats = async () => {
-      try {
+    const fetchStats = async (isInitial: boolean) => {
+      // Only show the full skeleton on the very first load
+      if (isInitial) {
         setLoading(true);
+      }
+
+      try {
         const data = await assetService.getAssetStats();
         if (!cancelled) {
           setStats(data);
@@ -65,27 +70,32 @@ export const AssetSummaryWidget: React.FC = () => {
         if (!cancelled) {
           console.error('Failed to load asset stats:', err);
           setError(err.response?.data?.message || 'Błąd podczas ładowania statystyk');
-          setStats({
-            total: 0,
-            byStatus: { planned: 0, installed: 0, active: 0, in_service: 0, faulty: 0, inactive: 0, decommissioned: 0 },
-            byType: {},
-            byCategory: {},
-          });
+          // Only replace stats with zeros on initial load to prevent blank UI
+          if (isInitial) {
+            setStats({
+              total: 0,
+              byStatus: { planned: 0, installed: 0, active: 0, in_service: 0, faulty: 0, inactive: 0, decommissioned: 0 },
+              byType: {},
+              byCategory: {},
+            });
+          }
         }
       } finally {
         if (!cancelled) {
-          setLoading(false);
+          if (isInitial) {
+            setLoading(false);
+          }
+          // Schedule next refresh only after current fetch completes to prevent overlapping calls
+          timeoutId = setTimeout(() => fetchStats(false), 60000);
         }
       }
     };
 
-    fetchStats();
-
-    const interval = setInterval(fetchStats, 60000);
+    fetchStats(true);
 
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      clearTimeout(timeoutId);
     };
   }, []);
 
