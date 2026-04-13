@@ -35,6 +35,13 @@ export interface AssetListResponse {
   };
 }
 
+export interface AssetStats {
+  total: number;
+  byType: Record<string, number>;
+  byStatus: Record<string, number>;
+  byCategory: Record<string, number>;
+}
+
 export interface AssetFilters {
   assetType?: string;
   status?: string;
@@ -81,7 +88,7 @@ const assetService = {
   /**
    * Get asset statistics
    */
-  async getAssetStats(): Promise<any> {
+  async getAssetStats(): Promise<AssetStats> {
     const response = await api.get('/assets/stats');
     return response.data.data;
   }

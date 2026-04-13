@@ -29,6 +29,7 @@ export const AssetListPage: React.FC = () => {
     page: 1,
     limit: 20
   });
+  const [searchInputValue, setSearchInputValue] = useState('');
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -64,6 +65,7 @@ export const AssetListPage: React.FC = () => {
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+    setSearchInputValue(value);
     if (searchDebounceRef.current) {
       clearTimeout(searchDebounceRef.current);
     }
@@ -116,7 +118,7 @@ export const AssetListPage: React.FC = () => {
         <div className="header-content">
           <ModuleIcon name="assets" emoji={MODULE_ICONS.assets} size={36} />
           <div>
-            <h1>🏗️ Obiekty</h1>
+            <h1>Obiekty</h1>
             <p className="page-subtitle">
               Lista obiektów infrastruktury ({total} obiektów)
             </p>
@@ -182,6 +184,7 @@ export const AssetListPage: React.FC = () => {
             id="filter-search"
             type="text"
             placeholder="Nazwa, numer, lokalizacja..."
+            value={searchInputValue}
             onChange={handleSearchChange}
           />
         </div>
