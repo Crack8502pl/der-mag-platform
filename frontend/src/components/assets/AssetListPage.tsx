@@ -7,6 +7,7 @@ import assetService, { Asset, AssetFilters } from '../../services/asset.service'
 import { BackButton } from '../common/BackButton';
 import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
+import { getAssetTypeLabel, getAssetStatusLabel, getAssetStatusBadgeClass } from '../../utils/assetLabels';
 import './AssetListPage.css';
 
 export const AssetListPage: React.FC = () => {
@@ -92,42 +93,6 @@ export const AssetListPage: React.FC = () => {
     }, 300);
   };
 
-  const getStatusBadgeClass = (status: string): string => {
-    const statusMap: Record<string, string> = {
-      'planned': 'status-planned',
-      'installed': 'status-installed',
-      'active': 'status-active',
-      'in_service': 'status-in-service',
-      'faulty': 'status-faulty',
-      'inactive': 'status-inactive',
-      'decommissioned': 'status-decommissioned'
-    };
-    return statusMap[status] || 'status-default';
-  };
-
-  const getStatusLabel = (status: string): string => {
-    const statusLabels: Record<string, string> = {
-      'planned': 'Planowany',
-      'installed': 'Zainstalowany',
-      'active': 'Aktywny',
-      'in_service': 'W serwisie',
-      'faulty': 'Uszkodzony',
-      'inactive': 'Nieaktywny',
-      'decommissioned': 'Zlikwidowany'
-    };
-    return statusLabels[status] || status;
-  };
-
-  const getAssetTypeLabel = (type: string): string => {
-    const typeLabels: Record<string, string> = {
-      'PRZEJAZD': 'Przejazd',
-      'SKP': 'SKP',
-      'NASTAWNIA': 'Nastawnia',
-      'LCS': 'LCS',
-      'CUID': 'CUID'
-    };
-    return typeLabels[type] || type;
-  };
 
   return (
     <div className="asset-list-page">
@@ -271,8 +236,8 @@ export const AssetListPage: React.FC = () => {
                           : asset.miejscowosc || '-'}
                       </td>
                       <td>
-                        <span className={`status-badge ${getStatusBadgeClass(asset.status)}`}>
-                          {getStatusLabel(asset.status)}
+                        <span className={`status-badge ${getAssetStatusBadgeClass(asset.status)}`}>
+                          {getAssetStatusLabel(asset.status)}
                         </span>
                       </td>
                       <td>

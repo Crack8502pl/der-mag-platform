@@ -8,6 +8,7 @@ import type { AssetDetails } from '../../services/asset.service';
 import { BackButton } from '../common/BackButton';
 import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
+import { getAssetTypeLabel, getAssetStatusLabel, getAssetStatusBadgeClass } from '../../utils/assetLabels';
 import { CreateServiceTaskModal } from './CreateServiceTaskModal';
 import './AssetDetailPage.css';
 import './CreateServiceTaskModal.css';
@@ -40,43 +41,6 @@ export const AssetDetailPage: React.FC = () => {
       fetchAssetDetails();
     }
   }, [id, fetchAssetDetails]);
-
-  const getStatusBadgeClass = (status: string): string => {
-    const statusMap: Record<string, string> = {
-      'planned': 'status-planned',
-      'installed': 'status-installed',
-      'active': 'status-active',
-      'in_service': 'status-in-service',
-      'faulty': 'status-faulty',
-      'inactive': 'status-inactive',
-      'decommissioned': 'status-decommissioned'
-    };
-    return statusMap[status] || 'status-default';
-  };
-
-  const getStatusLabel = (status: string): string => {
-    const statusLabels: Record<string, string> = {
-      'planned': '📅 Planowany',
-      'installed': '📦 Zainstalowany',
-      'active': '✅ Aktywny',
-      'in_service': '🔧 W serwisie',
-      'faulty': '⚠️ Uszkodzony',
-      'inactive': '⏸️ Nieaktywny',
-      'decommissioned': '🚫 Zlikwidowany'
-    };
-    return statusLabels[status] || status;
-  };
-
-  const getAssetTypeLabel = (type: string): string => {
-    const typeLabels: Record<string, string> = {
-      'PRZEJAZD': '🚦 Przejazd',
-      'SKP': '🎛️ SKP',
-      'NASTAWNIA': '🏢 Nastawnia',
-      'LCS': '📡 LCS',
-      'CUID': '💻 CUID'
-    };
-    return typeLabels[type] || type;
-  };
 
   const getTaskRoleLabel = (role: string): string => {
     const roleLabels: Record<string, string> = {
@@ -174,8 +138,8 @@ export const AssetDetailPage: React.FC = () => {
           </div>
         </div>
         <div className="header-right">
-          <span className={`status-badge ${getStatusBadgeClass(asset.status)}`}>
-            {getStatusLabel(asset.status)}
+          <span className={`status-badge ${getAssetStatusBadgeClass(asset.status)}`}>
+            {getAssetStatusLabel(asset.status)}
           </span>
         </div>
       </div>
@@ -349,11 +313,11 @@ export const AssetDetailPage: React.FC = () => {
                 <div className="history-change">
                   {entry.oldStatus && (
                     <>
-                      <span className="old-status">{getStatusLabel(entry.oldStatus)}</span>
+                      <span className="old-status">{getAssetStatusLabel(entry.oldStatus)}</span>
                       <span className="arrow">→</span>
                     </>
                   )}
-                  <span className="new-status">{getStatusLabel(entry.newStatus)}</span>
+                  <span className="new-status">{getAssetStatusLabel(entry.newStatus)}</span>
                 </div>
                 {entry.reason && <div className="history-reason">{entry.reason}</div>}
                 <div className="history-user">

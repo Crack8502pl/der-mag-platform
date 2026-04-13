@@ -73,8 +73,6 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
   };
 
   const describedTasks = taskDetails.filter(detail => {
-    // Tasks already saved in the database are always considered described
-    if (detail.id) return true;
     if (detail.taskType === 'PRZEJAZD_KAT_A') {
       return detail.kilometraz && detail.kategoria;
     } else if (detail.taskType === 'SKP') {

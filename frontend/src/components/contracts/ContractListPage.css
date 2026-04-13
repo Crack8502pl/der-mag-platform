@@ -570,17 +570,17 @@
   margin-bottom: 12px;
 }
 
-.empty-state-title {
+.empty-state .empty-state-title {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 8px !important;
+  margin-bottom: 8px;
 }
 
-.empty-state-description {
+.empty-state .empty-state-description {
   font-size: 14px;
   color: var(--text-secondary);
-  margin: 0 !important;
+  margin: 0;
 }
 
 /* Alerts */
