@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import assetService, { AssetStats } from '../../services/asset.service';
+import assetService, { type AssetStats } from '../../services/asset.service';
 import './AssetSummaryWidget.css';
 
 interface StatCardProps {

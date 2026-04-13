@@ -22,6 +22,9 @@ export class Device {
   @Column({ type: 'varchar', name: 'device_model', length: 100, nullable: true })
   deviceModel: string;
 
+  @Column({ type: 'varchar', name: 'catalog_number', length: 200, nullable: true })
+  catalogNumber: string | null;
+
   @Column({ type: 'varchar', length: 100, nullable: true })
   manufacturer: string;
 
