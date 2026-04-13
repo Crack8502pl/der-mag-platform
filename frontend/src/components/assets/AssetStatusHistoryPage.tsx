@@ -257,7 +257,7 @@ export const AssetStatusHistoryPage: React.FC = () => {
                     </span>
                   </div>
                   {entry.reason && (
-                    <div className="timeline-reason">💬 &quot;{entry.reason}&quot;</div>
+                    <div className="timeline-reason">💬 "{entry.reason}"</div>
                   )}
                 </div>
               </div>
