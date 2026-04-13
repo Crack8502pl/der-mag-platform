@@ -1446,22 +1446,22 @@
   margin-bottom: 24px;
 }
 
-.assets-count {
+.assets-card .assets-count {
   font-size: 14px;
   color: var(--text-secondary);
   margin-right: 12px;
 }
 
-.assets-table-container {
+.assets-card .assets-table-container {
   overflow-x: auto;
 }
 
-.assets-table {
+.assets-card .assets-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.assets-table th {
+.assets-card .assets-table th {
   background: var(--bg-secondary);
   padding: 12px;
   text-align: left;
@@ -1471,22 +1471,22 @@
   white-space: nowrap;
 }
 
-.assets-table td {
+.assets-card .assets-table td {
   padding: 12px;
   border-bottom: 1px solid var(--border-color);
   font-size: 14px;
 }
 
-.assets-table tbody tr:last-child td {
+.assets-card .assets-table tbody tr:last-child td {
   border-bottom: none;
 }
 
-.assets-table tbody tr:hover {
+.assets-card .assets-table tbody tr:hover {
   background: var(--bg-hover);
 }
 
-.asset-number {
-  font-family: 'Courier New', monospace;
+.assets-card .asset-number {
+  font-family: var(--font-mono), monospace;
   background: var(--bg-secondary);
   padding: 2px 6px;
   border-radius: 3px;
@@ -1494,18 +1494,18 @@
   color: var(--primary-color);
 }
 
-.asset-name {
+.assets-card .asset-name {
   font-weight: 500;
   color: var(--text-primary);
 }
 
-.asset-location {
+.assets-card .asset-location {
   font-size: 13px;
   color: var(--text-secondary);
 }
 
-/* Status badges for assets */
-.status-badge {
+/* Status badges scoped to assets-card */
+.assets-card .status-badge {
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 11px;
@@ -1515,47 +1515,47 @@
   white-space: nowrap;
 }
 
-.status-active {
+.assets-card .status-active {
   background: rgba(40, 167, 69, 0.15);
   color: #28a745;
 }
 
-.status-installed {
+.assets-card .status-installed {
   background: rgba(0, 123, 255, 0.15);
   color: #007bff;
 }
 
-.status-in-service {
+.assets-card .status-in-service {
   background: rgba(255, 193, 7, 0.15);
   color: #e0a800;
 }
 
-.status-faulty {
+.assets-card .status-faulty {
   background: rgba(220, 53, 69, 0.15);
   color: #dc3545;
 }
 
-.status-planned {
+.assets-card .status-planned {
   background: rgba(23, 162, 184, 0.15);
   color: #17a2b8;
 }
 
-.status-inactive {
+.assets-card .status-inactive {
   background: rgba(108, 117, 125, 0.15);
   color: #6c757d;
 }
 
-.status-decommissioned {
+.assets-card .status-decommissioned {
   background: rgba(52, 58, 64, 0.15);
   color: #495057;
 }
 
-.status-default {
+.assets-card .status-default {
   background: var(--bg-secondary);
   color: var(--text-secondary);
 }
 
-.btn-link {
+.assets-card-btn-link {
   background: none;
   border: none;
   color: var(--primary-color);
@@ -1566,7 +1566,7 @@
   border-radius: var(--radius-sm);
 }
 
-.btn-link:hover {
+.assets-card-btn-link:hover {
   background: var(--bg-hover);
   text-decoration: underline;
 }

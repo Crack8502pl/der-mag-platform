@@ -12,6 +12,7 @@ import type { Contract, Subsystem, SubsystemTask } from '../../services/contract
 import contractService from '../../services/contract.service';
 import type { Asset } from '../../services/asset.service';
 import api from '../../services/api';
+import { getAssetTypeLabel, getAssetStatusLabel, getAssetStatusBadgeClass } from '../../utils/assetLabels';
 import { ShipmentWizardModal } from './ShipmentWizardModal';
 import { ShipmentWizardSmokB } from './ShipmentWizardSmokB';
 import { ShipmentWizardSmokA } from './ShipmentWizardSmokA';
@@ -99,10 +100,12 @@ export const ContractDetailPage: React.FC = () => {
     try {
       setAssetsLoading(true);
       setAssetsError(null);
+      setAssets([]);
       const data = await contractService.getContractAssets(contractId);
       setAssets(data);
     } catch (err: any) {
       console.error('Error loading contract assets:', err);
+      setAssets([]);
       setAssetsError(err.response?.data?.message || 'Błąd podczas ładowania obiektów');
     } finally {
       setAssetsLoading(false);
@@ -114,43 +117,6 @@ export const ContractDetailPage: React.FC = () => {
       loadContractAssets(contract.id);
     }
   }, [contract?.id]);
-
-  const getAssetTypeLabel = (type: string): string => {
-    const typeMap: Record<string, string> = {
-      'PRZEJAZD': 'Przejazd',
-      'LCS': 'LCS',
-      'CUID': 'CUID',
-      'NASTAWNIA': 'Nastawnia',
-      'SKP': 'SKP'
-    };
-    return typeMap[type] || type;
-  };
-
-  const getStatusLabel = (status: string): string => {
-    const statusMap: Record<string, string> = {
-      'planned': 'Planowany',
-      'installed': 'Zainstalowany',
-      'active': 'Aktywny',
-      'in_service': 'W serwisie',
-      'faulty': 'Uszkodzony',
-      'inactive': 'Nieaktywny',
-      'decommissioned': 'Wycofany'
-    };
-    return statusMap[status] || status;
-  };
-
-  const getStatusBadgeClass = (status: string): string => {
-    const statusMap: Record<string, string> = {
-      'planned': 'status-planned',
-      'installed': 'status-installed',
-      'active': 'status-active',
-      'in_service': 'status-in-service',
-      'faulty': 'status-faulty',
-      'inactive': 'status-inactive',
-      'decommissioned': 'status-decommissioned'
-    };
-    return statusMap[status] || 'status-default';
-  };
 
   const handleApprove = async () => {
     if (!contract || !confirm('Czy na pewno chcesz zatwierdzić ten kontrakt?')) return;
@@ -413,7 +379,7 @@ export const ContractDetailPage: React.FC = () => {
         <div className="card-header">
           <h2>🏗️ Zainstalowane obiekty</h2>
           <div className="card-actions">
-            {assets.length > 0 && (
+            {!assetsLoading && !assetsError && assets.length > 0 && (
               <span className="assets-count">{assets.length} obiektów</span>
             )}
             <button
@@ -439,7 +405,7 @@ export const ContractDetailPage: React.FC = () => {
           </div>
         )}
 
-        {!assetsLoading && assets.length > 0 && (
+        {!assetsLoading && !assetsError && assets.length > 0 && (
           <div className="assets-table-container">
             <table className="assets-table">
               <thead>
@@ -467,8 +433,8 @@ export const ContractDetailPage: React.FC = () => {
                         : asset.miejscowosc || '-'}
                     </td>
                     <td>
-                      <span className={`status-badge ${getStatusBadgeClass(asset.status)}`}>
-                        {getStatusLabel(asset.status)}
+                      <span className={`status-badge ${getAssetStatusBadgeClass(asset.status)}`}>
+                        {getAssetStatusLabel(asset.status)}
                       </span>
                     </td>
                     <td>
@@ -478,7 +444,7 @@ export const ContractDetailPage: React.FC = () => {
                     </td>
                     <td>
                       <button
-                        className="btn btn-sm btn-link"
+                        className="btn btn-sm assets-card-btn-link"
                         onClick={() => navigate(`/assets/${asset.id}`)}
                       >
                         👁️ Szczegóły
