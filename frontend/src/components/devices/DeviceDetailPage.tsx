@@ -229,7 +229,7 @@ export const DeviceDetailPage: React.FC = () => {
             <div className="asset-actions">
               <button
                 className="btn-primary"
-                onClick={() => navigate(`/assets/${device.installedAsset!.id}`)}
+                onClick={() => navigate(`/assets/${device.installedAsset?.id}`)}
               >
                 👁️ Zobacz szczegóły obiektu
               </button>

@@ -11,7 +11,7 @@ export class DeviceController {
       const { id } = req.params;
       const deviceId = parseInt(id, 10);
 
-      if (!Number.isInteger(deviceId) || deviceId <= 0) {
+      if (isNaN(deviceId) || deviceId <= 0) {
         res.status(400).json({ success: false, message: 'Nieprawidłowe ID urządzenia' });
         return;
       }
