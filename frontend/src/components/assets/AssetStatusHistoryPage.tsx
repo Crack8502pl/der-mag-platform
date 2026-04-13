@@ -5,7 +5,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import assetService from '../../services/asset.service';
 import type { HistoryFilters, StatusHistoryEntry, AssetHistoryResponse } from '../../services/asset.service';
-import type { AssetDetails } from '../../services/asset.service';
 import { BackButton } from '../common/BackButton';
 import './AssetStatusHistoryPage.css';
 
@@ -38,7 +37,7 @@ const getDotClass = (status: string): string => {
     planned: 'status-planned',
     installed: 'status-installed',
     active: 'status-active',
-    in_service: 'status-in_service',
+    in_service: 'status-in-service',
     faulty: 'status-faulty',
     inactive: 'status-inactive',
     decommissioned: 'status-decommissioned'
@@ -51,7 +50,7 @@ const ITEMS_PER_PAGE = 20;
 export const AssetStatusHistoryPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
 
-  const [asset, setAsset] = useState<Pick<AssetDetails, 'id' | 'name' | 'assetNumber'> | null>(null);
+  const [asset, setAsset] = useState<{ id: number; name: string; assetNumber: string } | null>(null);
   const [historyResult, setHistoryResult] = useState<AssetHistoryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,12 +69,11 @@ export const AssetStatusHistoryPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const [assetDetails, historyData] = await Promise.all([
-        assetService.getAssetDetails(Number(id)),
-        assetService.getAssetStatusHistory(Number(id), filters)
-      ]);
-      setAsset({ id: assetDetails.id, name: assetDetails.name, assetNumber: assetDetails.assetNumber });
-      setHistoryResult(historyData);
+      const result = await assetService.getAssetStatusHistory(Number(id), filters);
+      if (result.assetInfo) {
+        setAsset(result.assetInfo);
+      }
+      setHistoryResult(result);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd podczas pobierania historii statusów');
       console.error('Error fetching asset history:', err);

@@ -214,7 +214,7 @@
 .timeline-dot.status-planned    { background: #4299e1; box-shadow: 0 0 0 2px rgba(66,153,225,0.35); }
 .timeline-dot.status-installed  { background: #ed8936; box-shadow: 0 0 0 2px rgba(237,137,54,0.35); }
 .timeline-dot.status-active     { background: #48bb78; box-shadow: 0 0 0 2px rgba(72,187,120,0.35); }
-.timeline-dot.status-in_service { background: #ecc94b; box-shadow: 0 0 0 2px rgba(236,201,75,0.35); }
+.timeline-dot.status-in-service { background: #ecc94b; box-shadow: 0 0 0 2px rgba(236,201,75,0.35); }
 .timeline-dot.status-faulty     { background: #fc8181; box-shadow: 0 0 0 2px rgba(252,129,129,0.35); }
 .timeline-dot.status-inactive   { background: #a0aec0; box-shadow: 0 0 0 2px rgba(160,174,192,0.35); }
 .timeline-dot.status-decommissioned { background: #718096; box-shadow: 0 0 0 2px rgba(113,128,150,0.35); }
@@ -270,7 +270,7 @@
 .status-chip.status-planned    { background: rgba(66,153,225,0.15); color: #4299e1; }
 .status-chip.status-installed  { background: rgba(237,137,54,0.15); color: #ed8936; }
 .status-chip.status-active     { background: rgba(72,187,120,0.15); color: #48bb78; }
-.status-chip.status-in_service { background: rgba(236,201,75,0.15); color: #b7791f; }
+.status-chip.status-in-service { background: rgba(236,201,75,0.15); color: #b7791f; }
 .status-chip.status-faulty     { background: rgba(220,53,69,0.15);  color: #dc3545; }
 .status-chip.status-inactive   { background: rgba(108,117,125,0.15); color: #718096; }
 .status-chip.status-decommissioned { background: rgba(108,117,125,0.25); color: #4a5568; }

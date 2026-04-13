@@ -75,6 +75,7 @@ export interface StatusHistoryEntry {
 }
 
 export interface AssetHistoryResponse {
+  assetInfo?: { id: number; name: string; assetNumber: string };
   data: StatusHistoryEntry[];
   pagination: {
     page: number;
@@ -247,13 +248,11 @@ const assetService = {
 
     // Apply client-side filters
     if (filters?.startDate) {
-      const start = new Date(filters.startDate);
-      start.setHours(0, 0, 0, 0);
+      const start = new Date(`${filters.startDate}T00:00:00`);
       history = history.filter(h => new Date(h.changedAt) >= start);
     }
     if (filters?.endDate) {
-      const end = new Date(filters.endDate);
-      end.setHours(23, 59, 59, 999);
+      const end = new Date(`${filters.endDate}T23:59:59.999`);
       history = history.filter(h => new Date(h.changedAt) <= end);
     }
     if (filters?.status) {
@@ -263,14 +262,17 @@ const assetService = {
     // Sort descending (newest first)
     history.sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime());
 
-    const page = filters?.page ?? 1;
-    const limit = filters?.limit ?? 20;
+    const requestedPage = filters?.page ?? 1;
+    const requestedLimit = filters?.limit ?? 20;
+    const limit = Math.max(1, requestedLimit);
     const total = history.length;
     const totalPages = Math.max(1, Math.ceil(total / limit));
-    const start = (page - 1) * limit;
-    const paginated = history.slice(start, start + limit);
+    const page = Math.min(Math.max(1, requestedPage), totalPages);
+    const startIdx = (page - 1) * limit;
+    const paginated = history.slice(startIdx, startIdx + limit);
 
     return {
+      assetInfo: { id: details.id, name: details.name, assetNumber: details.assetNumber },
       data: paginated,
       pagination: { page, limit, total, totalPages }
     };
