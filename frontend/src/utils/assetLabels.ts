@@ -4,24 +4,24 @@
 
 export const getAssetTypeLabel = (type: string): string => {
   const typeMap: Record<string, string> = {
-    'PRZEJAZD': 'Przejazd',
-    'LCS': 'LCS',
-    'CUID': 'CUID',
-    'NASTAWNIA': 'Nastawnia',
-    'SKP': 'SKP'
+    'PRZEJAZD': '🚦 Przejazd',
+    'LCS': '💻 LCS',
+    'CUID': '📡 CUID',
+    'NASTAWNIA': '🏢 Nastawnia',
+    'SKP': '🖥️ SKP'
   };
   return typeMap[type] || type;
 };
 
 export const getAssetStatusLabel = (status: string): string => {
   const statusMap: Record<string, string> = {
-    'planned': 'Planowany',
-    'installed': 'Zainstalowany',
-    'active': 'Aktywny',
-    'in_service': 'W serwisie',
-    'faulty': 'Uszkodzony',
-    'inactive': 'Nieaktywny',
-    'decommissioned': 'Zlikwidowany'
+    'planned': '📅 Planowany',
+    'installed': '🔧 Zainstalowany',
+    'active': '✅ Aktywny',
+    'in_service': '🛠️ W serwisie',
+    'faulty': '⚠️ Awaria',
+    'inactive': '⚪ Nieaktywny',
+    'decommissioned': '🚫 Wycofany'
   };
   return statusMap[status] || status;
 };

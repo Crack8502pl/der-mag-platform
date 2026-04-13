@@ -565,6 +565,24 @@
   margin: 0;
 }
 
+.empty-state-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.empty-state-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px !important;
+}
+
+.empty-state-description {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 !important;
+}
+
 /* Alerts */
 .alert {
   padding: 12px 16px;
