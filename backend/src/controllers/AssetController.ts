@@ -659,6 +659,14 @@ export class AssetController {
   createServiceTask = async (req: Request, res: Response): Promise<void> => {
     try {
       const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Unauthorized'
+        });
+        return;
+      }
+
       const { id } = req.params;
       const assetId = parseInt(id, 10);
 
@@ -688,14 +696,50 @@ export class AssetController {
         return;
       }
 
+      let parsedScheduledDate: Date | undefined;
+      if (scheduledDate != null && scheduledDate !== '') {
+        parsedScheduledDate = new Date(scheduledDate);
+        if (isNaN(parsedScheduledDate.getTime())) {
+          res.status(400).json({
+            success: false,
+            message: 'Nieprawidłowa wartość pola scheduledDate'
+          });
+          return;
+        }
+      }
+
+      let parsedPriority: number | undefined;
+      if (priority != null && priority !== '') {
+        parsedPriority = parseInt(priority, 10);
+        if (!Number.isFinite(parsedPriority)) {
+          res.status(400).json({
+            success: false,
+            message: 'Nieprawidłowa wartość pola priority'
+          });
+          return;
+        }
+      }
+
+      let parsedAssignedTo: number | undefined;
+      if (assignedTo != null && assignedTo !== '') {
+        parsedAssignedTo = parseInt(assignedTo, 10);
+        if (!Number.isFinite(parsedAssignedTo)) {
+          res.status(400).json({
+            success: false,
+            message: 'Nieprawidłowa wartość pola assignedTo'
+          });
+          return;
+        }
+      }
+
       const result = await this.assetService.createServiceTask(
         assetId,
         {
           taskRole,
           taskName,
-          scheduledDate: scheduledDate ? new Date(scheduledDate) : undefined,
-          priority: priority != null ? parseInt(priority, 10) : undefined,
-          assignedTo: assignedTo != null ? parseInt(assignedTo, 10) : undefined,
+          scheduledDate: parsedScheduledDate,
+          priority: parsedPriority,
+          assignedTo: parsedAssignedTo,
           description
         },
         userId
