@@ -11,6 +11,9 @@ import { useWizardDraft } from '../../../hooks/useWizardDraft';
 import { generateAllTasks, buildTaskNameFromDetails, resolveTaskVariant } from './utils/taskGenerator';
 import { validateUniqueIPPools } from './utils/validation';
 import type { WizardProps, WizardData, GeneratedTask } from './types/wizard.types';
+import taskService from '../../../services/task.service';
+import type { Task } from '../../../types/task.types';
+import { CompleteTaskAndCreateAssetModal } from '../../tasks/CompleteTaskAndCreateAssetModal';
 
 // Step Components
 import { BasicDataStep } from './steps/BasicDataStep';
@@ -55,6 +58,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
   const [createdContractId, setCreatedContractId] = useState<number | null>(null);
   const [createdContract, setCreatedContract] = useState<Contract | null>(null);
   const [shippingActive, setShippingActive] = useState(false);
+  const [taskForAssetCreation, setTaskForAssetCreation] = useState<Task | null>(null);
   
   // Initialize wizard state using custom hook
   const {
@@ -444,6 +448,16 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     }
   };
 
+  const handleCompleteInstallationTask = async (taskNumber: string) => {
+    try {
+      const task = await taskService.getById(taskNumber);
+      setTaskForAssetCreation(task);
+    } catch (err: any) {
+      console.error('❌ Error fetching task for asset creation:', err);
+      setError(err.response?.data?.message || 'Błąd pobierania zadania');
+    }
+  };
+
   const canProceed = () => {
     const stepInfo = getCurrentStepInfo();
     
@@ -612,6 +626,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
               onClose();
             }}
             onRequestShipping={handleRequestShipping}
+            onCompleteInstallationTask={handleCompleteInstallationTask}
           />
         );
       },
@@ -630,6 +645,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     wizardData.subsystems[stepInfo.subsystemIndex]?.type === 'SMW';
 
   return (
+    <>
     <div className="modal-overlay">
       <div className="modal-content modal-wizard" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
@@ -715,5 +731,14 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         )}
       </div>
     </div>
+
+    {taskForAssetCreation && (
+      <CompleteTaskAndCreateAssetModal
+        task={taskForAssetCreation}
+        onClose={() => setTaskForAssetCreation(null)}
+        onSuccess={() => setTaskForAssetCreation(null)}
+      />
+    )}
+    </>
   );
 };
