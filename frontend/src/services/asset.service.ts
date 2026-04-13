@@ -56,6 +56,35 @@ export interface AssetFilters {
   sortOrder?: 'ASC' | 'DESC';
 }
 
+export interface HistoryFilters {
+  startDate?: string;  // YYYY-MM-DD
+  endDate?: string;    // YYYY-MM-DD
+  status?: string;     // Filter by new status
+  userId?: number;     // Filter by user (not used in client-side fallback)
+  page?: number;
+  limit?: number;      // Default: 20
+}
+
+export interface StatusHistoryEntry {
+  id: number;
+  oldStatus: string | null;
+  newStatus: string;
+  reason?: string | null;
+  changedAt: string;
+  changedBy: { id?: number; firstName: string; lastName: string } | null;
+}
+
+export interface AssetHistoryResponse {
+  assetInfo?: { id: number; name: string; assetNumber: string };
+  data: StatusHistoryEntry[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export interface AssetDetails extends Asset {
   contract?: { id: number; contractNumber: string; name: string } | null;
   subsystem?: { id: number; name: string; subsystemType: string } | null;
@@ -201,6 +230,52 @@ const assetService = {
   }> {
     const response = await api.get(`/assets/${id}/devices`);
     return response.data;
+  },
+
+  /**
+   * Get paginated and filtered status history for an asset.
+   * Uses data from getAssetDetails as a client-side fallback (backend endpoint not yet available).
+   */
+  async getAssetStatusHistory(
+    assetId: number,
+    filters?: HistoryFilters
+  ): Promise<AssetHistoryResponse> {
+    const details = await assetService.getAssetDetails(assetId);
+    let history: StatusHistoryEntry[] = (details.statusHistory ?? []).map(h => ({
+      ...h,
+      changedBy: h.changedBy
+    }));
+
+    // Apply client-side filters
+    if (filters?.startDate) {
+      const start = new Date(`${filters.startDate}T00:00:00`);
+      history = history.filter(h => new Date(h.changedAt) >= start);
+    }
+    if (filters?.endDate) {
+      const end = new Date(`${filters.endDate}T23:59:59.999`);
+      history = history.filter(h => new Date(h.changedAt) <= end);
+    }
+    if (filters?.status) {
+      history = history.filter(h => h.newStatus === filters.status);
+    }
+
+    // Sort descending (newest first)
+    history.sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime());
+
+    const requestedPage = filters?.page ?? 1;
+    const requestedLimit = filters?.limit ?? 20;
+    const limit = Math.max(1, requestedLimit);
+    const total = history.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const page = Math.min(Math.max(1, requestedPage), totalPages);
+    const startIdx = (page - 1) * limit;
+    const paginated = history.slice(startIdx, startIdx + limit);
+
+    return {
+      assetInfo: { id: details.id, name: details.name, assetNumber: details.assetNumber },
+      data: paginated,
+      pagination: { page, limit, total, totalPages }
+    };
   },
 
   /**

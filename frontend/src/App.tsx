@@ -40,6 +40,7 @@ import { ContractListPage } from './components/contracts/ContractListPage';
 import { ContractDetailPage } from './components/contracts/ContractDetailPage';
 import { AssetListPage } from './components/assets/AssetListPage';
 import { AssetDetailPage } from './components/assets/AssetDetailPage';
+import { AssetStatusHistoryPage } from './components/assets/AssetStatusHistoryPage';
 import { WarehouseStockPage } from './components/modules/WarehouseStockPage';
 import { BrigadesPage } from './components/brigades/BrigadesPage';
 import { TasksMapPage } from './components/map/TasksMapPage';
@@ -239,6 +240,16 @@ function App() {
             <ProtectedRoute>
               <RoleBasedRoute requiredPermission={{ module: 'assets', action: 'read' }}>
                 <AssetDetailPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/assets/:id/history"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'assets', action: 'read' }}>
+                <AssetStatusHistoryPage />
               </RoleBasedRoute>
             </ProtectedRoute>
           }
