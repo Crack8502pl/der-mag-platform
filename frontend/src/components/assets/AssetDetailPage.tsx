@@ -2,7 +2,7 @@
 // Asset detail page - PR#10
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import assetService from '../../services/asset.service';
 import type { AssetDetails } from '../../services/asset.service';
 import { BackButton } from '../common/BackButton';
@@ -378,6 +378,9 @@ export const AssetDetailPage: React.FC = () => {
               Zwiń historię
             </button>
           )}
+          <Link className="btn-link" to={`/assets/${id}/history`} style={{ display: 'block', marginTop: 10 }}>
+            📊 Otwórz pełną stronę historii →
+          </Link>
         </div>
       )}
 
