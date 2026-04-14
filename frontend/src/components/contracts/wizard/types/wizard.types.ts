@@ -88,7 +88,7 @@ export interface WizardData {
   detectedRailwayLine?: string; // Auto-detected from contract name (e.g. "LK123")
   subsystems: SubsystemWizardData[];
   infrastructure?: InfrastructureData;
-  logistics?: LogisticsData;
+  logistics?: Partial<LogisticsData>;
 }
 
 export interface GeneratedTask {

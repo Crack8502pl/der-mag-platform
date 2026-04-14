@@ -33,7 +33,7 @@ export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
       logistics: {
         ...logistics,
         [field]: value,
-      } as LogisticsData,
+      },
     });
   };
 
@@ -160,12 +160,15 @@ export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
                     <td>{logistics.contactPerson}</td>
                   </tr>
                 )}
-                {logistics.preferredDeliveryDate && (
-                  <tr>
-                    <td className="preview-label">Data dostawy</td>
-                    <td>{new Date(logistics.preferredDeliveryDate).toLocaleDateString('pl-PL')}</td>
-                  </tr>
-                )}
+                {logistics.preferredDeliveryDate && (() => {
+                  const parsed = new Date(logistics.preferredDeliveryDate!);
+                  return !isNaN(parsed.getTime()) ? (
+                    <tr>
+                      <td className="preview-label">Data dostawy</td>
+                      <td>{parsed.toLocaleDateString('pl-PL')}</td>
+                    </tr>
+                  ) : null;
+                })()}
                 {logistics.shippingNotes && (
                   <tr>
                     <td className="preview-label">Uwagi</td>

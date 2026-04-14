@@ -479,7 +479,7 @@ export const useWizardState = ({
       logistics: {
         ...prev.logistics,
         ...data
-      } as LogisticsData
+      }
     }));
   };
 
