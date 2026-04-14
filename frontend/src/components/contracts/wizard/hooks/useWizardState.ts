@@ -6,7 +6,7 @@ import { detectSubsystemTypes, detectRailwayLine } from '../../../../config/subs
 import type { SubsystemType } from '../../../../config/subsystemWizardConfig';
 import contractService, { type Contract } from '../../../../services/contract.service';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../config/subsystemWizardConfig';
-import type { WizardData, SubsystemWizardData, TaskDetail } from '../types/wizard.types';
+import type { WizardData, SubsystemWizardData, TaskDetail, InfrastructureData, TaskInfrastructure, LogisticsData } from '../types/wizard.types';
 import { formatKilometrazDisplay, cleanKilometrazInput } from '../utils/validation';
 
 interface UseWizardStateProps {
@@ -34,6 +34,11 @@ interface UseWizardStateReturn {
   loadContractDataForEdit: (contract: Contract, setLoading: (loading: boolean) => void, setError: (error: string) => void) => Promise<void>;
   updateWizardData: (updates: Partial<WizardData>) => void;
   updateSubsystem: (index: number, updates: Partial<SubsystemWizardData>) => void;
+  updateInfrastructure: (data: Partial<InfrastructureData>) => void;
+  updateTaskInfrastructure: (taskNumber: string, data: Partial<TaskInfrastructure>) => void;
+  updateLogistics: (data: Partial<LogisticsData>) => void;
+  clearInfrastructure: () => void;
+  clearLogistics: () => void;
 }
 
 /**
@@ -433,6 +438,71 @@ export const useWizardState = ({
     });
   };
 
+  /**
+   * Update global infrastructure data
+   */
+  const updateInfrastructure = (data: Partial<InfrastructureData>) => {
+    setWizardData(prev => ({
+      ...prev,
+      infrastructure: {
+        ...prev.infrastructure,
+        ...data
+      }
+    }));
+  };
+
+  /**
+   * Update infrastructure for specific task
+   */
+  const updateTaskInfrastructure = (taskNumber: string, data: Partial<TaskInfrastructure>) => {
+    setWizardData(prev => ({
+      ...prev,
+      infrastructure: {
+        ...prev.infrastructure,
+        perTask: {
+          ...prev.infrastructure?.perTask,
+          [taskNumber]: {
+            ...prev.infrastructure?.perTask?.[taskNumber],
+            ...data
+          }
+        }
+      }
+    }));
+  };
+
+  /**
+   * Update logistics data
+   */
+  const updateLogistics = (data: Partial<LogisticsData>) => {
+    setWizardData(prev => ({
+      ...prev,
+      logistics: {
+        ...prev.logistics,
+        ...data
+      } as LogisticsData
+    }));
+  };
+
+  /**
+   * Clear infrastructure data
+   */
+  const clearInfrastructure = () => {
+    setWizardData(prev => ({
+      ...prev,
+      infrastructure: undefined
+    }));
+  };
+
+  /**
+   * Clear logistics data
+   */
+  const clearLogistics = () => {
+    setWizardData(prev => ({
+      ...prev,
+      logistics: undefined
+    }));
+  };
+
   return {
     wizardData,
     detectedSubsystems,
@@ -450,6 +520,11 @@ export const useWizardState = ({
     canProceedFromDetails,
     loadContractDataForEdit,
     updateWizardData,
-    updateSubsystem
+    updateSubsystem,
+    updateInfrastructure,
+    updateTaskInfrastructure,
+    updateLogistics,
+    clearInfrastructure,
+    clearLogistics
   };
 };

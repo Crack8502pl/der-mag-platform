@@ -46,6 +46,38 @@ export interface SubsystemWizardData {
   smwStep?: number;
 }
 
+/**
+ * Infrastructure parameters (per task or global)
+ */
+export type CabinetOption = 'SZAFA_TERENOWA' | 'SZAFA_WEWNETRZNA' | 'KONTENER' | '42U' | '24U';
+export type PoleType = 'STALOWY' | 'KOMPOZYT' | 'INNY';
+
+export interface TaskInfrastructure {
+  taskNumber?: string;
+  cabinetType?: CabinetOption;
+  cabinetInstallLocation?: string;
+  poleQuantity?: number;
+  poleType?: PoleType;
+  poleProductInfo?: string;
+  terrainNotes?: string;
+}
+
+export interface InfrastructureData {
+  global?: TaskInfrastructure;
+  perTask?: Record<string, TaskInfrastructure>;
+}
+
+/**
+ * Logistics/Shipping data
+ */
+export interface LogisticsData {
+  deliveryAddress: string;
+  contactPhone: string;
+  contactPerson?: string;
+  shippingNotes?: string;
+  preferredDeliveryDate?: string;
+}
+
 export interface WizardData {
   contractNumber: string;
   customName: string;
@@ -55,6 +87,8 @@ export interface WizardData {
   liniaKolejowa?: string; // Optional railway line field
   detectedRailwayLine?: string; // Auto-detected from contract name (e.g. "LK123")
   subsystems: SubsystemWizardData[];
+  infrastructure?: InfrastructureData;
+  logistics?: LogisticsData;
 }
 
 export interface GeneratedTask {
@@ -65,7 +99,7 @@ export interface GeneratedTask {
 }
 
 export interface StepInfo {
-  type: 'basic' | 'selection' | 'config' | 'details' | 'preview' | 'success' | 'shipping';
+  type: 'basic' | 'selection' | 'config' | 'details' | 'infrastructure' | 'logistics' | 'preview' | 'success' | 'shipping';
   subsystemIndex?: number;
   subsystemType?: SubsystemType;
 }
