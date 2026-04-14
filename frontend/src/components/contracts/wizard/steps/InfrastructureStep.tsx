@@ -1,8 +1,9 @@
 // src/components/contracts/wizard/steps/InfrastructureStep.tsx
-// Step: Infrastructure parameters (cabinet types, pole configuration, terrain)
+// Infrastructure parameters configuration step
 
 import React, { useState } from 'react';
 import type { WizardData, CabinetOption, PoleType, TaskInfrastructure, InfrastructureData } from '../types/wizard.types';
+import { generateAllTasks } from '../utils/taskGenerator';
 import './InfrastructureStep.css';
 
 interface Props {
@@ -25,13 +26,19 @@ const POLE_TYPES: { value: PoleType; label: string }[] = [
   { value: 'INNY', label: 'Inny' },
 ];
 
+/** Infrastructure task types that typically need cabinet/pole/terrain config */
+const INFRASTRUCTURE_TASK_TYPES = [
+  'SMOKIP_A', 'SMOKIP_B', 'PRZEJAZD_KAT_A', 'PRZEJAZD_KAT_B',
+  'LCS', 'NASTAWNIA', 'SKP',
+];
+
 const InfrastructureForm: React.FC<{
   data: TaskInfrastructure;
   onChange: (data: Partial<TaskInfrastructure>) => void;
 }> = ({ data, onChange }) => (
   <div className="infra-form">
-    <div className="form-row">
-      <div className="form-group">
+    <div className="infra-form-row">
+      <div className="infra-form-group">
         <label>Typ szafy</label>
         <select
           value={data.cabinetType || ''}
@@ -43,7 +50,7 @@ const InfrastructureForm: React.FC<{
           ))}
         </select>
       </div>
-      <div className="form-group">
+      <div className="infra-form-group">
         <label>Miejsce zabudowy szafy</label>
         <input
           type="text"
@@ -54,8 +61,8 @@ const InfrastructureForm: React.FC<{
       </div>
     </div>
 
-    <div className="form-row">
-      <div className="form-group form-group--small">
+    <div className="infra-form-row">
+      <div className="infra-form-group infra-form-group--small">
         <label>Ilość słupów</label>
         <input
           type="number"
@@ -65,7 +72,7 @@ const InfrastructureForm: React.FC<{
           placeholder="0"
         />
       </div>
-      <div className="form-group">
+      <div className="infra-form-group">
         <label>Typ słupa</label>
         <select
           value={data.poleType || ''}
@@ -77,7 +84,7 @@ const InfrastructureForm: React.FC<{
           ))}
         </select>
       </div>
-      <div className="form-group">
+      <div className="infra-form-group">
         <label>Info o produkcie słupa</label>
         <input
           type="text"
@@ -88,7 +95,7 @@ const InfrastructureForm: React.FC<{
       </div>
     </div>
 
-    <div className="form-group">
+    <div className="infra-form-group">
       <label>Uwagi terenowe</label>
       <textarea
         value={data.terrainNotes || ''}
@@ -107,6 +114,14 @@ export const InfrastructureStep: React.FC<Props> = ({
 }) => {
   const [mode, setMode] = useState<'global' | 'perTask'>('global');
 
+  // Generate task list from wizard config (works for both new and existing contracts)
+  const generatedTasks = generateAllTasks(wizardData.subsystems, wizardData.liniaKolejowa);
+
+  // Filter tasks that typically need infrastructure config
+  const infrastructureTasks = generatedTasks.filter(task =>
+    INFRASTRUCTURE_TASK_TYPES.includes(task.type)
+  );
+
   const globalData: TaskInfrastructure = wizardData.infrastructure?.global || {};
 
   const handleGlobalChange = (data: Partial<TaskInfrastructure>) => {
@@ -121,22 +136,12 @@ export const InfrastructureStep: React.FC<Props> = ({
     });
   };
 
-  const handlePerTaskChange = (taskNumber: string, data: Partial<TaskInfrastructure>) => {
-    onUpdateTaskInfrastructure(taskNumber, data);
+  const handlePerTaskChange = (taskKey: string, data: Partial<TaskInfrastructure>) => {
+    onUpdateTaskInfrastructure(taskKey, data);
   };
 
-  const getTaskInfrastructure = (taskNumber: string): TaskInfrastructure =>
-    wizardData.infrastructure?.perTask?.[taskNumber] || {};
-
-  // Collect all task numbers across subsystems for per-task mode
-  const allTasks: { subsystemLabel: string; taskNumber: string }[] = [];
-  wizardData.subsystems.forEach((sub) => {
-    (sub.taskDetails || []).forEach((task) => {
-      if (task.id) {
-        allTasks.push({ subsystemLabel: sub.type, taskNumber: String(task.id) });
-      }
-    });
-  });
+  const getTaskInfrastructure = (taskKey: string): TaskInfrastructure =>
+    wizardData.infrastructure?.perTask?.[taskKey] || {};
 
   return (
     <div className="wizard-step-content infrastructure-step">
@@ -172,23 +177,27 @@ export const InfrastructureStep: React.FC<Props> = ({
 
       {mode === 'perTask' && (
         <div className="infra-section">
-          {allTasks.length === 0 ? (
+          {infrastructureTasks.length === 0 ? (
             <div className="alert alert-info">
-              Brak zadań z przypisanymi ID. Uzupełnij konfigurację podsystemów, aby ustawić parametry per zadanie.
+              Brak zadań wymagających konfiguracji infrastruktury. Uzupełnij konfigurację podsystemów, aby ustawić parametry per zadanie.
             </div>
           ) : (
-            allTasks.map(({ subsystemLabel, taskNumber }) => (
-              <div key={taskNumber} className="per-task-card">
-                <h4>
-                  <span className="subsystem-badge">{subsystemLabel}</span>
-                  Zadanie #{taskNumber}
-                </h4>
-                <InfrastructureForm
-                  data={getTaskInfrastructure(taskNumber)}
-                  onChange={(data) => handlePerTaskChange(taskNumber, data)}
-                />
-              </div>
-            ))
+            infrastructureTasks.map((task, idx) => {
+              // Use a wizard-stable key: subsystemType + index, available for both new and existing contracts
+              const taskKey = `${task.subsystemType}-${idx}`;
+              return (
+                <div key={taskKey} className="per-task-card">
+                  <h4>
+                    <span className="subsystem-badge">{task.subsystemType}</span>
+                    {task.name || `Zadanie #${idx + 1}`}
+                  </h4>
+                  <InfrastructureForm
+                    data={getTaskInfrastructure(taskKey)}
+                    onChange={(data) => handlePerTaskChange(taskKey, data)}
+                  />
+                </div>
+              );
+            })
           )}
         </div>
       )}

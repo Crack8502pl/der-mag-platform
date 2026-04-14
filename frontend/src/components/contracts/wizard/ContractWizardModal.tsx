@@ -168,8 +168,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       return 'Uzupełnij wymagane pola zadań';
     }
     if (stepInfo.type === 'logistics') {
-      if (!wizardData.logistics?.deliveryAddress) return 'Podaj adres dostawy';
-      if (!wizardData.logistics?.contactPhone) return 'Podaj telefon kontaktowy';
+      if (!wizardData.logistics?.deliveryAddress?.trim()) return 'Podaj adres dostawy';
+      if (!wizardData.logistics?.contactPhone?.trim()) return 'Podaj telefon kontaktowy';
     }
     return '';
   };

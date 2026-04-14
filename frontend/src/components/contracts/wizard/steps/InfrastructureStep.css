@@ -1,17 +1,17 @@
-/* InfrastructureStep.css */
+/* InfrastructureStep.css — all selectors scoped under .infrastructure-step */
 
 .infrastructure-step .step-description {
   color: var(--text-secondary, #666);
   margin-bottom: 20px;
 }
 
-.infra-mode-toggle {
+.infrastructure-step .infra-mode-toggle {
   display: flex;
   gap: 8px;
   margin-bottom: 24px;
 }
 
-.btn-mode {
+.infrastructure-step .btn-mode {
   padding: 8px 20px;
   border: 2px solid var(--border-color, #ddd);
   border-radius: 6px;
@@ -21,43 +21,43 @@
   transition: all 0.2s;
 }
 
-.btn-mode:hover {
+.infrastructure-step .btn-mode:hover {
   border-color: var(--primary-color, #0066cc);
   background: var(--bg-hover, #e8f0fe);
 }
 
-.btn-mode.active {
+.infrastructure-step .btn-mode.active {
   border-color: var(--primary-color, #0066cc);
   background: var(--primary-color, #0066cc);
   color: #fff;
 }
 
-.infra-section {
+.infrastructure-step .infra-section {
   margin-bottom: 24px;
 }
 
-.infra-section h4 {
+.infrastructure-step .infra-section h4 {
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 12px;
   color: var(--text-primary, #222);
 }
 
-.infra-form {
+.infrastructure-step .infra-form {
   background: var(--bg-secondary, #f9f9f9);
   border: 1px solid var(--border-color, #e0e0e0);
   border-radius: 8px;
   padding: 16px;
 }
 
-.form-row {
+.infrastructure-step .infra-form-row {
   display: flex;
   gap: 16px;
   margin-bottom: 12px;
   flex-wrap: wrap;
 }
 
-.form-group {
+.infrastructure-step .infra-form-group {
   flex: 1;
   min-width: 180px;
   display: flex;
@@ -65,20 +65,20 @@
   gap: 4px;
 }
 
-.form-group--small {
+.infrastructure-step .infra-form-group--small {
   flex: 0 0 120px;
   min-width: 100px;
 }
 
-.form-group label {
+.infrastructure-step .infra-form-group label {
   font-size: 0.85rem;
   font-weight: 500;
   color: var(--text-secondary, #555);
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
+.infrastructure-step .infra-form-group input,
+.infrastructure-step .infra-form-group select,
+.infrastructure-step .infra-form-group textarea {
   padding: 8px 10px;
   border: 1px solid var(--border-color, #ccc);
   border-radius: 6px;
@@ -88,18 +88,18 @@
   transition: border-color 0.2s;
 }
 
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
+.infrastructure-step .infra-form-group input:focus,
+.infrastructure-step .infra-form-group select:focus,
+.infrastructure-step .infra-form-group textarea:focus {
   outline: none;
   border-color: var(--primary-color, #0066cc);
 }
 
-.form-group textarea {
+.infrastructure-step .infra-form-group textarea {
   resize: vertical;
 }
 
-.per-task-card {
+.infrastructure-step .per-task-card {
   border: 1px solid var(--border-color, #e0e0e0);
   border-radius: 8px;
   padding: 16px;
@@ -107,7 +107,7 @@
   background: var(--bg-primary, #fff);
 }
 
-.per-task-card h4 {
+.infrastructure-step .per-task-card h4 {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -115,7 +115,7 @@
   font-size: 0.95rem;
 }
 
-.subsystem-badge {
+.infrastructure-step .subsystem-badge {
   background: var(--primary-color, #0066cc);
   color: #fff;
   padding: 2px 8px;
@@ -124,7 +124,7 @@
   font-weight: 600;
 }
 
-.infra-skip-hint {
+.infrastructure-step .infra-skip-hint {
   padding: 10px 14px;
   background: var(--bg-info, #e8f4fd);
   border-left: 3px solid var(--info-color, #2196f3);
