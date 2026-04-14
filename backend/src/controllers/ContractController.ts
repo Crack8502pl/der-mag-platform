@@ -384,6 +384,8 @@ export class ContractController {
         projectManagerId,
         managerCode,
         subsystems, // New: array of subsystems
+        infrastructure, // Infrastructure data from wizard
+        logistics,      // Logistics data from wizard
         // Legacy support:
         subsystemType,
         subsystemParams,
@@ -415,7 +417,10 @@ export class ContractController {
         orderDate: new Date(orderDate),
         managerCode,
         projectManagerId: parseInt(projectManagerId),
-        liniaKolejowa: req.body.liniaKolejowa
+        liniaKolejowa: req.body.liniaKolejowa,
+        ...((infrastructure || logistics)
+          ? { technicalSpecs: { infrastructure, logistics } }
+          : {})
       });
 
       // 2. Utwórz podsystemy
@@ -546,6 +551,8 @@ export class ContractController {
                       wizardData: taskData,
                       subsystemType: type,
                       taskVariant: taskData.type || null,
+                      infrastructure: infrastructure ?? undefined,
+                      logistics: logistics ?? undefined,
                       configParams: {
                         ...(subsystemParams || {}),
                         ...(Array.isArray(taskData.fiberConnections) && taskData.fiberConnections.length > 0 ? {

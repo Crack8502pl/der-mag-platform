@@ -424,6 +424,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           projectManagerId: parseInt(wizardData.projectManagerId),
           managerCode: wizardData.managerCode,
           liniaKolejowa: wizardData.liniaKolejowa || undefined,
+          infrastructure: wizardData.infrastructure,
+          logistics: wizardData.logistics,
           subsystems: subsystemsData
         });
         

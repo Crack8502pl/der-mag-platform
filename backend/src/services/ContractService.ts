@@ -64,6 +64,7 @@ export class ContractService {
       projectManagerId: number;
       jowiszRef?: string;
       liniaKolejowa?: string;
+      technicalSpecs?: Record<string, unknown>;
     },
     createdById?: number
   ): Promise<Contract> {
@@ -103,6 +104,7 @@ export class ContractService {
       projectManagerId: data.projectManagerId,
       jowiszRef: data.jowiszRef,
       liniaKolejowa: data.liniaKolejowa,
+      technicalSpecs: data.technicalSpecs,
       status: ContractStatus.CREATED
     });
 
