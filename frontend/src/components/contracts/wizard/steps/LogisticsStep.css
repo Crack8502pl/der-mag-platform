@@ -1,0 +1,122 @@
+/* LogisticsStep.css — all selectors scoped under .logistics-step */
+
+.logistics-step .step-description {
+  color: var(--text-secondary, #666);
+  margin-bottom: 20px;
+}
+
+.logistics-step .required-mark {
+  color: var(--danger-color, #d32f2f);
+  margin-left: 2px;
+}
+
+.logistics-step .logistics-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.logistics-step .form-section {
+  background: var(--bg-secondary, #f9f9f9);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.logistics-step .form-section h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 14px;
+  color: var(--text-primary, #222);
+}
+
+.logistics-step .form-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.logistics-step .form-group {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.logistics-step .form-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary, #555);
+}
+
+.logistics-step .form-group input,
+.logistics-step .form-group select,
+.logistics-step .form-group textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #222);
+  transition: border-color 0.2s;
+}
+
+.logistics-step .form-group input:focus,
+.logistics-step .form-group select:focus,
+.logistics-step .form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-color, #0066cc);
+}
+
+.logistics-step .form-group textarea {
+  resize: vertical;
+}
+
+.logistics-step .input-invalid {
+  border-color: var(--danger-color, #d32f2f) !important;
+}
+
+.logistics-step .field-error {
+  font-size: 0.8rem;
+  color: var(--danger-color, #d32f2f);
+}
+
+.logistics-step .field-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted, #888);
+  font-style: italic;
+}
+
+.logistics-step .logistics-preview {
+  background: var(--bg-info, #e8f4fd);
+  border: 1px solid var(--info-border, #90caf9);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.logistics-step .logistics-preview h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--text-primary, #222);
+}
+
+.logistics-step .preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.logistics-step .preview-table td {
+  padding: 6px 8px;
+  vertical-align: top;
+}
+
+.logistics-step .preview-table .preview-label {
+  font-weight: 600;
+  color: var(--text-secondary, #555);
+  width: 160px;
+  white-space: nowrap;
+}

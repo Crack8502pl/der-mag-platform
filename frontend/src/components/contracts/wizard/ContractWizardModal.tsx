@@ -21,6 +21,8 @@ import { SubsystemSelectionStep } from './steps/SubsystemSelectionStep';
 import { PreviewStep } from './steps/PreviewStep';
 import { SuccessStep } from './steps/SuccessStep';
 import { ShipmentWizardStep } from './steps/ShipmentWizardStep';
+import { InfrastructureStep } from './steps/InfrastructureStep';
+import { LogisticsStep } from './steps/LogisticsStep';
 
 // Subsystem Config Components
 import { SmokipAConfigStep } from './subsystems/smokip-a/SmokipAConfigStep';
@@ -75,7 +77,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     handleKilometrazBlur,
     canProceedFromDetails,
     updateWizardData,
-    updateSubsystem
+    updateSubsystem,
+    updateTaskInfrastructure,
   } = useWizardState({
     initialUserId: user?.id?.toString() || '',
     initialEmployeeCode: user?.employeeCode || '',
@@ -115,15 +118,17 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     setDraftCurrentStep(currentStep);
   }, [wizardData, currentStep, setDraftData, setDraftCurrentStep]);
 
-  // Step at which draft save button is shown (config, details, preview, success)
+  // Step at which draft save button is shown (config, details, infrastructure, logistics, preview, success)
   const isDraftStep = (stepType: string) =>
-    ['config', 'details', 'preview'].includes(stepType);
+    ['config', 'details', 'infrastructure', 'logistics', 'preview'].includes(stepType);
 
   const getTotalSteps = (): number => {
     let steps = 3; // Basic + Selection + Preview
     wizardData.subsystems.forEach((s) => {
       steps += (s.type === 'SMOKIP_A' || s.type === 'SMOKIP_B') ? 2 : 1;
     });
+    steps += 1; // Infrastructure
+    steps += 1; // Logistics
     return steps + 1; // +1 for Success
   };
 
@@ -138,6 +143,9 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       if (hasDetails && step === ++stepCount) return { type: 'details' as const, subsystemIndex: i };
       if (!hasDetails) stepCount--; // Undo increment
     }
+    
+    if (step === ++stepCount) return { type: 'infrastructure' as const };
+    if (step === ++stepCount) return { type: 'logistics' as const };
     
     return step === ++stepCount ? { type: 'preview' as const } : { type: 'success' as const };
   };
@@ -158,6 +166,10 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     }
     if (stepInfo.type === 'details') {
       return 'Uzupełnij wymagane pola zadań';
+    }
+    if (stepInfo.type === 'logistics') {
+      if (!wizardData.logistics?.deliveryAddress?.trim()) return 'Podaj adres dostawy';
+      if (!wizardData.logistics?.contactPhone?.trim()) return 'Podaj telefon kontaktowy';
     }
     return '';
   };
@@ -483,6 +495,14 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       console.log('🔍 Details step canProceed:', canProceedDetails);
       return canProceedDetails;
     }
+    if (stepInfo.type === 'infrastructure') {
+      return true; // Infrastructure is optional
+    }
+    if (stepInfo.type === 'logistics') {
+      const hasAddress = !!wizardData.logistics?.deliveryAddress?.trim();
+      const hasPhone = !!wizardData.logistics?.contactPhone?.trim();
+      return hasAddress && hasPhone;
+    }
     if (stepInfo.type === 'preview') {
       const canProceedPreview = generatedTasks.length > 0;
       console.log('🔍 Preview step canProceed:', canProceedPreview, 'generatedTasks:', generatedTasks.length);
@@ -594,6 +614,19 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       ),
       config: () => stepInfo.subsystemIndex !== undefined && renderConfigStep(stepInfo.subsystemIndex),
       details: () => stepInfo.subsystemIndex !== undefined && renderDetailsStep(stepInfo.subsystemIndex),
+      infrastructure: () => (
+        <InfrastructureStep
+          wizardData={wizardData}
+          onUpdate={updateWizardData}
+          onUpdateTaskInfrastructure={updateTaskInfrastructure}
+        />
+      ),
+      logistics: () => (
+        <LogisticsStep
+          wizardData={wizardData}
+          onUpdate={updateWizardData}
+        />
+      ),
       preview: () => (
         <PreviewStep
           wizardData={wizardData}
