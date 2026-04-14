@@ -3,6 +3,7 @@
 
 import api from './api';
 import type { Asset } from './asset.service';
+import type { InfrastructureData, LogisticsData } from '../components/contracts/wizard/types/wizard.types';
 
 export interface SubsystemTask {
   id: number;
@@ -129,8 +130,8 @@ class ContractService {
     projectManagerId: number;
     managerCode: string;
     liniaKolejowa?: string;
-    infrastructure?: any;
-    logistics?: any;
+    infrastructure?: InfrastructureData;
+    logistics?: Partial<LogisticsData>;
     subsystems?: Array<{
       type: string;
       params: Record<string, number | boolean | any>;  // Allow complex objects like SmwWizardData

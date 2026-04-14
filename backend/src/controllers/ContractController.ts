@@ -418,9 +418,9 @@ export class ContractController {
         managerCode,
         projectManagerId: parseInt(projectManagerId),
         liniaKolejowa: req.body.liniaKolejowa,
-        technicalSpecs: (infrastructure || logistics)
-          ? { infrastructure, logistics }
-          : undefined
+        ...((infrastructure || logistics)
+          ? { technicalSpecs: { infrastructure, logistics } }
+          : {})
       });
 
       // 2. Utwórz podsystemy
