@@ -129,6 +129,8 @@ class ContractService {
     projectManagerId: number;
     managerCode: string;
     liniaKolejowa?: string;
+    infrastructure?: any;
+    logistics?: any;
     subsystems?: Array<{
       type: string;
       params: Record<string, number | boolean | any>;  // Allow complex objects like SmwWizardData
