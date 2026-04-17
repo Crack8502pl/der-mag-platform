@@ -320,7 +320,7 @@ a:hover {
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-  max-width: 800px;
+  max-width: 1400px;
 }
 
 .modal-wizard .wizard-step-content {
@@ -393,6 +393,8 @@ a:hover {
 }
 
 .modal-wizard .task-fields-common {
+  display: flex;
+  flex-direction: column;
   margin-bottom: 16px;
   padding-bottom: 16px;
   border-bottom: 1px dashed rgba(255,255,255,0.1);
