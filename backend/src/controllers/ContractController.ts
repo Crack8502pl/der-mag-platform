@@ -425,17 +425,29 @@ export class ContractController {
 
       // Walidacja adresów e-mail w logistics.orderEmails
       if (logistics?.orderEmails) {
-        // RFC 5322 simplified – covers the vast majority of valid addresses
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const emailFields = ['cameras', 'switches', 'recorders', 'general', 'warehouse'] as const;
         for (const field of emailFields) {
           const value = (logistics.orderEmails as Record<string, string | undefined>)[field];
-          if (value && value.trim() && !emailRegex.test(value.trim())) {
-            res.status(400).json({
-              success: false,
-              message: `Nieprawidłowy format adresu e-mail w polu "${field}": ${value}`
-            });
-            return;
+          if (value && value.trim()) {
+            const trimmed = value.trim();
+            // Basic email validation: must have exactly one @, with non-empty local and domain parts,
+            // and the domain must contain at least one dot with characters on both sides
+            const atIdx = trimmed.indexOf('@');
+            const isValid =
+              atIdx > 0 &&
+              trimmed.indexOf('@', atIdx + 1) === -1 &&
+              (() => {
+                const domain = trimmed.slice(atIdx + 1);
+                const dotIdx = domain.lastIndexOf('.');
+                return dotIdx > 0 && dotIdx < domain.length - 1;
+              })();
+            if (!isValid) {
+              res.status(400).json({
+                success: false,
+                message: `Nieprawidłowy format adresu e-mail w polu "${field}": ${value}`
+              });
+              return;
+            }
           }
         }
       }
