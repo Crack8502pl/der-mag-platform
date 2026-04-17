@@ -39,7 +39,7 @@ const isValidLongitude = (v: number): boolean => v >= -180 && v <= 180;
 const POLAND_LAT_MIN = 49.0;
 const POLAND_LAT_MAX = 54.5;
 const POLAND_LON_MIN = 14.0;
-const POLAND_LON_MAX = 24.5;
+const POLAND_LON_MAX = 24.0;
 
 export const GPSLocationInput: React.FC<GPSLocationInputProps> = ({
   gpsLatitude,
