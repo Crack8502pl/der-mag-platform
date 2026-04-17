@@ -75,16 +75,20 @@ export const requiresCabinetCompletion = (taskType: string): boolean => {
   return CABINET_COMPLETION_TYPES.includes(taskType as CabinetCompletionType);
 };
 
-export const isSmokipATask = (taskType: string): boolean => {
-  return PRZEJAZD_SMOKIP_A_TYPES.includes(taskType as any);
+export type SmokipAType = typeof PRZEJAZD_SMOKIP_A_TYPES[number];
+export type SmokipBType = typeof PRZEJAZD_SMOKIP_B_TYPES[number];
+export type StationType = typeof STATION_TYPES[number];
+
+export const isSmokipATask = (taskType: string): taskType is SmokipAType => {
+  return PRZEJAZD_SMOKIP_A_TYPES.includes(taskType as SmokipAType);
 };
 
-export const isSmokipBTask = (taskType: string): boolean => {
-  return PRZEJAZD_SMOKIP_B_TYPES.includes(taskType as any);
+export const isSmokipBTask = (taskType: string): taskType is SmokipBType => {
+  return PRZEJAZD_SMOKIP_B_TYPES.includes(taskType as SmokipBType);
 };
 
-export const isStationTask = (taskType: string): boolean => {
-  return STATION_TYPES.includes(taskType as any);
+export const isStationTask = (taskType: string): taskType is StationType => {
+  return STATION_TYPES.includes(taskType as StationType);
 };
 
 // ═══════════════════════════════════════════════════════════════════
