@@ -33,6 +33,19 @@ interface InfrastructureData {
   [key: string]: unknown;
 }
 
+/**
+ * Basic email format check (no regex to avoid ReDoS):
+ * - exactly one '@' with at least one character before it
+ * - domain part must contain at least one '.' with characters on both sides
+ */
+function isValidEmailFormat(email: string): boolean {
+  const atIdx = email.indexOf('@');
+  if (atIdx < 1 || email.indexOf('@', atIdx + 1) !== -1) return false;
+  const domain = email.slice(atIdx + 1);
+  const dotIdx = domain.lastIndexOf('.');
+  return dotIdx > 0 && dotIdx < domain.length - 1;
+}
+
 export class ContractController {
   private contractService: ContractService;
   private subsystemService: SubsystemService;
@@ -428,26 +441,12 @@ export class ContractController {
         const emailFields = ['cameras', 'switches', 'recorders', 'general', 'warehouse'] as const;
         for (const field of emailFields) {
           const value = (logistics.orderEmails as Record<string, string | undefined>)[field];
-          if (value && value.trim()) {
-            const trimmed = value.trim();
-            // Basic email validation: must have exactly one @, with non-empty local and domain parts,
-            // and the domain must contain at least one dot with characters on both sides
-            const atIdx = trimmed.indexOf('@');
-            const isValid =
-              atIdx > 0 &&
-              trimmed.indexOf('@', atIdx + 1) === -1 &&
-              (() => {
-                const domain = trimmed.slice(atIdx + 1);
-                const dotIdx = domain.lastIndexOf('.');
-                return dotIdx > 0 && dotIdx < domain.length - 1;
-              })();
-            if (!isValid) {
-              res.status(400).json({
-                success: false,
-                message: `Nieprawidłowy format adresu e-mail w polu "${field}": ${value}`
-              });
-              return;
-            }
+          if (value && value.trim() && !isValidEmailFormat(value.trim())) {
+            res.status(400).json({
+              success: false,
+              message: `Nieprawidłowy format adresu e-mail w polu "${field}": ${value}`
+            });
+            return;
           }
         }
       }
