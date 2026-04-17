@@ -168,7 +168,12 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       return 'Uzupełnij wymagane pola zadań';
     }
     if (stepInfo.type === 'logistics') {
-      if (!wizardData.logistics?.deliveryAddress?.trim()) return 'Podaj adres dostawy';
+      const addresses = wizardData.logistics?.deliveryAddresses;
+      const legacyAddress = (wizardData.logistics as { deliveryAddress?: string } | undefined)?.deliveryAddress;
+      const hasAddresses =
+        ((addresses?.length ?? 0) > 0 && !!addresses?.some(d => d.address.trim())) ||
+        !!legacyAddress?.trim();
+      if (!hasAddresses) return 'Podaj co najmniej jeden adres dostawy';
       if (!wizardData.logistics?.contactPhone?.trim()) return 'Podaj telefon kontaktowy';
     }
     return '';
@@ -501,9 +506,13 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       return true; // Infrastructure is optional
     }
     if (stepInfo.type === 'logistics') {
-      const hasAddress = !!wizardData.logistics?.deliveryAddress?.trim();
+      const addresses = wizardData.logistics?.deliveryAddresses;
+      const legacyAddress = (wizardData.logistics as { deliveryAddress?: string } | undefined)?.deliveryAddress;
+      const hasAddresses =
+        ((addresses?.length ?? 0) > 0 && !!addresses?.some(d => d.address.trim())) ||
+        !!legacyAddress?.trim();
       const hasPhone = !!wizardData.logistics?.contactPhone?.trim();
-      return hasAddress && hasPhone;
+      return hasAddresses && hasPhone;
     }
     if (stepInfo.type === 'preview') {
       const canProceedPreview = generatedTasks.length > 0;

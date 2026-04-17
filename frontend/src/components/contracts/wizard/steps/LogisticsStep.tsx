@@ -2,7 +2,8 @@
 // Step: Logistics/shipping data collection
 
 import React from 'react';
-import type { WizardData, LogisticsData } from '../types/wizard.types';
+import type { WizardData, LogisticsData, DeliveryAddress } from '../types/wizard.types';
+import { generateAllTasks } from '../utils/taskGenerator';
 import './LogisticsStep.css';
 
 interface Props {
@@ -28,6 +29,11 @@ const formatPhoneNumber = (raw: string): string => {
 export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
   const logistics: Partial<LogisticsData> = wizardData.logistics || {};
 
+  // Build task list for address-task assignment
+  const allTasks = generateAllTasks(wizardData.subsystems, wizardData.liniaKolejowa);
+
+  const deliveryAddresses: DeliveryAddress[] = logistics.deliveryAddresses || [];
+
   const handleChange = (field: keyof LogisticsData, value: string) => {
     onUpdate({
       logistics: {
@@ -46,36 +52,106 @@ export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
     }
   };
 
-  const hasAddress = !!logistics.deliveryAddress?.trim();
+  const updateDeliveryAddress = (idx: number, patch: Partial<DeliveryAddress>) => {
+    const updated = deliveryAddresses.map((d, i) => (i === idx ? { ...d, ...patch } : d));
+    onUpdate({ logistics: { ...logistics, deliveryAddresses: updated } });
+  };
+
+  const addDeliveryAddress = () => {
+    const updated = [...deliveryAddresses, { address: '', taskIds: [] }];
+    onUpdate({ logistics: { ...logistics, deliveryAddresses: updated } });
+  };
+
+  const removeDeliveryAddress = (idx: number) => {
+    const updated = deliveryAddresses.filter((_, i) => i !== idx);
+    onUpdate({ logistics: { ...logistics, deliveryAddresses: updated.length > 0 ? updated : undefined } });
+  };
+
+  const toggleTaskForDelivery = (addrIdx: number, taskKey: string, checked: boolean) => {
+    const current = deliveryAddresses[addrIdx];
+    const taskIds = checked
+      ? [...current.taskIds, taskKey]
+      : current.taskIds.filter((id) => id !== taskKey);
+    updateDeliveryAddress(addrIdx, { taskIds });
+  };
+
   const hasPhone = !!logistics.contactPhone?.trim();
 
   return (
     <div className="wizard-step-content logistics-step">
       <h3>Dane logistyczne</h3>
       <p className="step-description">
-        Podaj adres dostawy i dane kontaktowe odbiorcy. Pola oznaczone <span className="required-mark">*</span> są wymagane.
+        Podaj adresy dostawy i dane kontaktowe odbiorcy. Pola oznaczone <span className="required-mark">*</span> są wymagane.
       </p>
 
       <div className="logistics-form">
-        {/* Required fields */}
+        {/* Delivery addresses */}
         <div className="form-section">
-          <h4>📦 Adres i kontakt</h4>
+          <h4>📦 Adresy dostawy</h4>
 
-          <div className="form-group">
-            <label>
-              Adres dostawy <span className="required-mark">*</span>
-            </label>
-            <textarea
-              value={logistics.deliveryAddress || ''}
-              onChange={(e) => handleChange('deliveryAddress', e.target.value)}
-              placeholder="ul. Przykładowa 1, 00-001 Warszawa"
-              rows={3}
-              className={!hasAddress ? 'input-invalid' : ''}
-            />
-            {!hasAddress && (
-              <span className="field-error">Adres dostawy jest wymagany</span>
-            )}
-          </div>
+          {deliveryAddresses.length === 0 && (
+            <p className="delivery-empty-hint">Brak adresów dostawy. Kliknij poniżej, aby dodać.</p>
+          )}
+
+          {deliveryAddresses.map((delivery, idx) => (
+            <div key={idx} className="delivery-address-item">
+              <div className="delivery-address-header">
+                <strong>Adres dostawy #{idx + 1}</strong>
+                <button
+                  type="button"
+                  className="btn btn-danger btn-sm"
+                  onClick={() => removeDeliveryAddress(idx)}
+                >
+                  🗑️ Usuń adres
+                </button>
+              </div>
+
+              <div className="form-group">
+                <label>Adres</label>
+                <textarea
+                  value={delivery.address}
+                  onChange={(e) => updateDeliveryAddress(idx, { address: e.target.value })}
+                  placeholder="ul. Przykładowa 1, 00-001 Warszawa"
+                  rows={3}
+                />
+              </div>
+
+              {allTasks.length > 0 && (
+                <div className="form-group">
+                  <label>Dotyczy zadań:</label>
+                  <div className="task-selection-grid">
+                    {allTasks.map((task, taskIdx) => {
+                      // Composite key matching the per-task infrastructure key pattern
+                      const taskKey = `${task.subsystemType}-${taskIdx}`;
+                      return (
+                        <label key={taskKey} className="checkbox-item">
+                          <input
+                            type="checkbox"
+                            checked={delivery.taskIds.includes(taskKey)}
+                            onChange={(e) => toggleTaskForDelivery(idx, taskKey, e.target.checked)}
+                          />
+                          <span>{task.type} – {task.name || `Zadanie #${taskIdx + 1}`}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={addDeliveryAddress}
+          >
+            ➕ Dodaj adres dostawy
+          </button>
+        </div>
+
+        {/* Contact */}
+        <div className="form-section">
+          <h4>📞 Dane kontaktowe</h4>
 
           <div className="form-row">
             <div className="form-group">
@@ -135,50 +211,6 @@ export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
             />
           </div>
         </div>
-
-        {/* Preview */}
-        {(hasAddress || hasPhone) && (
-          <div className="logistics-preview">
-            <h4>📋 Podgląd danych logistycznych</h4>
-            <table className="preview-table">
-              <tbody>
-                {hasAddress && (
-                  <tr>
-                    <td className="preview-label">Adres dostawy</td>
-                    <td>{logistics.deliveryAddress}</td>
-                  </tr>
-                )}
-                {hasPhone && (
-                  <tr>
-                    <td className="preview-label">Telefon</td>
-                    <td>{logistics.contactPhone}</td>
-                  </tr>
-                )}
-                {logistics.contactPerson && (
-                  <tr>
-                    <td className="preview-label">Osoba kontaktowa</td>
-                    <td>{logistics.contactPerson}</td>
-                  </tr>
-                )}
-                {logistics.preferredDeliveryDate && (() => {
-                  const parsed = new Date(logistics.preferredDeliveryDate!);
-                  return !isNaN(parsed.getTime()) ? (
-                    <tr>
-                      <td className="preview-label">Data dostawy</td>
-                      <td>{parsed.toLocaleDateString('pl-PL')}</td>
-                    </tr>
-                  ) : null;
-                })()}
-                {logistics.shippingNotes && (
-                  <tr>
-                    <td className="preview-label">Uwagi</td>
-                    <td>{logistics.shippingNotes}</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
     </div>
   );
