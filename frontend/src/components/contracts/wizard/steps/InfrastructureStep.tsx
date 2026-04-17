@@ -210,7 +210,12 @@ export const InfrastructureStep: React.FC<Props> = ({
             // Use the original allTasks index so keys are consistent with LogisticsStep
             const taskKey = `${task.subsystemType}-${originalIdx}`;
             const taskInfra = getTaskInfrastructure(taskKey);
-            const showCabinetNotice = requiresCabinetCompletion(task.type) && !!taskInfra.cabinetType;
+            // Mirror backend logic: show notice when cabinetType is present and flag is either
+            // explicitly true OR absent (backward-compatible default)
+            const showCabinetNotice =
+              requiresCabinetCompletion(task.type) &&
+              !!taskInfra.cabinetType &&
+              (taskInfra.generateCabinetCompletion ?? true);
             return (
               <div key={taskKey} className="per-task-card">
                 <h4>

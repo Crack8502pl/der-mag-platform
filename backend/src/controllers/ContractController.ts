@@ -35,10 +35,16 @@ interface InfrastructureData {
 
 /**
  * Basic email format check (no regex to avoid ReDoS):
+ * - rejects control characters including CR (\r) and LF (\n) to prevent header injection
  * - exactly one '@' with at least one character before it
  * - domain part must contain at least one '.' with characters on both sides
  */
 function isValidEmailFormat(email: string): boolean {
+  // Reject CR/LF and other control characters to prevent header injection
+  for (let i = 0; i < email.length; i++) {
+    const code = email.charCodeAt(i);
+    if (code < 32 || code === 127) return false;
+  }
   const atIdx = email.indexOf('@');
   if (atIdx < 1 || email.indexOf('@', atIdx + 1) !== -1) return false;
   const domain = email.slice(atIdx + 1);
@@ -620,11 +626,13 @@ export class ContractController {
                   // Klucz w infrastructure.perTask odpowiada formatowi `${type}-${globalTaskIdx}`
                   const taskKey = `${type}-${globalTaskIdx}`;
                   const taskInfra = (infrastructure as InfrastructureData)?.perTask?.[taskKey];
-                  if (
-                    taskInfra?.generateCabinetCompletion &&
-                    taskInfra?.cabinetType &&
-                    requiresCabinetCompletion(taskData.type)
-                  ) {
+                  // Backward-compatible: if cabinetType is set but flag is absent (pre-feature data),
+                  // treat it as opt-in (i.e. generateCabinetCompletion defaults to true when cabinetType present)
+                  const shouldGenerateCabinet =
+                    !!taskInfra?.cabinetType &&
+                    requiresCabinetCompletion(taskData.type) &&
+                    (taskInfra?.generateCabinetCompletion ?? true);
+                  if (shouldGenerateCabinet) {
                     try {
                       const cabinetSubsystemTask = await this.taskService.createTask({
                         subsystemId: subsystem.id,

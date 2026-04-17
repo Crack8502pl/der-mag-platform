@@ -297,11 +297,13 @@ export class SubsystemController {
                     // Automatyczne tworzenie zadania KOMPLETACJA_SZAF
                     // Sprawdź czy taskData.metadata zawiera flagę generateCabinetCompletion
                     const taskMeta = taskData.metadata || {};
-                    if (
-                      taskMeta.generateCabinetCompletion &&
-                      taskMeta.cabinetType &&
-                      requiresCabinetCompletion(taskData.type)
-                    ) {
+                    // Backward-compatible: if cabinetType is set but flag absent (pre-feature data),
+                    // treat it as opt-in (generateCabinetCompletion defaults to true when cabinetType present)
+                    const shouldGenerateCabinet =
+                      !!taskMeta.cabinetType &&
+                      requiresCabinetCompletion(taskData.type) &&
+                      (taskMeta.generateCabinetCompletion ?? true);
+                    if (shouldGenerateCabinet) {
                       try {
                         const cabinetSubsystemTask = await this.taskService.createTask({
                           subsystemId: subsystem.id,
