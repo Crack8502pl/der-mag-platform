@@ -29,8 +29,7 @@ const POLE_TYPES: { value: PoleType; label: string }[] = [
 
 /** Infrastructure task types that typically need cabinet/pole/terrain config */
 const INFRASTRUCTURE_TASK_TYPES = [
-  'SMOKIP_A', 'SMOKIP_B', 'PRZEJAZD_KAT_A', 'PRZEJAZD_KAT_B',
-  'LCS', 'NASTAWNIA', 'SKP',
+  'SMOKIP_A', 'SMOKIP_B', 'LCS', 'NASTAWNIA', 'SKP',
 ];
 
 interface InfrastructureFormProps {
@@ -177,10 +176,13 @@ export const InfrastructureStep: React.FC<Props> = ({
   // Generate task list from wizard config (works for both new and existing contracts)
   const generatedTasks = generateAllTasks(wizardData.subsystems, wizardData.liniaKolejowa);
 
-  // Filter tasks that typically need infrastructure config
-  const infrastructureTasks = generatedTasks.filter(task =>
-    INFRASTRUCTURE_TASK_TYPES.includes(task.type)
-  );
+  // Filter tasks that typically need infrastructure config, preserving original index so that
+  // the key stays consistent with LogisticsStep (which iterates the full allTasks list).
+  const infrastructureTasks = generatedTasks
+    .map((task, originalIdx) => ({ task, originalIdx }))
+    .filter(({ task }) =>
+      task.type.startsWith('PRZEJAZD_KAT_') || INFRASTRUCTURE_TASK_TYPES.includes(task.type)
+    );
 
   const handlePerTaskChange = (taskKey: string, data: Partial<TaskInfrastructure>) => {
     onUpdateTaskInfrastructure(taskKey, data);
@@ -203,14 +205,14 @@ export const InfrastructureStep: React.FC<Props> = ({
             Brak zadań wymagających konfiguracji infrastruktury. Uzupełnij konfigurację podsystemów, aby ustawić parametry per zadanie.
           </div>
         ) : (
-          infrastructureTasks.map((task, idx) => {
-            // Use a wizard-stable key: subsystemType + index, available for both new and existing contracts
-            const taskKey = `${task.subsystemType}-${idx}`;
+          infrastructureTasks.map(({ task, originalIdx }) => {
+            // Use the original allTasks index so keys are consistent with LogisticsStep
+            const taskKey = `${task.subsystemType}-${originalIdx}`;
             return (
               <div key={taskKey} className="per-task-card">
                 <h4>
                   <span className="subsystem-badge">{task.subsystemType}</span>
-                  {task.name || `Zadanie #${idx + 1}`}
+                  {task.name || `Zadanie #${originalIdx + 1}`}
                 </h4>
                 <InfrastructureForm
                   data={getTaskInfrastructure(taskKey)}

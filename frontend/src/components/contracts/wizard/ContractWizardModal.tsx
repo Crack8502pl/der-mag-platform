@@ -169,7 +169,10 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     }
     if (stepInfo.type === 'logistics') {
       const addresses = wizardData.logistics?.deliveryAddresses;
-      const hasAddresses = (addresses?.length ?? 0) > 0 && !!addresses?.some(d => d.address.trim());
+      const legacyAddress = (wizardData.logistics as { deliveryAddress?: string } | undefined)?.deliveryAddress;
+      const hasAddresses =
+        ((addresses?.length ?? 0) > 0 && !!addresses?.some(d => d.address.trim())) ||
+        !!legacyAddress?.trim();
       if (!hasAddresses) return 'Podaj co najmniej jeden adres dostawy';
       if (!wizardData.logistics?.contactPhone?.trim()) return 'Podaj telefon kontaktowy';
     }
@@ -504,7 +507,10 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     }
     if (stepInfo.type === 'logistics') {
       const addresses = wizardData.logistics?.deliveryAddresses;
-      const hasAddresses = (addresses?.length ?? 0) > 0 && !!addresses?.some(d => d.address.trim());
+      const legacyAddress = (wizardData.logistics as { deliveryAddress?: string } | undefined)?.deliveryAddress;
+      const hasAddresses =
+        ((addresses?.length ?? 0) > 0 && !!addresses?.some(d => d.address.trim())) ||
+        !!legacyAddress?.trim();
       const hasPhone = !!wizardData.logistics?.contactPhone?.trim();
       return hasAddresses && hasPhone;
     }
