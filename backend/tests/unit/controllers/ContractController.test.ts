@@ -4,11 +4,19 @@ import { ContractController } from '../../../src/controllers/ContractController'
 import { ContractService } from '../../../src/services/ContractService';
 import { SubsystemService } from '../../../src/services/SubsystemService';
 import { ContractStatus } from '../../../src/entities/Contract';
+import { AppDataSource } from '../../../src/config/database';
+import { SubsystemTaskService } from '../../../src/services/SubsystemTaskService';
+import { NetworkAllocationService } from '../../../src/services/NetworkAllocationService';
 import { createMockRequest, createMockResponse } from '../../mocks/request.mock';
 
 // Mock the ContractService and SubsystemService
 jest.mock('../../../src/services/ContractService');
 jest.mock('../../../src/services/SubsystemService');
+jest.mock('../../../src/services/SubsystemTaskService');
+jest.mock('../../../src/services/NetworkAllocationService');
+jest.mock('../../../src/config/database', () => ({
+  AppDataSource: { getRepository: jest.fn() },
+}));
 
 describe('ContractController', () => {
   let contractController: ContractController;
@@ -694,6 +702,309 @@ describe('ContractController', () => {
       expect(jsonArg.data.imported).toBe(1);
       expect(jsonArg.data.errors).toHaveLength(1);
       expect(jsonArg.data.errors[0].error).toBe('Duplicate');
+    });
+  });
+
+  describe('createContractWithWizard - orderEmails validation', () => {
+    beforeEach(() => {
+      const mockContract = {
+        id: 1,
+        contractNumber: 'R0000001_A',
+        customName: 'Test',
+        status: ContractStatus.CREATED,
+        orderDate: new Date('2026-01-06'),
+        managerCode: 'ABC',
+        projectManagerId: 1,
+      };
+      mockContractService.createContract = jest.fn().mockResolvedValue(mockContract);
+    });
+
+    const validBase = {
+      customName: 'Test',
+      orderDate: '2026-01-06',
+      managerCode: 'ABC',
+      projectManagerId: 1,
+    };
+
+    it('should return 400 when logistics.orderEmails.cameras is invalid', async () => {
+      req.body = {
+        ...validBase,
+        logistics: { orderEmails: { cameras: 'not-an-email' } },
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: false,
+        message: expect.stringContaining('cameras'),
+      }));
+    });
+
+    it('should return 400 when orderEmails.switches contains CR character (header injection)', async () => {
+      req.body = {
+        ...validBase,
+        logistics: { orderEmails: { switches: 'valid@example.com\r\nBCC:attacker@evil.com' } },
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
+    });
+
+    it('should return 400 when orderEmails.warehouse contains LF character', async () => {
+      req.body = {
+        ...validBase,
+        logistics: { orderEmails: { warehouse: 'a@b.com\nX-Extra: injected' } },
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
+    });
+
+    it('should accept valid email addresses in all orderEmails fields', async () => {
+      req.body = {
+        ...validBase,
+        logistics: {
+          orderEmails: {
+            cameras: 'kamery@firma.pl',
+            switches: 'siec@firma.pl',
+            recorders: 'nvr@firma.pl',
+            general: 'zamowienia@firma.pl',
+            warehouse: 'magazyn@firma.pl',
+            notes: 'Some notes',
+          },
+        },
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      // Email validation passes; if there is a 400, it must not be about email format
+      const jsonArg = (res.json as jest.Mock).mock.calls[0][0];
+      if (jsonArg && !jsonArg.success && jsonArg.message) {
+        expect(jsonArg.message).not.toMatch(/e-mail/i);
+      }
+    });
+
+    it('should allow missing orderEmails fields (all optional)', async () => {
+      req.body = {
+        ...validBase,
+        logistics: { deliveryAddress: '123 Main St', contactPhone: '555-1234' },
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      // No email-related 400
+      const jsonArg = (res.json as jest.Mock).mock.calls[0][0];
+      if (jsonArg && !jsonArg.success && jsonArg.message) {
+        expect(jsonArg.message).not.toMatch(/e-mail/i);
+      }
+    });
+
+    it('should allow empty string for an orderEmails field (treated as unset)', async () => {
+      req.body = {
+        ...validBase,
+        logistics: { orderEmails: { cameras: '' } },
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      const jsonArg = (res.json as jest.Mock).mock.calls[0][0];
+      if (jsonArg && !jsonArg.success && jsonArg.message) {
+        expect(jsonArg.message).not.toMatch(/e-mail/i);
+      }
+    });
+  });
+
+  describe('createContractWithWizard - KOMPLETACJA_SZAF auto-creation', () => {
+    let mockTaskRepository: any;
+    let mockTaskTypeRepository: any;
+    let mockSubsystemService: jest.Mocked<SubsystemService>;
+    let mockTaskService: jest.Mocked<SubsystemTaskService>;
+
+    beforeEach(() => {
+      const mockContract = {
+        id: 1,
+        contractNumber: 'R0000001_A',
+        customName: 'Test',
+        status: ContractStatus.CREATED,
+        orderDate: new Date('2026-01-06'),
+        managerCode: 'ABC',
+        projectManagerId: 1,
+      };
+      mockContractService.createContract = jest.fn().mockResolvedValue(mockContract);
+
+      const mockSubsystem = { id: 10, subsystemNumber: 'S001', ipPool: null };
+      mockSubsystemService = contractController['subsystemService'] as jest.Mocked<SubsystemService>;
+      mockSubsystemService.createSubsystem = jest.fn().mockResolvedValue(mockSubsystem);
+
+      let taskCounter = 0;
+      mockTaskService = contractController['taskService'] as jest.Mocked<SubsystemTaskService>;
+      mockTaskService.createTask = jest.fn().mockImplementation(async (data: any) => ({
+        id: ++taskCounter,
+        taskNumber: `Z${String(taskCounter).padStart(4, '0')}0126`,
+        taskName: data.taskName,
+        taskType: data.taskType,
+        subsystemId: data.subsystemId,
+        metadata: data.metadata || {},
+      }));
+
+      let mainTaskId = 100;
+      mockTaskRepository = {
+        create: jest.fn().mockImplementation((data: any) => ({ ...data, id: ++mainTaskId })),
+        save: jest.fn().mockImplementation(async (entity: any) => entity),
+        findOne: jest.fn().mockResolvedValue(null),
+      };
+
+      mockTaskTypeRepository = {
+        findOne: jest.fn().mockResolvedValue({ id: 1, code: 'SMOKIP_A', name: 'SMOKIP A' }),
+      };
+
+      (AppDataSource.getRepository as jest.Mock).mockImplementation((entity: any) => {
+        const name = typeof entity === 'function' ? entity.name : String(entity);
+        if (name === 'Task') return mockTaskRepository;
+        if (name === 'TaskType') return mockTaskTypeRepository;
+        return { findOne: jest.fn(), save: jest.fn(), create: jest.fn() };
+      });
+    });
+
+    it('should auto-create KOMPLETACJA_SZAF when cabinet type is set for qualifying task', async () => {
+      req.body = {
+        customName: 'Test',
+        orderDate: '2026-01-06',
+        managerCode: 'ABC',
+        projectManagerId: 1,
+        infrastructure: {
+          perTask: {
+            'SMOKIP_A-0': { cabinetType: 'SZAFA_TERENOWA', generateCabinetCompletion: true },
+          },
+        },
+        subsystems: [
+          {
+            type: 'SMOKIP_A',
+            params: {},
+            tasks: [{ number: '001', name: 'SKP #1', type: 'SKP' }],
+          },
+        ],
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      // createTask should be called twice: once for the main task, once for KOMPLETACJA_SZAF
+      expect(mockTaskService.createTask).toHaveBeenCalledTimes(2);
+      const cabinetCall = (mockTaskService.createTask as jest.Mock).mock.calls[1][0];
+      expect(cabinetCall.taskType).toBe('KOMPLETACJA_SZAF');
+      expect(cabinetCall.metadata.cabinetType).toBe('SZAFA_TERENOWA');
+      expect(cabinetCall.metadata.autoGenerated).toBe(true);
+    });
+
+    it('should auto-create KOMPLETACJA_SZAF for PRZEJAZD_KAT_C (resolved variant) with cabinetType', async () => {
+      req.body = {
+        customName: 'Test',
+        orderDate: '2026-01-06',
+        managerCode: 'ABC',
+        projectManagerId: 1,
+        infrastructure: {
+          perTask: {
+            'SMOKIP_B-0': { cabinetType: 'SZAFA_TERENOWA', generateCabinetCompletion: true },
+          },
+        },
+        subsystems: [
+          {
+            type: 'SMOKIP_B',
+            params: {},
+            tasks: [{ number: '001', name: 'Przejazd C', type: 'PRZEJAZD_KAT_C' }],
+          },
+        ],
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      expect(mockTaskService.createTask).toHaveBeenCalledTimes(2);
+      const cabinetCall = (mockTaskService.createTask as jest.Mock).mock.calls[1][0];
+      expect(cabinetCall.taskType).toBe('KOMPLETACJA_SZAF');
+    });
+
+    it('should NOT create KOMPLETACJA_SZAF when task type does not qualify', async () => {
+      req.body = {
+        customName: 'Test',
+        orderDate: '2026-01-06',
+        managerCode: 'ABC',
+        projectManagerId: 1,
+        infrastructure: {
+          perTask: {
+            'SMW-0': { cabinetType: 'SZAFA_TERENOWA', generateCabinetCompletion: true },
+          },
+        },
+        subsystems: [
+          {
+            type: 'SMW',
+            params: {},
+            tasks: [{ number: '001', name: 'SMW Task', type: 'SMW' }],
+          },
+        ],
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      // Only main task created, no cabinet task
+      expect(mockTaskService.createTask).toHaveBeenCalledTimes(1);
+    });
+
+    it('should auto-create KOMPLETACJA_SZAF when cabinetType set but generateCabinetCompletion absent (backward compat)', async () => {
+      req.body = {
+        customName: 'Test',
+        orderDate: '2026-01-06',
+        managerCode: 'ABC',
+        projectManagerId: 1,
+        infrastructure: {
+          perTask: {
+            // generateCabinetCompletion deliberately absent (old data format)
+            'SMOKIP_A-0': { cabinetType: 'SZAFA_TERENOWA' },
+          },
+        },
+        subsystems: [
+          {
+            type: 'SMOKIP_A',
+            params: {},
+            tasks: [{ number: '001', name: 'SKP #1', type: 'SKP' }],
+          },
+        ],
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      expect(mockTaskService.createTask).toHaveBeenCalledTimes(2);
+      const cabinetCall = (mockTaskService.createTask as jest.Mock).mock.calls[1][0];
+      expect(cabinetCall.taskType).toBe('KOMPLETACJA_SZAF');
+    });
+
+    it('should NOT create KOMPLETACJA_SZAF when generateCabinetCompletion is explicitly false', async () => {
+      req.body = {
+        customName: 'Test',
+        orderDate: '2026-01-06',
+        managerCode: 'ABC',
+        projectManagerId: 1,
+        infrastructure: {
+          perTask: {
+            'SMOKIP_A-0': { cabinetType: 'SZAFA_TERENOWA', generateCabinetCompletion: false },
+          },
+        },
+        subsystems: [
+          {
+            type: 'SMOKIP_A',
+            params: {},
+            tasks: [{ number: '001', name: 'SKP #1', type: 'SKP' }],
+          },
+        ],
+      };
+
+      await contractController.createContractWithWizard(req as Request, res as Response);
+
+      expect(mockTaskService.createTask).toHaveBeenCalledTimes(1);
     });
   });
 

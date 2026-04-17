@@ -66,13 +66,19 @@ export type CabinetCompletionType = typeof CABINET_COMPLETION_TYPES[number];
  * - PRZEJAZD_KAT_A - Przejazd kolejowo-drogowy Kategorii A
  * - SKP - Stwierdzenie Końca Pociągu
  * - SMOKIP_B - System Monitorowania Obiektów Kolejowych IP - Wariant B
- * - PRZEJAZD_KAT_B - Przejazd kolejowo-drogowy Kategorii B/C/E/F
+ * - PRZEJAZD_KAT_B/C/E/F - Przejazd kolejowo-drogowy (wszystkie warianty B)
  * - LCS - Local Control Station
  * - NASTAWNIA - Nastawnia kolejowa
  * - ND - Nastawnia Dyspozytorska
+ * 
+ * Uwaga: resolveTaskVariant może wygenerować warianty PRZEJAZD_KAT_C/E/F z zadań
+ * kategorii B — są one obsługiwane przez sprawdzenie prefiksu.
  */
 export const requiresCabinetCompletion = (taskType: string): boolean => {
-  return CABINET_COMPLETION_TYPES.includes(taskType as CabinetCompletionType);
+  return (
+    CABINET_COMPLETION_TYPES.includes(taskType as CabinetCompletionType) ||
+    taskType.startsWith('PRZEJAZD_KAT_')
+  );
 };
 
 export type SmokipAType = typeof PRZEJAZD_SMOKIP_A_TYPES[number];

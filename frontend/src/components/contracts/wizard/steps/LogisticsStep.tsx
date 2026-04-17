@@ -2,7 +2,7 @@
 // Step: Logistics/shipping data collection
 
 import React from 'react';
-import type { WizardData, LogisticsData, DeliveryAddress } from '../types/wizard.types';
+import type { WizardData, LogisticsData, DeliveryAddress, OrderEmailsConfig } from '../types/wizard.types';
 import { generateAllTasks } from '../utils/taskGenerator';
 import './LogisticsStep.css';
 
@@ -207,6 +207,136 @@ export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
               value={logistics.shippingNotes || ''}
               onChange={(e) => handleChange('shippingNotes', e.target.value)}
               placeholder="Dodatkowe instrukcje, godziny dostaw, wymogi specjalne..."
+              rows={3}
+            />
+          </div>
+        </div>
+
+        {/* Email configuration for orders */}
+        <div className="form-section">
+          <h4>📧 Adresy e-mail dla zamówień</h4>
+          <p className="step-description" style={{ fontSize: '13px', marginBottom: '16px' }}>
+            Opcjonalnie: Określ adresy e-mail dla automatycznych powiadomień o zamówieniach
+          </p>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>📹</span> Zamówienia kamer
+              </label>
+              <input
+                type="email"
+                value={logistics.orderEmails?.cameras || ''}
+                onChange={(e) => onUpdate({
+                  logistics: {
+                    ...logistics,
+                    orderEmails: { ...logistics.orderEmails, cameras: e.target.value } as OrderEmailsConfig
+                  }
+                })}
+                placeholder="kamery@firma.pl"
+              />
+              <span className="field-hint">Kamery IP, analogowe, akcesoria kamerowe</span>
+            </div>
+
+            <div className="form-group">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🔌</span> Switche / urządzenia sieciowe
+              </label>
+              <input
+                type="email"
+                value={logistics.orderEmails?.switches || ''}
+                onChange={(e) => onUpdate({
+                  logistics: {
+                    ...logistics,
+                    orderEmails: { ...logistics.orderEmails, switches: e.target.value } as OrderEmailsConfig
+                  }
+                })}
+                placeholder="siec@firma.pl"
+              />
+              <span className="field-hint">Switche, routery, konwertery, moduły SFP</span>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>💾</span> Rejestratory
+              </label>
+              <input
+                type="email"
+                value={logistics.orderEmails?.recorders || ''}
+                onChange={(e) => onUpdate({
+                  logistics: {
+                    ...logistics,
+                    orderEmails: { ...logistics.orderEmails, recorders: e.target.value } as OrderEmailsConfig
+                  }
+                })}
+                placeholder="rejestratory@firma.pl"
+              />
+              <span className="field-hint">Rejestratory NVR, DVR, dyski HDD</span>
+            </div>
+
+            <div className="form-group">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>📦</span> Zamówienia ogólne
+              </label>
+              <input
+                type="email"
+                value={logistics.orderEmails?.general || ''}
+                onChange={(e) => onUpdate({
+                  logistics: {
+                    ...logistics,
+                    orderEmails: { ...logistics.orderEmails, general: e.target.value } as OrderEmailsConfig
+                  }
+                })}
+                placeholder="zamowienia@firma.pl"
+              />
+              <span className="field-hint">Kable, akcesoria, elementy montażowe</span>
+            </div>
+          </div>
+
+          <div
+            className="form-group"
+            style={{
+              padding: '12px 16px',
+              background: 'rgba(255, 193, 7, 0.08)',
+              border: '1px solid rgba(255, 193, 7, 0.3)',
+              borderRadius: '8px'
+            }}
+          >
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>🏭</span> Osoba obsługująca magazyn
+            </label>
+            <input
+              type="email"
+              value={logistics.orderEmails?.warehouse || ''}
+              onChange={(e) => onUpdate({
+                logistics: {
+                  ...logistics,
+                  orderEmails: { ...logistics.orderEmails, warehouse: e.target.value } as OrderEmailsConfig
+                }
+              })}
+              placeholder="magazyn@firma.pl"
+            />
+            <span className="field-hint">
+              ⚠️ <strong>Uwaga:</strong> Osoba nie występuje w systemie – otrzyma tylko powiadomienia
+              e-mail o wydaniach i rezerwacjach
+            </span>
+          </div>
+
+          <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>📝</span> Uwagi dotyczące powiadomień
+            </label>
+            <textarea
+              value={logistics.orderEmails?.notes || ''}
+              onChange={(e) => onUpdate({
+                logistics: {
+                  ...logistics,
+                  orderEmails: { ...logistics.orderEmails, notes: e.target.value } as OrderEmailsConfig
+                }
+              })}
+              placeholder="Dodatkowe informacje o harmonogramach powiadomień, preferencjach kontaktu..."
               rows={3}
             />
           </div>

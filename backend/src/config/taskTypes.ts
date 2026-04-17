@@ -39,8 +39,9 @@ export const CABINET_COMPLETION_TYPES = [
 ];
 
 /**
- * Sprawdza czy zadanie wymaga automatycznego utworzenia zadania KOMPLETACJA_SZAF
+ * Sprawdza czy zadanie wymaga automatycznego utworzenia zadania KOMPLETACJA_SZAF.
+ * Obsługuje również warianty PRZEJAZD_KAT_C/E/F generowane przez resolveTaskVariant.
  */
 export const requiresCabinetCompletion = (taskType: string): boolean => {
-  return CABINET_COMPLETION_TYPES.includes(taskType);
+  return CABINET_COMPLETION_TYPES.includes(taskType) || taskType.startsWith('PRZEJAZD_KAT_');
 };

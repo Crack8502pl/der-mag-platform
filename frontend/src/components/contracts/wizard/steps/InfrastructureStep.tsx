@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import type { WizardData, CabinetOption, PoleType, PoleConfig, TaskInfrastructure } from '../types/wizard.types';
 import { generateAllTasks } from '../utils/taskGenerator';
+import { requiresCabinetCompletion } from '../../../../config/taskTypes';
 import { PoleSearchModal } from '../../PoleSearchModal';
 import './InfrastructureStep.css';
 
@@ -208,6 +209,13 @@ export const InfrastructureStep: React.FC<Props> = ({
           infrastructureTasks.map(({ task, originalIdx }) => {
             // Use the original allTasks index so keys are consistent with LogisticsStep
             const taskKey = `${task.subsystemType}-${originalIdx}`;
+            const taskInfra = getTaskInfrastructure(taskKey);
+            // Mirror backend logic: show notice when cabinetType is present and flag is either
+            // explicitly true OR absent (backward-compatible default)
+            const showCabinetNotice =
+              requiresCabinetCompletion(task.type) &&
+              !!taskInfra.cabinetType &&
+              (taskInfra.generateCabinetCompletion ?? true);
             return (
               <div key={taskKey} className="per-task-card">
                 <h4>
@@ -215,9 +223,54 @@ export const InfrastructureStep: React.FC<Props> = ({
                   {task.name || `Zadanie #${originalIdx + 1}`}
                 </h4>
                 <InfrastructureForm
-                  data={getTaskInfrastructure(taskKey)}
-                  onChange={(data) => handlePerTaskChange(taskKey, data)}
+                  data={taskInfra}
+                  onChange={(data) => {
+                    // When cabinetType is set for a task that requires cabinet completion,
+                    // automatically set/clear the generateCabinetCompletion flag
+                    const updatedData: Partial<TaskInfrastructure> =
+                      requiresCabinetCompletion(task.type) && 'cabinetType' in data
+                        ? { ...data, generateCabinetCompletion: !!data.cabinetType }
+                        : data;
+                    handlePerTaskChange(taskKey, updatedData);
+                  }}
                 />
+                {showCabinetNotice && (
+                  <div
+                    className="alert alert-info cabinet-completion-notice"
+                    style={{
+                      marginTop: '12px',
+                      padding: '10px 12px',
+                      fontSize: '13px',
+                      background: 'rgba(46, 160, 67, 0.1)',
+                      border: '1px solid rgba(46, 160, 67, 0.3)',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <span style={{ fontSize: '16px' }}>✅</span>
+                    <div>
+                      <strong style={{ color: 'var(--success-color, #3fb950)' }}>
+                        Automatyczna kompletacja szafy
+                      </strong>
+                      <br />
+                      <small style={{ opacity: 0.9 }}>
+                        Zostanie utworzone zadanie{' '}
+                        <code style={{
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          fontFamily: 'monospace',
+                          fontSize: '12px'
+                        }}>
+                          KOMPLETACJA_SZAF
+                        </code>{' '}
+                        dla {task.type}
+                      </small>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })
