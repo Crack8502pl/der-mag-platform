@@ -114,6 +114,16 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
 
             <div className="task-fields task-fields-common">
               <div className="form-group">
+                <label>Lokalizacja GPS <span className="text-muted">(opcjonalne)</span></label>
+                <GPSLocationInput
+                  gpsLatitude={detail.gpsLatitude}
+                  gpsLongitude={detail.gpsLongitude}
+                  googleMapsUrl={detail.googleMapsUrl}
+                  onUpdate={(updates) => onUpdateTask(subsystemIndex, idx, updates)}
+                />
+              </div>
+
+              <div className="form-group">
                 <label>Linia kolejowa <span className="text-muted">(opcjonalne)</span></label>
                 <input
                   type="text"
@@ -131,17 +141,23 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
                   <small className="form-help">Format: LK-XXX lub E-XX (auto-normalizacja)</small>
                 )}
               </div>
-
-              <div className="form-group">
-                <label>Lokalizacja GPS <span className="text-muted">(opcjonalne)</span></label>
-                <GPSLocationInput
-                  gpsLatitude={detail.gpsLatitude}
-                  gpsLongitude={detail.gpsLongitude}
-                  googleMapsUrl={detail.googleMapsUrl}
-                  onUpdate={(updates) => onUpdateTask(subsystemIndex, idx, updates)}
-                />
-              </div>
             </div>
+
+            {detail.taskType === 'LCS' && (
+              <div className="form-group" style={{ marginBottom: '16px' }}>
+                <label className="checkbox-inline-group">
+                  <input
+                    type="checkbox"
+                    checked={detail.hasCUID || false}
+                    onChange={(e) => handleCuidCheckbox(idx, e.target.checked)}
+                  />
+                  <span>CUiD (Centrum Utrzymania i Diagnostyki)</span>
+                </label>
+                <small className="form-help">
+                  Zaznacz, jeśli LCS ma CUiD. Automatycznie tworzy dodatkowe zadanie CUID.
+                </small>
+              </div>
+            )}
 
             {detail.taskType === 'PRZEJAZD_KAT_B' && (
               <div className="task-fields">
@@ -238,19 +254,6 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
                     onBlur={(e) => handleKilometrazBlur(subsystemIndex, idx, e.target.value)}
                   />
                   <small className="form-help">{OPTIONAL_KILOMETRAZ_HELP}</small>
-                </div>
-                <div className="form-group">
-                  <label className="checkbox-inline-group">
-                    <input
-                      type="checkbox"
-                      checked={detail.hasCUID || false}
-                      onChange={(e) => handleCuidCheckbox(idx, e.target.checked)}
-                    />
-                    <span>CUiD (Centrum Utrzymania i Diagnostyki)</span>
-                  </label>
-                  <small className="form-help">
-                    Zaznacz, jeśli LCS ma CUiD. Automatycznie tworzy dodatkowe zadanie CUID.
-                  </small>
                 </div>
               </div>
             )}

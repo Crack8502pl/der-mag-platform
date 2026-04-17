@@ -35,6 +35,12 @@ const parseDms = (dms: DmsValue): number | null => {
 const isValidLatitude = (v: number): boolean => v >= -90 && v <= 90;
 const isValidLongitude = (v: number): boolean => v >= -180 && v <= 180;
 
+// Poland coordinate bounds
+const POLAND_LAT_MIN = 49.0;
+const POLAND_LAT_MAX = 54.5;
+const POLAND_LON_MIN = 14.0;
+const POLAND_LON_MAX = 24.5;
+
 export const GPSLocationInput: React.FC<GPSLocationInputProps> = ({
   gpsLatitude,
   gpsLongitude,
@@ -115,6 +121,14 @@ export const GPSLocationInput: React.FC<GPSLocationInputProps> = ({
       setDmsError('Długość geograficzna musi być w zakresie -180°..180°.');
       return;
     }
+    if (lat < POLAND_LAT_MIN || lat > POLAND_LAT_MAX) {
+      setDmsError(`Szerokość geograficzna dla Polski powinna być w zakresie ${POLAND_LAT_MIN}°–${POLAND_LAT_MAX}°.`);
+      return;
+    }
+    if (lon < POLAND_LON_MIN || lon > POLAND_LON_MAX) {
+      setDmsError(`Długość geograficzna dla Polski powinna być w zakresie ${POLAND_LON_MIN}°–${POLAND_LON_MAX}°.`);
+      return;
+    }
     const latStr = lat.toFixed(6);
     const lonStr = lon.toFixed(6);
     setLatInput(latStr);
@@ -143,6 +157,7 @@ export const GPSLocationInput: React.FC<GPSLocationInputProps> = ({
           type="button"
           className={`btn btn-sm ${mode === 'googleMaps' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setMode('googleMaps')}
+          style={{ fontSize: '12px', padding: '6px 10px', flex: 1 }}
         >
           🗺️ Link Google Maps
         </button>
@@ -150,6 +165,7 @@ export const GPSLocationInput: React.FC<GPSLocationInputProps> = ({
           type="button"
           className={`btn btn-sm ${mode === 'coordinates' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setMode('coordinates')}
+          style={{ fontSize: '12px', padding: '6px 10px', flex: 1 }}
         >
           🎯 Współrzędne
         </button>
@@ -157,6 +173,7 @@ export const GPSLocationInput: React.FC<GPSLocationInputProps> = ({
           type="button"
           className={`btn btn-sm ${mode === 'angular' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setMode('angular')}
+          style={{ fontSize: '12px', padding: '6px 10px', flex: 1 }}
         >
           📐 Kątowa
         </button>
@@ -214,7 +231,8 @@ export const GPSLocationInput: React.FC<GPSLocationInputProps> = ({
             <div>
               <small>Szer. °</small>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={latDms.degrees}
                 onChange={(e) => setLatDms(prev => ({ ...prev, degrees: e.target.value }))}
                 placeholder="°"
@@ -224,7 +242,8 @@ export const GPSLocationInput: React.FC<GPSLocationInputProps> = ({
             <div>
               <small>′</small>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={latDms.minutes}
                 onChange={(e) => setLatDms(prev => ({ ...prev, minutes: e.target.value }))}
                 placeholder="′"
@@ -234,7 +253,8 @@ export const GPSLocationInput: React.FC<GPSLocationInputProps> = ({
             <div>
               <small>″</small>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={latDms.seconds}
                 onChange={(e) => setLatDms(prev => ({ ...prev, seconds: e.target.value }))}
                 placeholder="″"
@@ -245,7 +265,8 @@ export const GPSLocationInput: React.FC<GPSLocationInputProps> = ({
             <div>
               <small>Dług. °</small>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={lonDms.degrees}
                 onChange={(e) => setLonDms(prev => ({ ...prev, degrees: e.target.value }))}
                 placeholder="°"
@@ -255,7 +276,8 @@ export const GPSLocationInput: React.FC<GPSLocationInputProps> = ({
             <div>
               <small>′</small>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={lonDms.minutes}
                 onChange={(e) => setLonDms(prev => ({ ...prev, minutes: e.target.value }))}
                 placeholder="′"
@@ -265,7 +287,8 @@ export const GPSLocationInput: React.FC<GPSLocationInputProps> = ({
             <div>
               <small>″</small>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={lonDms.seconds}
                 onChange={(e) => setLonDms(prev => ({ ...prev, seconds: e.target.value }))}
                 placeholder="″"
@@ -281,7 +304,7 @@ export const GPSLocationInput: React.FC<GPSLocationInputProps> = ({
               Konwertuj
             </button>
           </div>
-          <small className="form-help">Format: DD°MM′SS″ (stopnie, minuty, sekundy)</small>
+          <small className="form-help">Format: DD°MM′SS″ — zakres dla Polski: szer. 49°–54.5°, dług. 14°–24°</small>
           {dmsError && <small className="error-text">{dmsError}</small>}
         </div>
       )}
