@@ -22,6 +22,17 @@ interface FiberConnectionData {
   [key: string]: unknown;
 }
 
+interface PerTaskInfrastructure {
+  generateCabinetCompletion?: boolean;
+  cabinetType?: string;
+  [key: string]: unknown;
+}
+
+interface InfrastructureData {
+  perTask?: Record<string, PerTaskInfrastructure>;
+  [key: string]: unknown;
+}
+
 export class ContractController {
   private contractService: ContractService;
   private subsystemService: SubsystemService;
@@ -414,7 +425,8 @@ export class ContractController {
 
       // Walidacja adresów e-mail w logistics.orderEmails
       if (logistics?.orderEmails) {
-        const emailRegex = /^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$/i;
+        // RFC 5322 simplified – covers the vast majority of valid addresses
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const emailFields = ['cameras', 'switches', 'recorders', 'general', 'warehouse'] as const;
         for (const field of emailFields) {
           const value = (logistics.orderEmails as Record<string, string | undefined>)[field];
@@ -596,7 +608,7 @@ export class ContractController {
                   // Automatyczne tworzenie zadania KOMPLETACJA_SZAF
                   // Klucz w infrastructure.perTask odpowiada formatowi `${type}-${globalTaskIdx}`
                   const taskKey = `${type}-${globalTaskIdx}`;
-                  const taskInfra = (infrastructure as any)?.perTask?.[taskKey];
+                  const taskInfra = (infrastructure as InfrastructureData)?.perTask?.[taskKey];
                   if (
                     taskInfra?.generateCabinetCompletion &&
                     taskInfra?.cabinetType &&
