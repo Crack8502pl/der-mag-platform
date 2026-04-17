@@ -18,14 +18,12 @@ import { CompletionOrder } from '../entities/CompletionOrder';
 import { WorkflowGeneratedBom } from '../entities/WorkflowGeneratedBom';
 import { TaskMaterial } from '../entities/TaskMaterial';
 import { serverLogger } from '../utils/logger';
+import { requiresCabinetCompletion } from '../config/taskTypes';
 
 // Lista typów zadań, dla których NIE wolno zlecać wysyłki.
 // Powinna odzwierciedlać konfigurację frontendową (NO_SHIPMENT_TYPES).
 // Minimalnie blokujemy tworzenie wysyłki z innej wysyłki.
 const NO_SHIPMENT_TYPES: string[] = ['KOMPLETACJA_WYSYLKI'];
-
-// Typy zadań wymagające dodatkowego zadania kompletacji szafy
-const CABINET_COMPLETION_TYPES: string[] = ['SKP', 'NASTAWNIA', 'LCS'];
 
 /**
  * Generuje punkty kamerowe dla zadania na podstawie ilości słupów i typu zadania.
@@ -836,7 +834,7 @@ export class TaskController {
       let shipmentTaskName: string;
       if (sourceTask.taskType === INTERNAL_CABINET_TYPE) {
         shipmentTaskName = 'Kompletacja szafy wewnętrznej';
-      } else if (CABINET_COMPLETION_TYPES.includes(sourceTask.taskType.toUpperCase())) {
+      } else if (requiresCabinetCompletion(sourceTask.taskType)) {
         shipmentTaskName = `Kompletacja wysyłki - ${sourceTask.taskType}`;
       } else {
         shipmentTaskName = 'Kompletacja szafy przejazdowej';
@@ -847,7 +845,7 @@ export class TaskController {
       // Derive the cabinet task number by incrementing the sequence by 1.
       // We cannot call generate() twice because both calls see the same committed DB state
       // and would return the same number (the uncommitted newTask is not visible).
-      const needsCabinetTask = CABINET_COMPLETION_TYPES.includes(sourceTask.taskType.toUpperCase());
+      const needsCabinetTask = requiresCabinetCompletion(sourceTask.taskType);
       let cabinetTaskNumber: string | null = null;
       if (needsCabinetTask) {
         const match = newTaskNumber.match(/^Z(\d{4})(\d{4})$/);

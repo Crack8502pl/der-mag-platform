@@ -63,6 +63,8 @@ export interface TaskInfrastructure {
   cabinetType?: CabinetOption;
   poles?: PoleConfig[];
   terrainNotes?: string;
+  // Flag for automatic KOMPLETACJA_SZAF task creation
+  generateCabinetCompletion?: boolean;
 }
 
 export interface InfrastructureData {
@@ -79,6 +81,18 @@ export interface DeliveryAddress {
 }
 
 /**
+ * E-mail configuration for order notifications
+ */
+export interface OrderEmailsConfig {
+  cameras?: string;     // E-mail for camera orders
+  switches?: string;    // E-mail for switch/network device orders
+  recorders?: string;   // E-mail for recorder orders
+  general?: string;     // General e-mail for other items
+  warehouse?: string;   // E-mail for warehouse person (not in system – notifications only)
+  notes?: string;       // Additional notes
+}
+
+/**
  * Logistics/Shipping data
  */
 export interface LogisticsData {
@@ -88,6 +102,8 @@ export interface LogisticsData {
   contactPerson?: string;
   shippingNotes?: string;
   preferredDeliveryDate?: string;
+  // E-mail addresses for order notifications
+  orderEmails?: OrderEmailsConfig;
 }
 
 export interface WizardData {
