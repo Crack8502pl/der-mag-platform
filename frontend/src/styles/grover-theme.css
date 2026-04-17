@@ -560,6 +560,11 @@ a:hover {
   margin-bottom: 0;
 }
 
+.modal-wizard .task-fields-common .cuid-checkbox-group {
+  width: 100%;
+  padding-top: 4px;
+}
+
 .wizard-success {
   text-align: center;
   padding: 40px 24px;

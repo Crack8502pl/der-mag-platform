@@ -89,34 +89,63 @@
   font-style: italic;
 }
 
-.logistics-step .logistics-preview {
-  background: var(--bg-info, #e8f4fd);
-  border: 1px solid var(--info-border, #90caf9);
-  border-radius: 8px;
-  padding: 16px;
+/* Delivery address items */
+.logistics-step .delivery-empty-hint {
+  font-size: 0.875rem;
+  color: var(--text-muted, #888);
+  font-style: italic;
+  margin-bottom: 12px;
 }
 
-.logistics-step .logistics-preview h4 {
-  font-size: 0.95rem;
-  font-weight: 600;
-  margin-bottom: 10px;
+.logistics-step .delivery-address-item {
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 14px;
+  background: var(--bg-primary, #fff);
+}
+
+.logistics-step .delivery-address-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color, #eee);
+}
+
+.logistics-step .delivery-address-header strong {
+  font-size: 0.9rem;
   color: var(--text-primary, #222);
 }
 
-.logistics-step .preview-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
+/* Task selection grid */
+.logistics-step .task-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+  margin-top: 6px;
 }
 
-.logistics-step .preview-table td {
-  padding: 6px 8px;
-  vertical-align: top;
+.logistics-step .checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  background: var(--bg-secondary, #f5f5f5);
+  transition: background 0.15s;
 }
 
-.logistics-step .preview-table .preview-label {
-  font-weight: 600;
-  color: var(--text-secondary, #555);
-  width: 160px;
-  white-space: nowrap;
+.logistics-step .checkbox-item:hover {
+  background: var(--bg-hover, #e8f0fe);
 }
+
+.logistics-step .checkbox-item input[type="checkbox"] {
+  flex-shrink: 0;
+  cursor: pointer;
+}
+

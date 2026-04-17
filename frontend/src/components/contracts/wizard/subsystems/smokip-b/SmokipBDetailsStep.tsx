@@ -141,23 +141,23 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
                   <small className="form-help">Format: LK-XXX lub E-XX (auto-normalizacja)</small>
                 )}
               </div>
-            </div>
 
-            {detail.taskType === 'LCS' && (
-              <div className="form-group" style={{ marginBottom: '16px' }}>
-                <label className="checkbox-inline-group">
-                  <input
-                    type="checkbox"
-                    checked={detail.hasCUID || false}
-                    onChange={(e) => handleCuidCheckbox(idx, e.target.checked)}
-                  />
-                  <span>CUiD (Centrum Utrzymania i Diagnostyki)</span>
-                </label>
-                <small className="form-help">
-                  Zaznacz, jeśli LCS ma CUiD. Automatycznie tworzy dodatkowe zadanie CUID.
-                </small>
-              </div>
-            )}
+              {detail.taskType === 'LCS' && (
+                <div className="form-group cuid-checkbox-group">
+                  <label className="checkbox-inline-group">
+                    <input
+                      type="checkbox"
+                      checked={detail.hasCUID || false}
+                      onChange={(e) => handleCuidCheckbox(idx, e.target.checked)}
+                    />
+                    <span>CUiD (Centrum Utrzymania i Diagnostyki)</span>
+                  </label>
+                  <small className="form-help">
+                    Zaznacz, jeśli LCS ma CUiD. Automatycznie tworzy dodatkowe zadanie CUID.
+                  </small>
+                </div>
+              )}
+            </div>
 
             {detail.taskType === 'PRZEJAZD_KAT_B' && (
               <div className="task-fields">

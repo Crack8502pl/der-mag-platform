@@ -52,13 +52,16 @@ export interface SubsystemWizardData {
 export type CabinetOption = 'SZAFA_TERENOWA' | 'SZAFA_WEWNETRZNA' | 'KONTENER' | '42U' | '24U';
 export type PoleType = 'STALOWY' | 'KOMPOZYT' | 'INNY';
 
+export interface PoleConfig {
+  type?: PoleType;
+  quantity?: string;
+  productInfo?: string;
+}
+
 export interface TaskInfrastructure {
   taskNumber?: string;
   cabinetType?: CabinetOption;
-  cabinetInstallLocation?: string;
-  poleQuantity?: number;
-  poleType?: PoleType;
-  poleProductInfo?: string;
+  poles?: PoleConfig[];
   terrainNotes?: string;
 }
 
@@ -68,10 +71,19 @@ export interface InfrastructureData {
 }
 
 /**
+ * Delivery address with associated task selection
+ */
+export interface DeliveryAddress {
+  address: string;
+  taskIds: string[];
+}
+
+/**
  * Logistics/Shipping data
  */
 export interface LogisticsData {
   deliveryAddress: string;
+  deliveryAddresses?: DeliveryAddress[];
   contactPhone: string;
   contactPerson?: string;
   shippingNotes?: string;

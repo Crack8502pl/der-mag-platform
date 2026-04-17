@@ -168,7 +168,9 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       return 'Uzupełnij wymagane pola zadań';
     }
     if (stepInfo.type === 'logistics') {
-      if (!wizardData.logistics?.deliveryAddress?.trim()) return 'Podaj adres dostawy';
+      const hasAddresses = (wizardData.logistics?.deliveryAddresses?.length ?? 0) > 0 &&
+        wizardData.logistics!.deliveryAddresses!.some(d => d.address.trim());
+      if (!hasAddresses) return 'Podaj co najmniej jeden adres dostawy';
       if (!wizardData.logistics?.contactPhone?.trim()) return 'Podaj telefon kontaktowy';
     }
     return '';
@@ -501,9 +503,10 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       return true; // Infrastructure is optional
     }
     if (stepInfo.type === 'logistics') {
-      const hasAddress = !!wizardData.logistics?.deliveryAddress?.trim();
+      const hasAddresses = (wizardData.logistics?.deliveryAddresses?.length ?? 0) > 0 &&
+        !!wizardData.logistics?.deliveryAddresses?.some(d => d.address.trim());
       const hasPhone = !!wizardData.logistics?.contactPhone?.trim();
-      return hasAddress && hasPhone;
+      return hasAddresses && hasPhone;
     }
     if (stepInfo.type === 'preview') {
       const canProceedPreview = generatedTasks.length > 0;
