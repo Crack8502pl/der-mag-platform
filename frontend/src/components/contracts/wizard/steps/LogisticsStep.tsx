@@ -121,6 +121,7 @@ export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
                   <label>Dotyczy zadań:</label>
                   <div className="task-selection-grid">
                     {allTasks.map((task, taskIdx) => {
+                      // Composite key matching the per-task infrastructure key pattern
                       const taskKey = `${task.subsystemType}-${taskIdx}`;
                       return (
                         <label key={taskKey} className="checkbox-item">
