@@ -316,8 +316,8 @@ a:hover {
    ============================================================ */
 
 .modal-wizard {
-  background: #1a1d21;
-  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.4);
   max-width: 1400px;
@@ -328,7 +328,7 @@ a:hover {
 }
 
 .modal-wizard .wizard-step-content h3 {
-  color: #fff;
+  color: var(--text-primary);
   font-weight: 500;
   margin-bottom: 20px;
   font-size: 1.2rem;
@@ -339,7 +339,7 @@ a:hover {
 }
 
 .modal-wizard .form-group label {
-  color: rgba(255,255,255,0.85);
+  color: var(--text-secondary);
   font-weight: 400;
   font-size: 0.9rem;
   margin-bottom: 6px;
@@ -347,11 +347,12 @@ a:hover {
 }
 
 .modal-wizard input,
-.modal-wizard select {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.15);
+.modal-wizard select,
+.modal-wizard textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  color: #fff;
+  color: var(--text-primary);
   padding: 10px 14px;
   width: 100%;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -359,19 +360,21 @@ a:hover {
 }
 
 .modal-wizard input:focus,
-.modal-wizard select:focus {
-  border-color: #58a6ff;
+.modal-wizard select:focus,
+.modal-wizard textarea:focus {
+  border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(88,166,255,0.15);
   outline: none;
 }
 
-.modal-wizard input::placeholder {
-  color: rgba(255,255,255,0.4);
+.modal-wizard input::placeholder,
+.modal-wizard textarea::placeholder {
+  color: var(--text-muted);
 }
 
 .modal-wizard .task-detail-item {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 16px;
   margin-bottom: 12px;
@@ -383,7 +386,7 @@ a:hover {
   align-items: center;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .modal-wizard .task-fields {
@@ -397,7 +400,7 @@ a:hover {
   flex-direction: column;
   margin-bottom: 16px;
   padding-bottom: 16px;
-  border-bottom: 1px dashed rgba(255,255,255,0.1);
+  border-bottom: 1px dashed var(--border-color);
 }
 
 .modal-wizard .btn {
@@ -424,13 +427,13 @@ a:hover {
 }
 
 .modal-wizard .btn-secondary {
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.15);
-  color: #fff;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 .modal-wizard .btn-secondary:hover {
-  background: rgba(255,255,255,0.12);
+  background: var(--bg-secondary);
 }
 
 .next-button-container {
@@ -585,7 +588,7 @@ a:hover {
 .modal-wizard .form-help {
   display: block;
   font-size: 0.8rem;
-  color: rgba(255,255,255,0.5);
+  color: var(--text-muted);
   margin-top: 4px;
 }
 
@@ -599,7 +602,7 @@ a:hover {
 .modal-wizard .form-group label .text-muted {
   font-weight: 400;
   font-size: 0.85em;
-  color: rgba(255,255,255,0.5);
+  color: var(--text-muted);
 }
 
 .text-error {
@@ -619,22 +622,22 @@ a:hover {
 .modal-wizard .detected-subsystem {
   margin-top: 8px;
   padding: 8px 12px;
-  background: rgba(46, 160, 67, 0.15);
-  border: 1px solid rgba(46, 160, 67, 0.3);
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 0.85rem;
-  color: #3fb950;
+  color: var(--success);
 }
 
 .modal-wizard .optional-fields-section {
   margin-top: 24px;
   padding-top: 16px;
-  border-top: 1px dashed rgba(255,255,255,0.15);
+  border-top: 1px dashed var(--border-color);
 }
 
 .modal-wizard .optional-fields-section h4 {
   font-size: 0.9rem;
-  color: rgba(255,255,255,0.6);
+  color: var(--text-muted);
   font-weight: 400;
   margin-bottom: 12px;
 }

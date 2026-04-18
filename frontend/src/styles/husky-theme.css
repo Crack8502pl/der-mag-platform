@@ -152,3 +152,112 @@
 :root[data-theme="husky"] ::-webkit-scrollbar-thumb:hover {
   background: #94A3B8;
 }
+
+/* ============================================================
+   WIZARD MODAL - Husky Theme (Light)
+   ============================================================ */
+
+:root[data-theme="husky"] .modal-wizard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+
+:root[data-theme="husky"] .modal-wizard .wizard-step-content h3 {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+:root[data-theme="husky"] .modal-wizard .form-group label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+:root[data-theme="husky"] .modal-wizard input,
+:root[data-theme="husky"] .modal-wizard select,
+:root[data-theme="husky"] .modal-wizard textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+:root[data-theme="husky"] .modal-wizard input:focus,
+:root[data-theme="husky"] .modal-wizard select:focus,
+:root[data-theme="husky"] .modal-wizard textarea:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+:root[data-theme="husky"] .modal-wizard input::placeholder,
+:root[data-theme="husky"] .modal-wizard textarea::placeholder {
+  color: var(--text-muted);
+}
+
+:root[data-theme="husky"] .modal-wizard .form-group label .text-muted {
+  color: var(--text-muted);
+}
+
+:root[data-theme="husky"] .checkbox-inline-group {
+  background-color: var(--bg-hover);
+  border: 1px solid var(--border-color);
+}
+
+:root[data-theme="husky"] .checkbox-inline-group:hover {
+  border-color: var(--primary-color);
+  background-color: var(--bg-card);
+}
+
+:root[data-theme="husky"] .checkbox-inline-group span,
+:root[data-theme="husky"] .checkbox-inline-group label {
+  color: var(--text-primary);
+}
+
+:root[data-theme="husky"] .modal-wizard .form-help {
+  color: var(--text-muted);
+}
+
+:root[data-theme="husky"] .modal-wizard .task-detail-item {
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+}
+
+:root[data-theme="husky"] .modal-wizard .task-header {
+  border-bottom: 1px solid var(--border-color);
+}
+
+:root[data-theme="husky"] .modal-wizard .task-fields-common {
+  border-bottom: 1px dashed var(--border-color);
+}
+
+:root[data-theme="husky"] .modal-wizard .optional-fields-section {
+  border-top: 1px dashed var(--border-color);
+}
+
+:root[data-theme="husky"] .modal-wizard .optional-fields-section h4 {
+  color: var(--text-muted);
+}
+
+:root[data-theme="husky"] .modal-wizard .detected-subsystem {
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  color: var(--success);
+}
+
+:root[data-theme="husky"] .modal-wizard .btn-primary {
+  background: var(--primary-color);
+  color: #fff;
+}
+
+:root[data-theme="husky"] .modal-wizard .btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+:root[data-theme="husky"] .modal-wizard .btn-secondary {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+:root[data-theme="husky"] .modal-wizard .btn-secondary:hover {
+  background: var(--bg-hover);
+}
