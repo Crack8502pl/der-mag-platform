@@ -373,7 +373,7 @@
   color: var(--text-secondary);
 }
 
-/* ── Standalone label elements (not inside .form-group) ── */
+/* ── Label elements inside wizard ── */
 :root[data-theme="husky"] .modal-wizard label {
   color: var(--text-secondary);
 }
