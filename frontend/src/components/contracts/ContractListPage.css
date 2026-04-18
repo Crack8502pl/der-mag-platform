@@ -661,7 +661,7 @@
   background: var(--danger-light);
 }
 
-/* Wizard Modal - width is controlled by grover-theme.css */
+/* Wizard Modal - max-width is defined in grover-theme.css; actual modal width also depends on shared .modal-content styles */
 
 
 .wizard-step-content {

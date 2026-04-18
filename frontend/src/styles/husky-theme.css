@@ -50,6 +50,12 @@
 
   /* Action Colors */
   --action-hover: #F1F5F9;
+
+  /* Wizard Step Indicator */
+  --wizard-step-future-bg: #E2E8F0;
+  --wizard-step-future-border: #CBD5E1;
+  --wizard-step-future-text: #64748B;
+  --wizard-step-connector-pending: #CBD5E1;
 }
 
 /* Override body/root background for husky theme */
@@ -263,16 +269,6 @@
   background: var(--bg-hover);
 }
 
-/* ============================================================
-   WIZARD STEP INDICATOR - Husky Theme (Light)
-   ============================================================ */
-:root[data-theme="husky"] {
-  --wizard-step-future-bg: #E2E8F0;
-  --wizard-step-future-border: #CBD5E1;
-  --wizard-step-future-text: #64748B;
-  --wizard-step-connector-pending: #CBD5E1;
-}
-
 /* Wizard modal header and close button */
 :root[data-theme="husky"] .modal-wizard .modal-header {
   background: var(--bg-card);
@@ -304,15 +300,13 @@
   color: var(--text-primary);
 }
 
-:root[data-theme="husky"] .modal-wizard .alert-error,
-:root[data-theme="husky"] .modal-wizard .alert.alert-error {
+:root[data-theme="husky"] .modal-wizard .alert-error {
   background: #FEE2E2;
   border-color: #FECACA;
   color: #991B1B;
 }
 
-:root[data-theme="husky"] .modal-wizard .alert-warning,
-:root[data-theme="husky"] .modal-wizard .alert.alert-warning {
+:root[data-theme="husky"] .modal-wizard .alert-warning {
   background: #FEF3C7;
   border-color: #FDE68A;
   color: #92400E;
