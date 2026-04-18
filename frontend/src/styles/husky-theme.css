@@ -14,6 +14,7 @@
   --bg-hover: #F1F5F9;
   --bg-input: #FFFFFF;
   --bg-secondary: #FFFFFF;
+  --bg-tertiary: #F8FAFC;
   --bg-light: #F8FAFC;
 
   /* Text Colors */
@@ -322,4 +323,122 @@
 :root[data-theme="husky"] .modal-wizard select option {
   background: var(--bg-input);
   color: var(--text-primary);
+}
+
+/* ── Task detail items ── */
+:root[data-theme="husky"] .modal-wizard .task-detail-item h4,
+:root[data-theme="husky"] .modal-wizard .task-detail-item strong {
+  color: var(--text-primary);
+}
+
+:root[data-theme="husky"] .modal-wizard .task-detail-item p,
+:root[data-theme="husky"] .modal-wizard .task-detail-item span {
+  color: var(--text-secondary);
+}
+
+/* ── task-header strong ── */
+:root[data-theme="husky"] .modal-wizard .task-header strong {
+  color: var(--text-primary);
+}
+
+/* ── Per-task card ── */
+:root[data-theme="husky"] .modal-wizard .per-task-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+:root[data-theme="husky"] .modal-wizard .per-task-card h4 {
+  color: var(--text-primary);
+}
+
+/* ── Add-task section ── */
+:root[data-theme="husky"] .modal-wizard .add-task-section {
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+}
+
+:root[data-theme="husky"] .modal-wizard .add-task-section p,
+:root[data-theme="husky"] .modal-wizard .add-task-section strong {
+  color: var(--text-primary);
+}
+
+/* ── Subsystem selection step ── */
+:root[data-theme="husky"] .modal-wizard .subsystems-list .subsystem-item {
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+:root[data-theme="husky"] .modal-wizard .add-subsystem label {
+  color: var(--text-secondary);
+}
+
+/* ── Standalone label elements (not inside .form-group) ── */
+:root[data-theme="husky"] .modal-wizard label {
+  color: var(--text-secondary);
+}
+
+/* ── Badges inside wizard ── */
+:root[data-theme="husky"] .modal-wizard .badge,
+:root[data-theme="husky"] .modal-wizard .badge-info {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+/* ── Subsystem badge ── */
+:root[data-theme="husky"] .modal-wizard .subsystem-badge {
+  background: var(--primary-color);
+  color: #ffffff;
+}
+
+/* ── form-help / form-hint small text ── */
+:root[data-theme="husky"] .modal-wizard small.form-help,
+:root[data-theme="husky"] .modal-wizard .form-hint {
+  color: var(--text-muted);
+}
+
+/* ── GenericConfigStep - wizard-step-content general text ── */
+:root[data-theme="husky"] .modal-wizard .wizard-step-content p {
+  color: var(--text-secondary);
+}
+
+/* ── Shipment wizard specific ── */
+:root[data-theme="husky"] .modal-wizard .shipment-wizard .task-selection-list {
+  background: var(--bg-hover);
+  border-color: var(--border-color);
+}
+
+:root[data-theme="husky"] .modal-wizard .shipment-wizard .cabinet-config-section,
+:root[data-theme="husky"] .modal-wizard .shipment-wizard .pole-config-section,
+:root[data-theme="husky"] .modal-wizard .shipment-wizard .skp-config-section {
+  background: var(--bg-hover);
+  border-color: var(--border-color);
+}
+
+:root[data-theme="husky"] .modal-wizard .shipment-wizard .cabinet-config-section h4,
+:root[data-theme="husky"] .modal-wizard .shipment-wizard .pole-config-section h4,
+:root[data-theme="husky"] .modal-wizard .shipment-wizard .skp-config-section h4,
+:root[data-theme="husky"] .modal-wizard .shipment-wizard .skp-config-section label {
+  color: var(--text-primary);
+}
+
+:root[data-theme="husky"] .modal-wizard .shipment-wizard .pole-quantity-input {
+  background: var(--bg-input);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+:root[data-theme="husky"] .modal-wizard .shipment-wizard .radio-option {
+  color: var(--text-primary);
+}
+
+:root[data-theme="husky"] .modal-wizard .shipment-wizard .summary-item {
+  color: var(--text-primary);
+  border-bottom-color: var(--border-color);
+}
+
+:root[data-theme="husky"] .modal-wizard .shipment-wizard .wizard-summary {
+  background: var(--bg-hover);
+  border-color: var(--border-color);
 }
