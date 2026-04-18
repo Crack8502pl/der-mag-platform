@@ -55,6 +55,7 @@
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  --focus-ring-shadow: 0 0 0 3px rgba(255, 107, 53, 0.2);
   
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -363,7 +364,7 @@ a:hover {
 .modal-wizard select:focus,
 .modal-wizard textarea:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(88,166,255,0.15);
+  box-shadow: var(--focus-ring-shadow);
   outline: none;
 }
 

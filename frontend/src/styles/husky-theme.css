@@ -32,6 +32,7 @@
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --focus-ring-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 
   /* Status Colors */
   --success: #10B981;
@@ -160,7 +161,7 @@
 :root[data-theme="husky"] .modal-wizard {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-lg);
 }
 
 :root[data-theme="husky"] .modal-wizard .wizard-step-content h3 {
@@ -185,7 +186,7 @@
 :root[data-theme="husky"] .modal-wizard select:focus,
 :root[data-theme="husky"] .modal-wizard textarea:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  box-shadow: var(--focus-ring-shadow);
 }
 
 :root[data-theme="husky"] .modal-wizard input::placeholder,
@@ -197,18 +198,18 @@
   color: var(--text-muted);
 }
 
-:root[data-theme="husky"] .checkbox-inline-group {
+:root[data-theme="husky"] .modal-wizard .checkbox-inline-group {
   background-color: var(--bg-hover);
   border: 1px solid var(--border-color);
 }
 
-:root[data-theme="husky"] .checkbox-inline-group:hover {
+:root[data-theme="husky"] .modal-wizard .checkbox-inline-group:hover {
   border-color: var(--primary-color);
   background-color: var(--bg-card);
 }
 
-:root[data-theme="husky"] .checkbox-inline-group span,
-:root[data-theme="husky"] .checkbox-inline-group label {
+:root[data-theme="husky"] .modal-wizard .checkbox-inline-group span,
+:root[data-theme="husky"] .modal-wizard .checkbox-inline-group label {
   color: var(--text-primary);
 }
 
