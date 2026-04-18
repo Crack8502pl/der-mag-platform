@@ -57,7 +57,7 @@
   border: 1px solid var(--border-color, #ccc);
   border-radius: 6px;
   font-size: 0.9rem;
-  background: var(--bg-primary, #fff);
+  background: var(--bg-input);
   color: var(--text-primary, #222);
   transition: border-color 0.2s;
 }
@@ -78,7 +78,7 @@
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 16px;
-  background: var(--bg-primary, #fff);
+  background: var(--bg-input);
 }
 
 .infrastructure-step .per-task-card h4 {
@@ -100,11 +100,11 @@
 
 .infrastructure-step .infra-skip-hint {
   padding: 10px 14px;
-  background: var(--bg-info, #e8f4fd);
+  background: rgba(33, 150, 243, 0.1);
   border-left: 3px solid var(--info-color, #2196f3);
   border-radius: 4px;
   font-size: 0.875rem;
-  color: var(--text-secondary, #555);
+  color: var(--text-secondary);
   margin-top: 8px;
 }
 

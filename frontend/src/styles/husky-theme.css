@@ -50,6 +50,12 @@
 
   /* Action Colors */
   --action-hover: #F1F5F9;
+
+  /* Wizard Step Indicator */
+  --wizard-step-future-bg: #E2E8F0;
+  --wizard-step-future-border: #CBD5E1;
+  --wizard-step-future-text: #64748B;
+  --wizard-step-connector-pending: #CBD5E1;
 }
 
 /* Override body/root background for husky theme */
@@ -261,4 +267,59 @@
 
 :root[data-theme="husky"] .modal-wizard .btn-secondary:hover {
   background: var(--bg-hover);
+}
+
+/* Wizard modal header and close button */
+:root[data-theme="husky"] .modal-wizard .modal-header {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+}
+
+:root[data-theme="husky"] .modal-wizard .modal-header h2 {
+  color: var(--text-primary);
+}
+
+:root[data-theme="husky"] .modal-wizard .modal-close {
+  color: var(--text-secondary);
+}
+
+:root[data-theme="husky"] .modal-wizard .modal-close:hover {
+  color: var(--text-primary);
+}
+
+/* Wizard steps bar */
+:root[data-theme="husky"] .modal-wizard .wizard-steps {
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-card);
+}
+
+/* Alerts inside wizard */
+:root[data-theme="husky"] .modal-wizard .alert {
+  background: var(--bg-hover);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+:root[data-theme="husky"] .modal-wizard .alert-error {
+  background: #FEE2E2;
+  border-color: #FECACA;
+  color: #991B1B;
+}
+
+:root[data-theme="husky"] .modal-wizard .alert-warning {
+  background: #FEF3C7;
+  border-color: #FDE68A;
+  color: #92400E;
+}
+
+/* Success step */
+:root[data-theme="husky"] .modal-wizard .wizard-success h2,
+:root[data-theme="husky"] .modal-wizard .wizard-success p {
+  color: var(--text-primary);
+}
+
+/* Select option elements */
+:root[data-theme="husky"] .modal-wizard select option {
+  background: var(--bg-input);
+  color: var(--text-primary);
 }
