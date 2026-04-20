@@ -1,7 +1,7 @@
 // src/components/contracts/wizard/ContractWizardModal.tsx
 // Main orchestrator for contract wizard - coordinates all step components
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import contractService from '../../../services/contract.service';
 import type { Contract } from '../../../services/contract.service';
@@ -111,12 +111,24 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     },
   });
 
-  // Keep draft data and step in sync with live wizard state (from step 3 onward)
+  // Keep draft data and step in sync with live wizard state.
+  // setDraftCurrentStep is synced immediately so fast navigation / "save & exit"
+  // always stores the correct step. setDraftData is debounced (500ms) so
+  // rapid keystrokes don't trigger excessive re-renders.
+  const draftSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (currentStep >= 3) {
-      setDraftData(wizardData);
-    }
+    // Always sync step immediately
     setDraftCurrentStep(currentStep);
+    // Debounce the potentially-large data sync
+    if (draftSyncTimerRef.current) clearTimeout(draftSyncTimerRef.current);
+    if (currentStep >= 3) {
+      draftSyncTimerRef.current = setTimeout(() => {
+        setDraftData(wizardData);
+      }, 500);
+    }
+    return () => {
+      if (draftSyncTimerRef.current) clearTimeout(draftSyncTimerRef.current);
+    };
   }, [wizardData, currentStep, setDraftData, setDraftCurrentStep]);
 
   // Step at which draft save button is shown (config, details, infrastructure, logistics, preview, success)
@@ -214,29 +226,10 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     if (stepInfo.type === 'config' && stepInfo.subsystemIndex !== undefined) {
       const subsystem = wizardData.subsystems[stepInfo.subsystemIndex];
       if (subsystem.type === 'SMOKIP_A' || subsystem.type === 'SMOKIP_B') {
-        const params = subsystem.params as Record<string, number | boolean>;
-
-        // Calculate expected task count from current config params
-        let expectedTaskCount = 0;
-        if (subsystem.type === 'SMOKIP_A') {
-          expectedTaskCount += (typeof params.przejazdyKatA === 'number' ? params.przejazdyKatA : 0);
-          expectedTaskCount += (typeof params.iloscSKP === 'number' ? params.iloscSKP : 0);
-          expectedTaskCount += (typeof params.iloscNastawni === 'number' ? params.iloscNastawni : 0);
-          expectedTaskCount += (typeof params.hasLCS === 'number' ? params.hasLCS : 0);
-        } else if (subsystem.type === 'SMOKIP_B') {
-          expectedTaskCount += (typeof params.przejazdyKatB === 'number' ? params.przejazdyKatB : 0);
-          expectedTaskCount += (typeof params.iloscNastawni === 'number' ? params.iloscNastawni : 0);
-          expectedTaskCount += (typeof params.hasLCS === 'number' ? params.hasLCS : 0);
-        }
-
-        const currentTaskCount = subsystem.taskDetails?.length || 0;
-
-        // Initialize when there are no tasks yet, or when a new (non-existing) subsystem's
-        // config has changed so its expected task count no longer matches the current list.
-        // Existing (DB-backed) subsystems keep their tasks; user can add/remove manually.
-        if (currentTaskCount === 0 || (!subsystem.isExisting && expectedTaskCount !== currentTaskCount)) {
-          initializeTaskDetails(stepInfo.subsystemIndex);
-        }
+        // Always call initializeTaskDetails when leaving the config step.
+        // For new subsystems it builds the full list from scratch; for existing subsystems
+        // the diff inside initializeTaskDetails appends only the missing entries.
+        initializeTaskDetails(stepInfo.subsystemIndex);
       }
     }
     
@@ -566,6 +559,9 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     return true;
   };
 
+  // Compute canProceed once per render so JSX doesn't call the function twice.
+  const canProceedValue = canProceed();
+
   const renderStepIndicator = () => {
     const totalSteps = getTotalSteps();
     const maxStepsToShow = 6;
@@ -796,11 +792,11 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
                 <button 
                   className="btn btn-primary" 
                   onClick={handleNextStep}
-                  disabled={!canProceed()}
+                  disabled={!canProceedValue}
                 >
                   Dalej →
                 </button>
-                {!canProceed() && getValidationHint() && (
+                {!canProceedValue && getValidationHint() && (
                   <span className="validation-hint">⚠️ {getValidationHint()}</span>
                 )}
               </div>

@@ -43,6 +43,14 @@ export function useWizardDraft<T extends Record<string, any>>({
   const [savedDraft, setSavedDraft] = useState<SavedDraft<T> | null>(null);
   const loadedRef = useRef(false);
 
+  // Refs holding the latest data/step values so the autosave interval never
+  // needs to be re-created (and therefore never causes extra re-renders) when
+  // those values change.
+  const dataRef = useRef(data);
+  const stepRef = useRef(currentStep);
+  useEffect(() => { dataRef.current = data; }, [data]);
+  useEffect(() => { stepRef.current = currentStep; }, [currentStep]);
+
   const saveDraft = useCallback(
     async (draftData: T, step: number) => {
       if (!enabled) return;
@@ -89,16 +97,18 @@ export function useWizardDraft<T extends Record<string, any>>({
   // user has had a chance to choose "restore" or "discard".
   // autoSaveEnabled allows callers to suppress auto-save (e.g. before step 3)
   // while still loading the draft on open.
+  // Uses refs for data/currentStep so the interval is not re-created on every
+  // state change, preventing excessive re-renders.
   useEffect(() => {
     const shouldAutoSave = autoSaveEnabled !== undefined ? autoSaveEnabled : enabled;
     if (!shouldAutoSave || showRestoreModal) return;
 
     const interval = setInterval(() => {
-      saveDraft(data, currentStep);
+      saveDraft(dataRef.current, stepRef.current);
     }, autoSaveInterval);
 
     return () => clearInterval(interval);
-  }, [data, currentStep, autoSaveInterval, autoSaveEnabled, enabled, showRestoreModal, saveDraft]);
+  }, [autoSaveInterval, autoSaveEnabled, enabled, showRestoreModal, saveDraft]);
 
   const restoreDraft = () => {
     if (savedDraft) {
