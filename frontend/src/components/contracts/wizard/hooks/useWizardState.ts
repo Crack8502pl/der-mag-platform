@@ -155,15 +155,69 @@ export const useWizardState = ({
    */
   const initializeTaskDetails = (subsystemIndex: number) => {
     const subsystem = wizardData.subsystems[subsystemIndex];
+    const simpleParams = subsystem.params as Record<string, number | boolean>;
 
-    // ⚠️ Do not overwrite taskDetails for existing subsystems that already have tasks
+    // For existing subsystems that already have tasks, diff params vs existing and add only missing entries
     if (subsystem.isExisting && subsystem.taskDetails && subsystem.taskDetails.length > 0) {
-      console.log(`⚠️ Skipping initializeTaskDetails for existing subsystem ${subsystem.type} - already has ${subsystem.taskDetails.length} tasks`);
+      console.log(`📌 initializeTaskDetails diff for existing subsystem ${subsystem.type} - already has ${subsystem.taskDetails.length} tasks`);
+
+      const existingDetails = subsystem.taskDetails;
+      const additionalDetails: TaskDetail[] = [];
+
+      if (subsystem.type === 'SMOKIP_A') {
+        const neededPrzejazdy = getNumericValue(simpleParams, 'przejazdyKatA');
+        const existingPrzejazdy = existingDetails.filter(t => t.taskType === 'PRZEJAZD_KAT_A').length;
+        for (let i = existingPrzejazdy; i < neededPrzejazdy; i++) {
+          additionalDetails.push({ taskType: 'PRZEJAZD_KAT_A', kilometraz: '', kategoria: 'KAT A' });
+        }
+
+        const neededSKP = getNumericValue(simpleParams, 'iloscSKP');
+        const existingSKP = existingDetails.filter(t => t.taskType === 'SKP').length;
+        for (let i = existingSKP; i < neededSKP; i++) {
+          additionalDetails.push({ taskType: 'SKP', kilometraz: '' });
+        }
+
+        const neededNastawnia = getNumericValue(simpleParams, 'iloscNastawni');
+        const existingNastawnia = existingDetails.filter(t => t.taskType === 'NASTAWNIA').length;
+        for (let i = existingNastawnia; i < neededNastawnia; i++) {
+          additionalDetails.push({ taskType: 'NASTAWNIA', nazwa: '', miejscowosc: '' });
+        }
+
+        const neededLCS = getNumericValue(simpleParams, 'hasLCS');
+        const existingLCS = existingDetails.filter(t => t.taskType === 'LCS').length;
+        for (let i = existingLCS; i < neededLCS; i++) {
+          additionalDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '' });
+        }
+      } else if (subsystem.type === 'SMOKIP_B') {
+        const neededPrzejazdy = getNumericValue(simpleParams, 'przejazdyKatB');
+        const existingPrzejazdy = existingDetails.filter(t => t.taskType === 'PRZEJAZD_KAT_B').length;
+        for (let i = existingPrzejazdy; i < neededPrzejazdy; i++) {
+          additionalDetails.push({ taskType: 'PRZEJAZD_KAT_B', kilometraz: '', kategoria: 'KAT B' });
+        }
+
+        const neededNastawnia = getNumericValue(simpleParams, 'iloscNastawni');
+        const existingNastawnia = existingDetails.filter(t => t.taskType === 'NASTAWNIA').length;
+        for (let i = existingNastawnia; i < neededNastawnia; i++) {
+          additionalDetails.push({ taskType: 'NASTAWNIA', nazwa: '', miejscowosc: '' });
+        }
+
+        const neededLCS = getNumericValue(simpleParams, 'hasLCS');
+        const existingLCS = existingDetails.filter(t => t.taskType === 'LCS').length;
+        for (let i = existingLCS; i < neededLCS; i++) {
+          additionalDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '' });
+        }
+      }
+
+      if (additionalDetails.length > 0) {
+        console.log(`✅ Adding ${additionalDetails.length} new task details to existing subsystem ${subsystem.type}`);
+        const newSubsystems = [...wizardData.subsystems];
+        newSubsystems[subsystemIndex].taskDetails = [...existingDetails, ...additionalDetails];
+        setWizardData(prev => ({ ...prev, subsystems: newSubsystems }));
+      }
       return;
     }
 
     const taskDetails: TaskDetail[] = [];
-    const simpleParams = subsystem.params as Record<string, number | boolean>;
     
     if (subsystem.type === 'SMOKIP_A') {
       // PRZEJAZD_KAT_A

@@ -1,7 +1,7 @@
 // src/components/contracts/wizard/ContractWizardModal.tsx
 // Main orchestrator for contract wizard - coordinates all step components
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import contractService from '../../../services/contract.service';
 import type { Contract } from '../../../services/contract.service';
@@ -112,11 +112,19 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
   });
 
   // Keep draft data and step in sync with live wizard state (from step 3 onward)
+  // Debounced to 500ms to avoid triggering excessive re-renders on every keystroke.
+  const draftSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (currentStep >= 3) {
-      setDraftData(wizardData);
-    }
-    setDraftCurrentStep(currentStep);
+    if (draftSyncTimerRef.current) clearTimeout(draftSyncTimerRef.current);
+    draftSyncTimerRef.current = setTimeout(() => {
+      if (currentStep >= 3) {
+        setDraftData(wizardData);
+      }
+      setDraftCurrentStep(currentStep);
+    }, 500);
+    return () => {
+      if (draftSyncTimerRef.current) clearTimeout(draftSyncTimerRef.current);
+    };
   }, [wizardData, currentStep, setDraftData, setDraftCurrentStep]);
 
   // Step at which draft save button is shown (config, details, infrastructure, logistics, preview, success)
@@ -233,8 +241,13 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
         // Initialize when there are no tasks yet, or when a new (non-existing) subsystem's
         // config has changed so its expected task count no longer matches the current list.
-        // Existing (DB-backed) subsystems keep their tasks; user can add/remove manually.
-        if (currentTaskCount === 0 || (!subsystem.isExisting && expectedTaskCount !== currentTaskCount)) {
+        // For existing (DB-backed) subsystems, also call when params require more tasks than
+        // currently present — initializeTaskDetails will diff and add only the missing entries.
+        if (
+          currentTaskCount === 0 ||
+          expectedTaskCount > currentTaskCount ||
+          (!subsystem.isExisting && expectedTaskCount !== currentTaskCount)
+        ) {
           initializeTaskDetails(stepInfo.subsystemIndex);
         }
       }
@@ -566,6 +579,11 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     return true;
   };
 
+  // Memoize canProceed result to avoid calling it multiple times per render.
+  // canProceed() depends on currentStep (via getCurrentStepInfo), wizardData, and generatedTasks — those three deps are exhaustive.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const canProceedValue = useMemo(() => canProceed(), [currentStep, wizardData, generatedTasks]);
+
   const renderStepIndicator = () => {
     const totalSteps = getTotalSteps();
     const maxStepsToShow = 6;
@@ -796,11 +814,11 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
                 <button 
                   className="btn btn-primary" 
                   onClick={handleNextStep}
-                  disabled={!canProceed()}
+                  disabled={!canProceedValue}
                 >
                   Dalej →
                 </button>
-                {!canProceed() && getValidationHint() && (
+                {!canProceedValue && getValidationHint() && (
                   <span className="validation-hint">⚠️ {getValidationHint()}</span>
                 )}
               </div>
