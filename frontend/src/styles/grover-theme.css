@@ -349,6 +349,8 @@ a:hover {
 /* Nadpisanie .modal-content (wyższa specyficzność) dla layout-critical props */
 .modal-content.modal-wizard {
   overflow: hidden;
+  width: 100%;
+  max-width: none;
   max-height: calc(100vh - 16px);
 }
 
