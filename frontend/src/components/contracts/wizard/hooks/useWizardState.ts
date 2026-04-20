@@ -186,7 +186,7 @@ export const useWizardState = ({
         const neededLCS = getNumericValue(simpleParams, 'hasLCS');
         const existingLCS = existingDetails.filter(t => t.taskType === 'LCS').length;
         for (let i = existingLCS; i < neededLCS; i++) {
-          additionalDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '' });
+          additionalDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '', taskWizardId: crypto.randomUUID() });
         }
       } else if (subsystem.type === 'SMOKIP_B') {
         const neededPrzejazdy = getNumericValue(simpleParams, 'przejazdyKatB');
@@ -204,15 +204,20 @@ export const useWizardState = ({
         const neededLCS = getNumericValue(simpleParams, 'hasLCS');
         const existingLCS = existingDetails.filter(t => t.taskType === 'LCS').length;
         for (let i = existingLCS; i < neededLCS; i++) {
-          additionalDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '' });
+          additionalDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '', taskWizardId: crypto.randomUUID() });
         }
       }
 
       if (additionalDetails.length > 0) {
         console.log(`✅ Adding ${additionalDetails.length} new task details to existing subsystem ${subsystem.type}`);
-        const newSubsystems = [...wizardData.subsystems];
-        newSubsystems[subsystemIndex].taskDetails = [...existingDetails, ...additionalDetails];
-        setWizardData(prev => ({ ...prev, subsystems: newSubsystems }));
+        setWizardData(prev => {
+          const newSubsystems = prev.subsystems.map((s, i) =>
+            i === subsystemIndex
+              ? { ...s, taskDetails: [...(s.taskDetails || []), ...additionalDetails] }
+              : s
+          );
+          return { ...prev, subsystems: newSubsystems };
+        });
       }
       return;
     }
@@ -235,7 +240,7 @@ export const useWizardState = ({
       // LCS (hasLCS is now a count)
       const lcsCount = getNumericValue(simpleParams, 'hasLCS');
       for (let i = 0; i < lcsCount; i++) {
-        taskDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '' });
+        taskDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '', taskWizardId: crypto.randomUUID() });
       }
     } else if (subsystem.type === 'SMOKIP_B') {
       // PRZEJAZD_KAT_B
@@ -249,14 +254,17 @@ export const useWizardState = ({
       // LCS (hasLCS is now a count)
       const lcsCountB = getNumericValue(simpleParams, 'hasLCS');
       for (let i = 0; i < lcsCountB; i++) {
-        taskDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '' });
+        taskDetails.push({ taskType: 'LCS', nazwa: '', miejscowosc: '', taskWizardId: crypto.randomUUID() });
       }
     }
     
     // Update subsystem with initialized taskDetails
-    const newSubsystems = [...wizardData.subsystems];
-    newSubsystems[subsystemIndex].taskDetails = taskDetails;
-    setWizardData(prev => ({ ...prev, subsystems: newSubsystems }));
+    setWizardData(prev => {
+      const newSubsystems = prev.subsystems.map((s, i) =>
+        i === subsystemIndex ? { ...s, taskDetails } : s
+      );
+      return { ...prev, subsystems: newSubsystems };
+    });
   };
 
   /**
