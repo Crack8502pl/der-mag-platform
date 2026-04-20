@@ -61,6 +61,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
   const [createdContract, setCreatedContract] = useState<Contract | null>(null);
   const [shippingActive, setShippingActive] = useState(false);
   const [taskForAssetCreation, setTaskForAssetCreation] = useState<Task | null>(null);
+  const [wizardSubmitted, setWizardSubmitted] = useState(false);
   
   // Initialize wizard state using custom hook
   const {
@@ -104,7 +105,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     initialData: wizardData,
     autoSaveInterval: 30000,
     enabled: true,
-    autoSaveEnabled: currentStep >= 3, // auto-save from step 3 onward
+    autoSaveEnabled: currentStep >= 3 && !wizardSubmitted, // auto-save from step 3, disabled after submit
     onRestore: (data) => {
       updateWizardData(data);
     },
@@ -455,7 +456,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         );
         
         setGeneratedTasks(fetchedTasks);
-        // Clear draft on successful creation
+        // Disable auto-save and clear draft on successful creation
+        setWizardSubmitted(true);
         await clearDraft();
       }
     } catch (err: any) {

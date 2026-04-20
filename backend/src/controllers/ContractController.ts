@@ -14,6 +14,7 @@ import { TaskNumberGenerator } from '../services/TaskNumberGenerator';
 import { serverLogger } from '../utils/logger';
 import { NetworkAllocationService } from '../services/NetworkAllocationService';
 import { requiresCabinetCompletion } from '../config/taskTypes';
+import { SubsystemTask } from '../entities/SubsystemTask';
 
 interface FiberConnectionData {
   odleglosc?: number;
@@ -675,7 +676,15 @@ export class ContractController {
                       serverLogger.info(
                         `✅ Automatycznie utworzono zadanie KOMPLETACJA_SZAF (${cabinetSubsystemTask.taskNumber}) dla ${subsystemTask.taskNumber} (${taskData.type})`
                       );
+                      createdTasks.push(cabinetSubsystemTask);
                       createdMainTasks.push(cabinetMainTask);
+
+                      // Ustaw substatus na zadaniu źródłowym (analogicznie do 'wysyłka_zlecona' w kreatorze wysyłki)
+                      const subsystemTaskRepo = AppDataSource.getRepository(SubsystemTask);
+                      await subsystemTaskRepo.update(
+                        { taskNumber: subsystemTask.taskNumber },
+                        { substatus: 'szafa_wygenerowana' }
+                      );
                     } catch (cabinetError) {
                       serverLogger.error(
                         `❌ Błąd tworzenia automatycznego zadania KOMPLETACJA_SZAF dla ${subsystemTask.taskNumber}:`,
