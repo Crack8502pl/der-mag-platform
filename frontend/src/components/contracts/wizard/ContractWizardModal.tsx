@@ -326,6 +326,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         const newSubsystems = wizardData.subsystems.filter(s => !s.isExisting);
         
         if (newSubsystems.length > 0) {
+          // Use generatedTasks (which mirrors generateAllTasks order) to resolve global indices
           const subsystemsData = newSubsystems.map((subsystem) => {
             const subsystemTasks = generatedTasks.filter(t => t.subsystemType === subsystem.type);
             return {
@@ -334,6 +335,10 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
               ipPool: subsystem.ipPool,
               tasks: subsystemTasks.map((t, idx) => {
                 const detail = subsystem.taskDetails?.[idx];
+                // Global index in generatedTasks is used to match infrastructure perTask keys
+                const globalIdx = generatedTasks.indexOf(t);
+                const infraKey = `${subsystem.type}-${globalIdx >= 0 ? globalIdx : idx}`;
+                const taskInfra = wizardData.infrastructure?.perTask?.[infraKey];
                 return {
                   number: t.number,
                   name: t.name,
@@ -342,6 +347,12 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
                   gpsLongitude: detail?.gpsLongitude || null,
                   googleMapsUrl: detail?.googleMapsUrl || null,
                   fiberConnections: detail?.fiberConnections?.length ? detail.fiberConnections : null,
+                  metadata: taskInfra?.cabinetType
+                    ? {
+                        cabinetType: taskInfra.cabinetType,
+                        generateCabinetCompletion: taskInfra.generateCabinetCompletion ?? true,
+                      }
+                    : undefined,
                 };
               })
             };
@@ -354,6 +365,9 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         
         // 4. For existing subsystems - add only NEW tasks
         console.log('🔍 Processing existing subsystems...');
+        // Pre-compute global task indices using the full allTasks list
+        const allTasksGlobal = generateAllTasks(wizardData.subsystems, wizardData.liniaKolejowa);
+
         for (const subsystem of wizardData.subsystems.filter(s => s.isExisting)) {
           const newTasks = (subsystem.taskDetails || []).filter(t => !t.id);
           
@@ -364,21 +378,36 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           });
           
           if (newTasks.length > 0 && subsystem.id) {
+            // Find where this subsystem's tasks start in the global task list
+            const subsystemStartGlobalIdx = allTasksGlobal.findIndex(t => t.subsystemType === subsystem.type);
+
             console.log(`✅ Adding ${newTasks.length} new tasks to subsystem ${subsystem.id}`);
             await contractService.addTasksToSubsystem(subsystem.id, {
-              tasks: newTasks.map(t => ({
-                name: buildTaskNameFromDetails(t.taskType, t, wizardData.liniaKolejowa),
-                type: resolveTaskVariant(t.taskType, t),
-                gpsLatitude: t.gpsLatitude || null,
-                gpsLongitude: t.gpsLongitude || null,
-                googleMapsUrl: t.googleMapsUrl || null,
-                fiberConnections: t.fiberConnections?.length ? t.fiberConnections : null,
-                metadata: {
-                  kilometraz: t.kilometraz,
-                  kategoria: t.kategoria,
-                  miejscowosc: t.miejscowosc
-                }
-              }))
+              tasks: newTasks.map(t => {
+                const taskDetailIdx = (subsystem.taskDetails || []).indexOf(t);
+                const globalIdx = subsystemStartGlobalIdx >= 0
+                  ? subsystemStartGlobalIdx + taskDetailIdx
+                  : taskDetailIdx;
+                const infraKey = `${subsystem.type}-${globalIdx}`;
+                const taskInfra = wizardData.infrastructure?.perTask?.[infraKey];
+                return {
+                  name: buildTaskNameFromDetails(t.taskType, t, wizardData.liniaKolejowa),
+                  type: resolveTaskVariant(t.taskType, t),
+                  gpsLatitude: t.gpsLatitude || null,
+                  gpsLongitude: t.gpsLongitude || null,
+                  googleMapsUrl: t.googleMapsUrl || null,
+                  fiberConnections: t.fiberConnections?.length ? t.fiberConnections : null,
+                  metadata: {
+                    kilometraz: t.kilometraz,
+                    kategoria: t.kategoria,
+                    miejscowosc: t.miejscowosc,
+                    ...(taskInfra?.cabinetType ? {
+                      cabinetType: taskInfra.cabinetType,
+                      generateCabinetCompletion: taskInfra.generateCabinetCompletion ?? true,
+                    } : {})
+                  }
+                };
+              })
             });
           } else {
             console.log(`⚠️ Skipping - newTasks: ${newTasks.length}, subsystem.id: ${subsystem.id}`);
