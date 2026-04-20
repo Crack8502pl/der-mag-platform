@@ -394,6 +394,7 @@ export const useWizardState = ({
     
     // Validate required fields for each task type
     for (const detail of subsystem.taskDetails) {
+      if (detail.id) continue; // Tasks already in DB skip validation
       if (detail.taskType === 'PRZEJAZD_KAT_A' || detail.taskType === 'PRZEJAZD_KAT_B') {
         if (!detail.kilometraz?.trim() || !detail.kategoria) return false;
       } else if (detail.taskType === 'SKP') {
