@@ -286,7 +286,7 @@ export const ContractDetailPage: React.FC = () => {
           log.contactPhone ||
           log.contactPerson ||
           log.shippingNotes ||
-          log.orderEmails;
+          (log.orderEmails && Object.values(log.orderEmails).some(Boolean));
         if (!hasData) return null;
         return (
           <div className="contract-detail card" style={{ marginBottom: '24px' }}>
@@ -348,6 +348,9 @@ export const ContractDetailPage: React.FC = () => {
                     )}
                     {log.orderEmails.general && (
                       <div><strong>Ogólny:</strong> {log.orderEmails.general}</div>
+                    )}
+                    {log.orderEmails.warehouse && (
+                      <div><strong>Magazyn:</strong> {log.orderEmails.warehouse}</div>
                     )}
                     {log.orderEmails.notes && (
                       <div><strong>Uwagi:</strong> {log.orderEmails.notes}</div>
