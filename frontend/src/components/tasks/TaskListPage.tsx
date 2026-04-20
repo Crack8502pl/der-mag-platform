@@ -146,7 +146,7 @@ export const TaskListPage: React.FC = () => {
     setTimeout(() => setSuccess(''), 5000);
   };
 
-  if (loading && tasks.length === 0) {
+  if (loading && tasks.length === 0 && !searchTerm && !filterStatus && !filterTaskType) {
     return (
       <div className="module-page">
         <BackButton to="/dashboard" />

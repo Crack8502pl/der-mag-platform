@@ -46,6 +46,7 @@ const FlyToTask: React.FC<{ task: TaskWithGps | null }> = ({ task }) => {
   const map = useMap();
   useEffect(() => {
     if (task) {
+      map.closePopup();
       map.flyTo([task.gpsLatitude, task.gpsLongitude], 16, { duration: 1.5 });
     }
   }, [task, map]);
@@ -210,6 +211,7 @@ export const TasksMapPage: React.FC = () => {
                   <Marker
                     key={task.id}
                     position={[task.gpsLatitude, task.gpsLongitude]}
+                    eventHandlers={{ click: () => handleTaskClick(task) }}
                   >
                     <Tooltip>{task.title}</Tooltip>
                     <Popup>

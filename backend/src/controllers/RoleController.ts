@@ -336,6 +336,11 @@ export class RoleController {
           name: 'cars',
           displayName: 'Samochody',
           actions: ['read', 'update']
+        },
+        {
+          name: 'assets',
+          displayName: 'Obiekty',
+          actions: ['read', 'create', 'update', 'delete']
         }
       ];
 

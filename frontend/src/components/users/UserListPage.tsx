@@ -207,7 +207,7 @@ export const UserListPage: React.FC = () => {
     return sortOrder === 'ASC' ? '↑' : '↓';
   };
 
-  if (loading && users.length === 0) {
+  if (loading && users.length === 0 && !searchTerm && !filterRole && !filterStatus) {
     return (
       <div className="module-page">
         <BackButton to="/dashboard" />

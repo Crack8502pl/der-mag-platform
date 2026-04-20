@@ -187,7 +187,7 @@ export const ContractListPage: React.FC = () => {
     setTimeout(() => setSuccess(''), 5000);
   };
 
-  if (loading && contracts.length === 0) {
+  if (loading && contracts.length === 0 && !searchTerm && !filterStatus && !filterManager) {
     return (
       <div className="module-page">
         <BackButton to="/dashboard" />

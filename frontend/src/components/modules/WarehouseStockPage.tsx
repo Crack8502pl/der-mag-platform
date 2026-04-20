@@ -207,7 +207,7 @@ export const WarehouseStockPage: React.FC = () => {
     }
   };
 
-  if (loading && items.length === 0) {
+  if (loading && items.length === 0 && !searchTerm && !filterCategory && !filterSupplier && !filterStatus && !filterMaterialType) {
     return (
       <div className="module-page">
         <BackButton to="/dashboard" />

@@ -317,13 +317,68 @@ a:hover {
    WIZARD MODAL - DELIKATNIEJSZY WYGLĄD
    ============================================================ */
 
+/* Overlay z wizardem - mniejszy padding żeby zmaksymalizować powierzchnię */
+.modal-overlay:has(.modal-wizard) {
+  padding: 8px;
+}
+
 .modal-wizard {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-  max-width: 1400px;
+  /* Wypełnij dostępną przestrzeń (overlay padding: 8px z każdej strony) */
+  width: 100%;
+  max-width: none;
+  height: calc(100vh - 16px);
+  max-height: calc(100vh - 16px);
+  /* Flex column: header/steps/footer fixed, body scrolluje */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
+
+/* Elementy flex wewnątrz wizard — header i footer nie scrollują */
+.modal-wizard .modal-header,
+.modal-wizard .wizard-steps,
+.modal-wizard .modal-footer,
+.modal-wizard > .alert {
+  flex-shrink: 0;
+}
+
+/* Nadpisanie .modal-content (wyższa specyficzność) dla layout-critical props */
+.modal-content.modal-wizard {
+  overflow: hidden;
+  max-height: calc(100vh - 16px);
+}
+
+@media (max-width: 768px) {
+  .modal-content.modal-wizard {
+    max-height: 100dvh;
+  }
+}
+
+
+/* Jedyny scrollowalny element — treść kroku */
+.modal-wizard .modal-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 0;
+}
+
+/* Mobile: pełny ekran bez ramki */
+@media (max-width: 768px) {
+  .modal-overlay:has(.modal-wizard) {
+    padding: 0;
+  }
+  .modal-wizard {
+    border-radius: 0;
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+}
+
 
 .modal-wizard .wizard-step-content {
   padding: 24px;
