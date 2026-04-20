@@ -322,18 +322,37 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           ...(contractToEdit.status === 'PENDING_CONFIGURATION' ? { status: 'CREATED' } : {})
         });
 
+        // Pre-compute the global start offset for each subsystem (by subsystem instance index) so
+        // that infrastructure.perTask keys (${type}-${originalIdx}) can be resolved correctly even
+        // when a contract contains multiple subsystems with the same systemType.
+        // Strategy: call generateAllTasks([sub]) for each subsystem to get its task count, then
+        // accumulate running offsets in declaration order.
+        const subsystemStartOffsets: number[] = [];
+        let runningOffset = 0;
+        for (const sub of wizardData.subsystems) {
+          subsystemStartOffsets.push(runningOffset);
+          runningOffset += generateAllTasks([sub], wizardData.liniaKolejowa).length;
+        }
+
         // 2. Add only NEW subsystems (without isExisting flag)
         const newSubsystems = wizardData.subsystems.filter(s => !s.isExisting);
         
         if (newSubsystems.length > 0) {
           const subsystemsData = newSubsystems.map((subsystem) => {
-            const subsystemTasks = generatedTasks.filter(t => t.subsystemType === subsystem.type);
+            const subIdx = wizardData.subsystems.indexOf(subsystem);
+            const startOffset = subsystemStartOffsets[subIdx] ?? 0;
+            // Re-generate tasks for this specific subsystem to get the correct ordered list
+            const fullSubsystemTasks = generateAllTasks([subsystem], wizardData.liniaKolejowa);
             return {
               type: subsystem.type,
               params: subsystem.params,
               ipPool: subsystem.ipPool,
-              tasks: subsystemTasks.map((t, idx) => {
+              tasks: fullSubsystemTasks.map((t, idx) => {
                 const detail = subsystem.taskDetails?.[idx];
+                // globalIdx mirrors the InfrastructureStep key: `${type}-${originalIdx}`
+                const globalIdx = startOffset + idx;
+                const infraKey = `${subsystem.type}-${globalIdx}`;
+                const taskInfra = wizardData.infrastructure?.perTask?.[infraKey];
                 return {
                   number: t.number,
                   name: t.name,
@@ -342,6 +361,12 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
                   gpsLongitude: detail?.gpsLongitude || null,
                   googleMapsUrl: detail?.googleMapsUrl || null,
                   fiberConnections: detail?.fiberConnections?.length ? detail.fiberConnections : null,
+                  metadata: taskInfra?.cabinetType
+                    ? {
+                        cabinetType: taskInfra.cabinetType,
+                        generateCabinetCompletion: taskInfra.generateCabinetCompletion ?? true,
+                      }
+                    : undefined,
                 };
               })
             };
@@ -354,6 +379,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         
         // 4. For existing subsystems - add only NEW tasks
         console.log('🔍 Processing existing subsystems...');
+
         for (const subsystem of wizardData.subsystems.filter(s => s.isExisting)) {
           const newTasks = (subsystem.taskDetails || []).filter(t => !t.id);
           
@@ -364,21 +390,36 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           });
           
           if (newTasks.length > 0 && subsystem.id) {
+            const subIdx = wizardData.subsystems.indexOf(subsystem);
+            const startOffset = subsystemStartOffsets[subIdx] ?? 0;
+
             console.log(`✅ Adding ${newTasks.length} new tasks to subsystem ${subsystem.id}`);
             await contractService.addTasksToSubsystem(subsystem.id, {
-              tasks: newTasks.map(t => ({
-                name: buildTaskNameFromDetails(t.taskType, t, wizardData.liniaKolejowa),
-                type: resolveTaskVariant(t.taskType, t),
-                gpsLatitude: t.gpsLatitude || null,
-                gpsLongitude: t.gpsLongitude || null,
-                googleMapsUrl: t.googleMapsUrl || null,
-                fiberConnections: t.fiberConnections?.length ? t.fiberConnections : null,
-                metadata: {
-                  kilometraz: t.kilometraz,
-                  kategoria: t.kategoria,
-                  miejscowosc: t.miejscowosc
-                }
-              }))
+              tasks: newTasks.map(t => {
+                // taskDetailIdx is the index within this subsystem's full taskDetails list
+                const taskDetailIdx = (subsystem.taskDetails || []).indexOf(t);
+                // globalIdx mirrors the InfrastructureStep key: `${type}-${originalIdx}`
+                const globalIdx = startOffset + taskDetailIdx;
+                const infraKey = `${subsystem.type}-${globalIdx}`;
+                const taskInfra = wizardData.infrastructure?.perTask?.[infraKey];
+                return {
+                  name: buildTaskNameFromDetails(t.taskType, t, wizardData.liniaKolejowa),
+                  type: resolveTaskVariant(t.taskType, t),
+                  gpsLatitude: t.gpsLatitude || null,
+                  gpsLongitude: t.gpsLongitude || null,
+                  googleMapsUrl: t.googleMapsUrl || null,
+                  fiberConnections: t.fiberConnections?.length ? t.fiberConnections : null,
+                  metadata: {
+                    kilometraz: t.kilometraz,
+                    kategoria: t.kategoria,
+                    miejscowosc: t.miejscowosc,
+                    ...(taskInfra?.cabinetType ? {
+                      cabinetType: taskInfra.cabinetType,
+                      generateCabinetCompletion: taskInfra.generateCabinetCompletion ?? true,
+                    } : {})
+                  }
+                };
+              })
             });
           } else {
             console.log(`⚠️ Skipping - newTasks: ${newTasks.length}, subsystem.id: ${subsystem.id}`);

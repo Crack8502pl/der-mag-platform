@@ -56,6 +56,25 @@ export interface Contract {
   };
   jowiszRef?: string;
   subsystems?: Subsystem[];
+  technicalSpecs?: {
+    infrastructure?: Record<string, any>;
+    logistics?: {
+      deliveryAddress?: string;
+      deliveryAddresses?: Array<{ address: string; taskIds: (string | number)[] }>;
+      contactPhone?: string;
+      contactPerson?: string;
+      shippingNotes?: string;
+      preferredDeliveryDate?: string;
+      orderEmails?: {
+        cameras?: string;
+        switches?: string;
+        recorders?: string;
+        general?: string;
+        warehouse?: string;
+        notes?: string;
+      };
+    };
+  };
   createdAt: string;
   updatedAt: string;
 }

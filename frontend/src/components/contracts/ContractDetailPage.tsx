@@ -277,6 +277,92 @@ export const ContractDetailPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Logistics / Shipping Data Card */}
+      {contract.technicalSpecs?.logistics && (() => {
+        const log = contract.technicalSpecs!.logistics!;
+        const hasData =
+          (log.deliveryAddresses && log.deliveryAddresses.length > 0) ||
+          log.deliveryAddress ||
+          log.contactPhone ||
+          log.contactPerson ||
+          log.shippingNotes ||
+          (log.orderEmails && Object.values(log.orderEmails).some(Boolean));
+        if (!hasData) return null;
+        return (
+          <div className="contract-detail card" style={{ marginBottom: '24px' }}>
+            <div className="card-header">
+              <h2>📦 Dane wysyłki</h2>
+            </div>
+            <div className="detail-grid">
+              {(log.deliveryAddresses && log.deliveryAddresses.length > 0) ? (
+                <div className="detail-item" style={{ gridColumn: '1 / -1' }}>
+                  <label>Adresy dostawy</label>
+                  <div className="detail-value">
+                    {log.deliveryAddresses.map((addr, i) => (
+                      <div key={i} style={{ marginBottom: i < log.deliveryAddresses!.length - 1 ? '4px' : 0 }}>
+                        {addr.address}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : log.deliveryAddress ? (
+                <div className="detail-item" style={{ gridColumn: '1 / -1' }}>
+                  <label>Adres dostawy</label>
+                  <div className="detail-value">{log.deliveryAddress}</div>
+                </div>
+              ) : null}
+
+              {log.contactPhone && (
+                <div className="detail-item">
+                  <label>Telefon kontaktowy</label>
+                  <div className="detail-value">{log.contactPhone}</div>
+                </div>
+              )}
+
+              {log.contactPerson && (
+                <div className="detail-item">
+                  <label>Osoba kontaktowa</label>
+                  <div className="detail-value">{log.contactPerson}</div>
+                </div>
+              )}
+
+              {log.shippingNotes && (
+                <div className="detail-item" style={{ gridColumn: '1 / -1' }}>
+                  <label>Uwagi do wysyłki</label>
+                  <div className="detail-value">{log.shippingNotes}</div>
+                </div>
+              )}
+
+              {log.orderEmails && Object.values(log.orderEmails).some(v => v) && (
+                <div className="detail-item" style={{ gridColumn: '1 / -1' }}>
+                  <label>Adresy e-mail dla zamówień</label>
+                  <div className="detail-value">
+                    {log.orderEmails.cameras && (
+                      <div><strong>Kamery:</strong> {log.orderEmails.cameras}</div>
+                    )}
+                    {log.orderEmails.switches && (
+                      <div><strong>Switche:</strong> {log.orderEmails.switches}</div>
+                    )}
+                    {log.orderEmails.recorders && (
+                      <div><strong>Rejestratory:</strong> {log.orderEmails.recorders}</div>
+                    )}
+                    {log.orderEmails.general && (
+                      <div><strong>Ogólny:</strong> {log.orderEmails.general}</div>
+                    )}
+                    {log.orderEmails.warehouse && (
+                      <div><strong>Magazyn:</strong> {log.orderEmails.warehouse}</div>
+                    )}
+                    {log.orderEmails.notes && (
+                      <div><strong>Uwagi:</strong> {log.orderEmails.notes}</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Subsystems Cards - grover/husky theme */}
       <div className="subsystems-card card">
         <div className="card-header">
