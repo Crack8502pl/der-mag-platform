@@ -449,14 +449,22 @@ export const useWizardState = ({
             ipPool: sub.ipPool, // IMPORTANT - preserve IP pool
             taskDetails: (sub.tasks || []).map(task => {
               const taskType = task.taskType as TaskDetail['taskType'];
+              const meta = task.metadata || {};
               return {
                 id: task.id, // IMPORTANT - preserve task ID
                 taskType,
-                kilometraz: task.metadata?.kilometraz || '',
-                kategoria: task.metadata?.kategoria || '',
-                nazwa: task.taskName || task.metadata?.nazwa || '',
-                miejscowosc: task.metadata?.miejscowosc || ''
-              };
+                kilometraz: meta.kilometraz || '',
+                kategoria: meta.kategoria || '',
+                nazwa: task.taskName || meta.nazwa || '',
+                miejscowosc: meta.miejscowosc || '',
+                liniaKolejowa: meta.liniaKolejowa || '',
+                gpsLatitude: meta.gpsLatitude?.toString() || '',
+                gpsLongitude: meta.gpsLongitude?.toString() || '',
+                googleMapsUrl: meta.googleMapsUrl || '',
+                hasCUID: meta.hasCUID || false,
+                linkedLCSId: meta.linkedLCSId,
+                fiberConnections: meta.fiberConnections || []
+              } as TaskDetail;
             }),
             isExisting: true, // FLAG - subsystem already exists in database
             taskCount: sub.tasks?.length || 0
