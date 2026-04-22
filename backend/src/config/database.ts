@@ -83,6 +83,8 @@ import { WizardDraft } from '../entities/WizardDraft';
 import { Asset } from '../entities/Asset';
 import { AssetTask } from '../entities/AssetTask';
 import { AssetStatusHistory } from '../entities/AssetStatusHistory';
+// Migrations
+import { BackfillWizardTaskMetadata1714080000000 } from '../migrations/1714080000000-BackfillWizardTaskMetadata';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -195,7 +197,9 @@ export const AppDataSource = new DataSource({
     AssetStatusHistory,
   ],
   subscribers: [],
-  migrations: [],
+  migrations: [
+    BackfillWizardTaskMetadata1714080000000,
+  ],
 });
 
 export const initializeDatabase = async (): Promise<void> => {
