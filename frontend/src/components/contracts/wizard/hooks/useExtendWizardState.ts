@@ -134,6 +134,8 @@ export const useExtendWizardState = ({
           } as ExistingSubsystem;
         });
 
+      // Load task relationships for SMOKIP subsystems that have LCS or NASTAWNIA parent tasks.
+      // Relationships for other subsystem types or task types are not used by the extend wizard.
       const taskRelationships: WizardTaskRelationships = {};
       for (const sub of existingSubsystems) {
         if ((sub.type !== 'SMOKIP_A' && sub.type !== 'SMOKIP_B') || !sub.id) continue;
@@ -189,7 +191,7 @@ export const useExtendWizardState = ({
         taskWizardId: taskType === 'LCS' ? crypto.randomUUID() : `extend-${subsystemId}-${Date.now()}`,
         kilometraz: '',
         nazwa: '',
-        kategoria: taskType.includes('PRZEJAZD') ? 'KAT A' : undefined
+        kategoria: taskType === 'PRZEJAZD_KAT_A' ? 'KAT A' : taskType === 'PRZEJAZD_KAT_B' ? 'KAT B' : undefined
       };
 
       return {
@@ -326,7 +328,7 @@ export const useExtendWizardState = ({
       taskWizardId: taskType === 'LCS' ? crypto.randomUUID() : `new-extra-${subsystemIndex}-${Date.now()}`,
       kilometraz: '',
       nazwa: '',
-      kategoria: taskType.includes('PRZEJAZD') ? 'KAT A' : undefined
+      kategoria: taskType === 'PRZEJAZD_KAT_A' ? 'KAT A' : taskType === 'PRZEJAZD_KAT_B' ? 'KAT B' : undefined
     };
 
     setExtendData(prev => ({
