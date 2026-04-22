@@ -6,7 +6,7 @@ import { detectSubsystemTypes, detectRailwayLine } from '../../../../config/subs
 import type { SubsystemType } from '../../../../config/subsystemWizardConfig';
 import contractService, { type Contract } from '../../../../services/contract.service';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../config/subsystemWizardConfig';
-import type { WizardData, SubsystemWizardData, TaskDetail, InfrastructureData, TaskInfrastructure, LogisticsData, WizardTaskRelationships, WizardLCSRelationship } from '../types/wizard.types';
+import type { WizardData, SubsystemWizardData, TaskDetail, InfrastructureData, TaskInfrastructure, LogisticsData, WizardTaskRelationships, WizardTaskRelationship } from '../types/wizard.types';
 import { formatKilometrazDisplay, cleanKilometrazInput } from '../utils/validation';
 import taskRelationshipService from '../../../../services/taskRelationship.service';
 
@@ -482,26 +482,27 @@ export const useWizardState = ({
       // 4. Set detected subsystems
       setDetectedSubsystems(wizardSubsystems.map(s => s.type));
 
-      // 5. Load task relationships for SMOKIP subsystems with LCS tasks
+      // 5. Load task relationships for SMOKIP subsystems with LCS or NASTAWNIA parent tasks
       try {
         const taskRelationships: WizardTaskRelationships = {};
 
         for (let sIdx = 0; sIdx < wizardSubsystems.length; sIdx++) {
           const sub = wizardSubsystems[sIdx];
           if ((sub.type !== 'SMOKIP_A' && sub.type !== 'SMOKIP_B') || !sub.id) continue;
-          if (!sub.taskDetails?.some(t => t.taskType === 'LCS')) continue;
+          if (!sub.taskDetails?.some(t => t.taskType === 'LCS' || t.taskType === 'NASTAWNIA')) continue;
 
           const rels = await taskRelationshipService.getBySubsystem(sub.id);
 
           for (const rel of rels) {
-            // Find the LCS task detail index for this parent
-            const lcsDetailIdx: number = sub.taskDetails!.findIndex(
-              t => t.taskType === 'LCS' && t.taskNumber === rel.parentTaskNumber
+            // Find the parent task detail index (LCS or NASTAWNIA)
+            const parentDetailIdx: number = sub.taskDetails!.findIndex(
+              t => (t.taskType === 'LCS' || t.taskType === 'NASTAWNIA') && t.taskNumber === rel.parentTaskNumber
             );
-            if (lcsDetailIdx === -1) continue;
+            if (parentDetailIdx === -1) continue;
 
-            const lcsDetail: TaskDetail = sub.taskDetails![lcsDetailIdx];
-            const lcsWizardId = lcsDetail.taskWizardId ?? `${sIdx}-${lcsDetailIdx}`;
+            const parentDetail: TaskDetail = sub.taskDetails![parentDetailIdx];
+            const parentWizardId = parentDetail.taskWizardId ?? `${sIdx}-${parentDetailIdx}`;
+            const parentType = parentDetail.taskType;
 
             const childTaskKeys: string[] = [];
             for (const child of rel.children) {
@@ -513,8 +514,8 @@ export const useWizardState = ({
               }
             }
 
-            const entry: WizardLCSRelationship = { lcsWizardId, childTaskKeys };
-            taskRelationships[lcsWizardId] = entry;
+            const entry: WizardTaskRelationship = { parentWizardId, parentType, childTaskKeys };
+            taskRelationships[parentWizardId] = entry;
           }
         }
 

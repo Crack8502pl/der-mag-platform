@@ -209,3 +209,146 @@
   text-align: center;
   padding: 20px 0;
 }
+
+/* ── hierarchy panel (right side) ───────────────────────── */
+.hierarchy-panel {
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+/* ── Hierarchy tree visualization ─────────────────────────── */
+.hierarchy-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hierarchy-empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-secondary, #888);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* ── Tree node (recursive structure) ───────────────────────── */
+.tree-node {
+  position: relative;
+}
+
+.tree-node-content {
+  background: var(--bg-dark, #1a1a1a);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 6px;
+  padding: 10px;
+  transition: all 0.2s ease;
+}
+
+.tree-node-content.drop-over {
+  background: color-mix(in srgb, var(--primary-color, #ff6b35) 10%, var(--bg-dark, #1a1a1a));
+  border-color: var(--primary-color, #ff6b35);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color, #ff6b35) 30%, transparent);
+}
+
+.tree-node-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tree-node-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.tree-node-label {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.tree-node-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary, #aaa);
+  padding: 0 2px;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+  transition: opacity 0.12s, color 0.12s;
+}
+
+.tree-node-remove:hover {
+  opacity: 1;
+  color: var(--danger-color, #dc3545);
+}
+
+.tree-node-drop-zone {
+  margin-top: 8px;
+  padding: 10px;
+  border: 2px dashed var(--border-color, #444);
+  border-radius: 4px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-secondary, #888);
+  transition: all 0.2s ease;
+}
+
+/* ── Tree children (indented) ──────────────────────────────── */
+.tree-node-children {
+  margin-top: 6px;
+  margin-left: 20px;
+  padding-left: 12px;
+  border-left: 2px solid var(--border-color, #333);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Level-specific styling ────────────────────────────────── */
+.tree-node.level-0 > .tree-node-content {
+  background: var(--bg-card, #252525);
+  border-width: 2px;
+}
+
+.tree-node.level-0 > .tree-node-content .tree-node-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tree-node.level-1 > .tree-node-content {
+  background: var(--bg-dark, #1e1e1e);
+}
+
+.tree-node.level-2 > .tree-node-content {
+  background: var(--bg-dark, #1a1a1a);
+}
+
+/* ── Theme: Husky (light) overrides ────────────────────────── */
+:root[data-theme="husky"] .tree-node-content {
+  background: #ffffff;
+  border-color: #ddd;
+}
+
+:root[data-theme="husky"] .tree-node.level-0 > .tree-node-content {
+  background: #f8f9fa;
+}
+
+:root[data-theme="husky"] .tree-node.level-1 > .tree-node-content {
+  background: #fdfdfd;
+}
+
+:root[data-theme="husky"] .tree-node.level-2 > .tree-node-content {
+  background: #fafafa;
+}
+
+:root[data-theme="husky"] .tree-node-children {
+  border-left-color: #ccc;
+}
+
+:root[data-theme="husky"] .tree-node-drop-zone {
+  border-color: #bbb;
+}
