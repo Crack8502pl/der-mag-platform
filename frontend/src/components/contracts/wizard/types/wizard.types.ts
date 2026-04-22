@@ -155,17 +155,22 @@ export interface SubsystemConfigStepProps {
 }
 
 /**
- * Wizard task relationship – maps an LCS taskWizardId to child task keys.
+ * Wizard task relationship – maps a parent taskWizardId to child task keys.
+ * Supports multi-level hierarchy (LCS → ND → PRZEJAZD/SKP).
  * Child task key format: "{subsystemIndex}-{taskDetailIndex}"
  */
-export interface WizardLCSRelationship {
-  lcsWizardId: string;
+export interface WizardTaskRelationship {
+  parentWizardId: string; // taskWizardId of parent task
+  parentType: string;      // 'LCS' | 'NASTAWNIA'
   /** Array of "{subsystemIndex}-{taskDetailIndex}" keys for assigned children */
   childTaskKeys: string[];
 }
 
 /**
- * All task relationships in the wizard, keyed by LCS taskWizardId.
+ * All task relationships in the wizard, keyed by parent taskWizardId.
  */
-export type WizardTaskRelationships = Record<string, WizardLCSRelationship>;
+export type WizardTaskRelationships = Record<string, WizardTaskRelationship>;
+
+/** @deprecated Use WizardTaskRelationship instead */
+export type WizardLCSRelationship = WizardTaskRelationship;
 

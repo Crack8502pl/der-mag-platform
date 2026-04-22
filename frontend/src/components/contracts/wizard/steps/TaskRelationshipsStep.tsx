@@ -1,5 +1,6 @@
 // src/components/contracts/wizard/steps/TaskRelationshipsStep.tsx
-// Wizard step: Assign child tasks (Nastawnia, SKP, Przejazd) to parent LCS tasks
+// Wizard step: Assign child tasks (Nastawnia, SKP, Przejazd) to parent tasks
+// (LCS or standalone Nastawnia). Supports 2-level hierarchy.
 // Uses @dnd-kit/core for drag-and-drop interaction.
 
 import React, { useMemo, useState } from 'react';
@@ -9,11 +10,11 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  useDroppable,
 } from '@dnd-kit/core';
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import { useDraggable } from '@dnd-kit/core';
-import type { WizardData, WizardLCSRelationship, WizardTaskRelationships } from '../types/wizard.types';
+import type { WizardData, WizardTaskRelationship, WizardTaskRelationships } from '../types/wizard.types';
+import { HierarchyTreeView } from './HierarchyTreeView';
 import './TaskRelationshipsStep.css';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -27,20 +28,26 @@ interface FlatTask {
   label: string;
   kilometraz?: string;
   nazwa?: string;
+  taskWizardId?: string;
 }
 
-/** A flat LCS node */
-interface LCSNode {
+/** A flat parent node (LCS or NASTAWNIA) */
+interface ParentNode {
   key: string; // "{subsystemIndex}-{taskDetailIndex}"
   subsystemIndex: number;
   taskIndex: number;
-  lcsWizardId: string;
+  taskType: string; // 'LCS' | 'NASTAWNIA'
+  taskWizardId: string;
   label: string;
   nazwa?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+/** Task types that can act as parents in the hierarchy */
+const PARENT_TASK_TYPES = ['LCS', 'NASTAWNIA'];
+
+/** Task types that can be assigned as children */
 const CHILD_TASK_TYPES = ['NASTAWNIA', 'SKP', 'PRZEJAZD_KAT_A', 'PRZEJAZD_KAT_B', 'PRZEJAZD_KAT_C', 'PRZEJAZD_KAT_E', 'PRZEJAZD_KAT_F'];
 
 const TASK_TYPE_LABELS: Record<string, string> = {
@@ -82,77 +89,10 @@ const DraggableChip: React.FC<DraggableChipProps> = ({ task, isAssigned }) => {
       {...attributes}
       {...listeners}
       className={`task-chip${isDragging ? ' dragging' : ''}${isAssigned ? ' assigned' : ''}`}
-      title={isAssigned ? 'Już przypisane do LCS' : 'Przeciągnij do LCS'}
+      title={isAssigned ? 'Już przypisane do węzła nadrzędnego' : 'Przeciągnij do węzła nadrzędnego'}
     >
       <span className="task-chip-badge">{typeShort}</span>
       {task.label}
-    </div>
-  );
-};
-
-// ─── Assigned chip (inside drop zone) ────────────────────────────────────────
-
-interface AssignedChipProps {
-  task: FlatTask;
-  onRemove: () => void;
-}
-
-const AssignedChip: React.FC<AssignedChipProps> = ({ task, onRemove }) => {
-  const typeShort = TASK_TYPE_LABELS[task.taskType]?.split(' ').pop() ?? task.taskType;
-  return (
-    <div className="task-chip" style={{ cursor: 'default' }}>
-      <span className="task-chip-badge">{typeShort}</span>
-      {task.label}
-      <button
-        className="task-chip-remove"
-        onClick={onRemove}
-        title="Usuń z LCS"
-        aria-label={`Usuń ${task.label} z LCS`}
-      >
-        ×
-      </button>
-    </div>
-  );
-};
-
-// ─── LCS drop zone ────────────────────────────────────────────────────────────
-
-interface LCSDropZoneProps {
-  lcs: LCSNode;
-  assignedTasks: FlatTask[];
-  onRemoveChild: (childKey: string) => void;
-  allTasks: FlatTask[];
-}
-
-const LCSDropZone: React.FC<LCSDropZoneProps> = ({ lcs, assignedTasks, onRemoveChild, allTasks: _allTasks }) => {
-  const { setNodeRef, isOver } = useDroppable({ id: `lcs-${lcs.key}` });
-
-  const stats = [
-    assignedTasks.filter((t) => t.taskType === 'NASTAWNIA').length,
-    assignedTasks.filter((t) => t.taskType === 'SKP').length,
-    assignedTasks.filter((t) => CHILD_TASK_TYPES.includes(t.taskType) && t.taskType.startsWith('PRZEJAZD')).length,
-  ];
-
-  return (
-    <div className={`lcs-card${isOver ? ' drop-over' : ''}`}>
-      <div className="lcs-card-header">
-        <div>
-          <div className="lcs-card-title">🏭 {lcs.label}</div>
-          {lcs.nazwa && <div className="lcs-card-subtitle">{lcs.nazwa}</div>}
-        </div>
-        <div className="lcs-card-stats">
-          Nastawnie: {stats[0]} | SKP: {stats[1]} | Przejazdy: {stats[2]}
-        </div>
-      </div>
-      <div ref={setNodeRef} className={`lcs-drop-zone${isOver ? ' drop-over' : ''}`}>
-        {assignedTasks.length === 0 ? (
-          <span className="lcs-drop-zone-empty">↓ Upuść tutaj zadania podrzędne</span>
-        ) : (
-          assignedTasks.map((task) => (
-            <AssignedChip key={task.key} task={task} onRemove={() => onRemoveChild(task.key)} />
-          ))
-        )}
-      </div>
     </div>
   );
 };
@@ -171,10 +111,10 @@ export const TaskRelationshipsStep: React.FC<Props> = ({ wizardData, onUpdate })
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
-  // ── Build flat lists of LCS nodes and eligible child tasks ──────────────────
+  // ── Build flat lists of parent nodes and eligible child tasks ───────────────
 
-  const { lcsNodes, childTasks } = useMemo(() => {
-    const lcsList: LCSNode[] = [];
+  const { parentNodes, childTasks } = useMemo(() => {
+    const parents: ParentNode[] = [];
     const children: FlatTask[] = [];
 
     wizardData.subsystems.forEach((sub, sIdx) => {
@@ -182,16 +122,21 @@ export const TaskRelationshipsStep: React.FC<Props> = ({ wizardData, onUpdate })
       const details = sub.taskDetails ?? [];
       details.forEach((detail, dIdx) => {
         const key = `${sIdx}-${dIdx}`;
-        if (detail.taskType === 'LCS') {
-          lcsList.push({
+
+        if (PARENT_TASK_TYPES.includes(detail.taskType)) {
+          parents.push({
             key,
             subsystemIndex: sIdx,
             taskIndex: dIdx,
-            lcsWizardId: detail.taskWizardId ?? key,
-            label: buildLabel('LCS', detail),
+            taskType: detail.taskType,
+            taskWizardId: detail.taskWizardId ?? key,
+            label: buildLabel(detail.taskType, detail),
             nazwa: detail.nazwa,
           });
-        } else if (CHILD_TASK_TYPES.includes(detail.taskType)) {
+        }
+
+        // NASTAWNIA can be both parent AND child
+        if (CHILD_TASK_TYPES.includes(detail.taskType)) {
           children.push({
             key,
             subsystemIndex: sIdx,
@@ -200,12 +145,13 @@ export const TaskRelationshipsStep: React.FC<Props> = ({ wizardData, onUpdate })
             label: buildLabel(detail.taskType, detail),
             kilometraz: detail.kilometraz,
             nazwa: detail.nazwa,
+            taskWizardId: detail.taskWizardId ?? key,
           });
         }
       });
     });
 
-    return { lcsNodes: lcsList, childTasks: children };
+    return { parentNodes: parents, childTasks: children };
   }, [wizardData.subsystems]);
 
   // ── Derive current relationship state ──────────────────────────────────────
@@ -219,40 +165,86 @@ export const TaskRelationshipsStep: React.FC<Props> = ({ wizardData, onUpdate })
     return set;
   }, [relationships]);
 
-  // Get assigned tasks for a specific LCS
-  const getAssignedTasks = (lcsWizardId: string): FlatTask[] => {
-    const keys = relationships[lcsWizardId]?.childTaskKeys ?? [];
-    return keys
-      .map((k) => childTasks.find((t) => t.key === k))
-      .filter((t): t is FlatTask => t !== undefined);
-  };
-
-  // ── Update helper ──────────────────────────────────────────────────────────
+  // ── Update helpers ─────────────────────────────────────────────────────────
 
   const updateRelationships = (updated: WizardTaskRelationships) => {
     onUpdate({ taskRelationships: updated });
   };
 
-  const assignChildToLCS = (lcsWizardId: string, childKey: string) => {
-    // Guard: don't allow double-assignment
-    if (assignedKeys.has(childKey)) return;
+  const removeChildFromAllParents = (childKey: string, current: WizardTaskRelationships): WizardTaskRelationships => {
+    const updated = { ...current };
+    let changed = false;
+    Object.keys(updated).forEach((parentId) => {
+      const rel = updated[parentId];
+      if (rel.childTaskKeys.includes(childKey)) {
+        updated[parentId] = { ...rel, childTaskKeys: rel.childTaskKeys.filter((k) => k !== childKey) };
+        changed = true;
+      }
+    });
+    return changed ? updated : current;
+  };
 
-    const prev: WizardLCSRelationship = relationships[lcsWizardId] ?? {
-      lcsWizardId,
+  const wouldCreateCircularDependency = (childKey: string, targetParentWizardId: string): boolean => {
+    const childTask = childTasks.find((t) => t.key === childKey);
+    if (!childTask?.taskWizardId) return false;
+
+    // DFS: check if targetParentWizardId is reachable from childTask as a descendant
+    const visited = new Set<string>();
+    const checkDescendants = (ancestorWizardId: string): boolean => {
+      if (visited.has(ancestorWizardId)) return false;
+      visited.add(ancestorWizardId);
+      const rel = relationships[ancestorWizardId];
+      if (!rel) return false;
+      for (const descKey of rel.childTaskKeys) {
+        const desc = childTasks.find((t) => t.key === descKey);
+        if (!desc) continue;
+        if (desc.taskWizardId === targetParentWizardId) return true;
+        if (desc.taskWizardId && checkDescendants(desc.taskWizardId)) return true;
+      }
+      return false;
+    };
+
+    return checkDescendants(childTask.taskWizardId);
+  };
+
+  const assignChildToParent = (parentWizardId: string, parentType: string, childKey: string) => {
+    // Check circular dependency
+    if (wouldCreateCircularDependency(childKey, parentWizardId)) {
+      alert('⚠️ Nie można utworzyć cyklicznej zależności!');
+      return;
+    }
+
+    // Depth limit: NASTAWNIA can only be child of LCS (level 0 parent), not of another ND
+    const childTask = childTasks.find((t) => t.key === childKey);
+    if (childTask?.taskType === 'NASTAWNIA') {
+      const parentNode = parentNodes.find((p) => p.taskWizardId === parentWizardId);
+      if (parentNode && parentNode.taskType === 'NASTAWNIA') {
+        alert('⚠️ Nastawnia może być podrzędna tylko bezpośrednio pod LCS (maks. 2 poziomy głębokości).');
+        return;
+      }
+    }
+
+    // Remove child from any existing parent first (no double-assignment)
+    const withRemoved = removeChildFromAllParents(childKey, relationships);
+
+    const prev: WizardTaskRelationship = withRemoved[parentWizardId] ?? {
+      parentWizardId,
+      parentType,
       childTaskKeys: [],
     };
+
     updateRelationships({
-      ...relationships,
-      [lcsWizardId]: { ...prev, childTaskKeys: [...prev.childTaskKeys, childKey] },
+      ...withRemoved,
+      [parentWizardId]: { ...prev, childTaskKeys: [...prev.childTaskKeys, childKey] },
     });
   };
 
-  const removeChildFromLCS = (lcsWizardId: string, childKey: string) => {
-    const prev = relationships[lcsWizardId];
+  const removeChildFromParent = (parentWizardId: string, childKey: string) => {
+    const prev = relationships[parentWizardId];
     if (!prev) return;
     updateRelationships({
       ...relationships,
-      [lcsWizardId]: {
+      [parentWizardId]: {
         ...prev,
         childTaskKeys: prev.childTaskKeys.filter((k) => k !== childKey),
       },
@@ -274,11 +266,13 @@ export const TaskRelationshipsStep: React.FC<Props> = ({ wizardData, onUpdate })
     const childKey = active.id as string;
     const dropId = over.id as string;
 
-    if (!dropId.startsWith('lcs-')) return;
-    const lcs = lcsNodes.find((l) => `lcs-${l.key}` === dropId);
-    if (!lcs) return;
+    if (!dropId.startsWith('parent-')) return;
+    const parentWizardId = dropId.replace('parent-', '');
 
-    assignChildToLCS(lcs.lcsWizardId, childKey);
+    const parentNode = parentNodes.find((p) => p.taskWizardId === parentWizardId);
+    if (!parentNode) return;
+
+    assignChildToParent(parentWizardId, parentNode.taskType, childKey);
   };
 
   // ── Summary stats ──────────────────────────────────────────────────────────
@@ -288,12 +282,12 @@ export const TaskRelationshipsStep: React.FC<Props> = ({ wizardData, onUpdate })
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  if (lcsNodes.length === 0) {
+  if (parentNodes.length === 0) {
     return (
       <div className="wizard-step-content relationships-step">
         <h3>🔗 Powiązania zadań</h3>
         <div className="rel-empty">
-          Brak zadań LCS w wybranych podsystemach. Ten krok nie jest wymagany.
+          Brak zadań LCS ani Nastawnia w wybranych podsystemach. Ten krok nie jest wymagany.
         </div>
       </div>
     );
@@ -301,9 +295,10 @@ export const TaskRelationshipsStep: React.FC<Props> = ({ wizardData, onUpdate })
 
   return (
     <div className="wizard-step-content relationships-step">
-      <h3>🔗 Powiązania zadań (LCS → Dzieci)</h3>
+      <h3>🌳 Hierarchia zadań</h3>
       <p className="info-text">
-        Przeciągnij zadania podrzędne (Nastawnia, SKP, Przejazdy) do odpowiednich LCS-ów, aby określić, które zadania podlegają danemu centrum zarządzania.
+        Przeciągnij zadania podrzędne (Nastawnia, SKP, Przejazdy) do węzłów nadrzędnych (LCS lub Nastawnia),
+        aby określić hierarchię. Nastawnia może być zarówno węzłem nadrzędnym jak i podrzędnym LCS.
         Krok opcjonalny – możesz go pominąć.
       </p>
 
@@ -327,19 +322,16 @@ export const TaskRelationshipsStep: React.FC<Props> = ({ wizardData, onUpdate })
             </div>
           </div>
 
-          {/* Right: LCS drop zones */}
+          {/* Right: hierarchy tree */}
           <div className="rel-panel">
-            <h4>🏭 Centra zarządzania LCS ({lcsNodes.length})</h4>
-            <div className="lcs-cards">
-              {lcsNodes.map((lcs) => (
-                <LCSDropZone
-                  key={lcs.key}
-                  lcs={lcs}
-                  assignedTasks={getAssignedTasks(lcs.lcsWizardId)}
-                  onRemoveChild={(childKey) => removeChildFromLCS(lcs.lcsWizardId, childKey)}
-                  allTasks={childTasks}
-                />
-              ))}
+            <h4>🌳 Hierarchia zadań ({parentNodes.length} węzły nadrzędne)</h4>
+            <div className="hierarchy-panel">
+              <HierarchyTreeView
+                parentNodes={parentNodes}
+                allTasks={childTasks}
+                relationships={relationships}
+                onRemoveChild={removeChildFromParent}
+              />
             </div>
           </div>
         </div>
@@ -359,7 +351,7 @@ export const TaskRelationshipsStep: React.FC<Props> = ({ wizardData, onUpdate })
 
       <div className="relationships-summary">
         Przypisano <strong>{totalAssigned}</strong> z {totalChildren} zadań podrzędnych do{' '}
-        <strong>{lcsNodes.length}</strong> LCS-ów.
+        <strong>{parentNodes.length}</strong> węzłów nadrzędnych.
       </div>
     </div>
   );

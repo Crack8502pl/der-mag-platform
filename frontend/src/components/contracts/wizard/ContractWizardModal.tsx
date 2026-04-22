@@ -148,12 +148,12 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     return steps + 1; // +1 for Success
   };
 
-  /** Returns true when at least one SMOKIP subsystem has LCS task details */
+  /** Returns true when at least one SMOKIP subsystem has LCS or NASTAWNIA task details */
   const hasRelationshipsStep = (): boolean => {
     return wizardData.subsystems.some(
       (s) =>
         (s.type === 'SMOKIP_A' || s.type === 'SMOKIP_B') &&
-        s.taskDetails?.some((t) => t.taskType === 'LCS')
+        s.taskDetails?.some((t) => t.taskType === 'LCS' || t.taskType === 'NASTAWNIA')
     );
   };
 
@@ -555,14 +555,16 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       const details = sub.taskDetails ?? [];
       const relationships: Array<{ parentTaskNumber: string; childTaskNumbers: string[]; parentType: string }> = [];
 
-      for (const [lcsWizardId, rel] of Object.entries(taskRelationships)) {
-        // Find the LCS task detail that has this wizardId
-        const lcsDetailIdx = details.findIndex(
-          (d) => d.taskType === 'LCS' && (d.taskWizardId === lcsWizardId || `${sIdx}-${details.indexOf(d)}` === lcsWizardId)
+      for (const [parentWizardId, rel] of Object.entries(taskRelationships)) {
+        // Find the parent task detail that has this wizardId (can be LCS or NASTAWNIA)
+        const parentDetailIdx = details.findIndex(
+          (d) =>
+            (d.taskType === rel.parentType) &&
+            (d.taskWizardId === parentWizardId || `${sIdx}-${details.indexOf(d)}` === parentWizardId)
         );
-        if (lcsDetailIdx === -1) continue;
+        if (parentDetailIdx === -1) continue;
 
-        const parentTaskNumber = keyToTaskNumber.get(`${sIdx}-${lcsDetailIdx}`);
+        const parentTaskNumber = keyToTaskNumber.get(`${sIdx}-${parentDetailIdx}`);
         if (!parentTaskNumber) continue;
 
         const childTaskNumbers: string[] = [];
@@ -574,7 +576,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         }
 
         if (childTaskNumbers.length > 0) {
-          relationships.push({ parentTaskNumber, childTaskNumbers, parentType: 'LCS' });
+          relationships.push({ parentTaskNumber, childTaskNumbers, parentType: rel.parentType });
         }
       }
 
@@ -604,13 +606,13 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       const details = sub.taskDetails ?? [];
       const relationships: Array<{ parentTaskNumber: string; childTaskNumbers: string[]; parentType: string }> = [];
 
-      for (const [lcsWizardId, rel] of Object.entries(taskRelationships)) {
-        const lcsDetailIdx = details.findIndex(
-          (d, dIdx) => d.taskType === 'LCS' &&
-            (d.taskWizardId === lcsWizardId || `${sIdx}-${dIdx}` === lcsWizardId)
+      for (const [parentWizardId, rel] of Object.entries(taskRelationships)) {
+        const parentDetailIdx = details.findIndex(
+          (d, dIdx) => d.taskType === rel.parentType &&
+            (d.taskWizardId === parentWizardId || `${sIdx}-${dIdx}` === parentWizardId)
         );
-        if (lcsDetailIdx === -1 || !details[lcsDetailIdx].taskNumber) continue;
-        const lcsDetail = details[lcsDetailIdx];
+        if (parentDetailIdx === -1 || !details[parentDetailIdx].taskNumber) continue;
+        const parentDetail = details[parentDetailIdx];
 
         const childTaskNumbers: string[] = [];
         for (const childKey of rel.childTaskKeys) {
@@ -621,7 +623,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         }
 
         if (childTaskNumbers.length > 0) {
-          relationships.push({ parentTaskNumber: lcsDetail.taskNumber!, childTaskNumbers, parentType: 'LCS' });
+          relationships.push({ parentTaskNumber: parentDetail.taskNumber!, childTaskNumbers, parentType: rel.parentType });
         }
       }
 
