@@ -76,7 +76,6 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     updateTaskDetail,
     addTaskDetail,
     removeTaskDetail,
-    handleKilometrazInput,
     handleKilometrazBlur,
     canProceedFromDetails,
     updateWizardData,
@@ -757,7 +756,6 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       onUpdateTask: updateTaskDetail,
       onNext: handleNextStep,
       onPrev: handlePrevStep,
-      handleKilometrazInput,
       handleKilometrazBlur
     };
     
