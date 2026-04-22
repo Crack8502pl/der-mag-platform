@@ -57,6 +57,8 @@ import honeypotRoutes from './honeypot.routes';
 import assetRoutes from './asset.routes';
 // Subsystem task routes
 import subsystemTaskRoutes from './subsystem-task.routes';
+// Task relationship routes
+import taskRelationshipRoutes from './task-relationship.routes';
 // Cars routes
 import carRoutes from './car.routes';
 // Health/connection monitoring routes
@@ -143,6 +145,9 @@ router.use('/assets', assetRoutes);
 
 // Subsystem task routes
 router.use('/subsystem-tasks', subsystemTaskRoutes);
+
+// Task relationship routes
+router.use('/task-relationships', taskRelationshipRoutes);
 
 // Health/connection monitoring routes (no auth required - lightweight endpoints)
 router.use('/', healthRoutes);

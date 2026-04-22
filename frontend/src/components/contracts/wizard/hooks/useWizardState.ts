@@ -6,8 +6,9 @@ import { detectSubsystemTypes, detectRailwayLine } from '../../../../config/subs
 import type { SubsystemType } from '../../../../config/subsystemWizardConfig';
 import contractService, { type Contract } from '../../../../services/contract.service';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../config/subsystemWizardConfig';
-import type { WizardData, SubsystemWizardData, TaskDetail, InfrastructureData, TaskInfrastructure, LogisticsData } from '../types/wizard.types';
+import type { WizardData, SubsystemWizardData, TaskDetail, InfrastructureData, TaskInfrastructure, LogisticsData, WizardTaskRelationships, WizardLCSRelationship } from '../types/wizard.types';
 import { formatKilometrazDisplay, cleanKilometrazInput } from '../utils/validation';
+import taskRelationshipService from '../../../../services/taskRelationship.service';
 
 interface UseWizardStateProps {
   initialUserId?: string;
@@ -452,6 +453,7 @@ export const useWizardState = ({
               const meta = task.metadata || {};
               return {
                 id: task.id, // IMPORTANT - preserve task ID
+                taskNumber: task.taskNumber, // IMPORTANT - preserve task number for relationships
                 taskType,
                 kilometraz: meta.kilometraz || '',
                 kategoria: meta.kategoria || '',
@@ -479,6 +481,50 @@ export const useWizardState = ({
       
       // 4. Set detected subsystems
       setDetectedSubsystems(wizardSubsystems.map(s => s.type));
+
+      // 5. Load task relationships for SMOKIP subsystems with LCS tasks
+      try {
+        const taskRelationships: WizardTaskRelationships = {};
+
+        for (let sIdx = 0; sIdx < wizardSubsystems.length; sIdx++) {
+          const sub = wizardSubsystems[sIdx];
+          if ((sub.type !== 'SMOKIP_A' && sub.type !== 'SMOKIP_B') || !sub.id) continue;
+          if (!sub.taskDetails?.some(t => t.taskType === 'LCS')) continue;
+
+          const rels = await taskRelationshipService.getBySubsystem(sub.id);
+
+          for (const rel of rels) {
+            // Find the LCS task detail index for this parent
+            const lcsDetailIdx: number = sub.taskDetails!.findIndex(
+              t => t.taskType === 'LCS' && t.taskNumber === rel.parentTaskNumber
+            );
+            if (lcsDetailIdx === -1) continue;
+
+            const lcsDetail: TaskDetail = sub.taskDetails![lcsDetailIdx];
+            const lcsWizardId = lcsDetail.taskWizardId ?? `${sIdx}-${lcsDetailIdx}`;
+
+            const childTaskKeys: string[] = [];
+            for (const child of rel.children) {
+              const childDetailIdx = sub.taskDetails!.findIndex(
+                t => t.taskNumber === child.childTaskNumber
+              );
+              if (childDetailIdx !== -1) {
+                childTaskKeys.push(`${sIdx}-${childDetailIdx}`);
+              }
+            }
+
+            const entry: WizardLCSRelationship = { lcsWizardId, childTaskKeys };
+            taskRelationships[lcsWizardId] = entry;
+          }
+        }
+
+        if (Object.keys(taskRelationships).length > 0) {
+          setWizardData(prev => ({ ...prev, taskRelationships }));
+        }
+      } catch (relErr) {
+        // Non-fatal – relationships will be empty; log but don't block wizard
+        console.warn('Could not load task relationships (non-fatal):', relErr);
+      }
       
     } catch (err) {
       console.error('Error loading contract data:', err);
