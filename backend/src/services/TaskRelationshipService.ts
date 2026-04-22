@@ -77,10 +77,13 @@ export class TaskRelationshipService {
     >();
 
     for (const rel of relationships) {
+      // Skip relationships where the related tasks could not be loaded
+      if (!rel.parentTask?.taskNumber || !rel.childTask?.taskNumber) continue;
+
       if (!grouped.has(rel.parentTaskId)) {
         grouped.set(rel.parentTaskId, {
           parentTaskId: rel.parentTaskId,
-          parentTaskNumber: rel.parentTask?.taskNumber || '',
+          parentTaskNumber: rel.parentTask.taskNumber,
           parentType: rel.parentType,
           children: [],
         });
@@ -88,8 +91,8 @@ export class TaskRelationshipService {
       const group = grouped.get(rel.parentTaskId)!;
       group.children.push({
         childTaskId: rel.childTaskId,
-        childTaskNumber: rel.childTask?.taskNumber || '',
-        childTaskType: rel.childTask?.taskType || '',
+        childTaskNumber: rel.childTask.taskNumber,
+        childTaskType: rel.childTask.taskType,
       });
     }
 

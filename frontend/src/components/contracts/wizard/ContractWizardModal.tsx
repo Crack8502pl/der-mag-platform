@@ -606,11 +606,12 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       const relationships: Array<{ parentTaskNumber: string; childTaskNumbers: string[]; parentType: string }> = [];
 
       for (const [lcsWizardId, rel] of Object.entries(taskRelationships)) {
-        const lcsDetail = details.find(
-          (d) => d.taskType === 'LCS' &&
-            (d.taskWizardId === lcsWizardId || `${sIdx}-${details.indexOf(d)}` === lcsWizardId)
+        const lcsDetailIdx = details.findIndex(
+          (d, dIdx) => d.taskType === 'LCS' &&
+            (d.taskWizardId === lcsWizardId || `${sIdx}-${dIdx}` === lcsWizardId)
         );
-        if (!lcsDetail?.taskNumber) continue;
+        if (lcsDetailIdx === -1 || !details[lcsDetailIdx].taskNumber) continue;
+        const lcsDetail = details[lcsDetailIdx];
 
         const childTaskNumbers: string[] = [];
         for (const childKey of rel.childTaskKeys) {
@@ -621,7 +622,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         }
 
         if (childTaskNumbers.length > 0) {
-          relationships.push({ parentTaskNumber: lcsDetail.taskNumber, childTaskNumbers, parentType: 'LCS' });
+          relationships.push({ parentTaskNumber: lcsDetail.taskNumber!, childTaskNumbers, parentType: 'LCS' });
         }
       }
 
