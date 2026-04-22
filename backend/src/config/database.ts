@@ -83,6 +83,8 @@ import { WizardDraft } from '../entities/WizardDraft';
 import { Asset } from '../entities/Asset';
 import { AssetTask } from '../entities/AssetTask';
 import { AssetStatusHistory } from '../entities/AssetStatusHistory';
+// Task Relationships
+import { TaskRelationship } from '../entities/TaskRelationship';
 // Migrations
 import { BackfillWizardTaskMetadata1714080000000 } from '../migrations/1714080000000-BackfillWizardTaskMetadata';
 
@@ -195,6 +197,8 @@ export const AppDataSource = new DataSource({
     Asset,
     AssetTask,
     AssetStatusHistory,
+    // Task Relationships
+    TaskRelationship,
   ],
   subscribers: [],
   migrations: [

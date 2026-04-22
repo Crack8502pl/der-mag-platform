@@ -16,6 +16,8 @@ export interface WizardProps {
 
 export interface TaskDetail {
   id?: number;
+  /** Actual task number from the backend (e.g. "Z0001MMRR") – set when loading edit mode */
+  taskNumber?: string;
   /** Stable wizard-session ID (UUID) assigned at creation; used for CUID-LCS linking. */
   taskWizardId?: string;
   taskType: 'PRZEJAZD_KAT_A' | 'PRZEJAZD_KAT_B' | 'SKP' | 'NASTAWNIA' | 'LCS' | 'CUID' | 'SMW_PLATFORM' | 'SMW_SOK' | 'SMW_LCS' | 'SMW_EXTRA_VIEWING';
@@ -117,6 +119,8 @@ export interface WizardData {
   subsystems: SubsystemWizardData[];
   infrastructure?: InfrastructureData;
   logistics?: Partial<LogisticsData>;
+  /** Task relationships: maps LCS taskWizardId to an array of child task keys */
+  taskRelationships?: WizardTaskRelationships;
 }
 
 export interface GeneratedTask {
@@ -127,7 +131,7 @@ export interface GeneratedTask {
 }
 
 export interface StepInfo {
-  type: 'basic' | 'selection' | 'config' | 'details' | 'infrastructure' | 'logistics' | 'preview' | 'success' | 'shipping';
+  type: 'basic' | 'selection' | 'config' | 'details' | 'relationships' | 'infrastructure' | 'logistics' | 'preview' | 'success' | 'shipping';
   subsystemIndex?: number;
   subsystemType?: SubsystemType;
 }
@@ -144,3 +148,19 @@ export interface SubsystemConfigStepProps {
   onNext?: () => void;  // Optional - only needed for SmwConfigStep's internal multi-step navigation
   onPrev?: () => void;  // Optional - only needed for SmwConfigStep's internal multi-step navigation
 }
+
+/**
+ * Wizard task relationship – maps an LCS taskWizardId to child task keys.
+ * Child task key format: "{subsystemIndex}-{taskDetailIndex}"
+ */
+export interface WizardLCSRelationship {
+  lcsWizardId: string;
+  /** Array of "{subsystemIndex}-{taskDetailIndex}" keys for assigned children */
+  childTaskKeys: string[];
+}
+
+/**
+ * All task relationships in the wizard, keyed by LCS taskWizardId.
+ */
+export type WizardTaskRelationships = Record<string, WizardLCSRelationship>;
+

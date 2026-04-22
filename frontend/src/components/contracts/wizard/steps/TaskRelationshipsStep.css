@@ -1,0 +1,211 @@
+/* TaskRelationshipsStep.css
+   Drag-and-drop task relationship assignment step
+   Supports grover-theme (dark) and husky-theme (light) via CSS variables. */
+
+.relationships-step {
+  padding: 0 4px;
+}
+
+.relationships-step h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.relationships-step .info-text {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--text-secondary, #888);
+}
+
+/* ── layout ─────────────────────────────────────────────── */
+.relationships-layout {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 16px;
+}
+
+@media (max-width: 720px) {
+  .relationships-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── panels ─────────────────────────────────────────────── */
+.rel-panel {
+  background: var(--bg-card, #252525);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.rel-panel h4 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--text-secondary, #aaa);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── available tasks (left panel) ───────────────────────── */
+.available-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+/* ── LCS cards (right panel) ────────────────────────────── */
+.lcs-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.lcs-card {
+  background: var(--bg-dark, #1a1a1a);
+  border: 2px solid var(--border-color, #333);
+  border-radius: 8px;
+  padding: 10px;
+  transition: border-color 0.15s;
+}
+
+.lcs-card.drop-over {
+  border-color: var(--primary-color, #ff6b35);
+  background: color-mix(in srgb, var(--primary-color, #ff6b35) 8%, var(--bg-dark, #1a1a1a));
+}
+
+.lcs-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.lcs-card-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--primary-color, #ff6b35);
+}
+
+.lcs-card-subtitle {
+  font-size: 11px;
+  color: var(--text-secondary, #888);
+}
+
+.lcs-card-stats {
+  font-size: 12px;
+  color: var(--text-secondary, #aaa);
+  background: var(--bg-card, #252525);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.lcs-drop-zone {
+  min-height: 52px;
+  border: 2px dashed var(--border-color, #444);
+  border-radius: 6px;
+  padding: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-content: flex-start;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.lcs-drop-zone.drop-over {
+  border-color: var(--primary-color, #ff6b35);
+  background: color-mix(in srgb, var(--primary-color, #ff6b35) 5%, transparent);
+}
+
+.lcs-drop-zone-empty {
+  width: 100%;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  padding: 10px 0 6px;
+}
+
+/* ── task chip ───────────────────────────────────────────── */
+.task-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card, #333);
+  border: 1px solid var(--border-color, #444);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+  cursor: grab;
+  transition: background 0.12s, box-shadow 0.12s, opacity 0.12s;
+  user-select: none;
+  touch-action: none;
+}
+
+.task-chip:hover {
+  background: var(--primary-color, #ff6b35);
+  color: #fff;
+  border-color: var(--primary-color, #ff6b35);
+}
+
+.task-chip.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.task-chip.assigned {
+  opacity: 0.45;
+  cursor: default;
+  pointer-events: none;
+}
+
+.task-chip-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+  transition: opacity 0.12s;
+}
+
+.task-chip-remove:hover {
+  opacity: 1;
+}
+
+.task-chip-badge {
+  font-size: 10px;
+  background: color-mix(in srgb, var(--primary-color, #ff6b35) 20%, transparent);
+  color: var(--primary-color, #ff6b35);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* ── summary badge ───────────────────────────────────────── */
+.relationships-summary {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--primary-color, #ff6b35) 10%, var(--bg-card, #252525));
+  border: 1px solid color-mix(in srgb, var(--primary-color, #ff6b35) 30%, transparent);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-primary, #fff);
+}
+
+.relationships-summary strong {
+  color: var(--primary-color, #ff6b35);
+}
+
+/* ── empty state ─────────────────────────────────────────── */
+.rel-empty {
+  font-size: 13px;
+  color: var(--text-secondary, #888);
+  text-align: center;
+  padding: 20px 0;
+}

@@ -14,6 +14,7 @@ import type { WizardProps, WizardData, GeneratedTask } from './types/wizard.type
 import taskService from '../../../services/task.service';
 import type { Task } from '../../../types/task.types';
 import { CompleteTaskAndCreateAssetModal } from '../../tasks/CompleteTaskAndCreateAssetModal';
+import taskRelationshipService from '../../../services/taskRelationship.service';
 
 // Step Components
 import { BasicDataStep } from './steps/BasicDataStep';
@@ -23,6 +24,7 @@ import { SuccessStep } from './steps/SuccessStep';
 import { ShipmentWizardStep } from './steps/ShipmentWizardStep';
 import { InfrastructureStep } from './steps/InfrastructureStep';
 import { LogisticsStep } from './steps/LogisticsStep';
+import { TaskRelationshipsStep } from './steps/TaskRelationshipsStep';
 
 // Subsystem Config Components
 import { SmokipAConfigStep } from './subsystems/smokip-a/SmokipAConfigStep';
@@ -131,9 +133,9 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     };
   }, [wizardData, currentStep, setDraftData, setDraftCurrentStep]);
 
-  // Step at which draft save button is shown (config, details, infrastructure, logistics, preview, success)
+  // Step at which draft save button is shown (config, details, relationships, infrastructure, logistics, preview, success)
   const isDraftStep = (stepType: string) =>
-    ['config', 'details', 'infrastructure', 'logistics', 'preview'].includes(stepType);
+    ['config', 'details', 'relationships', 'infrastructure', 'logistics', 'preview'].includes(stepType);
 
   const getTotalSteps = (): number => {
     let steps = 3; // Basic + Selection + Preview
@@ -142,7 +144,18 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     });
     steps += 1; // Infrastructure
     steps += 1; // Logistics
+    // Relationships step: only when SMOKIP subsystems have LCS tasks
+    if (hasRelationshipsStep()) steps += 1;
     return steps + 1; // +1 for Success
+  };
+
+  /** Returns true when at least one SMOKIP subsystem has LCS task details */
+  const hasRelationshipsStep = (): boolean => {
+    return wizardData.subsystems.some(
+      (s) =>
+        (s.type === 'SMOKIP_A' || s.type === 'SMOKIP_B') &&
+        s.taskDetails?.some((t) => t.taskType === 'LCS')
+    );
   };
 
   const getStepInfo = (step: number) => {
@@ -156,6 +169,9 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       if (hasDetails && step === ++stepCount) return { type: 'details' as const, subsystemIndex: i };
       if (!hasDetails) stepCount--; // Undo increment
     }
+
+    // Optional relationships step (only for SMOKIP subsystems with LCS)
+    if (hasRelationshipsStep() && step === ++stepCount) return { type: 'relationships' as const };
     
     if (step === ++stepCount) return { type: 'infrastructure' as const };
     if (step === ++stepCount) return { type: 'logistics' as const };
@@ -420,6 +436,10 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         }
         
         console.log('✅ Contract updated successfully');
+
+        // Save task relationships (edit mode) – use existing task numbers from taskDetails
+        await saveRelationshipsEditMode();
+
         setCurrentStep(getTotalSteps()); // Success step
       } else {
         // CREATE MODE - create new contract
@@ -470,6 +490,10 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         });
         
         console.log('✅ Contract created:', response);
+
+        // Save task relationships (create mode) – map wizard keys to task numbers from response
+        const createdSubsystems = response.subsystems || [];
+        await saveRelationshipsCreateMode(createdSubsystems);
         
         // Store created contract ID and full contract for the shipping step
         if (response.id) {
@@ -479,7 +503,6 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         }
         
         // Update generated tasks with actual task numbers from backend
-        const createdSubsystems = response.subsystems || [];
         const fetchedTasks: GeneratedTask[] = createdSubsystems.flatMap((subsystem) => 
           (subsystem.tasks || []).map((task) => ({
             number: task.taskNumber,
@@ -500,6 +523,115 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       setError(err.response?.data?.message || err.message || 'Błąd podczas tworzenia kontraktu');
     } finally {
       setLoading(false);
+    }
+  };
+
+  /**
+   * Save task relationships in CREATE mode.
+   * Maps wizard task keys to task numbers from the backend response.
+   */
+  const saveRelationshipsCreateMode = async (
+    createdSubsystems: Array<{ id?: number; systemType: string; tasks?: Array<{ taskNumber: string; taskType: string }> }>
+  ) => {
+    const taskRelationships = wizardData.taskRelationships;
+    if (!taskRelationships || Object.keys(taskRelationships).length === 0) return;
+
+    // Build {subsystemIndex}-{taskDetailIndex} → task number map
+    const keyToTaskNumber = new Map<string, string>();
+    createdSubsystems.forEach((sub, sIdx) => {
+      (sub.tasks ?? []).forEach((task, tIdx) => {
+        keyToTaskNumber.set(`${sIdx}-${tIdx}`, task.taskNumber);
+      });
+    });
+
+    // Build per-subsystem relationship payloads
+    for (let sIdx = 0; sIdx < wizardData.subsystems.length; sIdx++) {
+      const sub = wizardData.subsystems[sIdx];
+      if (sub.type !== 'SMOKIP_A' && sub.type !== 'SMOKIP_B') continue;
+
+      const createdSub = createdSubsystems[sIdx];
+      const subsystemId = createdSub?.id;
+      if (!subsystemId) continue;
+
+      const details = sub.taskDetails ?? [];
+      const relationships: Array<{ parentTaskNumber: string; childTaskNumbers: string[]; parentType: string }> = [];
+
+      for (const [lcsWizardId, rel] of Object.entries(taskRelationships)) {
+        // Find the LCS task detail that has this wizardId
+        const lcsDetailIdx = details.findIndex(
+          (d) => d.taskType === 'LCS' && (d.taskWizardId === lcsWizardId || `${sIdx}-${details.indexOf(d)}` === lcsWizardId)
+        );
+        if (lcsDetailIdx === -1) continue;
+
+        const parentTaskNumber = keyToTaskNumber.get(`${sIdx}-${lcsDetailIdx}`);
+        if (!parentTaskNumber) continue;
+
+        const childTaskNumbers: string[] = [];
+        for (const childKey of rel.childTaskKeys) {
+          const [childSIdx, childDIdx] = childKey.split('-').map(Number);
+          if (childSIdx !== sIdx) continue; // Only same subsystem
+          const childTaskNumber = keyToTaskNumber.get(`${childSIdx}-${childDIdx}`);
+          if (childTaskNumber) childTaskNumbers.push(childTaskNumber);
+        }
+
+        if (childTaskNumbers.length > 0) {
+          relationships.push({ parentTaskNumber, childTaskNumbers, parentType: 'LCS' });
+        }
+      }
+
+      if (relationships.length > 0) {
+        try {
+          await taskRelationshipService.bulkCreateFromWizard({ subsystemId, relationships });
+        } catch (relErr) {
+          console.warn(`Non-fatal: could not save relationships for subsystem ${subsystemId}:`, relErr);
+        }
+      }
+    }
+  };
+
+  /**
+   * Save task relationships in EDIT mode.
+   * Uses task numbers already stored in taskDetails.
+   */
+  const saveRelationshipsEditMode = async () => {
+    const taskRelationships = wizardData.taskRelationships;
+    if (!taskRelationships || Object.keys(taskRelationships).length === 0) return;
+
+    for (let sIdx = 0; sIdx < wizardData.subsystems.length; sIdx++) {
+      const sub = wizardData.subsystems[sIdx];
+      if (sub.type !== 'SMOKIP_A' && sub.type !== 'SMOKIP_B') continue;
+      if (!sub.id) continue;
+
+      const details = sub.taskDetails ?? [];
+      const relationships: Array<{ parentTaskNumber: string; childTaskNumbers: string[]; parentType: string }> = [];
+
+      for (const [lcsWizardId, rel] of Object.entries(taskRelationships)) {
+        const lcsDetail = details.find(
+          (d) => d.taskType === 'LCS' &&
+            (d.taskWizardId === lcsWizardId || `${sIdx}-${details.indexOf(d)}` === lcsWizardId)
+        );
+        if (!lcsDetail?.taskNumber) continue;
+
+        const childTaskNumbers: string[] = [];
+        for (const childKey of rel.childTaskKeys) {
+          const [childSIdx, childDIdx] = childKey.split('-').map(Number);
+          if (childSIdx !== sIdx) continue;
+          const childTaskNumber = details[childDIdx]?.taskNumber;
+          if (childTaskNumber) childTaskNumbers.push(childTaskNumber);
+        }
+
+        if (childTaskNumbers.length > 0) {
+          relationships.push({ parentTaskNumber: lcsDetail.taskNumber, childTaskNumbers, parentType: 'LCS' });
+        }
+      }
+
+      if (relationships.length > 0) {
+        try {
+          await taskRelationshipService.bulkCreateFromWizard({ subsystemId: sub.id, relationships });
+        } catch (relErr) {
+          console.warn(`Non-fatal: could not save relationships for subsystem ${sub.id}:`, relErr);
+        }
+      }
     }
   };
 
@@ -664,6 +796,12 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       ),
       config: () => stepInfo.subsystemIndex !== undefined && renderConfigStep(stepInfo.subsystemIndex),
       details: () => stepInfo.subsystemIndex !== undefined && renderDetailsStep(stepInfo.subsystemIndex),
+      relationships: () => (
+        <TaskRelationshipsStep
+          wizardData={wizardData}
+          onUpdate={updateWizardData}
+        />
+      ),
       infrastructure: () => (
         <InfrastructureStep
           wizardData={wizardData}
