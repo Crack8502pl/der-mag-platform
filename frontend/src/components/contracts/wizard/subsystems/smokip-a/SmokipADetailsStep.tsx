@@ -1,7 +1,7 @@
 import React from 'react';
 import type { SubsystemWizardData, TaskDetail } from '../../types/wizard.types';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../../config/subsystemWizardConfig';
-import { OPTIONAL_KILOMETRAZ_HELP, formatLiniaKolejowa } from '../../utils/validation';
+import { OPTIONAL_KILOMETRAZ_HELP, formatLiniaKolejowa, cleanKilometrazInput } from '../../utils/validation';
 import { GPSLocationInput } from '../../common/GPSLocationInput';
 import { generateTaskName } from '../../utils/taskNameGenerator';
 import '../SmokipDetailsStep.css';
@@ -189,8 +189,7 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
                     placeholder="123456"
                     value={detail.kilometraz || ''}
                     onChange={(e) => {
-                      const value = e.target.value;
-                      handleKilometrazInput(subsystemIndex, idx, value);
+                      const value = cleanKilometrazInput(e.target.value);
                       const newNazwa = generateTaskName('PRZEJAZD_KAT_A', { ...detail, kilometraz: value }, detectedRailwayLine);
                       onUpdateTask(subsystemIndex, idx, { kilometraz: value, nazwa: newNazwa });
                     }}
@@ -233,8 +232,7 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
                     placeholder="123456"
                     value={detail.kilometraz || ''}
                     onChange={(e) => {
-                      const value = e.target.value;
-                      handleKilometrazInput(subsystemIndex, idx, value);
+                      const value = cleanKilometrazInput(e.target.value);
                       const newNazwa = generateTaskName('SKP', { ...detail, kilometraz: value }, detectedRailwayLine);
                       onUpdateTask(subsystemIndex, idx, { kilometraz: value, nazwa: newNazwa });
                     }}
@@ -288,8 +286,7 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
                     placeholder="123456"
                     value={detail.kilometraz || ''}
                     onChange={(e) => {
-                      const value = e.target.value;
-                      handleKilometrazInput(subsystemIndex, idx, value);
+                      const value = cleanKilometrazInput(e.target.value);
                       const newNazwa = generateTaskName('NASTAWNIA', { ...detail, kilometraz: value }, detectedRailwayLine);
                       onUpdateTask(subsystemIndex, idx, { kilometraz: value, nazwa: newNazwa });
                     }}
@@ -343,8 +340,7 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
                     placeholder="123456"
                     value={detail.kilometraz || ''}
                     onChange={(e) => {
-                      const value = e.target.value;
-                      handleKilometrazInput(subsystemIndex, idx, value);
+                      const value = cleanKilometrazInput(e.target.value);
                       const newNazwa = generateTaskName('LCS', { ...detail, kilometraz: value }, detectedRailwayLine);
                       onUpdateTask(subsystemIndex, idx, { kilometraz: value, nazwa: newNazwa });
                     }}

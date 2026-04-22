@@ -1,7 +1,7 @@
 import React from 'react';
 import type { SubsystemWizardData, TaskDetail } from '../../types/wizard.types';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../../config/subsystemWizardConfig';
-import { OPTIONAL_KILOMETRAZ_HELP, formatLiniaKolejowa } from '../../utils/validation';
+import { OPTIONAL_KILOMETRAZ_HELP, formatLiniaKolejowa, cleanKilometrazInput } from '../../utils/validation';
 import { GPSLocationInput } from '../../common/GPSLocationInput';
 import { generateTaskName } from '../../utils/taskNameGenerator';
 import '../SmokipDetailsStep.css';
@@ -187,8 +187,7 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
                     placeholder="123456"
                     value={detail.kilometraz || ''}
                     onChange={(e) => {
-                      const value = e.target.value;
-                      handleKilometrazInput(subsystemIndex, idx, value);
+                      const value = cleanKilometrazInput(e.target.value);
                       const newNazwa = generateTaskName('PRZEJAZD_KAT_B', { ...detail, kilometraz: value }, detectedRailwayLine);
                       onUpdateTask(subsystemIndex, idx, { kilometraz: value, nazwa: newNazwa });
                     }}
@@ -259,8 +258,7 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
                     placeholder="123456"
                     value={detail.kilometraz || ''}
                     onChange={(e) => {
-                      const value = e.target.value;
-                      handleKilometrazInput(subsystemIndex, idx, value);
+                      const value = cleanKilometrazInput(e.target.value);
                       const newNazwa = generateTaskName('NASTAWNIA', { ...detail, kilometraz: value }, detectedRailwayLine);
                       onUpdateTask(subsystemIndex, idx, { kilometraz: value, nazwa: newNazwa });
                     }}
@@ -314,8 +312,7 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
                     placeholder="123456"
                     value={detail.kilometraz || ''}
                     onChange={(e) => {
-                      const value = e.target.value;
-                      handleKilometrazInput(subsystemIndex, idx, value);
+                      const value = cleanKilometrazInput(e.target.value);
                       const newNazwa = generateTaskName('LCS', { ...detail, kilometraz: value }, detectedRailwayLine);
                       onUpdateTask(subsystemIndex, idx, { kilometraz: value, nazwa: newNazwa });
                     }}
