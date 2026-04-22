@@ -158,9 +158,12 @@ export const useWizardState = ({
     const subsystem = wizardData.subsystems[subsystemIndex];
     const simpleParams = subsystem.params as Record<string, number | boolean>;
 
-    // For existing subsystems that already have tasks, diff params vs existing and add only missing entries
-    if (subsystem.isExisting && subsystem.taskDetails && subsystem.taskDetails.length > 0) {
-      console.log(`📌 initializeTaskDetails diff for existing subsystem ${subsystem.type} - already has ${subsystem.taskDetails.length} tasks`);
+    // For subsystems that already have taskDetails (from DB in edit mode, or restored from draft),
+    // diff params vs existing and add only missing entries to preserve existing data,
+    // including taskWizardId values used as keys in taskRelationships.
+    if (subsystem.taskDetails && subsystem.taskDetails.length > 0) {
+      const origin = subsystem.isExisting ? 'existing DB' : 'draft-restored';
+      console.log(`📌 initializeTaskDetails diff for ${origin} subsystem ${subsystem.type} - already has ${subsystem.taskDetails.length} tasks`);
 
       const existingDetails = subsystem.taskDetails;
       const additionalDetails: TaskDetail[] = [];
