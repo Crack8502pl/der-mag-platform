@@ -137,6 +137,17 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     if (draftSyncTimerRef.current) clearTimeout(draftSyncTimerRef.current);
     if (currentStep >= 3) {
       draftSyncTimerRef.current = setTimeout(() => {
+        console.log('[ContractWizardModal] Draft sync triggered:', {
+          currentStep,
+          subsystemsCount: wizardData.subsystems.length,
+          hasRelationships: !!wizardData.taskRelationships,
+          relationshipsKeys: Object.keys(wizardData.taskRelationships || {}),
+          relationshipsCount: Object.keys(wizardData.taskRelationships || {}).length,
+          sampleRelationship: Object.keys(wizardData.taskRelationships || {}).length > 0
+            ? Object.entries(wizardData.taskRelationships || {})[0]
+            : null,
+        });
+
         setDraftData(wizardData);
       }, 500);
     }

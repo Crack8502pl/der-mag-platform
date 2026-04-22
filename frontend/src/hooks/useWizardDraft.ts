@@ -57,14 +57,25 @@ export function useWizardDraft<T extends Record<string, any>>({
 
       setIsSaving(true);
       try {
+        console.log('[useWizardDraft] Saving draft:', {
+          wizardType,
+          currentStep: step,
+          hasTaskRelationships: 'taskRelationships' in draftData,
+          relationshipsKeys: 'taskRelationships' in draftData
+            ? Object.keys((draftData as any).taskRelationships || {})
+            : [],
+        });
+
         await api.post(`/wizard-drafts/${wizardType}`, {
           draftData,
           currentStep: step,
           metadata: { version: '1.0' },
         });
         setLastSaveTime(new Date());
+
+        console.log('[useWizardDraft] Draft saved successfully');
       } catch (error) {
-        console.error('Failed to save draft:', error);
+        console.error('[useWizardDraft] Failed to save draft:', error);
       } finally {
         setIsSaving(false);
       }
@@ -110,12 +121,47 @@ export function useWizardDraft<T extends Record<string, any>>({
     return () => clearInterval(interval);
   }, [autoSaveInterval, autoSaveEnabled, enabled, showRestoreModal, saveDraft]);
 
+  /**
+   * Sanitize draft data to ensure critical structures are preserved.
+   * Specifically handles taskRelationships which must never be undefined.
+   */
+  const sanitizeDraftData = useCallback((draftData: T): T => {
+    if ('taskRelationships' in draftData) {
+      // Ensure taskRelationships is always an object, never undefined/null
+      const taskRelationships: Record<string, unknown> = (draftData.taskRelationships as Record<string, unknown>) || {};
+      const sanitized: T = { ...draftData, taskRelationships };
+
+      const keys = Object.keys(taskRelationships);
+      console.log('[useWizardDraft] Sanitized draft data:', {
+        hasRelationships: !!draftData.taskRelationships,
+        relationshipsKeys: keys,
+        relationshipsCount: keys.length,
+      });
+
+      return sanitized;
+    }
+
+    return draftData;
+  }, []);
+
   const restoreDraft = () => {
     if (savedDraft) {
-      setData(savedDraft.draftData);
+      console.log('[useWizardDraft] Restoring draft:', {
+        wizardType,
+        draftId: savedDraft.id,
+        currentStep: savedDraft.currentStep,
+        updatedAt: savedDraft.updatedAt,
+        hasTaskRelationships: 'taskRelationships' in savedDraft.draftData,
+      });
+
+      const sanitizedData = sanitizeDraftData(savedDraft.draftData);
+
+      setData(sanitizedData);
       setCurrentStep(savedDraft.currentStep || 1);
       setLastSaveTime(new Date(savedDraft.updatedAt));
-      onRestore?.(savedDraft.draftData);
+      onRestore?.(sanitizedData);
+
+      console.log('[useWizardDraft] Draft restored successfully');
     }
     setShowRestoreModal(false);
   };

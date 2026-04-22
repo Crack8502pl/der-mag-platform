@@ -168,6 +168,21 @@ export const TaskRelationshipsStep: React.FC<Props> = ({ wizardData, onUpdate })
   // ── Update helpers ─────────────────────────────────────────────────────────
 
   const updateRelationships = (updated: WizardTaskRelationships) => {
+    const beforeKeys = Object.keys(wizardData.taskRelationships || {});
+    const afterKeys = Object.keys(updated);
+    const beforeSet = new Set(beforeKeys);
+    const afterSet = new Set(afterKeys);
+
+    console.log('[TaskRelationshipsStep] Updating relationships:', {
+      before: { keys: beforeKeys, count: beforeKeys.length },
+      after: { keys: afterKeys, count: afterKeys.length },
+      changes: updated,
+      diff: {
+        added: afterKeys.filter((k) => !beforeSet.has(k)),
+        removed: beforeKeys.filter((k) => !afterSet.has(k)),
+      },
+    });
+
     onUpdate({ taskRelationships: updated });
   };
 
