@@ -16,7 +16,6 @@ interface SmokipBDetailsStepProps {
   onUpdateTask: (subsystemIndex: number, taskIndex: number, updates: Partial<TaskDetail>) => void;
   onNext: () => void;
   onPrev: () => void;
-  handleKilometrazInput: (subsystemIndex: number, taskIndex: number, value: string) => void;
   handleKilometrazBlur: (subsystemIndex: number, taskIndex: number, value: string) => void;
 }
 
@@ -27,7 +26,6 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
   onAddTask,
   onRemoveTask,
   onUpdateTask,
-  handleKilometrazInput,
   handleKilometrazBlur
 }) => {
   const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
