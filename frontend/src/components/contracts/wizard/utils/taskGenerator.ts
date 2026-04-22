@@ -3,6 +3,7 @@
 
 import { SUBSYSTEM_WIZARD_CONFIG, type SmwWizardData } from '../../../../config/subsystemWizardConfig';
 import type { SubsystemWizardData, GeneratedTask, TaskDetail } from '../types/wizard.types';
+import { generateTaskName } from './taskNameGenerator';
 
 /**
  * Helper to get numeric value from params
@@ -31,45 +32,15 @@ export const resolveTaskVariant = (taskType: string, detail: TaskDetail): string
 };
 
 /**
- * Build task name from task details
- * This function is used both in task generation and when adding tasks to existing subsystems
+ * Build task name from task details.
+ * Delegates to generateTaskName for consistent name generation across UI and generation logic.
  */
 export const buildTaskNameFromDetails = (
   taskType: string,
   detail: TaskDetail,
   liniaKolejowa?: string
 ): string => {
-  const lk = detail.liniaKolejowa || liniaKolejowa || '';
-  const prefix = lk ? `${lk} | ` : '';
-  
-  if (taskType === 'PRZEJAZD_KAT_A' && detail.kilometraz && detail.kategoria) {
-    return `${prefix}${detail.kilometraz} | ${detail.kategoria}`;
-  } else if (taskType === 'PRZEJAZD_KAT_B' && detail.kilometraz && detail.kategoria) {
-    return `${prefix}${detail.kilometraz} | ${detail.kategoria}`;
-  } else if (taskType === 'SKP' && detail.kilometraz) {
-    return `${prefix}${detail.kilometraz} | SKP`;
-  } else if (taskType === 'NASTAWNIA') {
-    const ndPart = [];
-    if (detail.nazwa) ndPart.push(detail.nazwa);
-    if (detail.miejscowosc) ndPart.push(detail.miejscowosc);
-    const ndLabel = ndPart.length > 0 ? `ND - ${ndPart.join(' - ')}` : 'ND';
-    return `${prefix}${detail.kilometraz || ''} | ${ndLabel}`;
-  } else if (taskType === 'LCS') {
-    const lcsPart = [];
-    if (detail.nazwa) lcsPart.push(detail.nazwa);
-    if (detail.miejscowosc) lcsPart.push(detail.miejscowosc);
-    const lcsLabel = lcsPart.length > 0 ? `LCS - ${lcsPart.join(' - ')}` : 'LCS';
-    return `${prefix}${detail.kilometraz || ''} | ${lcsLabel}`;
-  } else if (taskType === 'CUID') {
-    const cuidPart = [];
-    if (detail.nazwa) cuidPart.push(detail.nazwa);
-    if (detail.miejscowosc) cuidPart.push(detail.miejscowosc);
-    const cuidLabel = cuidPart.length > 0 ? `CUID - ${cuidPart.join(' - ')}` : 'CUID';
-    return lk ? `${lk} | | ${cuidLabel}` : cuidLabel;
-  } else {
-    // Fallback - use nazwa or taskType
-    return detail.nazwa || taskType;
-  }
+  return generateTaskName(taskType, detail, liniaKolejowa);
 };
 
 /**

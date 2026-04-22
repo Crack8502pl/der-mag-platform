@@ -1,8 +1,10 @@
 import React from 'react';
 import type { SubsystemWizardData, TaskDetail } from '../../types/wizard.types';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../../config/subsystemWizardConfig';
-import { OPTIONAL_KILOMETRAZ_HELP, formatLiniaKolejowa } from '../../utils/validation';
+import { OPTIONAL_KILOMETRAZ_HELP, formatLiniaKolejowa, cleanKilometrazInput } from '../../utils/validation';
 import { GPSLocationInput } from '../../common/GPSLocationInput';
+import { generateTaskName } from '../../utils/taskNameGenerator';
+import '../SmokipDetailsStep.css';
 
 interface SmokipADetailsStepProps {
   subsystem: SubsystemWizardData;
@@ -53,6 +55,7 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
       const cuidInitial: Partial<TaskDetail> = {
         liniaKolejowa: lcsTask.liniaKolejowa || detectedRailwayLine,
         miejscowosc: lcsTask.miejscowosc,
+        nazwaLCS: lcsTask.nazwaLCS,
         nazwa: lcsTask.nazwa,
         gpsLatitude: lcsTask.gpsLatitude,
         gpsLongitude: lcsTask.gpsLongitude,
@@ -80,6 +83,12 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
       return detail.kilometraz && detail.kategoria;
     } else if (detail.taskType === 'SKP') {
       return detail.kilometraz;
+    } else if (detail.taskType === 'NASTAWNIA') {
+      // Always generates a name (at minimum "ND"), optional fields just enrich it
+      return true;
+    } else if (detail.taskType === 'LCS') {
+      // Always generates a name (at minimum "LCS")
+      return true;
     }
     return detail.nazwa || detail.miejscowosc || detail.kilometraz;
   }).length;
@@ -166,13 +175,24 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
 
             {detail.taskType === 'PRZEJAZD_KAT_A' && (
               <div className="task-fields">
+                <div className="form-group preview-group">
+                  <label>📌 Nazwa zadania <span className="text-muted">(automatyczna)</span></label>
+                  <div className="name-preview">
+                    {generateTaskName('PRZEJAZD_KAT_A', detail, detectedRailwayLine)}
+                  </div>
+                  <small className="form-help">Nazwa składana automatycznie z pól poniżej</small>
+                </div>
                 <div className="form-group">
                   <label>Kilometraż <span className="required">*</span></label>
                   <input
                     type="text"
                     placeholder="123456"
                     value={detail.kilometraz || ''}
-                    onChange={(e) => handleKilometrazInput(subsystemIndex, idx, e.target.value)}
+                    onChange={(e) => {
+                      const value = cleanKilometrazInput(e.target.value);
+                      const newNazwa = generateTaskName('PRZEJAZD_KAT_A', { ...detail, kilometraz: value }, detectedRailwayLine);
+                      onUpdateTask(subsystemIndex, idx, { kilometraz: value, nazwa: newNazwa });
+                    }}
                     onBlur={(e) => handleKilometrazBlur(subsystemIndex, idx, e.target.value)}
                     required
                   />
@@ -181,9 +201,11 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
                   <label>Kategoria <span className="required">*</span></label>
                   <select
                     value={detail.kategoria || 'KAT A'}
-                    onChange={(e) => onUpdateTask(subsystemIndex, idx, {
-                      kategoria: e.target.value as TaskDetail['kategoria']
-                    })}
+                    onChange={(e) => {
+                      const kategoria = e.target.value as TaskDetail['kategoria'];
+                      const newNazwa = generateTaskName('PRZEJAZD_KAT_A', { ...detail, kategoria }, detectedRailwayLine);
+                      onUpdateTask(subsystemIndex, idx, { kategoria, nazwa: newNazwa });
+                    }}
                     required
                   >
                     <option value="KAT A">KAT A</option>
@@ -196,13 +218,24 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
 
             {detail.taskType === 'SKP' && (
               <div className="task-fields">
+                <div className="form-group preview-group">
+                  <label>📌 Nazwa zadania <span className="text-muted">(automatyczna)</span></label>
+                  <div className="name-preview">
+                    {generateTaskName('SKP', detail, detectedRailwayLine)}
+                  </div>
+                  <small className="form-help">Nazwa: [Linia kolejowa] | [Kilometraż] | SKP</small>
+                </div>
                 <div className="form-group">
                   <label>Kilometraż <span className="required">*</span></label>
                   <input
                     type="text"
                     placeholder="123456"
                     value={detail.kilometraz || ''}
-                    onChange={(e) => handleKilometrazInput(subsystemIndex, idx, e.target.value)}
+                    onChange={(e) => {
+                      const value = cleanKilometrazInput(e.target.value);
+                      const newNazwa = generateTaskName('SKP', { ...detail, kilometraz: value }, detectedRailwayLine);
+                      onUpdateTask(subsystemIndex, idx, { kilometraz: value, nazwa: newNazwa });
+                    }}
                     onBlur={(e) => handleKilometrazBlur(subsystemIndex, idx, e.target.value)}
                     required
                   />
@@ -212,31 +245,51 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
 
             {detail.taskType === 'NASTAWNIA' && (
               <div className="task-fields">
-                <div className="form-group">
-                  <label>Nazwa</label>
-                  <input
-                    type="text"
-                    placeholder="Nazwa nastawni"
-                    value={detail.nazwa || ''}
-                    onChange={(e) => onUpdateTask(subsystemIndex, idx, { nazwa: e.target.value })}
-                  />
+                <div className="form-group preview-group">
+                  <label>📌 Nazwa zadania <span className="text-muted">(automatyczna)</span></label>
+                  <div className="name-preview">
+                    {generateTaskName('NASTAWNIA', detail, detectedRailwayLine)}
+                  </div>
+                  <small className="form-help">Nazwa składana automatycznie z pól poniżej</small>
                 </div>
                 <div className="form-group">
-                  <label>Miejscowość</label>
+                  <label>Nazwa Nastawni <span className="text-muted">(opcjonalnie)</span></label>
+                  <input
+                    type="text"
+                    placeholder="np. ND GP1, ND P1"
+                    value={detail.nazwaNastawnii || ''}
+                    onChange={(e) => {
+                      const nazwaNastawnii = e.target.value;
+                      const newNazwa = generateTaskName('NASTAWNIA', { ...detail, nazwaNastawnii }, detectedRailwayLine);
+                      onUpdateTask(subsystemIndex, idx, { nazwaNastawnii, nazwa: newNazwa });
+                    }}
+                  />
+                  <small className="form-help">Nazwa/kod nastawni</small>
+                </div>
+                <div className="form-group">
+                  <label>Miejscowość <span className="text-muted">(opcjonalnie)</span></label>
                   <input
                     type="text"
                     placeholder="Miejscowość"
                     value={detail.miejscowosc || ''}
-                    onChange={(e) => onUpdateTask(subsystemIndex, idx, { miejscowosc: e.target.value })}
+                    onChange={(e) => {
+                      const miejscowosc = e.target.value;
+                      const newNazwa = generateTaskName('NASTAWNIA', { ...detail, miejscowosc }, detectedRailwayLine);
+                      onUpdateTask(subsystemIndex, idx, { miejscowosc, nazwa: newNazwa });
+                    }}
                   />
                 </div>
                 <div className="form-group">
-                  <label>Kilometraż (opcjonalnie)</label>
+                  <label>Kilometraż <span className="text-muted">(opcjonalnie)</span></label>
                   <input
                     type="text"
                     placeholder="123456"
                     value={detail.kilometraz || ''}
-                    onChange={(e) => handleKilometrazInput(subsystemIndex, idx, e.target.value)}
+                    onChange={(e) => {
+                      const value = cleanKilometrazInput(e.target.value);
+                      const newNazwa = generateTaskName('NASTAWNIA', { ...detail, kilometraz: value }, detectedRailwayLine);
+                      onUpdateTask(subsystemIndex, idx, { kilometraz: value, nazwa: newNazwa });
+                    }}
                     onBlur={(e) => handleKilometrazBlur(subsystemIndex, idx, e.target.value)}
                   />
                   <small className="form-help">{OPTIONAL_KILOMETRAZ_HELP}</small>
@@ -246,31 +299,51 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
 
             {detail.taskType === 'LCS' && (
               <div className="task-fields">
-                <div className="form-group">
-                  <label>Nazwa</label>
-                  <input
-                    type="text"
-                    placeholder="Nazwa LCS"
-                    value={detail.nazwa || ''}
-                    onChange={(e) => onUpdateTask(subsystemIndex, idx, { nazwa: e.target.value })}
-                  />
+                <div className="form-group preview-group">
+                  <label>📌 Nazwa zadania <span className="text-muted">(automatyczna)</span></label>
+                  <div className="name-preview">
+                    {generateTaskName('LCS', detail, detectedRailwayLine)}
+                  </div>
+                  <small className="form-help">Nazwa składana automatycznie z pól poniżej</small>
                 </div>
                 <div className="form-group">
-                  <label>Miejscowość</label>
+                  <label>Nazwa LCS <span className="text-muted">(opcjonalnie)</span></label>
+                  <input
+                    type="text"
+                    placeholder="np. LCS Warszawa Wschód"
+                    value={detail.nazwaLCS || ''}
+                    onChange={(e) => {
+                      const nazwaLCS = e.target.value;
+                      const newNazwa = generateTaskName('LCS', { ...detail, nazwaLCS }, detectedRailwayLine);
+                      onUpdateTask(subsystemIndex, idx, { nazwaLCS, nazwa: newNazwa });
+                    }}
+                  />
+                  <small className="form-help">Nazwa lokalnego centrum sterowania</small>
+                </div>
+                <div className="form-group">
+                  <label>Miejscowość <span className="text-muted">(opcjonalnie)</span></label>
                   <input
                     type="text"
                     placeholder="Miejscowość"
                     value={detail.miejscowosc || ''}
-                    onChange={(e) => onUpdateTask(subsystemIndex, idx, { miejscowosc: e.target.value })}
+                    onChange={(e) => {
+                      const miejscowosc = e.target.value;
+                      const newNazwa = generateTaskName('LCS', { ...detail, miejscowosc }, detectedRailwayLine);
+                      onUpdateTask(subsystemIndex, idx, { miejscowosc, nazwa: newNazwa });
+                    }}
                   />
                 </div>
                 <div className="form-group">
-                  <label>Kilometraż (opcjonalnie)</label>
+                  <label>Kilometraż <span className="text-muted">(opcjonalnie)</span></label>
                   <input
                     type="text"
                     placeholder="123456"
                     value={detail.kilometraz || ''}
-                    onChange={(e) => handleKilometrazInput(subsystemIndex, idx, e.target.value)}
+                    onChange={(e) => {
+                      const value = cleanKilometrazInput(e.target.value);
+                      const newNazwa = generateTaskName('LCS', { ...detail, kilometraz: value }, detectedRailwayLine);
+                      onUpdateTask(subsystemIndex, idx, { kilometraz: value, nazwa: newNazwa });
+                    }}
                     onBlur={(e) => handleKilometrazBlur(subsystemIndex, idx, e.target.value)}
                   />
                   <small className="form-help">{OPTIONAL_KILOMETRAZ_HELP}</small>
@@ -280,25 +353,12 @@ export const SmokipADetailsStep: React.FC<SmokipADetailsStepProps> = ({
 
             {detail.taskType === 'CUID' && (
               <div className="task-fields">
-                <div className="form-group">
-                  <label>Nazwa <span className="text-muted">(opcjonalnie)</span></label>
-                  <input
-                    type="text"
-                    placeholder="Pozostaw puste aby skopiować z LCS"
-                    value={detail.nazwa || ''}
-                    onChange={(e) => onUpdateTask(subsystemIndex, idx, { nazwa: e.target.value })}
-                  />
-                  <small className="form-help">Jeśli puste, nazwa zostanie pobrana z LCS</small>
-                </div>
-                <div className="form-group">
-                  <label>Miejscowość <span className="text-muted">(opcjonalnie)</span></label>
-                  <input
-                    type="text"
-                    placeholder="Pozostaw puste aby skopiować z LCS"
-                    value={detail.miejscowosc || ''}
-                    onChange={(e) => onUpdateTask(subsystemIndex, idx, { miejscowosc: e.target.value })}
-                  />
-                  <small className="form-help">Jeśli puste, miejscowość zostanie pobrana z LCS</small>
+                <div className="form-group preview-group">
+                  <label>📌 Nazwa zadania <span className="text-muted">(automatyczna)</span></label>
+                  <div className="name-preview">
+                    {generateTaskName('CUID', detail, detectedRailwayLine)}
+                  </div>
+                  <small className="form-help">Nazwa dziedziczona z LCS</small>
                 </div>
               </div>
             )}

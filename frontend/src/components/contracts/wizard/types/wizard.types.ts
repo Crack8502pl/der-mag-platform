@@ -23,8 +23,13 @@ export interface TaskDetail {
   taskType: 'PRZEJAZD_KAT_A' | 'PRZEJAZD_KAT_B' | 'SKP' | 'NASTAWNIA' | 'LCS' | 'CUID' | 'SMW_PLATFORM' | 'SMW_SOK' | 'SMW_LCS' | 'SMW_EXTRA_VIEWING';
   kilometraz?: string;
   kategoria?: 'KAT A' | 'KAT B' | 'KAT C' | 'KAT E' | 'KAT F';
+  /** Auto-generated read-only task name; derived from type-specific fields. */
   nazwa?: string;
   miejscowosc?: string;
+  /** Name/code of the signal box (nastawnia), e.g. "ND GP1". Only for NASTAWNIA tasks. */
+  nazwaNastawnii?: string;
+  /** Name of the local control centre (LCS), e.g. "LCS Warszawa Wschód". Only for LCS/CUID tasks. */
+  nazwaLCS?: string;
   smwCabinets?: Array<{ type: string; name: string }>;
   liniaKolejowa?: string;
   gpsLatitude?: string;
