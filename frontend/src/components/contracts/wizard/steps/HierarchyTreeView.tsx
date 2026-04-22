@@ -178,7 +178,7 @@ export const HierarchyTreeView: React.FC<HierarchyTreeViewProps> = ({
           key: nd.key,
           taskWizardId: nd.taskWizardId,
           taskType: nd.taskType,
-          label: `${nd.label} (standalone)`,
+          label: `${nd.label} (samodzielna)`,
           level: 0,
           children: buildChildren(nd.taskWizardId, 1),
           isDroppable: true,
