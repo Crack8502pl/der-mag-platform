@@ -108,6 +108,19 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     enabled: true,
     autoSaveEnabled: currentStep >= 3 && !wizardSubmitted, // auto-save from step 3, disabled after submit
     onRestore: (data) => {
+      // Debug: verify relationship keys match taskWizardIds after restore
+      const relKeys = Object.keys(data.taskRelationships ?? {});
+      const wizardIds = (data.subsystems ?? []).flatMap((s) =>
+        (s.taskDetails ?? []).map((t) => t.taskWizardId).filter(Boolean)
+      );
+      console.log('🔄 Draft restore — taskRelationships keys:', relKeys);
+      console.log('🔄 Draft restore — taskWizardIds in taskDetails:', wizardIds);
+      const missing = relKeys.filter((k) => !wizardIds.includes(k) && k.indexOf('-') === -1);
+      if (missing.length > 0) {
+        console.warn('⚠️ Draft restore — UUID keys in relationships not found in taskDetails:', missing);
+      } else {
+        console.log('✅ Draft restore — all relationship UUID keys match taskDetails');
+      }
       updateWizardData(data);
     },
   });
