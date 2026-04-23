@@ -1013,10 +1013,10 @@ export class ContractController {
                     }
                   }
                 } catch (taskError) {
-                  console.error(`Failed to create main task for ${taskData.name}:`, taskError);
+                  serverLogger.error('Failed to create main task:', { taskName: taskData.name, error: taskError instanceof Error ? taskError.message : String(taskError) });
                 }
               } catch (error) {
-                console.error(`Failed to create task for subsystem ${subsystem.subsystemNumber}:`, error);
+                serverLogger.error('Failed to create task for subsystem:', { subsystemNumber: subsystem.subsystemNumber, error: error instanceof Error ? error.message : String(error) });
               } finally {
                 globalTaskIdx++;
               }
@@ -1070,10 +1070,10 @@ export class ContractController {
                   });
                   await taskRepository.save(mainTask);
                 } catch (taskError) {
-                  console.error(`Failed to create main task for ${taskData.name}:`, taskError);
+                  serverLogger.error('Failed to create main task:', { taskName: taskData.name, error: taskError instanceof Error ? taskError.message : String(taskError) });
                 }
               } catch (error) {
-                console.error(`Failed to create task for subsystem ${subsystemId}:`, error);
+                serverLogger.error('Failed to create task for subsystem:', { subsystemId, error: error instanceof Error ? error.message : String(error) });
               }
             }
           }
