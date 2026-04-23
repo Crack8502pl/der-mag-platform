@@ -192,10 +192,16 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
             type: sub.type,
             params: sub.params,
             ipPool: sub.ipPool,
-            tasks: tasks.map((t) => ({
-              name: t.name,
-              type: t.type,
-            })),
+            tasks: tasks.map((t, idx) => {
+              const detail = sub.taskDetails?.[idx];
+              return {
+                name: t.name,
+                type: t.type,
+                gpsLatitude: detail?.gpsLatitude || null,
+                gpsLongitude: detail?.gpsLongitude || null,
+                googleMapsUrl: detail?.googleMapsUrl || null,
+              };
+            }),
           };
         }),
         extendedSubsystems: extendData.existingSubsystems
@@ -205,6 +211,17 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
             newTasks: s.newTasks.map((t) => ({
               name: buildTaskNameFromDetails(t.taskType, t, extendData.liniaKolejowa),
               type: resolveTaskVariant(t.taskType, t),
+              gpsLatitude: t.gpsLatitude || null,
+              gpsLongitude: t.gpsLongitude || null,
+              googleMapsUrl: t.googleMapsUrl || null,
+              metadata: {
+                kilometraz: t.kilometraz,
+                kategoria: t.kategoria,
+                miejscowosc: t.miejscowosc,
+                nazwaLCS: t.nazwaLCS,
+                nazwaNastawnii: t.nazwaNastawnii,
+                liniaKolejowa: t.liniaKolejowa || extendData.liniaKolejowa,
+              },
             })),
           })),
         infrastructure: extendData.infrastructure,
