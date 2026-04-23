@@ -2,6 +2,7 @@
 // Wizard step: Assign child tasks (Nastawnia, SKP, Przejazd) to parent tasks
 // (LCS or standalone Nastawnia). Supports 2-level hierarchy.
 // Uses @dnd-kit/core for drag-and-drop interaction.
+// Also supports extendMode for the extend wizard.
 
 import React, { useMemo, useState } from 'react';
 import {
@@ -14,6 +15,7 @@ import {
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import { useDraggable } from '@dnd-kit/core';
 import type { WizardData, WizardTaskRelationship, WizardTaskRelationships } from '../types/wizard.types';
+import type { ExtendWizardData } from '../types/extend-wizard.types';
 import { HierarchyTreeView } from './HierarchyTreeView';
 import './TaskRelationshipsStep.css';
 
@@ -21,7 +23,7 @@ import './TaskRelationshipsStep.css';
 
 /** A flat task reference across all SMOKIP subsystems */
 interface FlatTask {
-  key: string; // "{subsystemIndex}-{taskDetailIndex}"
+  key: string; // "{subsystemIndex}-{taskDetailIndex}" or taskWizardId in extend mode
   subsystemIndex: number;
   taskIndex: number;
   taskType: string;
@@ -29,6 +31,7 @@ interface FlatTask {
   kilometraz?: string;
   nazwa?: string;
   taskWizardId?: string;
+  isExisting?: boolean; // true for read-only existing tasks in extend mode
 }
 
 /** A flat parent node (LCS or NASTAWNIA) */
@@ -78,7 +81,7 @@ interface DraggableChipProps {
 const DraggableChip: React.FC<DraggableChipProps> = ({ task, isAssigned }) => {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.key,
-    disabled: isAssigned,
+    disabled: isAssigned || task.isExisting,
   });
 
   const typeShort = TASK_TYPE_LABELS[task.taskType]?.split(' ').pop() ?? task.taskType;
@@ -88,11 +91,18 @@ const DraggableChip: React.FC<DraggableChipProps> = ({ task, isAssigned }) => {
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={`task-chip${isDragging ? ' dragging' : ''}${isAssigned ? ' assigned' : ''}`}
-      title={isAssigned ? 'Już przypisane do węzła nadrzędnego' : 'Przeciągnij do węzła nadrzędnego'}
+      className={`task-chip${isDragging ? ' dragging' : ''}${isAssigned ? ' assigned' : ''}${task.isExisting ? ' existing-readonly' : ''}`}
+      title={
+        task.isExisting
+          ? 'Istniejące zadanie (tylko do odczytu – nie można przeciągnąć)'
+          : isAssigned
+          ? 'Już przypisane do węzła nadrzędnego'
+          : 'Przeciągnij do węzła nadrzędnego'
+      }
     >
       <span className="task-chip-badge">{typeShort}</span>
       {task.label}
+      {task.isExisting && <span style={{ marginLeft: '4px', opacity: 0.7 }}>🔒</span>}
     </div>
   );
 };
@@ -102,9 +112,19 @@ const DraggableChip: React.FC<DraggableChipProps> = ({ task, isAssigned }) => {
 interface Props {
   wizardData: WizardData;
   onUpdate: (data: Partial<WizardData>) => void;
+  /** When true, use extendData/onUpdateExtendData instead of wizardData/onUpdate */
+  extendMode?: boolean;
+  extendData?: ExtendWizardData;
+  onUpdateExtendData?: (updates: Partial<ExtendWizardData>) => void;
 }
 
-export const TaskRelationshipsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
+export const TaskRelationshipsStep: React.FC<Props> = ({
+  wizardData,
+  onUpdate,
+  extendMode,
+  extendData,
+  onUpdateExtendData,
+}) => {
   const [activeTask, setActiveTask] = useState<FlatTask | null>(null);
 
   const sensors = useSensors(
@@ -117,46 +137,156 @@ export const TaskRelationshipsStep: React.FC<Props> = ({ wizardData, onUpdate })
     const parents: ParentNode[] = [];
     const children: FlatTask[] = [];
 
-    wizardData.subsystems.forEach((sub, sIdx) => {
-      if (sub.type !== 'SMOKIP_A' && sub.type !== 'SMOKIP_B') return;
-      const details = sub.taskDetails ?? [];
-      details.forEach((detail, dIdx) => {
-        const key = `${sIdx}-${dIdx}`;
+    if (extendMode && extendData) {
+      // ── Extend mode: tasks from existing and new subsystems ─────────────────
+      // Use taskWizardId as the stable key so it matches relationship storage.
 
-        if (PARENT_TASK_TYPES.includes(detail.taskType)) {
-          parents.push({
-            key,
-            subsystemIndex: sIdx,
-            taskIndex: dIdx,
-            taskType: detail.taskType,
-            taskWizardId: detail.taskWizardId ?? key,
-            label: buildLabel(detail.taskType, detail),
-            nazwa: detail.nazwa,
-          });
-        }
+      extendData.existingSubsystems.forEach((sub) => {
+        if (sub.type !== 'SMOKIP_A' && sub.type !== 'SMOKIP_B') return;
 
-        // NASTAWNIA can be both parent AND child
-        if (CHILD_TASK_TYPES.includes(detail.taskType)) {
-          children.push({
-            key,
-            subsystemIndex: sIdx,
-            taskIndex: dIdx,
-            taskType: detail.taskType,
-            label: buildLabel(detail.taskType, detail),
-            kilometraz: detail.kilometraz,
-            nazwa: detail.nazwa,
-            taskWizardId: detail.taskWizardId ?? key,
-          });
-        }
+        // Existing (read-only) tasks
+        sub.existingTasks.forEach((task, tIdx) => {
+          const key = task.taskWizardId ?? `existing-${sub.id}-${tIdx}`;
+          const wId = task.taskWizardId ?? key;
+
+          if (PARENT_TASK_TYPES.includes(task.taskType)) {
+            parents.push({
+              key,
+              subsystemIndex: sub.id,
+              taskIndex: tIdx,
+              taskType: task.taskType,
+              taskWizardId: wId,
+              label: `${buildLabel(task.taskType, task)} [istniejące]`,
+              nazwa: task.nazwa,
+            });
+          }
+          if (CHILD_TASK_TYPES.includes(task.taskType)) {
+            children.push({
+              key,
+              subsystemIndex: sub.id,
+              taskIndex: tIdx,
+              taskType: task.taskType,
+              label: `${buildLabel(task.taskType, task)} [istniejące]`,
+              kilometraz: task.kilometraz,
+              nazwa: task.nazwa,
+              taskWizardId: wId,
+              isExisting: true,
+            });
+          }
+        });
+
+        // New tasks added to this existing subsystem
+        sub.newTasks.forEach((task, tIdx) => {
+          const key = task.taskWizardId ?? `ext-${sub.id}-${tIdx}`;
+          const wId = task.taskWizardId ?? key;
+
+          if (PARENT_TASK_TYPES.includes(task.taskType)) {
+            parents.push({
+              key,
+              subsystemIndex: sub.id,
+              taskIndex: tIdx,
+              taskType: task.taskType,
+              taskWizardId: wId,
+              label: buildLabel(task.taskType, task),
+              nazwa: task.nazwa,
+            });
+          }
+          if (CHILD_TASK_TYPES.includes(task.taskType)) {
+            children.push({
+              key,
+              subsystemIndex: sub.id,
+              taskIndex: tIdx,
+              taskType: task.taskType,
+              label: buildLabel(task.taskType, task),
+              kilometraz: task.kilometraz,
+              nazwa: task.nazwa,
+              taskWizardId: wId,
+              isExisting: false,
+            });
+          }
+        });
       });
-    });
+
+      // New subsystems
+      extendData.newSubsystems.forEach((sub, sIdx) => {
+        if (sub.type !== 'SMOKIP_A' && sub.type !== 'SMOKIP_B') return;
+        const details = sub.taskDetails ?? [];
+        details.forEach((detail, dIdx) => {
+          const key = `${sIdx}-${dIdx}`;
+          const wId = detail.taskWizardId ?? key;
+
+          if (PARENT_TASK_TYPES.includes(detail.taskType)) {
+            parents.push({
+              key,
+              subsystemIndex: sIdx,
+              taskIndex: dIdx,
+              taskType: detail.taskType,
+              taskWizardId: wId,
+              label: buildLabel(detail.taskType, detail),
+              nazwa: detail.nazwa,
+            });
+          }
+          if (CHILD_TASK_TYPES.includes(detail.taskType)) {
+            children.push({
+              key,
+              subsystemIndex: sIdx,
+              taskIndex: dIdx,
+              taskType: detail.taskType,
+              label: buildLabel(detail.taskType, detail),
+              kilometraz: detail.kilometraz,
+              nazwa: detail.nazwa,
+              taskWizardId: wId,
+              isExisting: false,
+            });
+          }
+        });
+      });
+    } else {
+      // ── Regular wizard mode ──────────────────────────────────────────────────
+      wizardData.subsystems.forEach((sub, sIdx) => {
+        if (sub.type !== 'SMOKIP_A' && sub.type !== 'SMOKIP_B') return;
+        const details = sub.taskDetails ?? [];
+        details.forEach((detail, dIdx) => {
+          const key = `${sIdx}-${dIdx}`;
+
+          if (PARENT_TASK_TYPES.includes(detail.taskType)) {
+            parents.push({
+              key,
+              subsystemIndex: sIdx,
+              taskIndex: dIdx,
+              taskType: detail.taskType,
+              taskWizardId: detail.taskWizardId ?? key,
+              label: buildLabel(detail.taskType, detail),
+              nazwa: detail.nazwa,
+            });
+          }
+
+          // NASTAWNIA can be both parent AND child
+          if (CHILD_TASK_TYPES.includes(detail.taskType)) {
+            children.push({
+              key,
+              subsystemIndex: sIdx,
+              taskIndex: dIdx,
+              taskType: detail.taskType,
+              label: buildLabel(detail.taskType, detail),
+              kilometraz: detail.kilometraz,
+              nazwa: detail.nazwa,
+              taskWizardId: detail.taskWizardId ?? key,
+              isExisting: false,
+            });
+          }
+        });
+      });
+    }
 
     return { parentNodes: parents, childTasks: children };
-  }, [wizardData.subsystems]);
+  }, [extendMode, extendData, wizardData.subsystems]);
 
   // ── Derive current relationship state ──────────────────────────────────────
 
-  const relationships: WizardTaskRelationships = wizardData.taskRelationships ?? {};
+  const relationships: WizardTaskRelationships = extendMode && extendData
+    ? (extendData.taskRelationships ?? {})
+    : (wizardData.taskRelationships ?? {});
 
   // Set of all assigned child keys
   const assignedKeys = useMemo(() => {
@@ -168,22 +298,26 @@ export const TaskRelationshipsStep: React.FC<Props> = ({ wizardData, onUpdate })
   // ── Update helpers ─────────────────────────────────────────────────────────
 
   const updateRelationships = (updated: WizardTaskRelationships) => {
-    const beforeKeys = Object.keys(wizardData.taskRelationships || {});
-    const afterKeys = Object.keys(updated);
-    const beforeSet = new Set(beforeKeys);
-    const afterSet = new Set(afterKeys);
+    if (extendMode && onUpdateExtendData) {
+      onUpdateExtendData({ taskRelationships: updated });
+    } else {
+      const beforeKeys = Object.keys(wizardData.taskRelationships || {});
+      const afterKeys = Object.keys(updated);
+      const beforeSet = new Set(beforeKeys);
+      const afterSet = new Set(afterKeys);
 
-    console.log('[TaskRelationshipsStep] Updating relationships:', {
-      before: { keys: beforeKeys, count: beforeKeys.length },
-      after: { keys: afterKeys, count: afterKeys.length },
-      changes: updated,
-      diff: {
-        added: afterKeys.filter((k) => !beforeSet.has(k)),
-        removed: beforeKeys.filter((k) => !afterSet.has(k)),
-      },
-    });
+      console.log('[TaskRelationshipsStep] Updating relationships:', {
+        before: { keys: beforeKeys, count: beforeKeys.length },
+        after: { keys: afterKeys, count: afterKeys.length },
+        changes: updated,
+        diff: {
+          added: afterKeys.filter((k) => !beforeSet.has(k)),
+          removed: beforeKeys.filter((k) => !afterSet.has(k)),
+        },
+      });
 
-    onUpdate({ taskRelationships: updated });
+      onUpdate({ taskRelationships: updated });
+    }
   };
 
   const removeChildFromAllParents = (childKey: string, current: WizardTaskRelationships): WizardTaskRelationships => {
@@ -315,6 +449,9 @@ export const TaskRelationshipsStep: React.FC<Props> = ({ wizardData, onUpdate })
         Przeciągnij zadania podrzędne (Nastawnia, SKP, Przejazdy) do węzłów nadrzędnych (LCS lub Nastawnia),
         aby określić hierarchię. Nastawnia może być zarówno węzłem nadrzędnym jak i podrzędnym LCS.
         Krok opcjonalny – możesz go pominąć.
+        {extendMode && (
+          <> Zadania oznaczone 🔒 są istniejące i <strong>tylko do odczytu</strong> — nie można ich przeciągnąć.</>
+        )}
       </p>
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
