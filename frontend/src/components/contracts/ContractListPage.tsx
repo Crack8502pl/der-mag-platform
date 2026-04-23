@@ -204,7 +204,9 @@ export const ContractListPage: React.FC = () => {
 
   const handleContractExtended = () => {
     setExtendingContract(null);
+    setSuccess('Kontrakt rozszerzony pomyślnie');
     loadContracts();
+    setTimeout(() => setSuccess(''), 5000);
   };
 
   const getEditButtonTitle = (status: string): string => {

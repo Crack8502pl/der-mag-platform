@@ -67,6 +67,7 @@ router.post(
 router.post(
   '/:id/extend',
   authenticate,
+  requirePermission('contracts', 'update'),
   (req, res) => contractController.extendContract(req, res)
 );
 
