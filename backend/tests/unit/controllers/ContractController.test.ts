@@ -1027,4 +1027,177 @@ describe('ContractController', () => {
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
     });
   });
+
+  describe('extendContract', () => {
+    let mockTaskService: jest.Mocked<SubsystemTaskService>;
+    let mockTaskRepository: any;
+    let mockTaskTypeRepository: any;
+
+    const mockContract = {
+      id: 1,
+      contractNumber: 'R0000001_A',
+      customName: 'Test Contract',
+      status: ContractStatus.CREATED,
+      orderDate: new Date('2026-01-06'),
+      managerCode: 'ABC',
+      projectManagerId: 1,
+    };
+
+    beforeEach(() => {
+      mockContractService.getContractById = jest.fn().mockResolvedValue(mockContract);
+
+      const mockSubsystem = { id: 10, subsystemNumber: 'S001', ipPool: null };
+      mockSubsystemService = contractController['subsystemService'] as jest.Mocked<SubsystemService>;
+      mockSubsystemService.createSubsystem = jest.fn().mockResolvedValue(mockSubsystem);
+
+      let taskCounter = 0;
+      mockTaskService = contractController['taskService'] as jest.Mocked<SubsystemTaskService>;
+      mockTaskService.createTask = jest.fn().mockImplementation(async (data: any) => ({
+        id: ++taskCounter,
+        taskNumber: `Z${String(taskCounter).padStart(4, '0')}0126`,
+        taskName: data.taskName,
+        taskType: data.taskType,
+        subsystemId: data.subsystemId,
+        metadata: data.metadata || {},
+      }));
+
+      let mainTaskId = 100;
+      mockTaskRepository = {
+        create: jest.fn().mockImplementation((data: any) => ({ ...data, id: ++mainTaskId })),
+        save: jest.fn().mockImplementation(async (entity: any) => entity),
+        update: jest.fn().mockResolvedValue({}),
+        findOne: jest.fn().mockResolvedValue(null),
+      };
+
+      mockTaskTypeRepository = {
+        findOne: jest.fn().mockResolvedValue(null),
+      };
+
+      (AppDataSource.getRepository as jest.Mock).mockImplementation((entity: any) => {
+        const name = typeof entity === 'function' ? entity.name : String(entity);
+        if (name === 'Task') return mockTaskRepository;
+        if (name === 'TaskType') return mockTaskTypeRepository;
+        return { findOne: jest.fn(), save: jest.fn(), create: jest.fn(), update: jest.fn() };
+      });
+    });
+
+    it('should return 401 when userId is missing', async () => {
+      req.params = { id: '1' };
+      req.body = { newSubsystems: [], extendedSubsystems: [] };
+
+      await contractController.extendContract(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ success: false, message: 'Brak autoryzacji' });
+    });
+
+    it('should return 404 when contract does not exist', async () => {
+      mockContractService.getContractById = jest.fn().mockResolvedValue(null);
+      req.params = { id: '999' };
+      req.body = { newSubsystems: [], extendedSubsystems: [] };
+      (req as any).userId = 1;
+
+      await contractController.extendContract(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ success: false, message: 'Kontrakt nie istnieje' });
+    });
+
+    it('should return 400 when contract status is APPROVED', async () => {
+      mockContractService.getContractById = jest.fn().mockResolvedValue({
+        ...mockContract,
+        status: ContractStatus.APPROVED,
+      });
+      req.params = { id: '1' };
+      req.body = { newSubsystems: [], extendedSubsystems: [] };
+      (req as any).userId = 1;
+
+      await contractController.extendContract(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: false,
+        message: expect.stringContaining('Utworzony'),
+      }));
+    });
+
+    it('should return 200 with empty payload (Test E1)', async () => {
+      req.params = { id: '1' };
+      req.body = { newSubsystems: [], extendedSubsystems: [] };
+      (req as any).userId = 1;
+
+      await contractController.extendContract(req as Request, res as Response);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
+          contractId: 1,
+          createdSubsystems: [],
+          tasksCreated: 0,
+        }),
+      }));
+    });
+
+    it('should create new subsystem with tasks for CREATED contract (Test E2)', async () => {
+      req.params = { id: '1' };
+      req.body = {
+        newSubsystems: [
+          {
+            type: 'SMOKIP_A',
+            params: {},
+            tasks: [{ name: 'New Task', type: 'SKP' }],
+          },
+        ],
+        extendedSubsystems: [],
+      };
+      (req as any).userId = 1;
+
+      await contractController.extendContract(req as Request, res as Response);
+
+      expect(mockSubsystemService.createSubsystem).toHaveBeenCalledWith(
+        expect.objectContaining({ contractId: 1, systemType: 'SMOKIP_A' })
+      );
+      expect(mockTaskService.createTask).toHaveBeenCalledTimes(1);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    });
+
+    it('should add tasks to existing subsystem for IN_PROGRESS contract (Test E3)', async () => {
+      mockContractService.getContractById = jest.fn().mockResolvedValue({
+        ...mockContract,
+        status: ContractStatus.IN_PROGRESS,
+      });
+      req.params = { id: '1' };
+      req.body = {
+        newSubsystems: [],
+        extendedSubsystems: [
+          {
+            subsystemId: 5,
+            newTasks: [
+              { name: 'Extra Task', type: 'SKP' },
+            ],
+          },
+        ],
+      };
+      (req as any).userId = 1;
+
+      await contractController.extendContract(req as Request, res as Response);
+
+      expect(mockTaskService.createTask).toHaveBeenCalledWith(
+        expect.objectContaining({ subsystemId: 5, taskName: 'Extra Task' })
+      );
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    });
+
+    it('should return 500 on unexpected error', async () => {
+      mockContractService.getContractById = jest.fn().mockRejectedValue(new Error('DB crash'));
+      req.params = { id: '1' };
+      req.body = { newSubsystems: [], extendedSubsystems: [] };
+      (req as any).userId = 1;
+
+      await contractController.extendContract(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ success: false, message: 'DB crash' });
+    });
+  });
 });

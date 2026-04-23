@@ -65,6 +65,12 @@ router.post(
 );
 
 router.post(
+  '/:id/extend',
+  authenticate,
+  (req, res) => contractController.extendContract(req, res)
+);
+
+router.post(
   '/import',
   authenticate,
   requirePermission('contracts', 'import'),
