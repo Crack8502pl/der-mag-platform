@@ -120,6 +120,20 @@ class ContractService {
     return response.data.data;
   }
 
+  async extendContract(
+    contractId: number,
+    payload: {
+      newSubsystems: any[];
+      extendedSubsystems: any[];
+      taskRelationships?: any;
+      infrastructure?: any;
+      logistics?: any;
+    }
+  ): Promise<any> {
+    const response = await api.post(`/contracts/${contractId}/extend`, payload);
+    return response.data;
+  }
+
   async importContracts(file: File): Promise<{ imported: number; errors: any[] }> {
     const formData = new FormData();
     formData.append('file', file);

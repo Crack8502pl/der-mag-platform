@@ -827,4 +827,279 @@ export class ContractController {
       });
     }
   };
+
+  /**
+   * POST /api/contracts/:id/extend
+   * Rozszerzenie istniejącego kontraktu o nowe zadania/podsystemy
+   */
+  extendContract = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const contractId = Number(req.params.id);
+      const userId = (req as any).userId;
+
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Brak autoryzacji' });
+        return;
+      }
+
+      const {
+        newSubsystems,
+        extendedSubsystems,
+        infrastructure,
+        logistics,
+      } = req.body;
+
+      // 1. Weryfikacja istnienia kontraktu
+      const contract = await this.contractService.getContractById(contractId);
+      if (!contract) {
+        res.status(404).json({ success: false, message: 'Kontrakt nie istnieje' });
+        return;
+      }
+
+      // 2. Weryfikacja statusu — tylko CREATED lub IN_PROGRESS
+      if (contract.status !== ContractStatus.CREATED && contract.status !== ContractStatus.IN_PROGRESS) {
+        res.status(400).json({
+          success: false,
+          message: 'Można rozszerzyć tylko kontrakty ze statusem "Utworzony" lub "W trakcie"',
+        });
+        return;
+      }
+
+      const taskRepository = AppDataSource.getRepository(Task);
+      const taskTypeRepository = AppDataSource.getRepository(TaskType);
+      const createdSubsystems: any[] = [];
+
+      // 3. Dodaj nowe podsystemy (analogicznie jak w createContractWithWizard)
+      if (Array.isArray(newSubsystems) && newSubsystems.length > 0) {
+        let globalTaskIdx = 0;
+
+        for (const subsystemData of newSubsystems) {
+          const { type, params, smwData, tasks: subsystemTasks, ipPool } = subsystemData;
+          const subsystemParams = type === 'SMW' && smwData ? smwData : (params || {});
+
+          if (!Object.values(SystemType).includes(type as SystemType)) {
+            res.status(400).json({
+              success: false,
+              message: `Nieprawidłowy typ podsystemu: ${type}`,
+            });
+            return;
+          }
+
+          const subsystem = await this.subsystemService.createSubsystem({
+            contractId,
+            systemType: type as SystemType,
+            quantity: subsystemTasks?.length || 0,
+            ipPool: ipPool?.trim() || null,
+          });
+
+          if (ipPool?.trim()) {
+            try {
+              const networkAllocationService = new NetworkAllocationService();
+              await networkAllocationService.allocateNetwork(subsystem.id);
+            } catch (networkError: any) {
+              serverLogger.warn('Nie udało się automatycznie zarezerwować puli IP dla podsystemu', {
+                subsystemId: subsystem.id,
+                ipPool: ipPool?.trim(),
+                error: networkError.message,
+              });
+            }
+          }
+
+          let taskTypeId = 1;
+          const taskType = await taskTypeRepository.findOne({ where: { code: type } });
+          if (taskType) {
+            taskTypeId = taskType.id;
+          }
+
+          const createdTasks: any[] = [];
+          const createdMainTasks: any[] = [];
+
+          if (Array.isArray(subsystemTasks)) {
+            for (const taskData of subsystemTasks) {
+              try {
+                const subsystemTask = await this.taskService.createTask({
+                  subsystemId: subsystem.id,
+                  taskName: taskData.name || 'Zadanie',
+                  taskType: taskData.type || 'GENERIC',
+                  metadata: subsystemParams,
+                });
+                createdTasks.push(subsystemTask);
+
+                try {
+                  const mainTask = taskRepository.create({
+                    taskNumber: subsystemTask.taskNumber,
+                    title: taskData.name || `Zadanie ${taskData.type || 'nowe'}`,
+                    description: taskData.description || '',
+                    taskTypeId,
+                    status: 'created',
+                    contractId,
+                    contractNumber: contract.contractNumber,
+                    subsystemId: subsystem.id,
+                    location: contract.customName,
+                    priority: 0,
+                    gpsLatitude: (() => { const v = Number(taskData.gpsLatitude); return (taskData.gpsLatitude != null && taskData.gpsLatitude !== '' && !isNaN(v)) ? v : null; })(),
+                    gpsLongitude: (() => { const v = Number(taskData.gpsLongitude); return (taskData.gpsLongitude != null && taskData.gpsLongitude !== '' && !isNaN(v)) ? v : null; })(),
+                    googleMapsUrl: taskData.googleMapsUrl || null,
+                    metadata: {
+                      createdFromWizard: true,
+                      wizardData: taskData,
+                      subsystemType: type,
+                      taskVariant: taskData.type || null,
+                      infrastructure: infrastructure ?? undefined,
+                      logistics: logistics ?? undefined,
+                      configParams: subsystemParams || {},
+                    },
+                  });
+                  const savedMainTask = await taskRepository.save(mainTask);
+                  createdMainTasks.push(savedMainTask);
+
+                  const taskKey = `${type}-${globalTaskIdx}`;
+                  const taskInfra = (infrastructure as InfrastructureData)?.perTask?.[taskKey];
+                  const shouldGenerateCabinet =
+                    !!taskInfra?.cabinetType &&
+                    requiresCabinetCompletion(taskData.type) &&
+                    (taskInfra?.generateCabinetCompletion ?? true);
+
+                  if (shouldGenerateCabinet) {
+                    try {
+                      const cabinetSubsystemTask = await this.taskService.createTask({
+                        subsystemId: subsystem.id,
+                        taskName: `Kompletacja szafy - ${taskData.type}`,
+                        taskType: 'KOMPLETACJA_SZAF',
+                        metadata: {
+                          sourceTaskNumber: subsystemTask.taskNumber,
+                          sourceTaskType: taskData.type,
+                          cabinetType: taskInfra.cabinetType,
+                          autoGenerated: true,
+                          generatedAt: new Date().toISOString(),
+                        },
+                      });
+                      const cabinetMainTask = taskRepository.create({
+                        taskNumber: cabinetSubsystemTask.taskNumber,
+                        title: `Kompletacja szafy - ${taskData.type}`,
+                        description: '',
+                        taskTypeId,
+                        status: 'created',
+                        contractId,
+                        contractNumber: contract.contractNumber,
+                        subsystemId: subsystem.id,
+                        location: contract.customName,
+                        priority: 0,
+                        metadata: {
+                          createdFromWizard: true,
+                          taskVariant: 'KOMPLETACJA_SZAF',
+                          subsystemType: type,
+                          configParams: {
+                            sourceTaskNumber: subsystemTask.taskNumber,
+                            sourceTaskType: taskData.type,
+                            cabinetType: taskInfra.cabinetType,
+                            autoGenerated: true,
+                          },
+                        },
+                      });
+                      await taskRepository.save(cabinetMainTask);
+                      createdTasks.push(cabinetSubsystemTask);
+                      createdMainTasks.push(cabinetMainTask);
+                      const subsystemTaskRepo = AppDataSource.getRepository(SubsystemTask);
+                      await subsystemTaskRepo.update(
+                        { taskNumber: subsystemTask.taskNumber },
+                        { substatus: 'szafa_wygenerowana' }
+                      );
+                    } catch (cabinetError) {
+                      serverLogger.error(
+                        `❌ Błąd tworzenia automatycznego zadania KOMPLETACJA_SZAF dla ${subsystemTask.taskNumber}:`,
+                        { error: cabinetError instanceof Error ? cabinetError.message : String(cabinetError) }
+                      );
+                    }
+                  }
+                } catch (taskError) {
+                  serverLogger.error('Failed to create main task:', { taskName: taskData.name, error: taskError instanceof Error ? taskError.message : String(taskError) });
+                }
+              } catch (error) {
+                serverLogger.error('Failed to create task for subsystem:', { subsystemNumber: subsystem.subsystemNumber, error: error instanceof Error ? error.message : String(error) });
+              } finally {
+                globalTaskIdx++;
+              }
+            }
+          }
+
+          createdSubsystems.push({
+            ...subsystem,
+            params: subsystemParams,
+            tasks: createdTasks,
+            mainTasks: createdMainTasks,
+          });
+        }
+      }
+
+      // 4. Dodaj zadania do istniejących podsystemów
+      if (Array.isArray(extendedSubsystems) && extendedSubsystems.length > 0) {
+        for (const extSub of extendedSubsystems) {
+          const { subsystemId, newTasks } = extSub;
+          if (Array.isArray(newTasks) && newTasks.length > 0) {
+            for (const taskData of newTasks) {
+              try {
+                const subsystemTask = await this.taskService.createTask({
+                  subsystemId,
+                  taskName: taskData.name || 'Zadanie',
+                  taskType: taskData.type || 'GENERIC',
+                  metadata: taskData.metadata || {},
+                });
+
+                try {
+                  const mainTask = taskRepository.create({
+                    taskNumber: subsystemTask.taskNumber,
+                    title: taskData.name || `Zadanie ${taskData.type || 'nowe'}`,
+                    description: taskData.description || '',
+                    taskTypeId: 1,
+                    status: 'created',
+                    contractId,
+                    contractNumber: contract.contractNumber,
+                    subsystemId,
+                    location: contract.customName,
+                    priority: 0,
+                    gpsLatitude: (() => { const v = Number(taskData.gpsLatitude); return (taskData.gpsLatitude != null && taskData.gpsLatitude !== '' && !isNaN(v)) ? v : null; })(),
+                    gpsLongitude: (() => { const v = Number(taskData.gpsLongitude); return (taskData.gpsLongitude != null && taskData.gpsLongitude !== '' && !isNaN(v)) ? v : null; })(),
+                    googleMapsUrl: taskData.googleMapsUrl || null,
+                    metadata: {
+                      createdFromWizard: true,
+                      wizardData: taskData,
+                      taskVariant: taskData.type || null,
+                      configParams: taskData.metadata || {},
+                    },
+                  });
+                  await taskRepository.save(mainTask);
+                } catch (taskError) {
+                  serverLogger.error('Failed to create main task:', { taskName: taskData.name, error: taskError instanceof Error ? taskError.message : String(taskError) });
+                }
+              } catch (error) {
+                serverLogger.error('Failed to create task for subsystem:', { subsystemId, error: error instanceof Error ? error.message : String(error) });
+              }
+            }
+          }
+        }
+      }
+
+      const totalCreated = createdSubsystems.reduce(
+        (sum, s) => sum + (s.mainTasks?.length || 0),
+        0
+      );
+
+      res.json({
+        success: true,
+        data: {
+          contractId,
+          createdSubsystems: createdSubsystems.map(s => ({
+            subsystemId: s.id,
+            taskCount: s.mainTasks?.length ?? 0,
+          })),
+          tasksCreated: totalCreated,
+          message: 'Kontrakt rozszerzony pomyślnie',
+        },
+      });
+    } catch (error: any) {
+      serverLogger.error('❌ ContractController.extendContract ERROR:', { error: error.message });
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
 }
