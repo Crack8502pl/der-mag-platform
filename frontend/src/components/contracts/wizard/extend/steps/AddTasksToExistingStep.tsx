@@ -19,6 +19,18 @@ interface AddTasksToExistingStepProps {
   onBack: () => void;
 }
 
+/** Returns the primary display value for an existing (read-only) task row. */
+function getTaskDisplayValue(task: TaskDetail): string {
+  return (
+    task.nazwa ||
+    task.kilometraz ||
+    task.miejscowosc ||
+    task.nazwaLCS ||
+    task.nazwaNastawnii ||
+    '—'
+  );
+}
+
 const TASK_TYPE_LABELS: Record<string, string> = {
   PRZEJAZD_KAT_A: 'Przejazd KAT A',
   PRZEJAZD_KAT_B: 'Przejazd KAT B',
@@ -97,7 +109,7 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                     <code>{task.taskNumber || '—'}</code>
                   </td>
                   <td>
-                    {task.nazwa || task.kilometraz || task.miejscowosc || task.nazwaLCS || task.nazwaNastawnii || '—'}
+                    {getTaskDisplayValue(task)}
                   </td>
                 </tr>
               ))}

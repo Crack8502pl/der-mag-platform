@@ -156,7 +156,7 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
               taskIndex: tIdx,
               taskType: task.taskType,
               taskWizardId: wId,
-              label: `${buildLabel(task.taskType, task)} [istn.]`,
+              label: `${buildLabel(task.taskType, task)} [istniejące]`,
               nazwa: task.nazwa,
             });
           }
@@ -166,7 +166,7 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
               subsystemIndex: sub.id,
               taskIndex: tIdx,
               taskType: task.taskType,
-              label: `${buildLabel(task.taskType, task)} [istn.]`,
+              label: `${buildLabel(task.taskType, task)} [istniejące]`,
               kilometraz: task.kilometraz,
               nazwa: task.nazwa,
               taskWizardId: wId,

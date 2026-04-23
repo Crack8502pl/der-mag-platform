@@ -95,7 +95,9 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
     liniaKolejowa: contract.liniaKolejowa,
   });
 
-  // Load contract data on mount
+  // Load contract data on mount. loadContractData is stable (hook function reference never changes),
+  // so it is safe to exclude it from deps to avoid re-running on every render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!statusError) {
       loadContractData(setLoading, setError);
@@ -200,7 +202,6 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
                 gpsLatitude: detail?.gpsLatitude || null,
                 gpsLongitude: detail?.gpsLongitude || null,
                 googleMapsUrl: detail?.googleMapsUrl || null,
-                metadata: undefined as Record<string, unknown> | undefined,
               };
             }),
           };
