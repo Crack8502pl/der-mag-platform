@@ -1585,3 +1585,23 @@
   text-decoration: underline;
 }
 
+/* ── Smart Edit Button — Extend mode ────────────────────────────── */
+.btn-icon.btn-extend {
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: white;
+  border: none;
+}
+
+.btn-icon.btn-extend:hover:not(:disabled) {
+  background: linear-gradient(135deg, #6d28d9 0%, #9333ea 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+}
+
+.btn-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+

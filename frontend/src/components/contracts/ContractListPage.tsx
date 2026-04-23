@@ -7,6 +7,7 @@ import { BackButton } from '../common/BackButton';
 import { ContractCreateModal } from './ContractCreateModal';
 import { ContractImportModal } from './ContractImportModal';
 import { ContractWizardModal } from './wizard';
+import { ExtendWizardModal } from './wizard/ExtendWizardModal';
 import { ShipmentWizardStep } from './wizard/steps/ShipmentWizardStep';
 import { ContractStatusBadge } from './ContractStatusBadge';
 import { ModuleIcon } from '../common/ModuleIcon';
@@ -51,6 +52,7 @@ export const ContractListPage: React.FC = () => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showWizardModal, setShowWizardModal] = useState(false);
   const [editingContract, setEditingContract] = useState<Contract | null>(null);
+  const [extendingContract, setExtendingContract] = useState<Contract | null>(null);
   const [shippingContract, setShippingContract] = useState<Contract | null>(null);
 
   // Permission checks
@@ -185,6 +187,39 @@ export const ContractListPage: React.FC = () => {
     setSuccess(`Zaimportowano ${count} kontraktów`);
     loadContracts();
     setTimeout(() => setSuccess(''), 5000);
+  };
+
+  const handleEditClick = (contract: Contract) => {
+    if (contract.status === 'PENDING_CONFIGURATION') {
+      setEditingContract(contract);
+      return;
+    }
+    if (contract.status === 'CREATED' || contract.status === 'IN_PROGRESS') {
+      setExtendingContract(contract);
+      return;
+    }
+    setError('Kontrakty w tym statusie nie mogą być edytowane przez kreator');
+    setTimeout(() => setError(''), 3000);
+  };
+
+  const handleContractExtended = () => {
+    setExtendingContract(null);
+    loadContracts();
+  };
+
+  const getEditButtonTitle = (status: string): string => {
+    if (status === 'PENDING_CONFIGURATION') return 'Dokończ konfigurację';
+    if (status === 'CREATED' || status === 'IN_PROGRESS') return 'Rozszerz kontrakt';
+    return 'Edytuj kontrakt';
+  };
+
+  const getEditButtonIcon = (status: string): string => {
+    if (status === 'CREATED' || status === 'IN_PROGRESS') return '➕';
+    return '✏️';
+  };
+
+  const isEditButtonEnabled = (status: string): boolean => {
+    return ['PENDING_CONFIGURATION', 'CREATED', 'IN_PROGRESS'].includes(status);
   };
 
   if (loading && contracts.length === 0 && !searchTerm && !filterStatus && !filterManager) {
@@ -382,12 +417,15 @@ export const ContractListPage: React.FC = () => {
                         👁️
                       </button>
                       {canUpdate && (
-                        <button 
-                          className="btn btn-icon" 
-                          title="Edytuj"
-                          onClick={() => setEditingContract(contract)}
+                        <button
+                          className={`btn btn-icon${
+                            (contract.status === 'CREATED' || contract.status === 'IN_PROGRESS') ? ' btn-extend' : ''
+                          }`}
+                          title={getEditButtonTitle(contract.status)}
+                          onClick={() => handleEditClick(contract)}
+                          disabled={!isEditButtonEnabled(contract.status)}
                         >
-                          ✏️
+                          {getEditButtonIcon(contract.status)}
                         </button>
                       )}
                       {canApprove && contract.status === 'CREATED' && (
@@ -457,6 +495,14 @@ export const ContractListPage: React.FC = () => {
           onRequestShipping={(contractId) => {
             navigate(`/contracts/${contractId}`);
           }}
+        />
+      )}
+
+      {extendingContract && (
+        <ExtendWizardModal
+          contract={extendingContract}
+          onClose={() => setExtendingContract(null)}
+          onSuccess={handleContractExtended}
         />
       )}
 
