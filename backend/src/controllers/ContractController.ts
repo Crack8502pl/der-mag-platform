@@ -1098,7 +1098,7 @@ export class ContractController {
         },
       });
     } catch (error: any) {
-      console.error('❌ ContractController.extendContract ERROR:', error);
+      serverLogger.error('❌ ContractController.extendContract ERROR:', { error: error.message });
       res.status(500).json({ success: false, message: error.message });
     }
   };
