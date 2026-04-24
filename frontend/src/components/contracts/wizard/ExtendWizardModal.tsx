@@ -90,7 +90,7 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
     orderDate: typeof contract.orderDate === 'string'
       ? contract.orderDate
       : (contract.orderDate as Date).toISOString().split('T')[0],
-    projectManagerId: contract.projectManagerId,
+    projectManagerId: contract.projectManagerId?.toString() ?? '',
     managerCode: contract.managerCode || '',
     liniaKolejowa: contract.liniaKolejowa,
   });
