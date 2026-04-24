@@ -69,7 +69,7 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
 
   const handleKilometrazChange = (taskIndex: number, value: string, taskType: string) => {
     const cleaned = cleanKilometrazInput(value);
-    const newNazwa = generateTaskName(taskType, { taskType: taskType as TaskDetail['taskType'], ...subsystem.newTasks[taskIndex], kilometraz: cleaned }, liniaKolejowa);
+    const newNazwa = generateTaskName(taskType, { ...subsystem.newTasks[taskIndex], taskType: taskType as TaskDetail['taskType'], kilometraz: cleaned }, liniaKolejowa);
     onUpdateTask(subsystem.id, taskIndex, { kilometraz: cleaned, nazwa: newNazwa });
   };
 
