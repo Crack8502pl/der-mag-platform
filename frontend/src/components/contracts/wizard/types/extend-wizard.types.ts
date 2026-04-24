@@ -41,7 +41,7 @@ export interface ExtendContractPayload {
 }
 
 export interface ExtendWizardModalProps {
-  contract: { id: number; contractNumber: string; customName: string; orderDate: string | Date; projectManagerId: string; managerCode?: string; liniaKolejowa?: string; status: string; };
+  contract: { id: number; contractNumber: string; customName: string; orderDate: string | Date; projectManagerId?: number; managerCode?: string; liniaKolejowa?: string; status: string; };
   onClose: () => void;
   onSuccess: () => void;
 }
