@@ -45,6 +45,7 @@
     "tough-cookie": "^5.1.0",
     "micromatch": "^4.0.8",
     "glob": "^11.0.0"
+    "uuid": "^13.0.0"
   },
   "keywords": [
     "der-mag",
