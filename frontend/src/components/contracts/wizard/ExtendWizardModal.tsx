@@ -185,9 +185,8 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
     setLoading(true);
     setError('');
     try {
-      // 1. Add new subsystems
-      if (extendData.newSubsystems.length > 0) {
-        const newSubsystemsData = extendData.newSubsystems.map((sub) => {
+      const payload = {
+        newSubsystems: extendData.newSubsystems.map((sub) => {
           const tasks = generateAllTasks([sub as SubsystemWizardData], extendData.liniaKolejowa);
           return {
             type: sub.type,
@@ -196,7 +195,6 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
             tasks: tasks.map((t, idx) => {
               const detail = sub.taskDetails?.[idx];
               return {
-                number: t.number,
                 name: t.name,
                 type: t.type,
                 gpsLatitude: detail?.gpsLatitude || null,
@@ -205,32 +203,34 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
               };
             }),
           };
-        });
-        await contractService.addSubsystemsToContract(contract.id, { subsystems: newSubsystemsData });
-      }
-
-      // 2. Add new tasks to existing subsystems
-      for (const sub of extendData.existingSubsystems.filter((s) => s.addingNewTasks && s.newTasks.length > 0)) {
-        await contractService.addTasksToSubsystem(sub.id, {
-          tasks: sub.newTasks.map((t) => ({
-            name: buildTaskNameFromDetails(t.taskType, t, extendData.liniaKolejowa),
-            type: resolveTaskVariant(t.taskType, t),
-            gpsLatitude: t.gpsLatitude || null,
-            gpsLongitude: t.gpsLongitude || null,
-            googleMapsUrl: t.googleMapsUrl || null,
-            metadata: {
-              kilometraz: t.kilometraz,
-              kategoria: t.kategoria,
-              miejscowosc: t.miejscowosc,
-              nazwaLCS: t.nazwaLCS,
-              nazwaNastawnii: t.nazwaNastawnii,
-              liniaKolejowa: t.liniaKolejowa || extendData.liniaKolejowa,
-            },
+        }),
+        extendedSubsystems: extendData.existingSubsystems
+          .filter((s) => s.addingNewTasks && s.newTasks.length > 0)
+          .map((s) => ({
+            subsystemId: s.id,
+            newTasks: s.newTasks.map((t) => ({
+              name: buildTaskNameFromDetails(t.taskType, t, extendData.liniaKolejowa),
+              type: resolveTaskVariant(t.taskType, t),
+              gpsLatitude: t.gpsLatitude || null,
+              gpsLongitude: t.gpsLongitude || null,
+              googleMapsUrl: t.googleMapsUrl || null,
+              metadata: {
+                kilometraz: t.kilometraz,
+                kategoria: t.kategoria,
+                miejscowosc: t.miejscowosc,
+                nazwaLCS: t.nazwaLCS,
+                nazwaNastawnii: t.nazwaNastawnii,
+                liniaKolejowa: t.liniaKolejowa || extendData.liniaKolejowa,
+              },
+            })),
           })),
-        });
-      }
+        infrastructure: extendData.infrastructure,
+        logistics: extendData.logistics,
+      };
 
-      // 3. Save task relationships
+      await contractService.extendContract(contract.id, payload);
+
+      // Save relationships (frontend-only, non-fatal)
       await saveRelationships();
 
       setWizardSubmitted(true);

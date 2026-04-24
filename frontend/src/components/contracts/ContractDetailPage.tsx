@@ -17,6 +17,7 @@ import { ShipmentWizardModal } from './ShipmentWizardModal';
 import { ShipmentWizardSmokB } from './ShipmentWizardSmokB';
 import { ShipmentWizardSmokA } from './ShipmentWizardSmokA';
 import { ShipmentDataModal } from './ShipmentDataModal';
+import { ShipmentWizardStep } from './wizard/steps/ShipmentWizardStep';
 import { TaskStatusBadge } from '../tasks/TaskStatusBadge';
 import './ContractListPage.css';
 
@@ -36,6 +37,7 @@ export const ContractDetailPage: React.FC = () => {
   const [error, setError] = useState('');
   const [shipmentSubsystem, setShipmentSubsystem] = useState<Subsystem | null>(null);
   const [shipmentDataSubsystem, setShipmentDataSubsystem] = useState<Subsystem | null>(null);
+  const [shipmentWizardContract, setShipmentWizardContract] = useState<Contract | null>(null);
   const [completionTask, setCompletionTask] = useState<SubsystemTask | null>(null);
   const [completionWorkers, setCompletionWorkers] = useState<UserOption[]>([]);
   const [selectedWorkerId, setSelectedWorkerId] = useState<number | ''>('');
@@ -48,7 +50,6 @@ export const ContractDetailPage: React.FC = () => {
 
   const canCreateTasks =
     typeof hasPermission === 'function' ? hasPermission('tasks', 'create') : false;
-  const canApprove = hasPermission('contracts', 'approve');
   const canCreateCompletion =
     typeof hasPermission === 'function' ? hasPermission('completion', 'update') : false;
 
@@ -117,17 +118,6 @@ export const ContractDetailPage: React.FC = () => {
       loadContractAssets(contract.id);
     }
   }, [contract?.id]);
-
-  const handleApprove = async () => {
-    if (!contract || !confirm('Czy na pewno chcesz zatwierdzić ten kontrakt?')) return;
-    
-    try {
-      await api.post(`/contracts/${contract.id}/approve`, {});
-      loadContract();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Błąd zatwierdzania kontraktu');
-    }
-  };
 
   const handleOpenCompletionModal = async (task: SubsystemTask) => {
     setCompletionTask(task);
@@ -204,9 +194,9 @@ export const ContractDetailPage: React.FC = () => {
         <div className="card-header">
           <h2>Dane kontraktu</h2>
           <div className="card-actions">
-            {canApprove && contract.status === 'CREATED' && (
-              <button className="btn btn-success" onClick={handleApprove}>
-                ✅ Zatwierdź
+            {canCreateTasks && contract.status !== 'CANCELLED' && contract.status !== 'COMPLETED' && (
+              <button className="btn btn-primary" onClick={() => setShipmentWizardContract(contract)}>
+                📦 Kreator wysyłki
               </button>
             )}
           </div>
@@ -582,6 +572,24 @@ export const ContractDetailPage: React.FC = () => {
           subsystem={shipmentDataSubsystem}
           onClose={() => setShipmentDataSubsystem(null)}
         />
+      )}
+
+      {shipmentWizardContract && (
+        <div className="modal-overlay" onClick={() => setShipmentWizardContract(null)}>
+          <div className="modal-content modal-wizard" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>📦 Kreator wysyłki — {shipmentWizardContract.contractNumber}</h2>
+              <button className="modal-close" onClick={() => setShipmentWizardContract(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <ShipmentWizardStep
+                contract={shipmentWizardContract}
+                onComplete={() => { setShipmentWizardContract(null); loadContract(); }}
+                onSkip={() => setShipmentWizardContract(null)}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {completionTask && (
