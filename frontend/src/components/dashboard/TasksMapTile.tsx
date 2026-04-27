@@ -11,6 +11,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
 import { getTileProvider } from '../../config/mapConfig';
+import { MapMarker, getMarkerIcon } from '../map/mapIcons';
 import './TasksMapTile.css';
 
 // Fix dla ikon Leaflet (znany problem z bundlerami webpack/vite)
@@ -25,41 +26,29 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-interface TaskWithGps {
-  id: number;
-  taskNumber: string;
-  title: string;
-  status: string;
-  location: string;
-  gpsLatitude: number;
-  gpsLongitude: number;
-  taskType?: string;
-  contractNumber?: string;
-}
-
 // Centrum Polski jako domyślna pozycja mapy
 const POLAND_CENTER: [number, number] = [52.0693, 19.4803];
 const DEFAULT_ZOOM = 6;
 
 // Komponent do auto-centrowania mapy na wszystkich markerach
-const FitBounds: React.FC<{ tasks: TaskWithGps[] }> = ({ tasks }) => {
+const FitBounds: React.FC<{ markers: MapMarker[] }> = ({ markers }) => {
   const map = useMap();
 
   useEffect(() => {
-    if (tasks.length > 0) {
+    if (markers.length > 0) {
       const bounds = L.latLngBounds(
-        tasks.map(t => [t.gpsLatitude, t.gpsLongitude] as [number, number])
+        markers.map(m => [m.gpsLatitude, m.gpsLongitude] as [number, number])
       );
       map.fitBounds(bounds, { padding: [50, 50] });
     }
-  }, [tasks, map]);
+  }, [markers, map]);
 
   return null;
 };
 
 export const TasksMapTile: React.FC = () => {
-  const [tasks, setTasks] = useState<TaskWithGps[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [markers, setMarkers] = useState<MapMarker[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const { openNavigation, openLocation } = useGoogleMaps();
@@ -72,33 +61,35 @@ export const TasksMapTile: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get<{ success: boolean; data: TaskWithGps[] }>('/tasks/with-gps');
+      const response = await api.get<{ success: boolean; data: MapMarker[] }>('/map/markers');
       if (response.data.success) {
-        setTasks(response.data.data.map(t => ({
-          ...t,
-          gpsLatitude: Number(t.gpsLatitude),
-          gpsLongitude: Number(t.gpsLongitude),
+        setMarkers(response.data.data.map(m => ({
+          ...m,
+          gpsLatitude: Number(m.gpsLatitude),
+          gpsLongitude: Number(m.gpsLongitude),
         })));
       } else {
-        setError('Nie udało się pobrać zadań z GPS');
+        setError('Nie udało się pobrać markerów mapy');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Błąd pobierania zadań z GPS');
+      setError(err.response?.data?.message || 'Błąd pobierania markerów mapy');
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
+    if (expanded) {
+      fetchTasks();
+    }
+  }, [expanded, fetchTasks]);
 
-  const handleNavigate = (task: TaskWithGps) => {
-    openNavigation({ lat: task.gpsLatitude, lon: task.gpsLongitude });
+  const handleNavigate = (marker: MapMarker) => {
+    openNavigation({ lat: marker.gpsLatitude, lon: marker.gpsLongitude });
   };
 
-  const handleView = (task: TaskWithGps) => {
-    openLocation({ lat: task.gpsLatitude, lon: task.gpsLongitude });
+  const handleView = (marker: MapMarker) => {
+    openLocation({ lat: marker.gpsLatitude, lon: marker.gpsLongitude });
   };
 
   const tileClassNames = [
@@ -113,8 +104,8 @@ export const TasksMapTile: React.FC = () => {
       <div className="tile-header">
         <ModuleIcon name="mapa" emoji={MODULE_ICONS.mapa} size={24} alt="Mapa Zadań" />
         <span className="tile-title">Mapa Zadań</span>
-        {!loading && !error && (
-          <span className="tile-count">{tasks.length} lokalizacji</span>
+        {expanded && !loading && !error && (
+          <span className="tile-count">{markers.length} lokalizacji</span>
         )}
         <span className="map-scope-label" style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 8 }}>
           {canSeeAll ? '🌐 Wszystkie zadania' : '👤 Moje zadania'}
@@ -129,13 +120,20 @@ export const TasksMapTile: React.FC = () => {
       </div>
 
       <div className="tile-map-container">
-        {loading && (
+        {!expanded && (
+          <div className="tile-map-collapsed" onClick={() => setExpanded(true)}>
+            <span>🗺️</span>
+            <span>Kliknij aby rozwinąć mapę</span>
+          </div>
+        )}
+
+        {expanded && loading && (
           <div className="tile-content tile-state">
             <span>Ładowanie mapy…</span>
           </div>
         )}
 
-        {!loading && error && (
+        {expanded && !loading && error && (
           <div className="tile-content tile-state">
             <p className="error-text">{error}</p>
             <button
@@ -147,13 +145,13 @@ export const TasksMapTile: React.FC = () => {
           </div>
         )}
 
-        {!loading && !error && tasks.length === 0 && (
+        {expanded && !loading && !error && markers.length === 0 && (
           <div className="tile-content tile-state no-tasks">
-            <span>Brak zadań z lokalizacją GPS</span>
+            <span>Brak obiektów z lokalizacją GPS</span>
           </div>
         )}
 
-        {!loading && !error && tasks.length > 0 && (
+        {expanded && !loading && !error && markers.length > 0 && (
           <MapContainer
             className="leaflet-map"
             center={POLAND_CENTER}
@@ -165,36 +163,37 @@ export const TasksMapTile: React.FC = () => {
               url={tileProvider.url}
               maxZoom={tileProvider.maxZoom}
             />
-            <FitBounds tasks={tasks} />
-            {tasks.map(task => (
+            <FitBounds markers={markers} />
+            {markers.map(marker => (
               <Marker
-                key={task.id}
-                position={[task.gpsLatitude, task.gpsLongitude]}
+                key={`${marker.markerType}-${marker.id}`}
+                position={[marker.gpsLatitude, marker.gpsLongitude]}
+                icon={getMarkerIcon(marker)}
               >
-                <Tooltip>{task.title}</Tooltip>
+                <Tooltip>{marker.title}</Tooltip>
                 <Popup>
                   <div className="task-popup">
-                    <h4>{task.title}</h4>
-                    <p className="task-number">{task.taskNumber}</p>
-                    {task.location && (
-                      <p className="task-location">📍 {task.location}</p>
+                    <h4>{marker.title}</h4>
+                    <p className="task-number">{marker.number}</p>
+                    {marker.location && (
+                      <p className="task-location">📍 {marker.location}</p>
                     )}
-                    {task.taskType && (
-                      <p className="task-type">🔧 {task.taskType}</p>
+                    {marker.assetType && (
+                      <p className="task-type">🔧 {marker.assetType}</p>
                     )}
-                    {task.contractNumber && (
-                      <p className="task-contract">📋 {task.contractNumber}</p>
+                    {marker.contractNumber && (
+                      <p className="task-contract">📋 {marker.contractNumber}</p>
                     )}
                     <div className="popup-actions">
                       <button
                         className="btn btn-primary"
-                        onClick={() => handleNavigate(task)}
+                        onClick={() => handleNavigate(marker)}
                       >
                         🧭 Nawiguj
                       </button>
                       <button
                         className="btn btn-secondary"
-                        onClick={() => handleView(task)}
+                        onClick={() => handleView(marker)}
                       >
                         🗺️ Zobacz
                       </button>
