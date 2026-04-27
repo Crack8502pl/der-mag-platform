@@ -7,6 +7,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { api } from '../../services/api';
 import { useGoogleMaps } from '../../hooks/useGoogleMaps';
+import { usePermissions } from '../../hooks/usePermissions';
 import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
 import { getTileProvider } from '../../config/mapConfig';
@@ -62,7 +63,10 @@ export const TasksMapTile: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const { openNavigation, openLocation } = useGoogleMaps();
+  const { hasPermission, isAdmin } = usePermissions();
   const tileProvider = getTileProvider();
+
+  const canSeeAll = isAdmin() || hasPermission('tasks', 'assign');
 
   const fetchTasks = useCallback(async () => {
     setLoading(true);
@@ -112,6 +116,9 @@ export const TasksMapTile: React.FC = () => {
         {!loading && !error && (
           <span className="tile-count">{tasks.length} lokalizacji</span>
         )}
+        <span className="map-scope-label" style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 8 }}>
+          {canSeeAll ? '🌐 Wszystkie zadania' : '👤 Moje zadania'}
+        </span>
         <button
           className="btn-expand"
           onClick={() => setExpanded(prev => !prev)}

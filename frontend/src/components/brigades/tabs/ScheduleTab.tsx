@@ -18,6 +18,21 @@ interface ServiceTask {
   plannedEndDate?: string | null;
 }
 
+interface RegularTask {
+  id: number;
+  taskNumber: string;
+  title: string;
+  status: string;
+  brigadeId?: number | null;
+  brigade?: { id: number; code: string; name: string } | null;
+  plannedStartDate?: string | null;
+  plannedEndDate?: string | null;
+}
+
+interface ScheduleTask extends ServiceTask {
+  taskType: 'service' | 'regular';
+}
+
 const DAY_LABELS = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
 
 // ISO 8601 week number: week 1 is the first week containing a Thursday
@@ -57,7 +72,7 @@ const DEFAULT_WIDTH = timeToPercent(16) - DEFAULT_LEFT;
 
 export const ScheduleTab: React.FC = () => {
   const [brigades, setBrigades] = useState<Brigade[]>([]);
-  const [tasks, setTasks] = useState<ServiceTask[]>([]);
+  const [tasks, setTasks] = useState<ScheduleTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedDate, setSelectedDate] = useState<string>(() => {
@@ -73,14 +88,30 @@ export const ScheduleTab: React.FC = () => {
     try {
       setLoading(true);
       setError('');
-      const [brigadesRes, tasksRes] = await Promise.all([
+      const [brigadesRes, serviceTasksRes, regularTasksRes] = await Promise.all([
         brigadeService.getAll({ active: true, limit: 100 }),
         api.get('/service-tasks', { params: { limit: 200 } }),
+        api.get('/tasks', { params: { limit: 200 } }),
       ]);
 
       setBrigades(brigadesRes.brigades || []);
-      const tasksData = tasksRes.data.data || tasksRes.data;
-      setTasks(Array.isArray(tasksData) ? tasksData : tasksData?.tasks || []);
+
+      const serviceTasksData = serviceTasksRes.data.data || serviceTasksRes.data;
+      const serviceTasks: ServiceTask[] = Array.isArray(serviceTasksData)
+        ? serviceTasksData
+        : serviceTasksData?.tasks || [];
+
+      const regularTasksData = regularTasksRes.data.data || regularTasksRes.data;
+      const regularTasks: RegularTask[] = Array.isArray(regularTasksData)
+        ? regularTasksData
+        : regularTasksData?.tasks || [];
+
+      const combined: ScheduleTask[] = [
+        ...serviceTasks.map((t) => ({ ...t, taskType: 'service' as const })),
+        ...regularTasks.map((t) => ({ ...t, taskType: 'regular' as const })),
+      ];
+
+      setTasks(combined);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Błąd pobierania danych harmonogramu');
     } finally {
@@ -139,6 +170,22 @@ export const ScheduleTab: React.FC = () => {
         </div>
       ) : (
         <>
+          {/* Legend */}
+          <div className="schedule-legend" style={{ display: 'flex', gap: 16, padding: '8px 0', fontSize: 13 }}>
+            <span>
+              <span className="legend-dot" style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: '#3b82f6', marginRight: 4, verticalAlign: 'middle' }} />
+              Zadania
+            </span>
+            <span>
+              <span className="legend-dot" style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: 'var(--primary-color, #ff6b35)', marginRight: 4, verticalAlign: 'middle' }} />
+              Zadania serwisowe
+            </span>
+            <span>
+              <span className="legend-dot" style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: 'var(--warning-color, #f59e0b)', marginRight: 4, verticalAlign: 'middle' }} />
+              Nieprzypisane
+            </span>
+          </div>
+
           {/* Weekly timeline view */}
           <div className="schedule-week-view">
             {weekDates.map((date, idx) => {
@@ -179,18 +226,20 @@ export const ScheduleTab: React.FC = () => {
                     ) : (
                       dayTasks.map((task, taskIdx) => (
                         <div
-                          key={task.id}
+                          key={`${task.taskType}-${task.id}`}
                           className="schedule-task-bar"
                           style={{
                             left: `${DEFAULT_LEFT}%`,
                             width: `${DEFAULT_WIDTH}%`,
                             top: `${taskIdx * 44 + 8}px`,
                             height: '36px',
-                            backgroundColor: task.brigadeId
-                              ? 'var(--primary-color)'
-                              : 'var(--warning-color, #f59e0b)',
+                            backgroundColor: !task.brigadeId
+                              ? 'var(--warning-color, #f59e0b)'
+                              : task.taskType === 'regular'
+                              ? 'var(--info-color, #3b82f6)'
+                              : 'var(--primary-color, #ff6b35)',
                           }}
-                          title={`${task.taskNumber}: ${task.title}${task.brigade ? ` [${task.brigade.code}]` : ''}`}
+                          title={`[${task.taskType === 'regular' ? 'Zadanie' : 'Serwisowe'}] ${task.taskNumber}: ${task.title}${task.brigade ? ` [${task.brigade.code}]` : ''}`}
                         >
                           <span className="task-bar-title">
                             {task.brigade ? `[${task.brigade.code}] ` : ''}
@@ -213,9 +262,12 @@ export const ScheduleTab: React.FC = () => {
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {unassignedTasks.map((task) => (
-                  <div key={task.id} className="schedule-task-card" style={{ minWidth: 180 }}>
+                  <div key={`${task.taskType}-${task.id}`} className="schedule-task-card" style={{ minWidth: 180 }}>
                     <div className="schedule-task-number">{task.taskNumber}</div>
                     <div className="schedule-task-title">{task.title}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+                      {task.taskType === 'regular' ? 'Zadanie' : 'Zadanie serwisowe'}
+                    </div>
                   </div>
                 ))}
               </div>

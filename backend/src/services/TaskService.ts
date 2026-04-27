@@ -13,6 +13,8 @@ import { CreateTaskDto } from '../dto/CreateTaskDto';
 import { BomTriggerService } from './BomTriggerService';
 import { Contract } from '../entities/Contract';
 import { TaskSyncService } from './TaskSyncService';
+import { Brigade } from '../entities/Brigade';
+import { TaskAssignment } from '../entities/TaskAssignment';
 
 export class TaskService {
   /**
@@ -183,4 +185,69 @@ export class TaskService {
 
     return task;
   }
+
+  /**
+   * Przypisuje brygadę do zadania
+   */
+  static async assignBrigade(
+    taskId: number,
+    brigadeId: number,
+    performedById: number
+  ): Promise<Task> {
+    const taskRepository = AppDataSource.getRepository(Task);
+    const brigadeRepository = AppDataSource.getRepository(Brigade);
+
+    const task = await taskRepository.findOne({ where: { id: taskId } });
+    if (!task) {
+      throw new Error('Zadanie nie znalezione');
+    }
+
+    const brigade = await brigadeRepository.findOne({ where: { id: brigadeId } });
+    if (!brigade) {
+      throw new Error('Brygada nie znaleziona');
+    }
+
+    task.brigadeId = brigadeId;
+    if (task.status === 'created') {
+      task.status = 'assigned';
+    }
+    task.metadata = {
+      ...task.metadata,
+      lastBrigadeAssignedById: performedById,
+      lastBrigadeAssignedAt: new Date().toISOString(),
+    };
+
+    await taskRepository.save(task);
+    return task;
+  }
+
+  /**
+   * Pobiera zadania z GPS z filtrowaniem uprawnień
+   */
+  static async getTasksWithGps(
+    userId: number,
+    canSeeAll: boolean
+  ): Promise<Task[]> {
+    const taskRepository = AppDataSource.getRepository(Task);
+
+    const qb = taskRepository
+      .createQueryBuilder('task')
+      .leftJoinAndSelect('task.taskType', 'taskType')
+      .leftJoinAndSelect('task.contract', 'contract')
+      .where('task.gpsLatitude IS NOT NULL')
+      .andWhere('task.gpsLongitude IS NOT NULL')
+      .andWhere('task.deletedAt IS NULL');
+
+    if (!canSeeAll) {
+      qb.innerJoin(
+        TaskAssignment,
+        'assignment',
+        'assignment.taskId = task.id AND assignment.userId = :userId',
+        { userId }
+      );
+    }
+
+    return qb.orderBy('task.createdAt', 'DESC').getMany();
+  }
 }
+

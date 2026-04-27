@@ -9,6 +9,7 @@ import { Brigade } from '../entities/Brigade';
 import { Contract, ContractStatus } from '../entities/Contract';
 import { WarehouseStock } from '../entities/WarehouseStock';
 import { Task } from '../entities/Task';
+import { ServiceTask } from '../entities/ServiceTask';
 import EmailQueueService from './EmailQueueService';
 import ContractNotificationService from './ContractNotificationService';
 import StockNotificationService from './StockNotificationService';
@@ -25,6 +26,7 @@ export class NotificationSchedulerService {
   private contractRepository = AppDataSource.getRepository(Contract);
   private stockRepository = AppDataSource.getRepository(WarehouseStock);
   private taskRepository = AppDataSource.getRepository(Task);
+  private serviceTaskRepository = AppDataSource.getRepository(ServiceTask);
   private jobs: Map<string, ScheduledTask> = new Map();
   private initialized = false;
 
@@ -135,8 +137,8 @@ export class NotificationSchedulerService {
         brigades.map(async (brigade) => {
           const activeMemberCount = brigade.members?.filter(m => m.active).length || 0;
           
-          // Pobierz zadania brygady
-          const tasks = await this.taskRepository
+          // Pobierz zadania serwisowe brygady
+          const tasks = await this.serviceTaskRepository
             .createQueryBuilder('task')
             .where('task.brigadeId = :brigadeId', { brigadeId: brigade.id })
             .andWhere('task.status NOT IN (:...statuses)', { 

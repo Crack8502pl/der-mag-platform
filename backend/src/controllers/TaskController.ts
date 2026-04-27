@@ -981,17 +981,15 @@ export class TaskController {
 
   static async getTasksWithGps(req: Request, res: Response): Promise<void> {
     try {
-      const taskRepository = AppDataSource.getRepository(Task);
+      const userId = (req as any).user?.id || req.userId;
+      const user = (req as any).user;
 
-      const tasks = await taskRepository
-        .createQueryBuilder('task')
-        .leftJoinAndSelect('task.taskType', 'taskType')
-        .leftJoinAndSelect('task.contract', 'contract')
-        .where('task.gpsLatitude IS NOT NULL')
-        .andWhere('task.gpsLongitude IS NOT NULL')
-        .andWhere('task.deletedAt IS NULL')
-        .orderBy('task.createdAt', 'DESC')
-        .getMany();
+      // Determine if the user can see all tasks (has tasks.assign or is admin)
+      const permissions = user?.role?.permissions || {};
+      const isAdmin = permissions.all === true;
+      const canSeeAll = isAdmin || permissions.tasks?.assign === true;
+
+      const tasks = await TaskService.getTasksWithGps(userId, canSeeAll);
 
       res.json({
         success: true,
@@ -1016,4 +1014,41 @@ export class TaskController {
       });
     }
   }
+
+  /**
+   * PATCH /api/tasks/:id/assign-brigade
+   * Przypisz brygadę do zadania
+   */
+  static async assignBrigade(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = (req as any).user?.id || req.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const { id } = req.params;
+      const { brigadeId } = req.body;
+
+      if (!brigadeId) {
+        res.status(400).json({ success: false, message: 'ID brygady jest wymagane' });
+        return;
+      }
+
+      const task = await TaskService.assignBrigade(Number(id), Number(brigadeId), userId);
+
+      res.json({
+        success: true,
+        message: 'Brygada przypisana pomyślnie',
+        data: task,
+      });
+    } catch (error: any) {
+      serverLogger.error('Błąd przypisywania brygady:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Błąd serwera',
+      });
+    }
+  }
 }
+

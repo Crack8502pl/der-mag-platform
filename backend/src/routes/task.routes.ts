@@ -17,6 +17,7 @@ router.post('/', authenticate, checkPermission('tasks', 'create'), validateDto(C
 router.put('/:taskNumber', authenticate, checkPermission('tasks', 'update'), validateDto(UpdateTaskDto), TaskController.update);
 router.patch('/:taskNumber/status', authenticate, TaskController.updateStatus);
 router.delete('/:taskNumber', authenticate, checkPermission('tasks', 'update'), TaskController.delete);
+router.patch('/:id/assign-brigade', authenticate, checkPermission('tasks', 'assign'), TaskController.assignBrigade);
 router.post('/:taskNumber/assign', authenticate, checkPermission('tasks', 'assign'), TaskController.assign);
 router.post('/:taskNumber/request-shipment', authenticate, TaskController.requestShipment);
 

@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { BrigadeMember } from './BrigadeMember';
 import { ServiceTask } from './ServiceTask';
+import { Task } from './Task';
 
 @Entity('brigades')
 export class Brigade {
@@ -34,6 +35,9 @@ export class Brigade {
 
   @OneToMany(() => ServiceTask, (task) => task.brigade)
   serviceTasks: ServiceTask[];
+
+  @OneToMany(() => Task, (task) => task.brigade)
+  tasks: Task[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
