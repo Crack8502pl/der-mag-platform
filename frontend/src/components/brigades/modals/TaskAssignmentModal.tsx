@@ -24,6 +24,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const [taskType, setTaskType] = useState<'service' | 'regular'>('service');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<number | ''>('');
   const [selectedBrigadeId, setSelectedBrigadeId] = useState<number | ''>('');
@@ -45,12 +46,14 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
 
   useEffect(() => {
     loadUnassignedTasks();
-  }, []);
+  }, [taskType]);
 
   const loadUnassignedTasks = async () => {
     try {
       setLoadingTasks(true);
-      const response = await api.get('/service-tasks', { params: { status: 'created', limit: 100 } });
+      setSelectedTaskId('');
+      const endpoint = taskType === 'service' ? '/service-tasks' : '/tasks';
+      const response = await api.get(endpoint, { params: { status: 'created', limit: 100 } });
       const data = response.data.data || response.data || [];
       setTasks(Array.isArray(data) ? data : data.tasks || []);
     } catch {
@@ -72,7 +75,11 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
     try {
       setLoading(true);
       setError('');
-      await api.patch(`/service-tasks/${selectedTaskId}/assign-brigade`, {
+      const endpoint =
+        taskType === 'service'
+          ? `/service-tasks/${selectedTaskId}/assign-brigade`
+          : `/tasks/${selectedTaskId}/assign-brigade`;
+      await api.patch(endpoint, {
         brigadeId: selectedBrigadeId,
       });
       onSuccess();
@@ -101,6 +108,32 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
 
         <form onSubmit={handleSubmit}>
           <div className="brigade-modal-body">
+            <div className="form-group">
+              <label>Typ zadania</label>
+              <div style={{ display: 'flex', gap: 16, marginTop: 4 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="taskType"
+                    value="service"
+                    checked={taskType === 'service'}
+                    onChange={() => setTaskType('service')}
+                  />
+                  Zadanie serwisowe
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="taskType"
+                    value="regular"
+                    checked={taskType === 'regular'}
+                    onChange={() => setTaskType('regular')}
+                  />
+                  Zadanie zwykłe
+                </label>
+              </div>
+            </div>
+
             <div className="form-group">
               <label htmlFor="task-select">Zadanie</label>
               {loadingTasks ? (

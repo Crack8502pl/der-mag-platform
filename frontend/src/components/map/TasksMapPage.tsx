@@ -10,6 +10,7 @@ import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
 import { getTileProvider } from '../../config/mapConfig';
 import { api } from '../../services/api';
+import { usePermissions } from '../../hooks/usePermissions';
 import './TasksMapPage.css';
 
 // Fix Leaflet default icons (known bundler issue)
@@ -79,7 +80,10 @@ export const TasksMapPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile());
   const [selectedTask, setSelectedTask] = useState<TaskWithGps | null>(null);
+  const { hasPermission, isAdmin } = usePermissions();
   const tileProvider = getTileProvider();
+
+  const canSeeAll = isAdmin() || hasPermission('tasks', 'assign');
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -132,9 +136,14 @@ export const TasksMapPage: React.FC = () => {
             <h1>MAPA ZADAŃ</h1>
           </div>
         </div>
-        {!loading && !error && (
-          <span className="map-count-badge">{tasks.length} lokalizacji</span>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="map-scope-label" style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+            {canSeeAll ? '🌐 Wszystkie zadania' : '👤 Moje zadania'}
+          </span>
+          {!loading && !error && (
+            <span className="map-count-badge">{tasks.length} lokalizacji</span>
+          )}
+        </div>
       </header>
 
       {/* Body */}

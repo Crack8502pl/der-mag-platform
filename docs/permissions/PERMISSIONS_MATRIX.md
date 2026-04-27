@@ -227,21 +227,22 @@ System uprawnień Grover Platform oparty jest na modelu **RBAC (Role-Based Acces
 
 ### Tasks
 
-| Rola | read | create | update | delete | assign |
-|------|------|--------|--------|--------|--------|
-| admin | ✅ | ✅ | ✅ | ✅ | ✅ |
-| management_board | ✅ | ✅ (wszystkie) | ✅ | ❌ | ✅ |
-| manager | ✅ | ✅ | ✅ | ❌ | ✅ |
-| coordinator | ✅ | SERWIS⚠️ | ✅ | ❌ | ✅ |
-| bom_editor | ✅ | ❌ | ❌ | ❌ | ❌ |
-| prefabricator | ✅ | ❌ | ❌ | ❌ | ❌ |
-| worker | ✅ | ❌ | WŁASNE⚠️ | ❌ | ❌ |
-| order_picking | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Rola | read | create | update | delete | assign | map_view_all |
+|------|------|--------|--------|--------|--------|--------------|
+| admin | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| management_board | ✅ | ✅ (wszystkie) | ✅ | ❌ | ✅ | ✅ |
+| manager | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
+| coordinator | ✅ | SERWIS⚠️ | ✅ | ❌ | ✅ | ✅ |
+| bom_editor | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ (tylko własne) |
+| prefabricator | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ (tylko własne) |
+| worker | ✅ | ❌ | WŁASNE⚠️ | ❌ | ❌ | ❌ (tylko własne) |
+| order_picking | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ (tylko własne) |
 
 **Uwagi specjalne:**
 - ⚠️ `coordinator` może tworzyć tylko zadania typu `SERWIS` - wymaga walidacji w TaskController
 - ⚠️ `worker` może edytować tylko zadania, do których jest przypisany - wymaga sprawdzenia `assigned_to`
 - `management_board` może tworzyć wszystkie typy zadań
+- `map_view_all` — kolumna określa widoczność mapy: `✅` = wszystkie zadania z GPS; `❌ (tylko własne)` = wyłącznie zadania, do których użytkownik jest przypisany (filtrowane przez `TaskAssignment`)
 
 ### Completion
 

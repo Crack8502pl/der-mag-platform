@@ -12,6 +12,7 @@ import { TaskMetric } from './TaskMetric';
 import { Contract } from './Contract';
 import { Subsystem } from './Subsystem';
 import { TaskGeneratedBom } from './TaskGeneratedBom';
+import { Brigade } from './Brigade';
 
 @Entity('tasks')
 @Index(['taskNumber'], { unique: true })
@@ -74,6 +75,13 @@ export class Task {
 
   @Column({ type: 'int', name: 'subsystem_id', nullable: true })
   subsystemId: number;
+
+  @ManyToOne(() => Brigade, { nullable: true })
+  @JoinColumn({ name: 'brigade_id' })
+  brigade: Brigade;
+
+  @Column({ type: 'int', name: 'brigade_id', nullable: true })
+  brigadeId: number | null;
 
   @ManyToOne(() => TaskGeneratedBom, { nullable: true })
   @JoinColumn({ name: 'task_bom_id' })
