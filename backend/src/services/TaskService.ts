@@ -192,7 +192,7 @@ export class TaskService {
   static async assignBrigade(
     taskId: number,
     brigadeId: number,
-    _performedById: number
+    performedById: number
   ): Promise<Task> {
     const taskRepository = AppDataSource.getRepository(Task);
     const brigadeRepository = AppDataSource.getRepository(Brigade);
@@ -211,6 +211,11 @@ export class TaskService {
     if (task.status === 'created') {
       task.status = 'assigned';
     }
+    task.metadata = {
+      ...task.metadata,
+      lastBrigadeAssignedById: performedById,
+      lastBrigadeAssignedAt: new Date().toISOString(),
+    };
 
     await taskRepository.save(task);
     return task;
