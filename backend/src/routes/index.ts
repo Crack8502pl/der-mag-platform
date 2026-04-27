@@ -47,6 +47,8 @@ import symfoniaIntegrationRoutes from './symfoniaIntegration.routes';
 import symfoniaSyncRoutes from './symfoniaSync.routes';
 // Google Maps routes
 import mapsRoutes from './maps.routes';
+// Map markers routes
+import mapRoutes from './map.routes';
 // Tile proxy routes
 import tilesRoutes from './tiles.routes';
 // Push notification routes
@@ -127,6 +129,9 @@ router.use('/admin/symfonia-sync', symfoniaSyncRoutes);
 
 // Google Maps routes
 router.use('/maps', mapsRoutes);
+
+// Map markers routes
+router.use('/map', mapRoutes);
 
 // Tile proxy routes
 router.use('/tiles', tilesRoutes);
