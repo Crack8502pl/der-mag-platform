@@ -40,6 +40,33 @@ export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProp
   const [isActive, setIsActive] = useState(recorder?.isActive ?? true);
   const [notes, setNotes] = useState(recorder?.notes || '');
 
+  const [productSearch, setProductSearch] = useState(
+    recorder?.warehouseStock
+      ? `[${recorder.warehouseStock.catalogNumber}] ${recorder.warehouseStock.materialName}`
+      : ''
+  );
+  const [productDropdownOpen, setProductDropdownOpen] = useState(false);
+
+  const [extensionSearch, setExtensionSearch] = useState(
+    recorder?.extensionWarehouseStock
+      ? `[${recorder.extensionWarehouseStock.catalogNumber}] ${recorder.extensionWarehouseStock.materialName}`
+      : ''
+  );
+  const [extensionDropdownOpen, setExtensionDropdownOpen] = useState(false);
+
+  const filteredWarehouseItems = warehouseItems.filter(item =>
+    item.materialName.toLowerCase().includes(productSearch.toLowerCase()) ||
+    item.catalogNumber.toLowerCase().includes(productSearch.toLowerCase())
+  );
+
+  const filteredExtensionItems = warehouseItems.filter(item =>
+    item.materialName.toLowerCase().includes(extensionSearch.toLowerCase()) ||
+    item.catalogNumber.toLowerCase().includes(extensionSearch.toLowerCase())
+  );
+
+  // Delay prevents the dropdown from closing before onMouseDown fires on an item
+  const DROPDOWN_CLOSE_DELAY = 200;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -133,19 +160,50 @@ export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProp
         <form onSubmit={handleSubmit}>
           <div style={fieldStyle}>
             <label style={labelStyle}>Produkt (Warehouse Stock) *</label>
-            <select
-              style={inputStyle}
-              value={warehouseStockId}
-              onChange={e => setWarehouseStockId(e.target.value ? Number(e.target.value) : '')}
-              required
-            >
-              <option value="">-- Wybierz produkt --</option>
-              {warehouseItems.map(item => (
-                <option key={item.id} value={item.id}>
-                  [{item.catalogNumber}] {item.materialName}
-                </option>
-              ))}
-            </select>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                style={inputStyle}
+                placeholder="Wyszukaj po nazwie lub numerze katalogowym..."
+                value={productSearch}
+                onChange={e => {
+                  setProductSearch(e.target.value);
+                  setProductDropdownOpen(true);
+                  if (!e.target.value) setWarehouseStockId('');
+                }}
+                onFocus={() => setProductDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setProductDropdownOpen(false), DROPDOWN_CLOSE_DELAY)}
+                autoComplete="off"
+              />
+              {productDropdownOpen && filteredWarehouseItems.length > 0 && (
+                <div style={{
+                  position: 'absolute', top: '100%', left: 0, right: 0,
+                  background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)', marginTop: '4px',
+                  maxHeight: '220px', overflowY: 'auto', zIndex: 1001
+                }}>
+                  {filteredWarehouseItems.map(item => (
+                    <div
+                      key={item.id}
+                      style={{
+                        padding: '8px 12px', cursor: 'pointer', fontSize: '13px',
+                        color: 'var(--text-primary)',
+                        background: item.id === warehouseStockId ? 'var(--bg-hover)' : 'transparent'
+                      }}
+                      onMouseDown={() => {
+                        setWarehouseStockId(item.id);
+                        setProductSearch(`[${item.catalogNumber}] ${item.materialName}`);
+                        setProductDropdownOpen(false);
+                      }}
+                    >
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>[{item.catalogNumber}]</span>{' '}
+                      {item.materialName}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <input type="hidden" value={warehouseStockId} />
+            </div>
           </div>
 
           <div style={fieldStyle}>
@@ -212,18 +270,49 @@ export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProp
           {requiresExtension && (
             <div style={fieldStyle}>
               <label style={labelStyle}>Produkt rozszerzenia</label>
-              <select
-                style={inputStyle}
-                value={extensionWarehouseStockId}
-                onChange={e => setExtensionWarehouseStockId(e.target.value ? Number(e.target.value) : '')}
-              >
-                <option value="">-- Brak --</option>
-                {warehouseItems.map(item => (
-                  <option key={item.id} value={item.id}>
-                    [{item.catalogNumber}] {item.materialName}
-                  </option>
-                ))}
-              </select>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  style={inputStyle}
+                  placeholder="Wyszukaj po nazwie lub numerze katalogowym..."
+                  value={extensionSearch}
+                  onChange={e => {
+                    setExtensionSearch(e.target.value);
+                    setExtensionDropdownOpen(true);
+                    if (!e.target.value) setExtensionWarehouseStockId('');
+                  }}
+                  onFocus={() => setExtensionDropdownOpen(true)}
+                  onBlur={() => setTimeout(() => setExtensionDropdownOpen(false), DROPDOWN_CLOSE_DELAY)}
+                  autoComplete="off"
+                />
+                {extensionDropdownOpen && filteredExtensionItems.length > 0 && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0,
+                    background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-md)', marginTop: '4px',
+                    maxHeight: '220px', overflowY: 'auto', zIndex: 1001
+                  }}>
+                    {filteredExtensionItems.map(item => (
+                      <div
+                        key={item.id}
+                        style={{
+                          padding: '8px 12px', cursor: 'pointer', fontSize: '13px',
+                          color: 'var(--text-primary)',
+                          background: item.id === extensionWarehouseStockId ? 'var(--bg-hover)' : 'transparent'
+                        }}
+                        onMouseDown={() => {
+                          setExtensionWarehouseStockId(item.id);
+                          setExtensionSearch(`[${item.catalogNumber}] ${item.materialName}`);
+                          setExtensionDropdownOpen(false);
+                        }}
+                      >
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>[{item.catalogNumber}]</span>{' '}
+                        {item.materialName}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
