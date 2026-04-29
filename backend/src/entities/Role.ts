@@ -206,6 +206,10 @@ export interface CarsPermissions {
   update?: boolean;
 }
 
+export interface MapPermissions {
+  read?: boolean;
+}
+
 /**
  * Struktura wszystkich uprawnień - 18 modułów
  */
@@ -230,6 +234,7 @@ export interface RolePermissions {
   brigades?: BrigadePermissions;
   cars?: CarsPermissions;
   assets?: AssetPermissions;
+  map?: MapPermissions;
   // Zachowanie kompatybilności z istniejącymi uprawnieniami
   [key: string]: any;
 }
