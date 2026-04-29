@@ -345,7 +345,7 @@ export class RoleController {
         {
           name: 'map',
           displayName: 'Mapa',
-          actions: ['read']
+          actions: ['read', 'viewAll']
         }
       ];
 
