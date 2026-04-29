@@ -11,6 +11,33 @@ interface TemplateDefinition {
 }
 
 const SHIPMENT_BOM_TEMPLATES: TemplateDefinition[] = [
+  // ── SMOKIP_A ──────────────────────────────────────────────────────────────
+  {
+    templateName: 'BOM SMOKIP_A - Szafa terenowa',
+    subsystemType: SubsystemType.SMOKIP_A,
+    taskVariant: 'SZAFA_TERENOWA',
+  },
+  {
+    templateName: 'BOM SMOKIP_A - Szafa wewnętrzna',
+    subsystemType: SubsystemType.SMOKIP_A,
+    taskVariant: 'SZAFA_WEWNETRZNA',
+  },
+  {
+    templateName: 'BOM SMOKIP_A - Kontener',
+    subsystemType: SubsystemType.SMOKIP_A,
+    taskVariant: 'KONTENER',
+  },
+  {
+    templateName: 'BOM SMOKIP_A - Szafa 42U',
+    subsystemType: SubsystemType.SMOKIP_A,
+    taskVariant: '42U',
+  },
+  {
+    templateName: 'BOM SMOKIP_A - Szafa 24U',
+    subsystemType: SubsystemType.SMOKIP_A,
+    taskVariant: '24U',
+  },
+  // ── SMOKIP_B ──────────────────────────────────────────────────────────────
   {
     templateName: 'BOM SMOKIP_B - Szafa terenowa',
     subsystemType: SubsystemType.SMOKIP_B,
@@ -25,6 +52,16 @@ const SHIPMENT_BOM_TEMPLATES: TemplateDefinition[] = [
     templateName: 'BOM SMOKIP_B - Zabudowa kontener',
     subsystemType: SubsystemType.SMOKIP_B,
     taskVariant: 'KONTENER',
+  },
+  {
+    templateName: 'BOM SMOKIP_B - Szafa 42U',
+    subsystemType: SubsystemType.SMOKIP_B,
+    taskVariant: '42U',
+  },
+  {
+    templateName: 'BOM SMOKIP_B - Szafa 24U',
+    subsystemType: SubsystemType.SMOKIP_B,
+    taskVariant: '24U',
   },
   {
     templateName: 'BOM LCS - 42U',

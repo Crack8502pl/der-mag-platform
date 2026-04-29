@@ -2,7 +2,7 @@
 // Infrastructure parameters configuration step
 
 import React, { useState } from 'react';
-import type { WizardData, CabinetOption, PoleType, PoleConfig, TaskInfrastructure } from '../types/wizard.types';
+import type { WizardData, CabinetOption, PoleType, PoleConfig, TaskInfrastructure, InfrastructureData, GeneratedTask } from '../types/wizard.types';
 import { generateAllTasks } from '../utils/taskGenerator';
 import { requiresCabinetCompletion } from '../../../../config/taskTypes';
 import { PoleSearchModal } from '../../PoleSearchModal';
@@ -170,6 +170,69 @@ const InfrastructureForm: React.FC<InfrastructureFormProps> = ({ data, onChange 
   );
 };
 
+const tableHeaderStyle: React.CSSProperties = {
+  padding: '8px 12px',
+  textAlign: 'left',
+  fontWeight: 600,
+  borderBottom: '2px solid var(--border-color)',
+  backgroundColor: 'var(--bg-secondary)',
+  fontSize: '12px',
+};
+
+const tableCellStyle: React.CSSProperties = {
+  padding: '8px 12px',
+  borderBottom: '1px solid var(--border-color)',
+  fontSize: '13px',
+};
+
+const PolesOverviewTable: React.FC<{
+  allTasks: GeneratedTask[];
+  infrastructure: InfrastructureData;
+}> = ({ allTasks, infrastructure }) => {
+  const rows = allTasks.flatMap((task, originalIdx) => {
+    const taskKey = `${task.subsystemType}-${originalIdx}`;
+    const infra = infrastructure?.perTask?.[taskKey];
+    if (!infra?.poles?.length) return [];
+    return infra.poles.map((pole) => ({
+      taskName: task.name,
+      cabinetType: infra.cabinetType ?? '—',
+      poleType: pole.type ?? '—',
+      quantity: pole.quantity ?? '0',
+      productInfo: pole.productInfo ?? '—',
+    }));
+  });
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="poles-overview card" style={{ marginBottom: '20px', padding: '16px' }}>
+      <h4 style={{ marginBottom: '12px' }}>📋 Podsumowanie słupów</h4>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+        <thead>
+          <tr>
+            <th style={tableHeaderStyle}>Zadanie</th>
+            <th style={tableHeaderStyle}>Typ szafy</th>
+            <th style={tableHeaderStyle}>Typ słupa</th>
+            <th style={tableHeaderStyle}>Ilość</th>
+            <th style={tableHeaderStyle}>Produkt</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              <td style={tableCellStyle}>{r.taskName}</td>
+              <td style={tableCellStyle}>{r.cabinetType}</td>
+              <td style={tableCellStyle}>{r.poleType}</td>
+              <td style={tableCellStyle}>{r.quantity}</td>
+              <td style={tableCellStyle}>{r.productInfo}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
 export const InfrastructureStep: React.FC<Props> = ({
   wizardData,
   onUpdateTaskInfrastructure,
@@ -199,6 +262,11 @@ export const InfrastructureStep: React.FC<Props> = ({
         Określ parametry fizycznej infrastruktury: szafy, słupy i elementy terenowe.
         Wszystkie pola są opcjonalne.
       </p>
+
+      <PolesOverviewTable
+        allTasks={generatedTasks}
+        infrastructure={wizardData.infrastructure ?? {}}
+      />
 
       <div className="infra-section">
         {infrastructureTasks.length === 0 ? (
