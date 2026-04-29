@@ -104,6 +104,12 @@ export const TasksMapTile: React.FC = () => {
       <div className="tile-header">
         <ModuleIcon name="mapa" emoji={MODULE_ICONS.mapa} size={24} alt="Mapa Zadań" />
         <span className="tile-title">Mapa Zadań</span>
+        <div className="tile-map-legend-inline">
+          <span className="legend-item-inline"><span className="legend-dot-inline" style={{ background: '#3b82f6' }}></span>Zadanie</span>
+          <span className="legend-item-inline"><span className="legend-dot-inline" style={{ background: '#ff6b35' }}></span>Zlecenie serwisowe</span>
+          <span className="legend-item-inline"><span className="legend-dot-inline" style={{ background: '#22c55e' }}></span>Obiekt</span>
+          <span className="legend-item-inline"><span className="legend-dot-inline legend-dot-pulse" style={{ background: '#ef4444' }}></span>Wysoki priorytet</span>
+        </div>
         {expanded && !loading && !error && (
           <span className="tile-count">{markers.length} lokalizacji</span>
         )}
@@ -119,92 +125,87 @@ export const TasksMapTile: React.FC = () => {
         </button>
       </div>
 
-      <div className="tile-map-container">
-        {!expanded && (
-          <div className="tile-map-collapsed" onClick={() => setExpanded(true)}>
-            <span>🗺️</span>
-            <span>Kliknij aby rozwinąć mapę</span>
-          </div>
-        )}
+      {expanded && (
+        <div className="tile-map-container">
+          {loading && (
+            <div className="tile-content tile-state">
+              <span>Ładowanie mapy…</span>
+            </div>
+          )}
 
-        {expanded && loading && (
-          <div className="tile-content tile-state">
-            <span>Ładowanie mapy…</span>
-          </div>
-        )}
-
-        {expanded && !loading && error && (
-          <div className="tile-content tile-state">
-            <p className="error-text">{error}</p>
-            <button
-              className="btn btn-secondary"
-              onClick={fetchTasks}
-            >
-              Spróbuj ponownie
-            </button>
-          </div>
-        )}
-
-        {expanded && !loading && !error && markers.length === 0 && (
-          <div className="tile-content tile-state no-tasks">
-            <span>Brak obiektów z lokalizacją GPS</span>
-          </div>
-        )}
-
-        {expanded && !loading && !error && markers.length > 0 && (
-          <MapContainer
-            className="leaflet-map"
-            center={POLAND_CENTER}
-            zoom={DEFAULT_ZOOM}
-            scrollWheelZoom={expanded}
-          >
-            <TileLayer
-              attribution={tileProvider.attribution}
-              url={tileProvider.url}
-              maxZoom={tileProvider.maxZoom}
-            />
-            <FitBounds markers={markers} />
-            {markers.map(marker => (
-              <Marker
-                key={`${marker.markerType}-${marker.id}`}
-                position={[marker.gpsLatitude, marker.gpsLongitude]}
-                icon={getMarkerIcon(marker)}
+          {!loading && error && (
+            <div className="tile-content tile-state">
+              <p className="error-text">{error}</p>
+              <button
+                className="btn btn-secondary"
+                onClick={fetchTasks}
               >
-                <Tooltip>{marker.title}</Tooltip>
-                <Popup>
-                  <div className="task-popup">
-                    <h4>{marker.title}</h4>
-                    <p className="task-number">{marker.number}</p>
-                    {marker.location && (
-                      <p className="task-location">📍 {marker.location}</p>
-                    )}
-                    {marker.assetType && (
-                      <p className="task-type">🔧 {marker.assetType}</p>
-                    )}
-                    {marker.contractNumber && (
-                      <p className="task-contract">📋 {marker.contractNumber}</p>
-                    )}
-                    <div className="popup-actions">
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => handleNavigate(marker)}
-                      >
-                        🧭 Nawiguj
-                      </button>
-                      <button
-                        className="btn btn-secondary"
-                        onClick={() => handleView(marker)}
-                      >
-                        🗺️ Zobacz
-                      </button>
+                Spróbuj ponownie
+              </button>
+            </div>
+          )}
+
+          {!loading && !error && markers.length === 0 && (
+            <div className="tile-content tile-state no-tasks">
+              <span>Brak obiektów z lokalizacją GPS</span>
+            </div>
+          )}
+
+          {!loading && !error && markers.length > 0 && (
+            <MapContainer
+              className="leaflet-map"
+              center={POLAND_CENTER}
+              zoom={DEFAULT_ZOOM}
+              scrollWheelZoom={expanded}
+            >
+              <TileLayer
+                attribution={tileProvider.attribution}
+                url={tileProvider.url}
+                maxZoom={tileProvider.maxZoom}
+              />
+              <FitBounds markers={markers} />
+              {markers.map(marker => (
+                <Marker
+                  key={`${marker.markerType}-${marker.id}`}
+                  position={[marker.gpsLatitude, marker.gpsLongitude]}
+                  icon={getMarkerIcon(marker)}
+                >
+                  <Tooltip>{marker.title}</Tooltip>
+                  <Popup>
+                    <div className="task-popup">
+                      <h4>{marker.title}</h4>
+                      <p className="task-number">{marker.number}</p>
+                      {marker.location && (
+                        <p className="task-location">📍 {marker.location}</p>
+                      )}
+                      {marker.assetType && (
+                        <p className="task-type">🔧 {marker.assetType}</p>
+                      )}
+                      {marker.contractNumber && (
+                        <p className="task-contract">📋 {marker.contractNumber}</p>
+                      )}
+                      <div className="popup-actions">
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => handleNavigate(marker)}
+                        >
+                          🧭 Nawiguj
+                        </button>
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => handleView(marker)}
+                        >
+                          🗺️ Zobacz
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
-        )}
-      </div>
+                  </Popup>
+                </Marker>
+              ))}
+            </MapContainer>
+          )}
+        </div>
+      )}
     </div>
   );
 };

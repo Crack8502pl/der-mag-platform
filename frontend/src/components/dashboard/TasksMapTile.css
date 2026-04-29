@@ -31,7 +31,6 @@
 .tile-title {
   font-weight: 600;
   color: var(--text-primary);
-  flex: 1;
 }
 
 .tile-count {
@@ -133,14 +132,43 @@
   padding: 6px 10px;
 }
 
-/* Collapsed placeholder */
-.tile-map-collapsed {
-  display: flex; flex-direction: column; align-items: center;
-  justify-content: center; height: 120px;
-  color: var(--text-secondary); font-size: 13px; gap: 8px;
-  background: var(--bg-secondary); cursor: pointer;
+/* Inline legend in tile-header */
+.tile-map-legend-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  flex: 1;
+  margin-left: 4px;
 }
-.tile-map-collapsed:hover { background: var(--bg-hover); }
+
+.legend-item-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.legend-dot-inline {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.legend-dot-pulse {
+  animation: legendPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes legendPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); transform: scale(1); }
+  50% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); transform: scale(1.3); }
+}
+
 
 /* Kolorowe markery mapy */
 .map-marker-container { background: transparent !important; border: none !important; }
