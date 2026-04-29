@@ -149,6 +149,7 @@ export interface AssetPermissions {
 
 export interface MapPermissions {
   read?: boolean;
+  viewAll?: boolean;
 }
 
 export interface RolePermissions {
@@ -227,6 +228,7 @@ export type PermissionAction =
   | 'receiveOrder'
   | 'reportMissing'
   | 'updatePool'
+  | 'viewAll'
   | 'access'; // Used for admin-only routes with module: 'all'
 
 

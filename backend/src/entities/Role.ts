@@ -208,6 +208,7 @@ export interface CarsPermissions {
 
 export interface MapPermissions {
   read?: boolean;
+  viewAll?: boolean;
 }
 
 /**
