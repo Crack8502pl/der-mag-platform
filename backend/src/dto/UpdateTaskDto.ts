@@ -2,6 +2,7 @@
 // DTO aktualizacji zadania
 
 import { IsString, IsNumber, IsOptional, IsDateString, MaxLength, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
 
 
 export class UpdateTaskDto {
@@ -46,19 +47,22 @@ export class UpdateTaskDto {
   @IsOptional()
   @Min(0, { message: 'Priorytet nie może być mniejszy niż 0' })
   @Max(10, { message: 'Priorytet nie może być większy niż 10' })
+  @Type(() => Number)
   priority?: number;
 
   @IsNumber({}, { message: 'Szerokość geograficzna musi być liczbą' })
   @IsOptional()
   @Min(-90, { message: 'Szerokość geograficzna musi być >= -90' })
   @Max(90, { message: 'Szerokość geograficzna musi być <= 90' })
-  gpsLatitude?: number;
+  @Type(() => Number)
+  gpsLatitude?: number | null;
 
   @IsNumber({}, { message: 'Długość geograficzna musi być liczbą' })
   @IsOptional()
   @Min(-180, { message: 'Długość geograficzna musi być >= -180' })
   @Max(180, { message: 'Długość geograficzna musi być <= 180' })
-  gpsLongitude?: number;
+  @Type(() => Number)
+  gpsLongitude?: number | null;
 
   @IsString({ message: 'Link Google Maps musi być ciągiem znaków' })
   @IsOptional()

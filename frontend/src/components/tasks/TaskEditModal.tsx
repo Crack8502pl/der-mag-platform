@@ -52,8 +52,8 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
     contractNumber: task.contractNumber || '',
     priority: task.priority ?? 5,
     googleMapsUrl: task.googleMapsUrl || '',
-    gpsLatitude: task.gpsLatitude ?? null,
-    gpsLongitude: task.gpsLongitude ?? null,
+    gpsLatitude: task.gpsLatitude != null ? Number(task.gpsLatitude) : null,
+    gpsLongitude: task.gpsLongitude != null ? Number(task.gpsLongitude) : null,
   });
 
   const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);
