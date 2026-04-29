@@ -11,7 +11,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
 import { getTileProvider } from '../../config/mapConfig';
-import { MapMarker, getMarkerIcon } from '../map/mapIcons';
+import { type MapMarker, getMarkerIcon } from '../map/mapIcons';
 import './TasksMapTile.css';
 
 // Fix dla ikon Leaflet (znany problem z bundlerami webpack/vite)
