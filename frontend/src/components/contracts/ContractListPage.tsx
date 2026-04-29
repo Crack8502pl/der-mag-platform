@@ -70,6 +70,26 @@ export const ContractListPage: React.FC = () => {
     loadManagers();
   }, []);
 
+  const isAnyModalOpen = !!(
+    showCreateModal ||
+    showImportModal ||
+    showWizardModal ||
+    editingContract ||
+    extendingContract ||
+    shippingContract
+  );
+
+  useEffect(() => {
+    if (isAnyModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isAnyModalOpen]);
+
   const loadManagers = async () => {
     try {
       const response = await api.get('/users/managers');
