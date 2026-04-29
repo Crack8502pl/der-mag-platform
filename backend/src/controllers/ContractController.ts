@@ -15,6 +15,8 @@ import { serverLogger } from '../utils/logger';
 import { NetworkAllocationService } from '../services/NetworkAllocationService';
 import { requiresCabinetCompletion } from '../config/taskTypes';
 import { SubsystemTask } from '../entities/SubsystemTask';
+import { BomSubsystemTemplateService } from '../services/BomSubsystemTemplateService';
+import { SubsystemType } from '../entities/BomSubsystemTemplate';
 
 interface FiberConnectionData {
   odleglosc?: number;
@@ -51,6 +53,46 @@ function isValidEmailFormat(email: string): boolean {
   const domain = email.slice(atIdx + 1);
   const dotIdx = domain.lastIndexOf('.');
   return dotIdx > 0 && dotIdx < domain.length - 1;
+}
+
+/**
+ * Auto-apply BOM template to a KOMPLETACJA_SZAF task if a matching template exists.
+ * Silently logs a warning when no template is found or application fails.
+ */
+async function autoApplyBomTemplate(
+  subsystemType: string,
+  cabinetType: string,
+  taskId: number,
+  taskNumber: string
+): Promise<void> {
+  if (!Object.values(SubsystemType).includes(subsystemType as SubsystemType)) {
+    serverLogger.warn(
+      `⚠️ Nieznany typ podsystemu "${subsystemType}" — pomijam auto-apply szablonu BOM dla KOMPLETACJA_SZAF (${taskNumber})`
+    );
+    return;
+  }
+  try {
+    const bomTemplate = await BomSubsystemTemplateService.getTemplate(
+      subsystemType as SubsystemType,
+      cabinetType
+    );
+    if (bomTemplate) {
+      // configParams is empty — all template items use FIXED quantities
+      await BomSubsystemTemplateService.applyTemplateToTask(taskId, bomTemplate.id, {});
+      serverLogger.info(
+        `✅ Zastosowano szablon BOM (${bomTemplate.templateName}) do zadania KOMPLETACJA_SZAF (${taskNumber})`
+      );
+    } else {
+      serverLogger.warn(
+        `⚠️ Brak szablonu BOM dla ${subsystemType} / ${cabinetType} — zadanie KOMPLETACJA_SZAF (${taskNumber}) utworzono bez materiałów`
+      );
+    }
+  } catch (bomError) {
+    serverLogger.warn(
+      `⚠️ Nie udało się zastosować szablonu BOM do KOMPLETACJA_SZAF (${taskNumber}):`,
+      { error: bomError instanceof Error ? bomError.message : String(bomError) }
+    );
+  }
 }
 
 export class ContractController {
@@ -673,6 +715,9 @@ export class ContractController {
                       });
                       await taskRepository.save(cabinetMainTask);
 
+                      // Auto-apply BOM template for the KOMPLETACJA_SZAF task
+                      await autoApplyBomTemplate(type, taskInfra.cabinetType!, cabinetMainTask.id, cabinetSubsystemTask.taskNumber);
+
                       serverLogger.info(
                         `✅ Automatycznie utworzono zadanie KOMPLETACJA_SZAF (${cabinetSubsystemTask.taskNumber}) dla ${subsystemTask.taskNumber} (${taskData.type})`
                       );
@@ -998,6 +1043,8 @@ export class ContractController {
                         },
                       });
                       await taskRepository.save(cabinetMainTask);
+                      // Auto-apply BOM template for the KOMPLETACJA_SZAF task
+                      await autoApplyBomTemplate(type, taskInfra.cabinetType!, cabinetMainTask.id, cabinetSubsystemTask.taskNumber);
                       createdTasks.push(cabinetSubsystemTask);
                       createdMainTasks.push(cabinetMainTask);
                       const subsystemTaskRepo = AppDataSource.getRepository(SubsystemTask);

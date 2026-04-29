@@ -486,8 +486,8 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
 
   // Define subsystem structure
   const subsystemStructure = [
-    { type: 'SMOKIP_A', icon: '🔵', variants: ['PRZEJAZD_KAT_A', 'PRZEJAZD_KAT_E', 'PRZEJAZD_KAT_F', 'SKP', 'NASTAWNIA', 'LCS', 'CUID'] },
-    { type: 'SMOKIP_B', icon: '🟢', variants: ['PRZEJAZD_KAT_B', 'PRZEJAZD_KAT_C', 'PRZEJAZD_KAT_E', 'PRZEJAZD_KAT_F', 'NASTAWNIA', 'LCS', 'CUID'] },
+    { type: 'SMOKIP_A', icon: '🔵', variants: ['SZAFA_TERENOWA', 'SZAFA_WEWNETRZNA', 'KONTENER', '42U', '24U', 'PRZEJAZD_KAT_A', 'PRZEJAZD_KAT_E', 'PRZEJAZD_KAT_F', 'SKP', 'NASTAWNIA', 'LCS', 'CUID', '_GENERAL'] },
+    { type: 'SMOKIP_B', icon: '🟢', variants: ['SZAFA_TERENOWA', 'SZAFA_WEWNETRZNA', 'KONTENER', '42U', '24U', 'PRZEJAZD_KAT_B', 'PRZEJAZD_KAT_C', 'PRZEJAZD_KAT_E', 'PRZEJAZD_KAT_F', 'NASTAWNIA', 'LCS', 'CUID', '_GENERAL'] },
     { type: 'SKD', icon: '🔐', variants: ['_GENERAL'] },
     { type: 'SSWIN', icon: '🏠', variants: ['_GENERAL'] },
     { type: 'CCTV', icon: '📹', variants: ['_GENERAL'] },
