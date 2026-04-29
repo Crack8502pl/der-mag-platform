@@ -50,7 +50,7 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
     location: task.location || '',
     client: task.client || '',
     contractNumber: task.contractNumber || '',
-    priority: task.priority || 0,
+    priority: task.priority ?? 5,
     googleMapsUrl: task.googleMapsUrl || '',
     gpsLatitude: task.gpsLatitude ?? null,
     gpsLongitude: task.gpsLongitude ?? null,
@@ -276,12 +276,17 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
                 value={formData.priority}
                 onChange={(e) => handleChange('priority', Number(e.target.value))}
               >
-                <option value={0}>🔶🔶 Bardzo niski</option>
-                <option value={1}>🔶 Niski</option>
-                <option value={2}>Normalny</option>
-                <option value={3}>⭐️ Wysoki</option>
-                <option value={4}>⭐️⭐️ Bardzo Wysoki</option>
-                <option value={5}>🌟🌟🌟 Krytyczny</option>
+                <option value={0}>⚪ Brak znaczenia</option>
+                <option value={1}>💤 Znikomy</option>
+                <option value={2}>⬇️ Bardzo niski</option>
+                <option value={3}>🕓 Niski</option>
+                <option value={4}>📎 Lekki</option>
+                <option value={5}>⚖️ Normalny</option>
+                <option value={6}>📌 Podwyższony</option>
+                <option value={7}>⚠️ Wysoki</option>
+                <option value={8}>🔥 Bardzo wysoki</option>
+                <option value={9}>🚨 Krytyczny</option>
+                <option value={10}>💣 Natychmiastowy</option>
               </select>
             </div>
           </div>
