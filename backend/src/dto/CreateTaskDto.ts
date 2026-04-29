@@ -60,7 +60,7 @@ export class CreateTaskDto {
   @IsNumber({}, { message: 'Priorytet musi być liczbą' })
   @IsOptional()
   @Min(0, { message: 'Priorytet nie może być mniejszy niż 0' })
-  @Max(5, { message: 'Priorytet nie może być większy niż 5' })
+  @Max(10, { message: 'Priorytet nie może być większy niż 10' })
   priority?: number;
 
   @IsNumber({}, { message: 'Szerokość geograficzna musi być liczbą' })

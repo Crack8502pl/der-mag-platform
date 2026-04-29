@@ -3,28 +3,22 @@
 
 /**
  * Get display string for task priority with appropriate icons
- * @param priority Priority level (0-5)
+ * @param priority Priority level (0-10)
  * @returns Formatted priority display string
  */
 export const getPriorityDisplay = (priority: number | undefined): string => {
-  if (priority === undefined) {
-    return 'Normalny';
-  }
-
   switch (priority) {
-    case 0:
-      return '🔶🔶 Bardzo niski';
-    case 1:
-      return '🔶 Niski';
-    case 2:
-      return 'Normalny';
-    case 3:
-      return '⭐️ Wysoki';
-    case 4:
-      return '⭐️⭐️ Bardzo Wysoki';
-    case 5:
-      return '🌟🌟🌟 Krytyczny';
-    default:
-      return `⭐ ${priority}`;
+    case 0:  return '⚪ Brak znaczenia';
+    case 1:  return '💤 Znikomy';
+    case 2:  return '⬇️ Bardzo niski';
+    case 3:  return '🕓 Niski';
+    case 4:  return '📎 Lekki';
+    case 5:  return '⚖️ Normalny';
+    case 6:  return '📌 Podwyższony';
+    case 7:  return '⚠️ Wysoki';
+    case 8:  return '🔥 Bardzo wysoki';
+    case 9:  return '🚨 Krytyczny';
+    case 10: return '💣 Natychmiastowy';
+    default: return priority !== undefined ? `⚖️ ${priority}` : '⚖️ Normalny';
   }
 };
