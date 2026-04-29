@@ -341,6 +341,11 @@ export class RoleController {
           name: 'assets',
           displayName: 'Obiekty',
           actions: ['read', 'create', 'update', 'delete']
+        },
+        {
+          name: 'map',
+          displayName: 'Mapa',
+          actions: ['read']
         }
       ];
 
