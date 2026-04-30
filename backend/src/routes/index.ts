@@ -61,6 +61,8 @@ import assetRoutes from './asset.routes';
 import subsystemTaskRoutes from './subsystem-task.routes';
 // Task relationship routes
 import taskRelationshipRoutes from './task-relationship.routes';
+// Network Topology routes
+import networkTopologyRoutes from './networkTopology.routes';
 // Cars routes
 import carRoutes from './car.routes';
 // Health/connection monitoring routes
@@ -153,6 +155,9 @@ router.use('/subsystem-tasks', subsystemTaskRoutes);
 
 // Task relationship routes
 router.use('/task-relationships', taskRelationshipRoutes);
+
+// Network Topology routes
+router.use('/topologies', networkTopologyRoutes);
 
 // Health/connection monitoring routes (no auth required - lightweight endpoints)
 router.use('/', healthRoutes);
