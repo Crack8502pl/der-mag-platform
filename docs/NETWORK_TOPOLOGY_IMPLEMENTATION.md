@@ -19,14 +19,15 @@
 7. [Frontend — Komponenty edytora](#7-frontend--komponenty-edytora)
 8. [Frontend — Utilities](#8-frontend--utilities)
 9. [Frontend — Modals i Sidebar](#9-frontend--modals-i-sidebar)
-10. [Integracja z wizardem kontraktu](#10-integracja-z-wizardem-kontraktu)
-11. [Network Page — zakładka Topologia](#11-network-page--zakładka-topologia)
-12. [UI/UX Guidelines](#12-uiux-guidelines)
-13. [API Endpoints — Specyfikacja](#13-api-endpoints--specyfikacja)
-14. [Przykłady użycia (Code Snippets)](#14-przykłady-użycia-code-snippets)
-15. [Plan wdrożenia (PR #1–#11)](#15-plan-wdrożenia-pr-1-11)
-16. [FAQ — Najczęstsze pytania](#16-faq--najczęstsze-pytania)
-17. [Roadmap v2 — Planowane rozszerzenia](#17-roadmap-v2--planowane-rozszerzenia)
+10. [Integracja z wizardem kontraktu (nowy kontrakt)](#10-integracja-z-wizardem-kontraktu)
+11. [Integracja z Extend Contract Wizard (rozszerzanie kontraktu)](#11-integracja-z-extend-contract-wizard-rozszerzanie-kontraktu)
+12. [Network Page — zakładka Topologia](#12-network-page--zakładka-topologia)
+13. [UI/UX Guidelines](#13-uiux-guidelines)
+14. [API Endpoints — Specyfikacja](#14-api-endpoints--specyfikacja)
+15. [Przykłady użycia (Code Snippets)](#15-przykłady-użycia-code-snippets)
+16. [Plan wdrożenia (PR #1–#11)](#16-plan-wdrożenia-pr-1-11)
+17. [FAQ — Najczęstsze pytania](#17-faq--najczęstsze-pytania)
+18. [Roadmap v2 — Planowane rozszerzenia](#18-roadmap-v2--planowane-rozszerzenia)
 
 ---
 
@@ -1087,7 +1088,7 @@ export { default as TopologyHistoryModal } from './TopologyHistoryModal';
 
 ---
 
-## 10. Integracja z wizardem kontraktu
+## 10. Integracja z wizardem kontraktu (nowy kontrakt)
 
 ### 10.1 NetworkTopologyStep — Krok 6 wizarda
 
@@ -1255,9 +1256,290 @@ const handleBack = () => {
 
 ---
 
-## 11. Network Page — zakładka Topologia
+## 11. Integracja z Extend Contract Wizard (rozszerzanie kontraktu)
 
-### 11.1 NetworkPage
+### 11.1 Przegląd ExtendWizardModal
+
+`ExtendWizardModal` pozwala rozszerzyć **istniejący** kontrakt (w statusie `CREATED` lub `IN_PROGRESS`) o:
+- Nowe podsystemy (w tym SMOKIP_A / SMOKIP_B)
+- Nowe zadania w istniejących podsystemach
+
+Plik: `frontend/src/components/contracts/wizard/ExtendWizardModal.tsx`
+
+### 11.2 Typy danych — extend-wizard.types.ts
+
+Plik: `frontend/src/components/contracts/wizard/types/extend-wizard.types.ts`
+
+```typescript
+import type {
+  SubsystemWizardData, TaskDetail,
+  WizardTaskRelationships, InfrastructureData, LogisticsData
+} from './wizard.types';
+import type { SubsystemType } from '../../../../config/subsystemWizardConfig';
+
+/** Istniejący podsystem kontraktu (wczytany z API) */
+export interface ExistingSubsystem {
+  id: number;                       // ID podsystemu w bazie
+  type: SubsystemType;              // np. 'SMOKIP_A', 'SMOKIP_B'
+  taskCount: number;                // liczba istniejących zadań
+  existingTasks: TaskDetail[];      // aktualne zadania (read-only)
+  newTasks: TaskDetail[];           // nowe zadania do dodania
+  addingNewTasks: boolean;          // czy tryb dodawania jest aktywny
+  ipPool?: string;                  // opcjonalna pula IP
+}
+
+/** Globalny stan wizard rozszerzania kontraktu */
+export interface ExtendWizardData {
+  contractId: number;
+  contractNumber: string;
+  customName: string;
+  orderDate: string;
+  projectManagerId: string;
+  managerCode: string;
+  liniaKolejowa?: string;
+  existingSubsystems: ExistingSubsystem[];  // podsystemy już w kontrakcie
+  newSubsystems: SubsystemWizardData[];      // zupełnie nowe podsystemy
+  taskRelationships?: WizardTaskRelationships;
+  infrastructure?: InfrastructureData;
+  logistics?: Partial<LogisticsData>;
+}
+
+/** Kroki nawigacji extend wizarda */
+export interface ExtendStepInfo {
+  type:
+    | 'review'             // Przegląd kontraktu
+    | 'subsystems-overview'// Lista podsystemów
+    | 'config'             // Konfiguracja nowego podsystemu
+    | 'details'            // Szczegóły zadań nowego podsystemu (SMOKIP)
+    | 'add-tasks'          // Dodawanie zadań do istniejącego podsystemu
+    | 'relationships'      // Relacje LCS–NASTAWNIA (opcjonalny)
+    | 'infrastructure'     // Infrastruktura
+    | 'logistics'          // Logistyka
+    | 'preview'            // Podgląd przed wysłaniem
+    | 'success';           // Potwierdzenie sukcesu
+  subsystemIndex?: number;
+  isNew?: boolean;         // true = nowy podsystem, false = istniejący
+}
+```
+
+> ⚠️ **Uwaga:** Typ `ExtendStepInfo.type` **nie zawiera** kroku `'topology'` — integracja topologii z extend wizard jest planowana w Roadmap v2 (patrz sekcja [18](#18-roadmap-v2--planowane-rozszerzenia)).
+
+### 11.3 Sekwencja kroków extend wizarda
+
+```
+buildStepSequence() → ExtendStepInfo[]
+
+[review]
+  └─► [subsystems-overview]
+        ├─► [add-tasks] × N  (dla każdego istniejącego sub z addingNewTasks=true)
+        ├─► [config] → [details?]  × M  (dla każdego nowego sub; details tylko dla SMOKIP)
+        ├─► [relationships]?  (tylko gdy SMOKIP ma LCS/NASTAWNIA)
+        └─► [infrastructure] → [logistics] → [preview] → [success]
+```
+
+Kluczowy fragment kodu z `ExtendWizardModal.tsx`:
+
+```typescript
+const buildStepSequence = (): ExtendStepInfo[] => {
+  const steps: ExtendStepInfo[] = [
+    { type: 'review' },
+    { type: 'subsystems-overview' },
+  ];
+
+  // Kroki dodawania zadań do istniejących podsystemów
+  extendData.existingSubsystems
+    .filter((s) => s.addingNewTasks)
+    .forEach((_, idx) => {
+      steps.push({ type: 'add-tasks', subsystemIndex: idx, isNew: false });
+    });
+
+  // Konfiguracja + opcjonalnie szczegóły dla nowych podsystemów
+  extendData.newSubsystems.forEach((sub, idx) => {
+    steps.push({ type: 'config', subsystemIndex: idx, isNew: true });
+    if (sub.type === 'SMOKIP_A' || sub.type === 'SMOKIP_B') {
+      steps.push({ type: 'details', subsystemIndex: idx, isNew: true });
+    }
+  });
+
+  // Krok relationships — tylko gdy SMOKIP ma LCS lub NASTAWNIA
+  const hasRelationships =
+    extendData.existingSubsystems.some(
+      (s) =>
+        (s.type === 'SMOKIP_A' || s.type === 'SMOKIP_B') &&
+        (s.existingTasks.some((t) => t.taskType === 'LCS' || t.taskType === 'NASTAWNIA') ||
+          (s.addingNewTasks &&
+            s.newTasks.some((t) => t.taskType === 'LCS' || t.taskType === 'NASTAWNIA')))
+    ) ||
+    extendData.newSubsystems.some(
+      (s) =>
+        (s.type === 'SMOKIP_A' || s.type === 'SMOKIP_B') &&
+        s.taskDetails?.some((t) => t.taskType === 'LCS' || t.taskType === 'NASTAWNIA')
+    );
+
+  if (hasRelationships) steps.push({ type: 'relationships' });
+
+  steps.push({ type: 'infrastructure' });
+  steps.push({ type: 'logistics' });
+  steps.push({ type: 'preview' });
+  steps.push({ type: 'success' });
+
+  return steps;
+};
+```
+
+### 11.4 Różnice między ContractWizardModal a ExtendWizardModal
+
+| Aspekt | ContractWizardModal (nowy kontrakt) | ExtendWizardModal (rozszerzanie) |
+|--------|-------------------------------------|----------------------------------|
+| Typ danych | `WizardData` | `ExtendWizardData` |
+| Krok topologii | ✅ `'topology'` (opcjonalny, SMOKIP) | ❌ Brak (planowany w v2) |
+| Krok details SMOKIP | ✅ Dla nowych podsystemów | ✅ Dla nowych podsystemów (`isNew: true`) |
+| Istniejące podsystemy | Nie dotyczy | `ExistingSubsystem[]` (wczytane z API) |
+| Nowe podsystemy | `SubsystemWizardData[]` | `SubsystemWizardData[]` |
+| Przycisk "Pomiń ▷" | ✅ Na kroku topology | Nie dotyczy (brak kroku topology) |
+| State hook | `useWizardState` | `useExtendWizardState` |
+| Submit endpoint | `POST /api/contracts` | `POST /api/contracts/:id/extend` |
+
+### 11.5 Zarządzanie topologią przy rozszerzaniu kontraktu — podejście bieżące
+
+Ponieważ `ExtendWizardModal` **nie zawiera kroku topologii**, zarządzanie topologiami dla rozszerzanych kontraktów odbywa się poza wizardem — przez **NetworkPage** (zakładka "Topologia"):
+
+```
+Użytkownik rozszerza kontrakt (ExtendWizardModal)
+  └─► Kontrakt zapisany z nowymi podsystemami / zadaniami
+        └─► Użytkownik przechodzi do NetworkPage
+              └─► Wybiera kontrakt → zakładka "Topologia"
+                    └─► NetworkTopologyEditor (pełny edytor)
+                          ├─► Tworzy/edytuje topologię dla istniejących SMOKIP
+                          └─► Tworzy topologię dla nowych SMOKIP
+```
+
+Przykład nawigacji:
+```tsx
+// W ContractDetailPage lub podobnym:
+<button onClick={() => navigate(`/network?contractId=${contractId}`)}>
+  Edytuj topologię sieci
+</button>
+```
+
+### 11.6 Planowane zmiany — integracja topologii z ExtendWizardModal (Roadmap v2)
+
+Aby w pełni zintegrować krok topologii z `ExtendWizardModal`, wymagane są następujące zmiany:
+
+#### 11.6.1 Rozszerzenie `extend-wizard.types.ts`
+
+```typescript
+import type { TopologyNode, TopologyConnection } from '../../../../types/network-topology.types';
+
+export interface ExtendWizardData {
+  // ... istniejące pola ...
+
+  /** Dane topologii per podsystem (index istniejącego lub nowego) */
+  networkTopologies?: {
+    existing: Record<number, { nodes: TopologyNode[]; connections: TopologyConnection[] }>;
+    new: Record<number, { nodes: TopologyNode[]; connections: TopologyConnection[] }>;
+  };
+}
+```
+
+#### 11.6.2 Rozszerzenie `ExtendStepInfo`
+
+```typescript
+export interface ExtendStepInfo {
+  type:
+    | 'review'
+    | 'subsystems-overview'
+    | 'config'
+    | 'details'
+    | 'add-tasks'
+    | 'relationships'
+    | 'topology'        // ← NOWY krok
+    | 'infrastructure'
+    | 'logistics'
+    | 'preview'
+    | 'success';
+  subsystemIndex?: number;
+  isNew?: boolean;
+}
+```
+
+#### 11.6.3 Modyfikacja `buildStepSequence` w `ExtendWizardModal`
+
+```typescript
+// Po istniejących krokach config/details, dodaj topology dla SMOKIP:
+extendData.newSubsystems.forEach((sub, idx) => {
+  steps.push({ type: 'config', subsystemIndex: idx, isNew: true });
+  if (sub.type === 'SMOKIP_A' || sub.type === 'SMOKIP_B') {
+    steps.push({ type: 'details', subsystemIndex: idx, isNew: true });
+    steps.push({ type: 'topology', subsystemIndex: idx, isNew: true }); // ← NOWY
+  }
+});
+
+// Dla istniejących SMOKIP z nowymi zadaniami:
+extendData.existingSubsystems
+  .filter((s) => s.addingNewTasks && (s.type === 'SMOKIP_A' || s.type === 'SMOKIP_B'))
+  .forEach((_, idx) => {
+    steps.push({ type: 'topology', subsystemIndex: idx, isNew: false }); // ← NOWY
+  });
+```
+
+#### 11.6.4 Renderowanie kroku topology w `ExtendWizardModal`
+
+```tsx
+{currentStepInfo.type === 'topology' && currentStepInfo.subsystemIndex !== undefined && (
+  <NetworkTopologyStep
+    wizardData={extendData as unknown as WizardData}
+    subsystemIndex={currentStepInfo.subsystemIndex}
+    onUpdate={(nodes, connections) => {
+      const key = currentStepInfo.isNew ? 'new' : 'existing';
+      updateExtendData({
+        networkTopologies: {
+          ...extendData.networkTopologies,
+          [key]: {
+            ...(extendData.networkTopologies?.[key] ?? {}),
+            [currentStepInfo.subsystemIndex!]: { nodes, connections },
+          },
+        },
+      });
+    }}
+  />
+)}
+```
+
+### 11.7 Diagram przepływu — porównanie nowy vs rozszerzanie
+
+```
+╔══════════════════════════════════════════════════════════════════════╗
+║              NOWY KONTRAKT (ContractWizardModal)                     ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  details → [relationships?] → [topology? SMOKIP] → infrastructure   ║
+║                                      ↑                               ║
+║                                 Krok 6 (opcjonalny)                  ║
+║                                 Przycisk "Pomiń ▷"                   ║
+╠══════════════════════════════════════════════════════════════════════╣
+║           ROZSZERZANIE KONTRAKTU (ExtendWizardModal)                 ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  review → subsystems-overview → [add-tasks?] → [config+details?]    ║
+║       → [relationships?] → infrastructure → logistics → preview      ║
+║                                                                      ║
+║  ⚠️  Brak kroku topology — zarządzanie przez NetworkPage             ║
+╚══════════════════════════════════════════════════════════════════════╝
+```
+
+### 11.8 Aktualne ograniczenia i zalecenia
+
+| Ograniczenie | Zalecany workaround |
+|---|---|
+| Brak kroku topology w extend wizard | Użyj NetworkPage po zakończeniu extend |
+| Brak automatycznego przeniesienia topologii przy extend | Topologie nie są kopiowane — edytuj ręcznie przez NetworkPage |
+| `ExtendWizardData` nie ma pola `networkTopologies` | W Roadmap v2 — dodanie pola do interfejsu |
+| Nowe SMOKIP z extend nie mają topologii | Tworzenie przez NetworkPage po merge extend |
+
+---
+
+## 12. Network Page — zakładka Topologia
+
+### 12.1 NetworkPage
 
 Plik: `frontend/src/components/modules/NetworkPage.tsx`
 
@@ -1287,9 +1569,9 @@ const NetworkPage: React.FC = () => {
 
 ---
 
-## 12. UI/UX Guidelines
+## 13. UI/UX Guidelines
 
-### 12.1 Paleta kolorów
+### 13.1 Paleta kolorów
 
 | Element | Kolor | Hex |
 |---------|-------|-----|
@@ -1302,7 +1584,7 @@ const NetworkPage: React.FC = () => {
 | Węzeł zaznaczony | Biała ramka | `#ffffff` |
 | Węzeł pending-source | Żółta ramka | `#ffd700` |
 
-### 12.2 Rozmiary węzłów
+### 13.2 Rozmiary węzłów
 
 ```css
 .topology-node {
@@ -1320,7 +1602,7 @@ const NetworkPage: React.FC = () => {
 }
 ```
 
-### 12.3 Tryby kursora
+### 13.3 Tryby kursora
 
 | Stan | Kursor |
 |------|--------|
@@ -1329,7 +1611,7 @@ const NetworkPage: React.FC = () => {
 | Tryb łączenia | `crosshair` |
 | Hover na węźle | `pointer` |
 
-### 12.4 Skróty klawiszowe (zalecane w Roadmap v2)
+### 13.4 Skróty klawiszowe (zalecane w Roadmap v2)
 
 | Klawisz | Akcja |
 |---------|-------|
@@ -1338,15 +1620,15 @@ const NetworkPage: React.FC = () => {
 | `Delete` | Usuń zaznaczony węzeł |
 | `Escape` | Anuluj tryb łączenia |
 
-### 12.5 Responsywność
+### 13.5 Responsywność
 
 Canvas edytora jest **scrollowalny**, nie skaluje się — jest przeznaczony dla ekranów desktop (min. 1280px szerokości). Na mniejszych ekranach pojawia się ostrzeżenie o zalecanej rozdzielczości.
 
 ---
 
-## 13. API Endpoints — Specyfikacja
+## 14. API Endpoints — Specyfikacja
 
-### 13.1 Tabela endpointów
+### 14.1 Tabela endpointów
 
 | Metoda | URL | Opis | Body | Response |
 |--------|-----|------|------|----------|
@@ -1357,7 +1639,7 @@ Canvas edytora jest **scrollowalny**, nie skaluje się — jest przeznaczony dla
 | `PUT` | `/api/network-topology/:id` | Zaktualizuj (nowa wersja) | `UpdateNetworkTopologyDto` | `NetworkTopology` |
 | `DELETE` | `/api/network-topology/:id` | Soft delete | — | `{ success: true }` |
 
-### 13.2 Przykładowe requesty / responses
+### 14.2 Przykładowe requesty / responses
 
 **POST /api/network-topology:**
 ```json
@@ -1440,7 +1722,7 @@ Canvas edytora jest **scrollowalny**, nie skaluje się — jest przeznaczony dla
 ]
 ```
 
-### 13.3 Kody błędów
+### 14.3 Kody błędów
 
 | Kod HTTP | Sytuacja |
 |----------|---------|
@@ -1451,9 +1733,9 @@ Canvas edytora jest **scrollowalny**, nie skaluje się — jest przeznaczony dla
 
 ---
 
-## 14. Przykłady użycia (Code Snippets)
+## 15. Przykłady użycia (Code Snippets)
 
-### 14.1 Tworzenie topologii z kodu
+### 15.1 Tworzenie topologii z kodu
 
 ```typescript
 import { networkTopologyService } from '../services/networkTopology.service';
@@ -1485,7 +1767,7 @@ const saved = await networkTopologyService.create({
 console.log(`Utworzono topologię v${saved.version} (id: ${saved.id})`);
 ```
 
-### 14.2 Pobieranie i wyświetlanie topologii
+### 15.2 Pobieranie i wyświetlanie topologii
 
 ```typescript
 import { networkTopologyService } from '../services/networkTopology.service';
@@ -1505,7 +1787,7 @@ if (!topology) {
 }
 ```
 
-### 14.3 Aktualizacja topologii (nowa wersja)
+### 15.3 Aktualizacja topologii (nowa wersja)
 
 ```typescript
 // Aktualizacja (backend auto-incrementuje version)
@@ -1518,7 +1800,7 @@ const updated = await networkTopologyService.update(topology.id, {
 console.log(`Zapisano jako wersja ${updated.version}`);
 ```
 
-### 14.4 Historia wersji i przywracanie
+### 15.4 Historia wersji i przywracanie
 
 ```typescript
 // Pobierz historię
@@ -1540,7 +1822,7 @@ const restored = await networkTopologyService.create({
 console.log(`Topologia przywrócona jako wersja ${restored.version}`);
 ```
 
-### 14.5 Walidacja przed zapisem
+### 15.5 Walidacja przed zapisem
 
 ```typescript
 import { validateTopology } from '../components/network-topology/utils/topologyValidator';
@@ -1556,7 +1838,7 @@ if (!result.isValid) {
 }
 ```
 
-### 14.6 Użycie w komponencie React
+### 15.6 Użycie w komponencie React
 
 ```tsx
 import React, { useState, useEffect } from 'react';
@@ -1599,9 +1881,9 @@ const TopologyPage: React.FC<{ contractId: number; subsystemIndex: number }> = (
 
 ---
 
-## 15. Plan wdrożenia (PR #1–#11)
+## 16. Plan wdrożenia (PR #1–#11)
 
-### 15.1 Przegląd PR-ów
+### 16.1 Przegląd PR-ów
 
 | PR | Branch | Opis | Linii | Status |
 |----|--------|------|-------|--------|
@@ -1617,7 +1899,7 @@ const TopologyPage: React.FC<{ contractId: number; subsystemIndex: number }> = (
 | #10 | `remove-fiber-module` | Usunięcie starego FiberSchemaModal | ~-200 | ✅ |
 | #11 | `topology-documentation` | Ta dokumentacja + aktualizacja README | ~810 | ✅ |
 
-### 15.2 Diagram zależności PR-ów
+### 16.2 Diagram zależności PR-ów
 
 ```
 PR #1 (DB)
@@ -1633,7 +1915,7 @@ PR #1 (DB)
                     └─────────────────────────────────────────────────────────► PR #11 (Docs)
 ```
 
-### 15.3 Strategia wdrożenia
+### 16.3 Strategia wdrożenia
 
 1. **PR #1–#4** — Infrastruktura (backend + typy + utils): bez UI, zero ryzyka regresji
 2. **PR #5–#7** — Komponenty izolowane: każdy PR zawiera samodzielne, testowalne komponenty
@@ -1644,7 +1926,7 @@ PR #1 (DB)
 
 ---
 
-## 16. FAQ — Najczęstsze pytania
+## 17. FAQ — Najczęstsze pytania
 
 ### Q: Dlaczego nie użyto React Flow ani żadnej biblioteki do rysowania grafów?
 
@@ -1722,9 +2004,9 @@ PR #1 (DB)
 
 ---
 
-## 17. Roadmap v2 — Planowane rozszerzenia
+## 18. Roadmap v2 — Planowane rozszerzenia
 
-### 17.1 Funkcjonalności priorytetowe
+### 18.1 Funkcjonalności priorytetowe
 
 | Feature | Opis | Priorytet |
 |---------|------|-----------|
@@ -1739,7 +2021,7 @@ PR #1 (DB)
 | 💬 Komentarze | Adnotacje na połączeniach i węzłach | 🟢 Niski |
 | 📱 Responsive | Tryb read-only na urządzeniach mobilnych | 🟢 Niski |
 
-### 17.2 Ulepszenia techniczne
+### 18.2 Ulepszenia techniczne
 
 ```
 v2.0 — Zaplanowane:
@@ -1756,7 +2038,7 @@ v2.1 — Opcjonalne:
 └─ Integration z GIS / mapami (Leaflet.js — nakładka na mapę kolejową)
 ```
 
-### 17.3 Planowane API v2
+### 18.3 Planowane API v2
 
 ```
 POST   /api/network-topology/:id/clone          — Klonuj topologię
