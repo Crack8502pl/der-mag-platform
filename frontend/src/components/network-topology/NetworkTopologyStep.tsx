@@ -82,7 +82,11 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
       },
     }));
     setNodes(initialNodes);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // Intentionally runs only on mount: we read initial wizard state once and let
+    // the component own its local state from that point on. Re-running on every
+    // wizardData change would reset in-progress edits the user hasn't saved yet.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Save topology to wizardData (no API calls)
   const handleSave = useCallback(() => {
@@ -189,8 +193,12 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
         return;
       }
       // Open ConnectionModal with source and target
-      const sourceNode = nodes.find(n => n.id === connectingSource)!;
-      const targetNode = nodes.find(n => n.id === nodeId)!;
+      const sourceNode = nodes.find(n => n.id === connectingSource);
+      const targetNode = nodes.find(n => n.id === nodeId);
+      if (!sourceNode || !targetNode) {
+        setConnectingSource(null);
+        return;
+      }
       setPendingConnection({ source: sourceNode, target: targetNode });
       setShowConnectionModal(true);
       setConnectingSource(null);
