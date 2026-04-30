@@ -75,6 +75,11 @@ class NetworkTopologyService {
   async delete(contractId: number, subsystemIndex: number): Promise<void> {
     await api.delete(`/contracts/${contractId}/subsystems/${subsystemIndex}/topology`);
   }
+
+  /** Soft-delete a topology by its UUID */
+  async softDelete(id: string): Promise<void> {
+    await api.delete(`/topologies/${id}`);
+  }
 }
 
 export default new NetworkTopologyService();

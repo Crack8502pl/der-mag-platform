@@ -15,4 +15,7 @@ router.post('/', networkTopologyController.create);
 // GET    /api/topologies/:id             → getById
 router.get('/:id', networkTopologyController.getById);
 
+// DELETE /api/topologies/:id             → softDelete
+router.delete('/:id', networkTopologyController.softDelete);
+
 export default router;
