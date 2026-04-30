@@ -1,5 +1,6 @@
 import type { SubsystemWizardData, TaskDetail, WizardTaskRelationships, InfrastructureData, LogisticsData } from './wizard.types';
 import type { SubsystemType } from '../../../../config/subsystemWizardConfig';
+import type { TopologyNode, TopologyConnection } from '../../../../types/network-topology.types';
 
 export interface ExistingSubsystem {
   id: number;
@@ -24,10 +25,11 @@ export interface ExtendWizardData {
   taskRelationships?: WizardTaskRelationships;
   infrastructure?: InfrastructureData;
   logistics?: Partial<LogisticsData>;
+  networkTopologies?: Record<number, { nodes: TopologyNode[]; connections: TopologyConnection[] }>;
 }
 
 export interface ExtendStepInfo {
-  type: 'review' | 'subsystems-overview' | 'config' | 'details' | 'add-tasks' | 'relationships' | 'infrastructure' | 'logistics' | 'preview' | 'success';
+  type: 'review' | 'subsystems-overview' | 'config' | 'details' | 'add-tasks' | 'relationships' | 'topology' | 'infrastructure' | 'logistics' | 'preview' | 'success';
   subsystemIndex?: number;
   isNew?: boolean;
 }
