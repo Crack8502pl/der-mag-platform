@@ -220,7 +220,7 @@ export const UserListPage: React.FC = () => {
     <div className="module-page">
       <BackButton to="/dashboard" />
       
-      <div className="module-header">
+      <div className="page-header">
         <div className="module-icon">
           <ModuleIcon name="users" emoji={MODULE_ICONS.users} size={36} />
         </div>

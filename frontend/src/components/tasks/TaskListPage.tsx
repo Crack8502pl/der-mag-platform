@@ -159,7 +159,7 @@ export const TaskListPage: React.FC = () => {
     <div className="module-page">
       <BackButton to="/dashboard" />
       
-      <div className="module-header">
+      <div className="page-header">
         <div className="module-icon">
           <ModuleIcon name="tasks" emoji={MODULE_ICONS.tasks} size={36} />
         </div>

@@ -70,7 +70,7 @@ export const SettingsPage: React.FC = () => {
     <div className="module-page">
       <BackButton to="/dashboard" />
 
-      <div className="module-header">
+      <div className="page-header">
         <div className="module-icon">
           <ModuleIcon name="settings" emoji={MODULE_ICONS.settings} size={36} />
         </div>
