@@ -4,12 +4,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import networkTopologyService from '../../../services/networkTopology.service';
 import type {
-  NetworkTopology,
+  NetworkTopologyData,
   TopologyNode,
   TopologyConnection,
   ConnectionTechnology,
-  UpdateNetworkTopologyDto,
-} from '../../../types/networkTopology.types';
+} from '../../../types/network-topology.types';
 import { AddNodeModal } from './AddNodeModal';
 import { TopologyHistoryModal } from './TopologyHistoryModal';
 import './NetworkTopologyEditor.css';
@@ -20,7 +19,7 @@ interface NetworkTopologyEditorProps {
   subsystemIndex: number;
   subsystemType: string;
   readOnly?: boolean;
-  onSaved?: (topology: NetworkTopology) => void;
+  onSaved?: (topology: NetworkTopologyData) => void;
 }
 
 const NODE_WIDTH = 140;
@@ -43,7 +42,7 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
 }) => {
   const [nodes, setNodes] = useState<TopologyNode[]>([]);
   const [connections, setConnections] = useState<TopologyConnection[]>([]);
-  const [topologyMeta, setTopologyMeta] = useState<NetworkTopology | null>(null);
+  const [topologyMeta, setTopologyMeta] = useState<NetworkTopologyData | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -52,7 +51,7 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
   const [isDirty, setIsDirty] = useState(false);
   const [connectingMode, setConnectingMode] = useState(false);
   const [connectingSource, setConnectingSource] = useState<string | null>(null);
-  const [connectionTech, setConnectionTech] = useState<ConnectionTechnology>('FIBER');
+  const [connectionTech, setConnectionTech] = useState<ConnectionTechnology>('fiber');
   const [showAddNodeModal, setShowAddNodeModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
@@ -66,8 +65,8 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
     let mounted = true;
     setLoading(true);
     networkTopologyService
-      .getLatest(contractId, subsystemIndex)
-      .then(topology => {
+      .getByContractAndSubsystem(contractId, subsystemIndex)
+      .then((topology: NetworkTopologyData | null) => {
         if (!mounted) return;
         if (topology) {
           setTopologyMeta(topology);
@@ -99,7 +98,7 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
     setConnections(prev => {
       // Remove connections attached to the deleted node, or the connection itself
       return prev.filter(
-        c => c.id !== selectedId && c.sourceNodeId !== selectedId && c.targetNodeId !== selectedId
+        c => c.id !== selectedId && c.source !== selectedId && c.target !== selectedId
       );
     });
     setSelectedId(null);
@@ -128,8 +127,8 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
         nodeId,
         startMouseX: e.clientX,
         startMouseY: e.clientY,
-        nodeStartX: node.positionX,
-        nodeStartY: node.positionY,
+        nodeStartX: node.position.x,
+        nodeStartY: node.position.y,
       };
 
       const onMouseMove = (me: MouseEvent) => {
@@ -142,8 +141,10 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
             n.id === drag.nodeId
               ? {
                   ...n,
-                  positionX: Math.max(0, drag.nodeStartX + dx),
-                  positionY: Math.max(0, drag.nodeStartY + dy),
+                  position: {
+                    x: Math.max(0, drag.nodeStartX + dx),
+                    y: Math.max(0, drag.nodeStartY + dy),
+                  },
                 }
               : n
           )
@@ -184,8 +185,8 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
         // Create the connection
         const newConn: TopologyConnection = {
           id: crypto.randomUUID(),
-          sourceNodeId: connectingSource,
-          targetNodeId: nodeId,
+          source: connectingSource,
+          target: nodeId,
           technology: connectionTech,
         };
         setConnections(prev => [...prev, newConn]);
@@ -213,12 +214,14 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
 
   // Add a new node (from modal)
   const handleAddNode = useCallback(
-    (nodeData: Omit<TopologyNode, 'id' | 'positionX' | 'positionY'>) => {
+    (nodeData: Omit<TopologyNode, 'id' | 'position'>) => {
       const newNode: TopologyNode = {
         ...nodeData,
         id: crypto.randomUUID(),
-        positionX: 50 + Math.floor(nodes.length / 3) * 170,
-        positionY: 50 + (nodes.length % 3) * 90,
+        position: {
+          x: 50 + Math.floor(nodes.length / 3) * 170,
+          y: 50 + (nodes.length % 3) * 90,
+        },
       };
       setNodes(prev => [...prev, newNode]);
       setIsDirty(true);
@@ -234,7 +237,7 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
       setSaving(true);
       setError(null);
 
-      const dto: UpdateNetworkTopologyDto = {
+      const dto: Partial<NetworkTopologyData> = {
         name: topologyMeta?.name ?? `Topologia ${subsystemType}`,
         contractId,
         subsystemIndex,
@@ -244,9 +247,9 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
         notes: topologyMeta?.notes ?? undefined,
       };
 
-      let saved: NetworkTopology;
+      let saved: NetworkTopologyData;
       if (topologyMeta) {
-        saved = await networkTopologyService.save(topologyMeta.id, dto);
+        saved = await networkTopologyService.update(topologyMeta.id, dto);
       } else {
         saved = await networkTopologyService.create(dto);
       }
@@ -264,7 +267,7 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
   }, [saving, topologyMeta, contractId, subsystemIndex, subsystemType, nodes, connections, onSaved]);
 
   // Restore a version from history
-  const handleRestore = useCallback((topology: NetworkTopology) => {
+  const handleRestore = useCallback((topology: NetworkTopologyData) => {
     setTopologyMeta(topology);
     setNodes(topology.nodes);
     setConnections(topology.connections);
@@ -274,8 +277,8 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
 
   // Center point of a node (for SVG line endpoints)
   const nodeCenter = (node: TopologyNode) => ({
-    x: node.positionX + NODE_WIDTH / 2,
-    y: node.positionY + NODE_HEIGHT / 2,
+    x: node.position.x + NODE_WIDTH / 2,
+    y: node.position.y + NODE_HEIGHT / 2,
   });
 
   if (loading) {
@@ -320,8 +323,8 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
               value={connectionTech}
               onChange={e => setConnectionTech(e.target.value as ConnectionTechnology)}
             >
-              <option value="FIBER">FIBER</option>
-              <option value="LAN">LAN</option>
+              <option value="fiber">FIBER</option>
+              <option value="lan">LAN</option>
             </select>
           )}
 
@@ -399,13 +402,13 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
           </defs>
 
           {connections.map(conn => {
-            const src = nodes.find(n => n.id === conn.sourceNodeId);
-            const tgt = nodes.find(n => n.id === conn.targetNodeId);
+            const src = nodes.find(n => n.id === conn.source);
+            const tgt = nodes.find(n => n.id === conn.target);
             if (!src || !tgt) return null;
             const { x: x1, y: y1 } = nodeCenter(src);
             const { x: x2, y: y2 } = nodeCenter(tgt);
             const isSelected = conn.id === selectedId;
-            const techClass = conn.technology.toLowerCase();
+            const techClass = (conn.technology ?? 'fiber').toLowerCase();
 
             return (
               <g key={conn.id}>
@@ -455,14 +458,14 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
             ]
               .filter(Boolean)
               .join(' ')}
-            style={{ left: node.positionX, top: node.positionY, width: NODE_WIDTH }}
+            style={{ left: node.position.x, top: node.position.y, width: NODE_WIDTH }}
             onMouseDown={e => handleNodeMouseDown(e, node.id)}
             onClick={e => handleNodeClick(e, node.id)}
           >
             <div className="topology-node-type">{node.type}</div>
             <div className="topology-node-label">{node.label}</div>
-            {node.kilometre !== undefined && (
-              <div className="topology-node-km">km {node.kilometre}</div>
+            {node.data.km !== undefined && (
+              <div className="topology-node-km">km {node.data.km}</div>
             )}
           </div>
         ))}

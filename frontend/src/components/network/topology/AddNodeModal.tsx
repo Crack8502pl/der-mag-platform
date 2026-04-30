@@ -2,37 +2,25 @@
 // Modal for adding a new node to the network topology canvas
 
 import React, { useState } from 'react';
-import type { TopologyNode, NodeType, NodeSourceType } from '../../../types/networkTopology.types';
+import type { TopologyNode, NodeType } from '../../../types/network-topology.types';
 import '../../../styles/grover-theme.css';
 
 interface AddNodeModalProps {
-  onAdd: (node: Omit<TopologyNode, 'id' | 'positionX' | 'positionY'>) => void;
+  onAdd: (node: Omit<TopologyNode, 'id' | 'position'>) => void;
   onClose: () => void;
 }
 
-const NODE_TYPES: NodeType[] = ['LCS', 'NASTAWNIA', 'PRZEJAZD', 'SKP', 'SWITCH', 'ROUTER', 'AUXILIARY'];
-const SOURCE_TYPES: NodeSourceType[] = ['task', 'external', 'auxiliary'];
+const NODE_TYPES: NodeType[] = ['task', 'auxiliary', 'external'];
 
 const NODE_TYPE_LABELS: Record<NodeType, string> = {
-  LCS: 'LCS',
-  NASTAWNIA: 'Nastawnia',
-  PRZEJAZD: 'Przejazd',
-  SKP: 'SKP',
-  SWITCH: 'Switch',
-  ROUTER: 'Router',
-  AUXILIARY: 'Auxiliary',
-};
-
-const SOURCE_TYPE_LABELS: Record<NodeSourceType, string> = {
-  task: 'Zadanie (task)',
+  task: 'Zadanie',
+  auxiliary: 'Obiekt pomocniczy',
   external: 'Zewnętrzny',
-  auxiliary: 'Pomocniczy',
 };
 
 export const AddNodeModal: React.FC<AddNodeModalProps> = ({ onAdd, onClose }) => {
-  const [type, setType] = useState<NodeType>('LCS');
+  const [type, setType] = useState<NodeType>('task');
   const [label, setLabel] = useState('');
-  const [sourceType, setSourceType] = useState<NodeSourceType>('external');
   const [kilometre, setKilometre] = useState('');
   const [labelError, setLabelError] = useState('');
 
@@ -42,17 +30,16 @@ export const AddNodeModal: React.FC<AddNodeModalProps> = ({ onAdd, onClose }) =>
       return;
     }
 
-    const nodeData: Omit<TopologyNode, 'id' | 'positionX' | 'positionY'> = {
+    const nodeData: Omit<TopologyNode, 'id' | 'position'> = {
       type,
       label: label.trim(),
-      sourceType,
-      isActive: true,
+      data: {},
     };
 
     if (kilometre !== '') {
       const parsed = parseFloat(kilometre);
       if (!isNaN(parsed)) {
-        nodeData.kilometre = parsed;
+        nodeData.data.km = parsed;
       }
     }
 
@@ -104,18 +91,6 @@ export const AddNodeModal: React.FC<AddNodeModalProps> = ({ onAdd, onClose }) =>
               }}
             />
             {labelError && <span className="error-text">{labelError}</span>}
-          </div>
-
-          <div className="form-group">
-            <label>Typ źródła</label>
-            <select
-              value={sourceType}
-              onChange={e => setSourceType(e.target.value as NodeSourceType)}
-            >
-              {SOURCE_TYPES.map(s => (
-                <option key={s} value={s}>{SOURCE_TYPE_LABELS[s]}</option>
-              ))}
-            </select>
           </div>
 
           <div className="form-group">

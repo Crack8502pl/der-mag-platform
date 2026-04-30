@@ -3,13 +3,13 @@
 
 import React, { useState, useEffect } from 'react';
 import networkTopologyService from '../../../services/networkTopology.service';
-import type { NetworkTopology } from '../../../types/networkTopology.types';
+import type { NetworkTopologyData } from '../../../types/network-topology.types';
 import '../../../styles/grover-theme.css';
 
 interface TopologyHistoryModalProps {
   contractId: number;
   subsystemIndex: number;
-  onRestore: (topology: NetworkTopology) => void;
+  onRestore: (topology: NetworkTopologyData) => void;
   onClose: () => void;
 }
 
@@ -21,8 +21,7 @@ export const TopologyHistoryModal: React.FC<TopologyHistoryModalProps> = ({
   onRestore,
   onClose,
 }) => {
-  const [history, setHistory] = useState<NetworkTopology[]>([]);
-  const [total, setTotal] = useState(0);
+  const [history, setHistory] = useState<NetworkTopologyData[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,11 +30,10 @@ export const TopologyHistoryModal: React.FC<TopologyHistoryModalProps> = ({
     let mounted = true;
     setLoading(true);
     networkTopologyService
-      .getHistory(contractId, subsystemIndex, page, PAGE_LIMIT)
+      .getHistory(contractId, subsystemIndex)
       .then(result => {
         if (!mounted) return;
-        setHistory(result.data);
-        setTotal(result.total);
+        setHistory(result);
       })
       .catch(() => {
         if (!mounted) return;
@@ -48,9 +46,10 @@ export const TopologyHistoryModal: React.FC<TopologyHistoryModalProps> = ({
     return () => {
       mounted = false;
     };
-  }, [contractId, subsystemIndex, page]);
+  }, [contractId, subsystemIndex]);
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_LIMIT));
+  const totalPages = Math.max(1, Math.ceil(history.length / PAGE_LIMIT));
+  const pagedHistory = history.slice((page - 1) * PAGE_LIMIT, page * PAGE_LIMIT);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -77,7 +76,7 @@ export const TopologyHistoryModal: React.FC<TopologyHistoryModalProps> = ({
             </p>
           ) : (
             <div>
-              {history.map(topo => (
+              {pagedHistory.map(topo => (
                 <div key={topo.id} className="topology-history-item">
                   <div className="topology-history-meta">
                     <span className="topology-history-version">Wersja {topo.version}</span>
