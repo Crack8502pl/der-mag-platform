@@ -1,0 +1,317 @@
+/* NetworkTopologyEditor.css */
+/* Styles for the network topology canvas editor — grover-theme aligned */
+
+/* Loading state */
+.topology-editor-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 300px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* Main wrapper */
+.topology-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ─── Toolbar ─────────────────────────────────────────────────── */
+.topology-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+
+.topology-toolbar-spacer {
+  flex: 1;
+  min-width: 8px;
+}
+
+/* Small button variant */
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 13px;
+}
+
+/* Technology select inside toolbar */
+.topology-tech-select {
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+
+.topology-tech-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+/* ─── Canvas ──────────────────────────────────────────────────── */
+.topology-canvas {
+  position: relative;
+  min-height: 500px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: default;
+}
+
+.topology-canvas--connecting {
+  cursor: crosshair;
+}
+
+/* ─── SVG connection overlay ──────────────────────────────────── */
+.topology-connections-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Connection lines */
+.topology-conn {
+  stroke-width: 2;
+  fill: none;
+}
+
+.topology-conn--fiber {
+  stroke: var(--primary-color);
+}
+
+.topology-conn--lan {
+  stroke: #3b82f6;
+}
+
+.topology-conn--selected {
+  stroke-width: 3;
+  filter: drop-shadow(0 0 5px currentColor);
+}
+
+/* ─── Nodes ───────────────────────────────────────────────────── */
+.topology-node {
+  position: absolute;
+  height: 60px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  user-select: none;
+  transition: outline 0.15s, box-shadow 0.15s;
+  padding: 4px 8px;
+  text-align: center;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.topology-node:active {
+  cursor: grabbing;
+}
+
+/* Selection highlight */
+.topology-node--selected {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.2);
+}
+
+/* Connection-source pulse */
+.topology-node--source {
+  outline: 2px dashed var(--primary-color);
+  outline-offset: 2px;
+  animation: topology-source-pulse 1.2s ease-in-out infinite;
+}
+
+/* Target hint — dim non-source nodes while connecting */
+.topology-node--target-hint {
+  opacity: 0.6;
+}
+
+@keyframes topology-source-pulse {
+  0%, 100% { outline-color: var(--primary-color); }
+  50%       { outline-color: transparent; }
+}
+
+/* Node type colours */
+.topology-node--lcs {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: #3b82f6;
+}
+
+.topology-node--nastawnia {
+  background: rgba(72, 187, 120, 0.12);
+  border-color: var(--success);
+}
+
+.topology-node--przejazd {
+  background: rgba(237, 137, 54, 0.12);
+  border-color: var(--warning);
+}
+
+.topology-node--skp {
+  background: rgba(255, 107, 53, 0.12);
+  border-color: var(--primary-color);
+}
+
+.topology-node--switch {
+  background: rgba(160, 174, 192, 0.12);
+  border-color: var(--text-secondary);
+}
+
+.topology-node--router {
+  background: rgba(159, 122, 234, 0.12);
+  border-color: #9f7aea;
+}
+
+.topology-node--auxiliary {
+  background: rgba(113, 128, 150, 0.12);
+  border-color: var(--text-muted);
+}
+
+/* Node text layers */
+.topology-node-type {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+.topology-node-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.2;
+  margin-top: 2px;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.topology-node-km {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ─── Empty state ─────────────────────────────────────────────── */
+.topology-empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.topology-empty-state .btn {
+  pointer-events: all;
+}
+
+.topology-empty-icon {
+  font-size: 48px;
+}
+
+.topology-empty-state p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ─── Version info bar ────────────────────────────────────────── */
+.topology-version-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 4px 8px;
+}
+
+.topology-version-sep {
+  color: var(--border-light);
+}
+
+.topology-dirty-badge {
+  color: var(--warning);
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+/* ─── History modal items ─────────────────────────────────────── */
+.topology-history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.topology-history-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 120px;
+}
+
+.topology-history-version {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.topology-history-date {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.topology-history-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+
+.topology-history-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding-top: 16px;
+  margin-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+
+.topology-history-page-info {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
