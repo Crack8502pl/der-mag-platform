@@ -25,6 +25,7 @@ import { ShipmentWizardStep } from './steps/ShipmentWizardStep';
 import { InfrastructureStep } from './steps/InfrastructureStep';
 import { LogisticsStep } from './steps/LogisticsStep';
 import { TaskRelationshipsStep } from './steps/TaskRelationshipsStep';
+import { NetworkTopologyStep } from '../../network-topology/NetworkTopologyStep';
 
 // Subsystem Config Components
 import { SmokipAConfigStep } from './subsystems/smokip-a/SmokipAConfigStep';
@@ -158,12 +159,17 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
   // Step at which draft save button is shown (config, details, relationships, infrastructure, logistics, preview, success)
   const isDraftStep = (stepType: string) =>
-    ['config', 'details', 'relationships', 'infrastructure', 'logistics', 'preview'].includes(stepType);
+    ['config', 'details', 'relationships', 'topology', 'infrastructure', 'logistics', 'preview'].includes(stepType);
+
+  /** Returns true when a topology step should be shown for the given subsystem type */
+  const shouldShowTopologyStep = (subsystemType: string): boolean =>
+    subsystemType === 'SMOKIP_A' || subsystemType === 'SMOKIP_B';
 
   const getTotalSteps = (): number => {
     let steps = 3; // Basic + Selection + Preview
     wizardData.subsystems.forEach((s) => {
       steps += (s.type === 'SMOKIP_A' || s.type === 'SMOKIP_B') ? 2 : 1;
+      if (shouldShowTopologyStep(s.type)) steps += 1; // Topology step per SMOKIP subsystem
     });
     steps += 1; // Infrastructure
     steps += 1; // Logistics
@@ -195,6 +201,13 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
     // Optional relationships step (only for SMOKIP subsystems with LCS)
     if (hasRelationshipsStep() && step === ++stepCount) return { type: 'relationships' as const };
+
+    // Optional topology steps (one per SMOKIP subsystem, after relationships)
+    for (let i = 0; i < wizardData.subsystems.length; i++) {
+      if (shouldShowTopologyStep(wizardData.subsystems[i].type)) {
+        if (step === ++stepCount) return { type: 'topology' as const, subsystemIndex: i };
+      }
+    }
     
     if (step === ++stepCount) return { type: 'infrastructure' as const };
     if (step === ++stepCount) return { type: 'logistics' as const };
@@ -827,6 +840,13 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           onUpdate={updateWizardData}
         />
       ),
+      topology: () => stepInfo.subsystemIndex !== undefined && (
+        <NetworkTopologyStep
+          wizardData={wizardData}
+          onUpdate={updateWizardData}
+          subsystemIndex={stepInfo.subsystemIndex}
+        />
+      ),
       infrastructure: () => (
         <InfrastructureStep
           wizardData={wizardData}
@@ -950,6 +970,11 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
               </button>
             )}
             <div className="footer-spacer"></div>
+            {stepInfo.type === 'topology' && (
+              <button className="btn btn-secondary" onClick={handleNextStep} aria-label="Pomiń konfigurację topologii">
+                Pomiń ▷
+              </button>
+            )}
             {stepInfo.type !== 'preview' && (
               <div className="next-button-container">
                 <button 
