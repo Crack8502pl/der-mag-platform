@@ -430,6 +430,28 @@ System obsługuje 13 typów zadań:
 12. **Zasilania**
 13. **Struktury Światłowodowe**
 
+## 🌐 Network Topology Builder
+
+Moduł wizualnego projektowania topologii sieciowych dla podsystemów **SMOKIP_A** i **SMOKIP_B**.
+
+### Funkcjonalności
+- 🖱️ **Drag & Drop** — przeciąganie węzłów zadań na canvas SVG
+- 🔗 **Łączenie węzłów** — technologie: światłowód 🟠 i LAN 🔵
+- 📏 **Auto-kalkulacja odległości** na podstawie kilometrażu zadań
+- ⚡ **Auto-Layout** — automatyczne rozmieszczenie węzłów w siatce
+- 🕐 **Historia wersji** — każdy zapis tworzy niemodyfikowalną wersję
+- 📄 **Export PDF** — eksport diagramu topologii
+- 🔄 **Integracja z wizardem** — krok 6 tylko dla SMOKIP_A/B (z przyciskiem "Pomiń ▷")
+
+📖 **Pełna dokumentacja:** [docs/NETWORK_TOPOLOGY_IMPLEMENTATION.md](docs/NETWORK_TOPOLOGY_IMPLEMENTATION.md)
+
+### API Endpoints Network Topology
+- `POST /api/network-topology` — utwórz nową topologię
+- `GET /api/network-topology/:contractId/:subsystemIndex` — pobierz aktualną
+- `GET /api/network-topology/:contractId/:subsystemIndex/history` — historia wersji
+- `PUT /api/network-topology/:id` — aktualizuj (tworzy nową wersję)
+- `DELETE /api/network-topology/:id` — usuń (soft delete)
+
 ## 🔐 Bezpieczeństwo
 
 ### Uwierzytelnianie i autoryzacja
