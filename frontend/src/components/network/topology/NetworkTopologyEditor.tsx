@@ -11,6 +11,7 @@ import type {
 } from '../../../types/network-topology.types';
 import { AddNodeModal } from './AddNodeModal';
 import { TopologyHistoryModal } from './TopologyHistoryModal';
+import { CustomNode } from './CustomNode';
 import './NetworkTopologyEditor.css';
 import '../../../styles/grover-theme.css';
 
@@ -445,29 +446,18 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
 
         {/* Nodes */}
         {nodes.map(node => (
-          <div
+          <CustomNode
             key={node.id}
-            className={[
-              'topology-node',
-              `topology-node--${node.type.toLowerCase()}`,
-              node.id === selectedId ? 'topology-node--selected' : '',
-              connectingSource === node.id ? 'topology-node--source' : '',
-              connectingMode && connectingSource && connectingSource !== node.id
-                ? 'topology-node--target-hint'
-                : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
+            node={node}
+            isSelected={node.id === selectedId}
+            isConnectingSource={connectingSource === node.id}
+            isConnectingTargetHint={
+              connectingMode && !!connectingSource && connectingSource !== node.id
+            }
             style={{ left: node.position.x, top: node.position.y, width: NODE_WIDTH }}
             onMouseDown={e => handleNodeMouseDown(e, node.id)}
             onClick={e => handleNodeClick(e, node.id)}
-          >
-            <div className="topology-node-type">{node.type}</div>
-            <div className="topology-node-label">{node.label}</div>
-            {node.data.km !== undefined && (
-              <div className="topology-node-km">km {node.data.km}</div>
-            )}
-          </div>
+          />
         ))}
       </div>
 
