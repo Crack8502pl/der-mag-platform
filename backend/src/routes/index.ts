@@ -157,7 +157,7 @@ router.use('/subsystem-tasks', subsystemTaskRoutes);
 router.use('/task-relationships', taskRelationshipRoutes);
 
 // Network Topology routes
-router.use('/topologies', networkTopologyRoutes);
+router.use('/network-topologies', networkTopologyRoutes);
 
 // Health/connection monitoring routes (no auth required - lightweight endpoints)
 router.use('/', healthRoutes);

@@ -16,7 +16,7 @@ class NetworkTopologyService {
   async getLatest(contractId: number, subsystemIndex: number): Promise<NetworkTopology | null> {
     try {
       const res = await api.get<NetworkTopologyResponse>(
-        `/contracts/${contractId}/subsystems/${subsystemIndex}/topology`
+        `/network-topologies/contract/${contractId}/subsystem/${subsystemIndex}`
       );
       return res.data.data;
     } catch (error: unknown) {
@@ -28,7 +28,7 @@ class NetworkTopologyService {
   /** Get topology by ID */
   async getById(id: string): Promise<NetworkTopology | null> {
     try {
-      const res = await api.get<NetworkTopologyResponse>(`/topologies/${id}`);
+      const res = await api.get<NetworkTopologyResponse>(`/network-topologies/${id}`);
       return res.data.data;
     } catch (error: unknown) {
       if ((error as { response?: { status?: number } }).response?.status === 404) return null;
@@ -38,20 +38,20 @@ class NetworkTopologyService {
 
   /** Get all topologies for a contract (latest versions) */
   async getAllByContract(contractId: number): Promise<NetworkTopology[]> {
-    const res = await api.get<NetworkTopologyListResponse>(`/contracts/${contractId}/topologies`);
+    const res = await api.get<NetworkTopologyListResponse>(`/network-topologies/contract/${contractId}`);
     return res.data.data;
   }
 
   /** Create a new topology (version=1) */
   async create(dto: CreateNetworkTopologyDto): Promise<NetworkTopology> {
-    const res = await api.post<NetworkTopologyResponse>('/topologies', dto);
+    const res = await api.post<NetworkTopologyResponse>('/network-topologies', dto);
     return res.data.data;
   }
 
-  /** Save a new version of an existing topology (immutable — creates new record) */
-  async save(contractId: number, subsystemIndex: number, dto: UpdateNetworkTopologyDto): Promise<NetworkTopology> {
+  /** Save a new version of an existing topology by its UUID (immutable — creates new record) */
+  async save(id: string, dto: UpdateNetworkTopologyDto): Promise<NetworkTopology> {
     const res = await api.put<NetworkTopologyResponse>(
-      `/contracts/${contractId}/subsystems/${subsystemIndex}/topology`,
+      `/network-topologies/${id}`,
       dto
     );
     return res.data.data;
@@ -65,21 +65,17 @@ class NetworkTopologyService {
     limit = 20
   ): Promise<{ data: NetworkTopology[]; total: number; page: number; limit: number }> {
     const res = await api.get<NetworkTopologyHistoryResponse>(
-      `/contracts/${contractId}/subsystems/${subsystemIndex}/topology/history`,
+      `/network-topologies/contract/${contractId}/subsystem/${subsystemIndex}/history`,
       { params: { page, limit } }
     );
     return res.data.data;
   }
 
-  /** Soft-delete the latest topology version */
-  async delete(contractId: number, subsystemIndex: number): Promise<void> {
-    await api.delete(`/contracts/${contractId}/subsystems/${subsystemIndex}/topology`);
-  }
-
   /** Soft-delete a topology by its UUID */
   async softDelete(id: string): Promise<void> {
-    await api.delete(`/topologies/${id}`);
+    await api.delete(`/network-topologies/${id}`);
   }
 }
 
 export default new NetworkTopologyService();
+

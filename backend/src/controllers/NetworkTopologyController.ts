@@ -179,6 +179,45 @@ export class NetworkTopologyController {
   };
 
   /**
+   * PUT /api/network-topologies/:id
+   * Utwórz nową wersję topologii (immutable update po UUID)
+   */
+  update = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const dto = plainToClass(UpdateNetworkTopologyDto, req.body);
+      const errors = await validate(dto);
+      if (errors.length > 0) {
+        res.status(400).json({
+          success: false,
+          error: 'VALIDATION_ERROR',
+          message: 'Błąd walidacji',
+          details: errors.map(e => ({ field: e.property, constraints: e.constraints })),
+        });
+        return;
+      }
+
+      const topology = await networkTopologyService.update(id, dto);
+      res.json({ success: true, data: topology });
+    } catch (error: any) {
+      console.error('Error in update:', error);
+      if (error.message === 'TOPOLOGY_NOT_FOUND') {
+        res.status(404).json({
+          success: false,
+          error: 'TOPOLOGY_NOT_FOUND',
+          message: 'Topologia nie znaleziona',
+        });
+        return;
+      }
+      res.status(500).json({
+        success: false,
+        error: 'SERVER_ERROR',
+        message: 'Błąd serwera',
+      });
+    }
+  };
+
+  /**
    * DELETE /api/topologies/:id
    * Soft-delete po ID
    */

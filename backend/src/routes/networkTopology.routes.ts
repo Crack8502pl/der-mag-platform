@@ -9,13 +9,34 @@ const router = Router();
 
 router.use(authenticate);
 
-// POST   /api/topologies                → create
+// POST   /api/network-topologies                → create
 router.post('/', networkTopologyController.create);
 
-// GET    /api/topologies/:id             → getById
+// GET    /api/network-topologies/contract/:contractId
+//        → getAllByContract (must be before /:id to avoid conflict)
+router.get('/contract/:contractId', networkTopologyController.getAllByContract);
+
+// GET    /api/network-topologies/contract/:contractId/subsystem/:subsystemIndex/history
+//        → getHistory (must be before /subsystem/:subsystemIndex to avoid conflict)
+router.get(
+  '/contract/:contractId/subsystem/:subsystemIndex/history',
+  networkTopologyController.getHistory,
+);
+
+// GET    /api/network-topologies/contract/:contractId/subsystem/:subsystemIndex
+//        → getByContractAndSubsystem (latest version)
+router.get(
+  '/contract/:contractId/subsystem/:subsystemIndex',
+  networkTopologyController.getLatest,
+);
+
+// PUT    /api/network-topologies/:id            → update (immutable – creates new version)
+router.put('/:id', networkTopologyController.update);
+
+// GET    /api/network-topologies/:id             → getById
 router.get('/:id', networkTopologyController.getById);
 
-// DELETE /api/topologies/:id             → softDelete
+// DELETE /api/network-topologies/:id             → softDelete
 router.delete('/:id', networkTopologyController.softDelete);
 
 export default router;
