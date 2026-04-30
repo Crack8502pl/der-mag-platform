@@ -5,7 +5,6 @@ import React, { useEffect, useState } from 'react';
 import { TaskStatusBadge } from './TaskStatusBadge';
 import { LCSConfigModal } from './LCSConfigModal';
 import { NastawniConfigModal } from './NastawniConfigModal';
-import { FiberSchemaModal } from './FiberSchemaModal';
 import { CompleteTaskAndCreateAssetModal } from './CompleteTaskAndCreateAssetModal';
 import taskService from '../../services/task.service';
 import type { Task } from '../../types/task.types';
@@ -23,7 +22,6 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
   const [error, setError] = useState('');
   const [showLCSConfig, setShowLCSConfig] = useState(false);
   const [showNastawniConfig, setShowNastawniConfig] = useState(false);
-  const [showFiberSchema, setShowFiberSchema] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
 
   const { hasPermission } = usePermissions();
@@ -52,7 +50,6 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
   const handleConfigSuccess = () => {
     setShowLCSConfig(false);
     setShowNastawniConfig(false);
-    setShowFiberSchema(false);
     loadTask();
   };
 
@@ -250,17 +247,10 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
             <>
               <button
                 className="btn"
-                style={{ backgroundColor: '#f59e0b', color: 'white', marginRight: '8px' }}
+                style={{ backgroundColor: '#f59e0b', color: 'white', marginRight: 'auto' }}
                 onClick={() => setShowLCSConfig(true)}
               >
                 ⚙️ Konfiguruj LCS
-              </button>
-              <button
-                className="btn"
-                style={{ backgroundColor: '#6366f1', color: 'white', marginRight: 'auto' }}
-                onClick={() => setShowFiberSchema(true)}
-              >
-                🔗 Schemat światłowodowy
               </button>
             </>
           )}
@@ -306,14 +296,6 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
       />
     )}
 
-    {/* Fiber Schema Modal */}
-    {task && showFiberSchema && (
-      <FiberSchemaModal
-        task={task}
-        onClose={() => setShowFiberSchema(false)}
-        onSuccess={handleConfigSuccess}
-      />
-    )}
     {/* Complete Task and Create Asset Modal */}
     {task && showCompleteModal && (
       <CompleteTaskAndCreateAssetModal
