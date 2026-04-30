@@ -7,6 +7,7 @@ import { SubsystemController } from '../controllers/SubsystemController';
 import { AssetController } from '../controllers/AssetController';
 import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/PermissionMiddleware';
+import networkTopologyController from '../controllers/NetworkTopologyController';
 
 const router = Router();
 const contractController = new ContractController();
@@ -106,6 +107,38 @@ router.get(
   authenticate,
   requirePermission('contracts', 'read'),
   assetController.getContractAssets
+);
+
+// Network Topology routes
+// GET    /api/contracts/:contractId/topologies                        → getAllByContract
+router.get('/:contractId/topologies', authenticate, networkTopologyController.getAllByContract);
+
+// GET    /api/contracts/:contractId/subsystems/:subsystemIndex/topology/history → getHistory
+router.get(
+  '/:contractId/subsystems/:subsystemIndex/topology/history',
+  authenticate,
+  networkTopologyController.getHistory,
+);
+
+// GET    /api/contracts/:contractId/subsystems/:subsystemIndex/topology         → getLatest
+router.get(
+  '/:contractId/subsystems/:subsystemIndex/topology',
+  authenticate,
+  networkTopologyController.getLatest,
+);
+
+// PUT    /api/contracts/:contractId/subsystems/:subsystemIndex/topology         → createNewVersion
+router.put(
+  '/:contractId/subsystems/:subsystemIndex/topology',
+  authenticate,
+  networkTopologyController.createNewVersion,
+);
+
+// DELETE /api/contracts/:contractId/subsystems/:subsystemIndex/topology         → delete
+router.delete(
+  '/:contractId/subsystems/:subsystemIndex/topology',
+  authenticate,
+  networkTopologyController.delete,
 );
 
 export default router;

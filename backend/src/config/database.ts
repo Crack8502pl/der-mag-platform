@@ -90,6 +90,7 @@ import { NetworkTopology } from '../entities/NetworkTopology.entity';
 // Migrations
 import { BackfillWizardTaskMetadata1714080000000 } from '../migrations/1714080000000-BackfillWizardTaskMetadata';
 import { CreateNetworkTopologies20260430 } from '../migrations/20260430_create_network_topologies';
+import { AddDeletedAtToNetworkTopologies20260430 } from '../migrations/20260430_add_deleted_at_to_network_topologies';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -209,6 +210,7 @@ export const AppDataSource = new DataSource({
   migrations: [
     BackfillWizardTaskMetadata1714080000000,
     CreateNetworkTopologies20260430,
+    AddDeletedAtToNetworkTopologies20260430,
   ],
 });
 
