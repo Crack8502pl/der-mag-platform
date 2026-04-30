@@ -139,7 +139,7 @@ export interface GeneratedTask {
 }
 
 export interface StepInfo {
-  type: 'basic' | 'selection' | 'config' | 'details' | 'relationships' | 'infrastructure' | 'logistics' | 'preview' | 'success' | 'shipping';
+  type: 'basic' | 'selection' | 'config' | 'details' | 'relationships' | 'topology' | 'infrastructure' | 'logistics' | 'preview' | 'success' | 'shipping';
   subsystemIndex?: number;
   subsystemType?: SubsystemType;
 }
