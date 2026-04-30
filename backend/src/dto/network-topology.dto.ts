@@ -51,6 +51,11 @@ export class TopologyNodeDto {
   taskId?: number;
 }
 
+export enum ConnectionTechnology {
+  FIBER = 'FIBER',
+  LAN = 'LAN',
+}
+
 export class TopologyConnectionDto {
   @IsString()
   @IsOptional()
@@ -62,8 +67,8 @@ export class TopologyConnectionDto {
   @IsString()
   targetNodeId: string;
 
-  @IsEnum(['FIBER', 'LAN'])
-  technology: string;
+  @IsEnum(ConnectionTechnology)
+  technology: ConnectionTechnology;
 
   @IsNumber()
   @IsOptional()
