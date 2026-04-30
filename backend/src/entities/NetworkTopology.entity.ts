@@ -12,11 +12,12 @@ import {
   Index,
 } from 'typeorm';
 import { Contract } from './Contract';
+import { NodeType, NodeSourceType, ConnectionTechnology } from '../dto/network-topology.dto';
 
 export interface TopologyNode {
   id: string;
-  type: 'LCS' | 'NASTAWNIA' | 'PRZEJAZD' | 'SKP' | 'SWITCH' | 'ROUTER' | 'AUXILIARY';
-  sourceType: 'task' | 'external' | 'auxiliary';
+  type: NodeType;
+  sourceType: NodeSourceType;
   label: string;
   positionX: number;
   positionY: number;
@@ -30,7 +31,7 @@ export interface TopologyConnection {
   id: string;
   sourceNodeId: string;
   targetNodeId: string;
-  technology: 'FIBER' | 'LAN';
+  technology: ConnectionTechnology;
   distance?: number;
   notes?: string;
 }
