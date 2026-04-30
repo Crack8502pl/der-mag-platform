@@ -220,7 +220,7 @@ export const WarehouseStockPage: React.FC = () => {
     <div className="module-page warehouse-stock-page">
       <BackButton to="/dashboard" />
       
-      <div className="module-header">
+      <div className="page-header">
         <div className="module-icon">
           <ModuleIcon name="warehouse" emoji={MODULE_ICONS.warehouse} size={36} />
         </div>

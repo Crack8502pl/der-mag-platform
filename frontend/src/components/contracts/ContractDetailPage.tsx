@@ -177,7 +177,7 @@ export const ContractDetailPage: React.FC = () => {
     <div className="module-page">
       <BackButton to="/contracts" />
       
-      <div className="module-header">
+      <div className="page-header">
         <div className="module-icon">
           <ModuleIcon name="contracts" emoji={MODULE_ICONS.contracts} size={36} />
         </div>
