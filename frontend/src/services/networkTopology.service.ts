@@ -53,6 +53,12 @@ class NetworkTopologyService {
     }
   }
 
+  /** Get all topologies (latest version per contract/subsystem) */
+  async getAll(): Promise<NetworkTopologyData[]> {
+    const res = await api.get<NetworkTopologyListResponse>('/network-topologies');
+    return res.data.data;
+  }
+
   /** Get all topologies for a contract (latest versions) */
   async getAllByContract(contractId: number): Promise<NetworkTopologyData[]> {
     const res = await api.get<NetworkTopologyListResponse>(

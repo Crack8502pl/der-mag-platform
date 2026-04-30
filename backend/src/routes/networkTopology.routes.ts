@@ -9,6 +9,9 @@ const router = Router();
 
 router.use(authenticate);
 
+// GET    /api/network-topologies                → getAll (must be before /:id)
+router.get('/', networkTopologyController.getAll);
+
 // POST   /api/network-topologies                → create
 router.post('/', networkTopologyController.create);
 

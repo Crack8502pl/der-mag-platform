@@ -165,6 +165,29 @@ export class NetworkTopologyService {
   }
 
   /**
+   * Pobierz najnowsze wersje wszystkich topologii (we wszystkich kontraktach, bez soft-deleted)
+   */
+  async getAll(): Promise<NetworkTopology[]> {
+    const repo = AppDataSource.getRepository(NetworkTopology);
+    return await repo
+      .createQueryBuilder('nt')
+      .where('nt.deletedAt IS NULL')
+      .andWhere(
+        'NOT EXISTS (' +
+          'SELECT 1 FROM network_topologies nt2 ' +
+          'WHERE nt2.contract_id = nt.contract_id ' +
+          'AND nt2.subsystem_index = nt.subsystem_index ' +
+          'AND nt2.subsystem_type = nt.subsystem_type ' +
+          'AND nt2.deleted_at IS NULL ' +
+          'AND nt2.version > nt.version' +
+          ')',
+      )
+      .orderBy('nt.contractId', 'ASC')
+      .addOrderBy('nt.subsystemIndex', 'ASC')
+      .getMany();
+  }
+
+  /**
    * Soft-delete najnowszej aktywnej wersji
    */
   async delete(contractId: number, subsystemIndex: number): Promise<void> {
