@@ -13,19 +13,36 @@ import {
   MaxLength,
   Min,
   IsEnum,
+  IsObject,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+
+export enum NodeType {
+  LCS = 'LCS',
+  NASTAWNIA = 'NASTAWNIA',
+  PRZEJAZD = 'PRZEJAZD',
+  SKP = 'SKP',
+  SWITCH = 'SWITCH',
+  ROUTER = 'ROUTER',
+  AUXILIARY = 'AUXILIARY',
+}
+
+export enum NodeSourceType {
+  TASK = 'task',
+  EXTERNAL = 'external',
+  AUXILIARY = 'auxiliary',
+}
 
 export class TopologyNodeDto {
   @IsString()
   @IsOptional()
   id?: string;
 
-  @IsString()
-  type: string;
+  @IsEnum(NodeType)
+  type: NodeType;
 
-  @IsString()
-  sourceType: string;
+  @IsEnum(NodeSourceType)
+  sourceType: NodeSourceType;
 
   @IsString()
   @MinLength(1)
@@ -49,6 +66,10 @@ export class TopologyNodeDto {
   @IsInt()
   @IsOptional()
   taskId?: number;
+
+  @IsObject()
+  @IsOptional()
+  metadata?: Record<string, unknown>;
 }
 
 export enum ConnectionTechnology {

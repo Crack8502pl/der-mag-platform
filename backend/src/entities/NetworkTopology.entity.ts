@@ -15,22 +15,22 @@ import { Contract } from './Contract';
 
 export interface TopologyNode {
   id: string;
-  type: string;          // NodeType
-  sourceType: string;    // NodeSourceType: 'task' | 'external' | 'auxiliary'
+  type: 'LCS' | 'NASTAWNIA' | 'PRZEJAZD' | 'SKP' | 'SWITCH' | 'ROUTER' | 'AUXILIARY';
+  sourceType: 'task' | 'external' | 'auxiliary';
   label: string;
   positionX: number;
   positionY: number;
   kilometre?: number;
   isActive?: boolean;    // dla auxiliary nodes
   taskId?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface TopologyConnection {
   id: string;
   sourceNodeId: string;
   targetNodeId: string;
-  technology: string;    // 'FIBER' | 'LAN'
+  technology: 'FIBER' | 'LAN';
   distance?: number;
   notes?: string;
 }
