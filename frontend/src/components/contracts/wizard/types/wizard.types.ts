@@ -4,6 +4,7 @@
 import type { SubsystemType, SmwWizardData } from '../../../../config/subsystemWizardConfig';
 import type { Contract } from '../../../../services/contract.service';
 import type { FiberConnection } from '../../../../types/fiber.types';
+import type { TopologyNode, TopologyConnection } from '../../../../types/network-topology.types';
 
 export interface WizardProps {
   onClose: () => void;
@@ -126,6 +127,8 @@ export interface WizardData {
   logistics?: Partial<LogisticsData>;
   /** Task relationships: maps LCS taskWizardId to an array of child task keys */
   taskRelationships?: WizardTaskRelationships;
+  /** Network topology data per subsystem (indexed by subsystemIndex) */
+  networkTopologies?: Record<number, { nodes: TopologyNode[]; connections: TopologyConnection[] }>;
 }
 
 export interface GeneratedTask {
