@@ -218,7 +218,7 @@ export class NetworkTopologyController {
   };
 
   /**
-   * DELETE /api/topologies/:id
+   * DELETE /api/network-topologies/:id
    * Soft-delete po ID
    */
   softDelete = async (req: Request, res: Response): Promise<void> => {
