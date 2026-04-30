@@ -19,6 +19,7 @@ import { TaskRelationshipsStep } from './steps/TaskRelationshipsStep';
 import { InfrastructureStep } from './steps/InfrastructureStep';
 import { LogisticsStep } from './steps/LogisticsStep';
 import { PreviewStep } from './steps/PreviewStep';
+import { NetworkTopologyStep } from '../../network-topology/NetworkTopologyStep';
 
 // Subsystem config/details components (for new subsystems)
 import { SmokipAConfigStep } from './subsystems/smokip-a/SmokipAConfigStep';
@@ -36,7 +37,8 @@ import { LanConfigStep } from './subsystems/lan/LanConfigStep';
 import { OtkConfigStep } from './subsystems/otk/OtkConfigStep';
 import { ZasilanieConfigStep } from './subsystems/zasilanie/ZasilanieConfigStep';
 
-import type { WizardData, SubsystemWizardData } from './types/wizard.types';
+import type { WizardData, SubsystemWizardData, TaskDetail } from './types/wizard.types';
+import type { TopologyNode, TopologyConnection } from '../../../types/network-topology.types';
 
 import './ContractWizardModal.css';
 
@@ -107,6 +109,34 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
 
   // ── Step navigation logic ───────────────────────────────────────────────────
 
+  /** Returns true for subsystem types that require a topology step */
+  const shouldShowTopologyStep = (subsystemType: string): boolean =>
+    subsystemType === 'SMOKIP_A' || subsystemType === 'SMOKIP_B';
+
+  /**
+   * Builds an ordered list of all SMOKIP subsystems needing topology steps.
+   * New SMOKIP subsystems first, then existing SMOKIP subsystems with addingNewTasks.
+   * The index in this array is the unified topology slot used as networkTopologies key.
+   */
+  const buildTopologySubsystemsList = () => {
+    const result: Array<{
+      type: SubsystemWizardData['type'];
+      taskDetails: TaskDetail[];
+      params: SubsystemWizardData['params'];
+    }> = [];
+    extendData.newSubsystems.forEach((sub) => {
+      if (shouldShowTopologyStep(sub.type)) {
+        result.push({ type: sub.type, taskDetails: sub.taskDetails ?? [], params: sub.params });
+      }
+    });
+    extendData.existingSubsystems.forEach((sub) => {
+      if (shouldShowTopologyStep(sub.type) && sub.addingNewTasks) {
+        result.push({ type: sub.type, taskDetails: sub.newTasks, params: {} });
+      }
+    });
+    return result;
+  };
+
   /**
    * Compute the ordered list of steps based on current state.
    * This is called on every render so navigation is always consistent.
@@ -148,6 +178,11 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
       );
 
     if (hasRelationships) steps.push({ type: 'relationships' });
+
+    // Topology steps for SMOKIP subsystems (one per subsystem, after relationships)
+    buildTopologySubsystemsList().forEach((_, topoIdx) => {
+      steps.push({ type: 'topology', subsystemIndex: topoIdx });
+    });
 
     steps.push({ type: 'infrastructure' });
     steps.push({ type: 'logistics' });
@@ -325,6 +360,7 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
     infrastructure: extendData.infrastructure,
     logistics: extendData.logistics,
     taskRelationships: extendData.taskRelationships,
+    networkTopologies: extendData.networkTopologies,
   };
 
   // ── Step rendering ──────────────────────────────────────────────────────────
@@ -468,6 +504,35 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
       );
     }
 
+    if (step.type === 'topology' && step.subsystemIndex !== undefined) {
+      const topologySubs = buildTopologySubsystemsList();
+      const sub = topologySubs[step.subsystemIndex];
+      if (!sub) return <div>Błąd: nie znaleziono podsystemu dla topologii.</div>;
+      // Build a virtual WizardData where subsystems maps to all topology subsystems in order
+      const topoWizardData: WizardData = {
+        ...virtualWizardData,
+        subsystems: topologySubs.map((s) => ({
+          type: s.type,
+          params: s.params,
+          taskDetails: s.taskDetails,
+        })) as SubsystemWizardData[],
+        networkTopologies: extendData.networkTopologies,
+      };
+      return (
+        <NetworkTopologyStep
+          wizardData={topoWizardData}
+          onUpdate={(updates) => {
+            if (updates.networkTopologies) {
+              updateExtendData({
+                networkTopologies: updates.networkTopologies as Record<number, { nodes: TopologyNode[]; connections: TopologyConnection[] }>,
+              });
+            }
+          }}
+          subsystemIndex={step.subsystemIndex}
+        />
+      );
+    }
+
     if (step.type === 'infrastructure') {
       return (
         <InfrastructureStep
@@ -568,6 +633,7 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
                 config: 'Konfiguracja',
                 details: 'Szczegóły',
                 relationships: 'Powiązania',
+                topology: 'Topologia',
                 infrastructure: 'Infrastruktura',
                 logistics: 'Logistyka',
                 preview: 'Podgląd',
@@ -599,6 +665,11 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
               </button>
             )}
             <div className="footer-spacer" />
+            {currentStepInfo.type === 'topology' && (
+              <button className="btn btn-secondary" onClick={handleNext} aria-label="Pomiń konfigurację topologii">
+                Pomiń ▷
+              </button>
+            )}
             {!isPreviewStep && (
               <button
                 className="btn btn-primary"
