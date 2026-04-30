@@ -3,7 +3,7 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { usePendingDrafts, getWizardLabel, getWizardPath } from '../../hooks/usePendingDrafts';
+import { usePendingDrafts, getDraftContractNumber, getWizardLabel, getWizardPath } from '../../hooks/usePendingDrafts';
 import './PendingDraftsButton.css';
 
 const pluralizeDrafts = (count: number): string => {
@@ -13,6 +13,8 @@ const pluralizeDrafts = (count: number): string => {
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'Szkice';
   return 'Szkiców';
 };
+
+const MISSING_CONTRACT_NUMBER = '(brak numeru)';
 
 const formatTimeAgo = (dateStr: string): string => {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -61,32 +63,40 @@ export const PendingDraftsButton: React.FC = () => {
         aria-expanded={open}
         title="Niedokończone kreatory"
       >
-        📝 {drafts.length} {pluralizeDrafts(drafts.length)} ⚠️
+        {drafts.length === 1
+          ? `📝 Szkic: ${getDraftContractNumber(drafts[0]) ?? MISSING_CONTRACT_NUMBER} ⚠️`
+          : `📝 ${drafts.length} ${pluralizeDrafts(drafts.length)} ⚠️`}
       </button>
 
       {open && (
         <div className="pending-drafts-dropdown" role="menu">
           <div className="pending-drafts-dropdown-header">Niedokończone kreatory</div>
           <ul className="pending-drafts-dropdown-list" role="presentation">
-            {drafts.map((draft) => (
-              <li key={draft.id} role="none">
-                <button
-                  className="pending-drafts-item"
-                  role="menuitem"
-                  onClick={() => handleItemClick(draft.wizardType)}
-                >
-                  <div className="pending-drafts-item-label">
-                    {getWizardLabel(draft.wizardType)}
-                  </div>
-                  <div className="pending-drafts-item-meta">
-                    {draft.currentStep != null && (
-                      <span>Krok {draft.currentStep}</span>
-                    )}
-                    <span>{formatTimeAgo(draft.updatedAt)}</span>
-                  </div>
-                </button>
-              </li>
-            ))}
+            {drafts.map((draft) => {
+              const contractNumber = getDraftContractNumber(draft);
+              return (
+                <li key={draft.id} role="none">
+                  <button
+                    className="pending-drafts-item"
+                    role="menuitem"
+                    onClick={() => handleItemClick(draft.wizardType)}
+                  >
+                    <div className="pending-drafts-item-label">
+                      {getWizardLabel(draft.wizardType)}
+                      {contractNumber
+                        ? ` — ${contractNumber}`
+                        : ` — ${MISSING_CONTRACT_NUMBER}`}
+                    </div>
+                    <div className="pending-drafts-item-meta">
+                      {draft.currentStep != null && (
+                        <span>Krok {draft.currentStep}</span>
+                      )}
+                      <span>{formatTimeAgo(draft.updatedAt)}</span>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
