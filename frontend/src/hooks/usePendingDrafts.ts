@@ -8,10 +8,31 @@ export interface PendingDraft {
   id: number;
   wizardType: string;
   currentStep: number | null;
+  draftData: Record<string, unknown> | null;
   metadata: Record<string, unknown> | null;
   updatedAt: string;
   expiresAt: string;
 }
+
+/**
+ * Extracts the contract number from a pending draft's data.
+ * Returns null when no contract number is available (e.g. shipment wizards).
+ */
+export const getDraftContractNumber = (draft: PendingDraft): string | null => {
+  if (!draft.draftData) return null;
+
+  // Standard contract wizard: draftData.contractNumber
+  const cn = draft.draftData.contractNumber;
+  if (typeof cn === 'string' && cn.trim()) return cn.trim();
+
+  // Extend wizard: draftData.contract.contractNumber
+  const contract = draft.draftData.contract as Record<string, unknown> | undefined;
+  if (contract && typeof contract.contractNumber === 'string' && contract.contractNumber.trim()) {
+    return contract.contractNumber.trim();
+  }
+
+  return null;
+};
 
 interface WizardConfig {
   label: string;
