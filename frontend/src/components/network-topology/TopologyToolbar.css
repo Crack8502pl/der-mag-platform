@@ -1,0 +1,21 @@
+/* TopologyToolbar.css */
+/* Standalone toolbar for Network Topology Builder — grover-theme aligned */
+
+.topology-toolbar-new {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.topology-toolbar-spacer {
+  flex: 1;
+  min-width: 8px;
+}
