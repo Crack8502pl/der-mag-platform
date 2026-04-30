@@ -138,6 +138,18 @@ export class NetworkTopologyService {
   }
 
   /**
+   * Soft-delete po ID (ustawia deletedAt)
+   */
+  async softDelete(id: string): Promise<void> {
+    const topology = await this.getById(id);
+    if (!topology) {
+      throw new Error('TOPOLOGY_NOT_FOUND');
+    }
+    topology.deletedAt = new Date();
+    await AppDataSource.getRepository(NetworkTopology).save(topology);
+  }
+
+  /**
    * Soft-delete najnowszej aktywnej wersji
    */
   async delete(contractId: number, subsystemIndex: number): Promise<void> {

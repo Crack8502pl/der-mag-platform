@@ -18,6 +18,7 @@ export class CreateNetworkTopologies20260430 implements MigrationInterface {
         "nodes"            jsonb               NOT NULL DEFAULT '[]',
         "connections"      jsonb               NOT NULL DEFAULT '[]',
         "notes"            text,
+        "deleted_at"       timestamp           NULL,
         "created_at"       timestamp           NOT NULL DEFAULT now(),
         "updated_at"       timestamp           NOT NULL DEFAULT now(),
         CONSTRAINT "PK_network_topologies_id" PRIMARY KEY ("id"),

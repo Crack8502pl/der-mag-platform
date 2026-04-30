@@ -179,6 +179,33 @@ export class NetworkTopologyController {
   };
 
   /**
+   * DELETE /api/topologies/:id
+   * Soft-delete po ID
+   */
+  softDelete = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      await networkTopologyService.softDelete(id);
+      res.json({ success: true, message: 'Topologia usunięta pomyślnie' });
+    } catch (error: any) {
+      console.error('Error in softDelete:', error);
+      if (error.message === 'TOPOLOGY_NOT_FOUND') {
+        res.status(404).json({
+          success: false,
+          error: 'TOPOLOGY_NOT_FOUND',
+          message: 'Topologia nie znaleziona',
+        });
+        return;
+      }
+      res.status(500).json({
+        success: false,
+        error: 'SERVER_ERROR',
+        message: 'Błąd serwera',
+      });
+    }
+  };
+
+  /**
    * GET /api/contracts/:contractId/subsystems/:subsystemIndex/topology/history
    * Historia wersji z paginacją
    */
@@ -209,7 +236,7 @@ export class NetworkTopologyController {
       }
 
       const result = await networkTopologyService.getHistory(contractId, subsystemIndex, page, limit);
-      res.json({ success: true, ...result });
+      res.json({ success: true, data: result });
     } catch (error: any) {
       console.error('Error in getHistory:', error);
       res.status(500).json({
