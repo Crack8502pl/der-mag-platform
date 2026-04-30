@@ -118,6 +118,11 @@
   margin: 0;
 }
 
+/* ─── Required asterisk ───────────────────────────────────── */
+.required-asterisk {
+  color: var(--error);
+}
+
 /* ─── Error text ──────────────────────────────────────────── */
 .error-text {
   font-size: 12px;

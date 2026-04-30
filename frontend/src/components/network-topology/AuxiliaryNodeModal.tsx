@@ -76,7 +76,7 @@ export const AuxiliaryNodeModal: React.FC<AuxiliaryNodeModalProps> = ({ onClose,
           {/* Label */}
           <div className="form-group">
             <label>
-              Nazwa <span style={{ color: 'var(--error)' }}>*</span>
+              Nazwa <span className="required-asterisk">*</span>
             </label>
             <input
               type="text"
@@ -94,7 +94,7 @@ export const AuxiliaryNodeModal: React.FC<AuxiliaryNodeModalProps> = ({ onClose,
           {/* Kilometraż */}
           <div className="form-group">
             <label>
-              Kilometraż <span style={{ color: 'var(--error)' }}>*</span>
+              Kilometraż <span className="required-asterisk">*</span>
             </label>
             <input
               type="number"

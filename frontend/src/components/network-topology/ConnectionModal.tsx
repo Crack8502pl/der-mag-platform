@@ -54,11 +54,6 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
       distance = parsed;
     }
 
-    if (hasAutoDistance && (distance === undefined || distance <= 0)) {
-      setDistanceError('Obliczona odległość musi być większa niż 0');
-      return;
-    }
-
     onConfirm({
       technology,
       distance,
@@ -153,8 +148,10 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                     if (distanceError) setDistanceError('');
                   }}
                 />
-                {distanceError && <span className="error-text">{distanceError}</span>}
-                <span className="connection-distance-unit">km</span>
+                {distanceError
+                  ? <span className="error-text">{distanceError}</span>
+                  : <span className="connection-distance-unit">km</span>
+                }
               </>
             )}
           </div>
