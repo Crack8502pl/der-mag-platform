@@ -11,10 +11,18 @@ import { NetworkAllocationList } from '../network/NetworkAllocationList';
 import { NetworkIPMatrix } from '../network/NetworkIPMatrix';
 import { NetworkAssignIPForm } from '../network/NetworkAssignIPForm';
 import { NetworkUtilizationChart } from '../network/NetworkUtilizationChart';
+import { NetworkTopologyEditor } from '../network/topology';
+import contractService from '../../services/contract.service';
+import type { Contract } from '../../services/contract.service';
 import '../network/NetworkPage.css';
 import '../../styles/grover-theme.css';
 
-type Tab = 'pools' | 'allocations' | 'matrix' | 'monitoring';
+type Tab = 'pools' | 'allocations' | 'matrix' | 'monitoring' | 'topology';
+
+const SUBSYSTEM_TYPES = [
+  'SMOKIP_A', 'SMOKIP_B', 'LCS', 'SKD', 'SSWIN', 'CCTV',
+  'SMW', 'SDIP', 'SUG', 'SSP', 'LAN', 'OTK', 'ZASILANIE',
+] as const;
 
 export const NetworkPage: React.FC = () => {
   const { hasPermission } = usePermissions();
@@ -40,6 +48,13 @@ export const NetworkPage: React.FC = () => {
   // Assign IP form state
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [assignAllocationId, setAssignAllocationId] = useState<number | undefined>();
+
+  // Topology tab state
+  const [topoContractId, setTopoContractId] = useState<number | null>(null);
+  const [topoSubsystemIndex, setTopoSubsystemIndex] = useState<number>(0);
+  const [topoSubsystemType, setTopoSubsystemType] = useState<string>('');
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [loadingContracts, setLoadingContracts] = useState(false);
 
   const showSuccess = (msg: string) => {
     setSuccess(msg);
@@ -69,6 +84,15 @@ export const NetworkPage: React.FC = () => {
     setLoading(true);
     Promise.all([loadPools(), loadAllocations()]).finally(() => setLoading(false));
   }, [canRead, loadPools, loadAllocations]);
+
+  useEffect(() => {
+    if (activeTab !== 'topology') return;
+    setLoadingContracts(true);
+    contractService.getContracts({ limit: 500 })
+      .then(res => setContracts(res.data))
+      .catch(() => setError('Błąd podczas pobierania listy kontraktów'))
+      .finally(() => setLoadingContracts(false));
+  }, [activeTab]);
 
   if (!canRead) {
     return (
@@ -151,6 +175,7 @@ export const NetworkPage: React.FC = () => {
     { id: 'allocations', label: '📋 Alokacje', show: true },
     { id: 'matrix', label: '🗂️ Macierz IP', show: canViewMatrix },
     { id: 'monitoring', label: '📊 Monitoring', show: true },
+    { id: 'topology', label: '🌐 Topologia', show: true },
   ];
 
   return (
@@ -262,6 +287,115 @@ export const NetworkPage: React.FC = () => {
                   <h2>Monitoring wykorzystania puli</h2>
                 </div>
                 <NetworkUtilizationChart pools={pools} allocations={allocations} />
+              </div>
+            )}
+
+            {/* TOPOLOGY TAB */}
+            {activeTab === 'topology' && (
+              <div>
+                <div className="network-section-header">
+                  <h2>Topologia sieciowa</h2>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '20px', flexWrap: 'wrap' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      Kontrakt
+                    </label>
+                    {loadingContracts ? (
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Ładowanie...</span>
+                    ) : (
+                      <select
+                        value={topoContractId ?? ''}
+                        onChange={e => {
+                          const id = e.target.value ? Number(e.target.value) : null;
+                          setTopoContractId(id);
+                          setTopoSubsystemIndex(0);
+                          setTopoSubsystemType('');
+                        }}
+                        style={{
+                          padding: '8px 12px',
+                          background: 'var(--bg-secondary)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '6px',
+                          color: 'var(--text-primary)',
+                          fontSize: '14px',
+                          minWidth: '240px',
+                        }}
+                      >
+                        <option value="">-- Wybierz kontrakt --</option>
+                        {contracts.map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.contractNumber} — {c.customName}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {topoContractId && (
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                        Podsystem (indeks)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={topoSubsystemIndex}
+                        onChange={e => setTopoSubsystemIndex(Number(e.target.value))}
+                        style={{
+                          width: '80px',
+                          padding: '8px 12px',
+                          background: 'var(--bg-secondary)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '6px',
+                          color: 'var(--text-primary)',
+                          fontSize: '14px',
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {topoContractId && (
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                        Typ podsystemu
+                      </label>
+                      <select
+                        value={topoSubsystemType}
+                        onChange={e => setTopoSubsystemType(e.target.value)}
+                        style={{
+                          padding: '8px 12px',
+                          background: 'var(--bg-secondary)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '6px',
+                          color: 'var(--text-primary)',
+                          fontSize: '14px',
+                          minWidth: '160px',
+                        }}
+                      >
+                        <option value="">-- Wybierz typ --</option>
+                        {SUBSYSTEM_TYPES.map(t => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {topoContractId && topoSubsystemType ? (
+                  <NetworkTopologyEditor
+                    contractId={topoContractId}
+                    subsystemIndex={topoSubsystemIndex}
+                    subsystemType={topoSubsystemType}
+                    readOnly={!canAllocate}
+                  />
+                ) : (
+                  <div className="network-empty-state">
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🌐</div>
+                    <p className="network-empty-text">Wybierz kontrakt i typ podsystemu aby edytować topologię</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
