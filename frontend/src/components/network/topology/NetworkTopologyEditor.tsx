@@ -246,7 +246,7 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
 
       let saved: NetworkTopology;
       if (topologyMeta) {
-        saved = await networkTopologyService.save(contractId, subsystemIndex, dto);
+        saved = await networkTopologyService.save(topologyMeta.id, dto);
       } else {
         saved = await networkTopologyService.create(dto);
       }

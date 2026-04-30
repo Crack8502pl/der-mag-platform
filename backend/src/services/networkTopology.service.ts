@@ -119,6 +119,21 @@ export class NetworkTopologyService {
   }
 
   /**
+   * Zaktualizuj topologię po UUID – tworzy nową wersję immutable na podstawie istniejącego rekordu
+   */
+  async update(id: string, dto: UpdateNetworkTopologyDto): Promise<NetworkTopology> {
+    const existing = await this.getById(id);
+    if (!existing) {
+      throw new Error('TOPOLOGY_NOT_FOUND');
+    }
+    return await this.create({
+      ...dto,
+      contractId: existing.contractId,
+      subsystemIndex: existing.subsystemIndex,
+    });
+  }
+
+  /**
    * Historia wersji z paginacją (wszystkie wersje, włącznie z soft-deleted)
    */
   async getHistory(
