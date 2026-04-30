@@ -1,0 +1,214 @@
+/* ConnectionModal.css */
+/* Styles for the ConnectionModal component */
+
+/* ─── Overlay ─────────────────────────────────────────────── */
+.connection-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  padding: 16px;
+}
+
+/* ─── Card ────────────────────────────────────────────────── */
+.connection-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+}
+
+/* ─── Header ──────────────────────────────────────────────── */
+.connection-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.connection-modal-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* ─── Connection preview ──────────────────────────────────── */
+.connection-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.connection-preview-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 6px 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.connection-preview-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.connection-preview-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.connection-preview-arrow {
+  font-size: 20px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+/* ─── Form ────────────────────────────────────────────────── */
+.connection-modal-form {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.connection-modal-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.connection-modal-form .form-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.connection-modal-form input[type="number"],
+.connection-modal-form textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  width: 100%;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.connection-modal-form input[type="number"]:focus,
+.connection-modal-form textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: var(--focus-ring-shadow);
+}
+
+.connection-modal-form textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+/* ─── Technology options ──────────────────────────────────── */
+.connection-tech-options {
+  display: flex;
+  gap: 10px;
+}
+
+.connection-tech-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  user-select: none;
+}
+
+.connection-tech-option input[type="radio"] {
+  display: none;
+}
+
+.connection-tech-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ─── Distance auto badge ─────────────────────────────────── */
+.connection-distance-auto {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.connection-distance-auto-badge {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: default;
+}
+
+.connection-distance-auto-info {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ─── Distance unit hint ──────────────────────────────────── */
+.connection-distance-unit {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ─── Error text ──────────────────────────────────────────── */
+.error-text {
+  font-size: 12px;
+  color: var(--error);
+  margin-top: 2px;
+}
+
+/* ─── Footer ──────────────────────────────────────────────── */
+.connection-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border-color);
+}

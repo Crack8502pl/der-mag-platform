@@ -1,0 +1,135 @@
+/* AuxiliaryNodeModal.css */
+/* Styles for the AuxiliaryNodeModal component */
+
+/* ─── Overlay ─────────────────────────────────────────────── */
+.auxiliary-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  padding: 16px;
+}
+
+/* ─── Card ────────────────────────────────────────────────── */
+.auxiliary-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ─── Header ──────────────────────────────────────────────── */
+.auxiliary-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.auxiliary-modal-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* ─── Form ────────────────────────────────────────────────── */
+.auxiliary-modal-form {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auxiliary-modal-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auxiliary-modal-form .form-group > label:first-child {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.auxiliary-modal-form input[type="text"],
+.auxiliary-modal-form input[type="number"] {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  width: 100%;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auxiliary-modal-form input[type="text"]:focus,
+.auxiliary-modal-form input[type="number"]:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: var(--focus-ring-shadow);
+}
+
+.auxiliary-modal-form input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ─── Checkbox row ────────────────────────────────────────── */
+.auxiliary-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auxiliary-checkbox-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary-color);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.auxiliary-checkbox-row label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  margin: 0;
+}
+
+/* ─── Helper text ─────────────────────────────────────────── */
+.auxiliary-helper-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ─── Error text ──────────────────────────────────────────── */
+.error-text {
+  font-size: 12px;
+  color: var(--error);
+  margin-top: 2px;
+}
+
+/* ─── Footer ──────────────────────────────────────────────── */
+.auxiliary-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border-color);
+}
