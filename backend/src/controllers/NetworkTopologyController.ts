@@ -79,6 +79,24 @@ export class NetworkTopologyController {
   };
 
   /**
+   * GET /api/network-topologies
+   * Pobierz najnowsze wersje wszystkich topologii (we wszystkich kontraktach)
+   */
+  getAll = async (_req: Request, res: Response): Promise<void> => {
+    try {
+      const topologies = await networkTopologyService.getAll();
+      res.json({ success: true, data: topologies });
+    } catch (error: any) {
+      console.error('Error in getAll:', error);
+      res.status(500).json({
+        success: false,
+        error: 'SERVER_ERROR',
+        message: 'Błąd serwera',
+      });
+    }
+  };
+
+  /**
    * GET /api/contracts/:contractId/topologies
    * Pobierz wszystkie topologie dla kontraktu (tylko najnowsze wersje)
    */

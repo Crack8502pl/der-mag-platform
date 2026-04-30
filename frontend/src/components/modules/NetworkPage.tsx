@@ -12,6 +12,8 @@ import { NetworkIPMatrix } from '../network/NetworkIPMatrix';
 import { NetworkAssignIPForm } from '../network/NetworkAssignIPForm';
 import { NetworkUtilizationChart } from '../network/NetworkUtilizationChart';
 import { NetworkTopologyEditor } from '../network/topology';
+import networkTopologyService from '../../services/networkTopology.service';
+import type { NetworkTopologyData } from '../../types/network-topology.types';
 import contractService from '../../services/contract.service';
 import type { Contract } from '../../services/contract.service';
 import '../network/NetworkPage.css';
@@ -55,6 +57,8 @@ export const NetworkPage: React.FC = () => {
   const [topoSubsystemType, setTopoSubsystemType] = useState<string>('');
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loadingContracts, setLoadingContracts] = useState(false);
+  const [topologies, setTopologies] = useState<NetworkTopologyData[]>([]);
+  const [loadingTopologies, setLoadingTopologies] = useState(false);
 
   const showSuccess = (msg: string) => {
     setSuccess(msg);
@@ -88,10 +92,18 @@ export const NetworkPage: React.FC = () => {
   useEffect(() => {
     if (activeTab !== 'topology') return;
     setLoadingContracts(true);
-    contractService.getContracts({ limit: 500 })
-      .then(res => setContracts(res.data))
-      .catch(() => setError('Błąd podczas pobierania listy kontraktów'))
-      .finally(() => setLoadingContracts(false));
+    setLoadingTopologies(true);
+    Promise.all([
+      contractService.getContracts({ limit: 500 })
+        .then(res => setContracts(res.data))
+        .catch(() => setError('Błąd podczas pobierania listy kontraktów')),
+      networkTopologyService.getAll()
+        .then(data => setTopologies(data))
+        .catch(() => setError('Błąd podczas pobierania topologii')),
+    ]).finally(() => {
+      setLoadingContracts(false);
+      setLoadingTopologies(false);
+    });
   }, [activeTab]);
 
   if (!canRead) {
@@ -168,6 +180,17 @@ export const NetworkPage: React.FC = () => {
       const msg = err instanceof Error ? err.message : 'Błąd podczas weryfikacji';
       setError(msg);
     }
+  };
+
+  const getContractLabel = (contractId: number) => {
+    const c = contracts.find(c => c.id === contractId);
+    return c ? `${c.contractNumber} — ${c.customName}` : `#${contractId}`;
+  };
+
+  const handleOpenTopology = (topology: NetworkTopologyData) => {
+    setTopoContractId(topology.contractId);
+    setTopoSubsystemIndex(topology.subsystemIndex);
+    setTopoSubsystemType(topology.subsystemType);
   };
 
   const tabs: { id: Tab; label: string; show: boolean }[] = [
@@ -294,7 +317,85 @@ export const NetworkPage: React.FC = () => {
             {activeTab === 'topology' && (
               <div>
                 <div className="network-section-header">
-                  <h2>Topologia sieciowa</h2>
+                  <h2>Topologie sieciowe</h2>
+                </div>
+
+                {/* List of all existing topologies */}
+                {loadingTopologies ? (
+                  <div className="network-empty-state">
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
+                    <p className="network-empty-text">Ładowanie topologii...</p>
+                  </div>
+                ) : topologies.length === 0 ? (
+                  <div className="network-empty-state">
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🌐</div>
+                    <p className="network-empty-text">Brak zapisanych topologii. Wybierz kontrakt i typ podsystemu poniżej, aby utworzyć pierwszą topologię.</p>
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto', marginBottom: '28px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
+                          <th style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: 600 }}>Nazwa</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: 600 }}>Kontrakt</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: 600 }}>Typ podsystemu</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-secondary)', fontWeight: 600 }}>Wersja</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-secondary)', fontWeight: 600 }}>Węzły</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-secondary)', fontWeight: 600 }}>Połączenia</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: 600 }}>Data utworzenia</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-secondary)', fontWeight: 600 }}>Akcje</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {topologies.map(t => (
+                          <tr
+                            key={t.id}
+                            style={{
+                              borderBottom: '1px solid var(--border-color)',
+                              background: (topoContractId === t.contractId && topoSubsystemIndex === t.subsystemIndex && topoSubsystemType === t.subsystemType)
+                                ? 'var(--bg-hover, rgba(var(--primary-rgb, 59,130,246),0.07))'
+                                : undefined,
+                            }}
+                          >
+                            <td style={{ padding: '10px 12px', color: 'var(--text-primary)', fontWeight: 500 }}>{t.name}</td>
+                            <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{getContractLabel(t.contractId)}</td>
+                            <td style={{ padding: '10px 12px' }}>
+                              <span style={{
+                                background: 'var(--primary-light, #dbeafe)',
+                                color: 'var(--primary-dark, #1d4ed8)',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                              }}>{t.subsystemType}</span>
+                            </td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-secondary)' }}>v{t.version}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-secondary)' }}>{t.nodes.length}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-secondary)' }}>{t.connections.length}</td>
+                            <td style={{ padding: '10px 12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                              {new Date(t.createdAt).toLocaleDateString('pl-PL', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                            </td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                              <button
+                                className="btn btn-secondary"
+                                style={{ padding: '4px 12px', fontSize: '13px' }}
+                                onClick={() => handleOpenTopology(t)}
+                              >
+                                Otwórz
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Divider */}
+                <div style={{ borderTop: '1px solid var(--border-color)', marginBottom: '20px', paddingTop: '20px' }}>
+                  <h3 style={{ color: 'var(--text-primary)', margin: '0 0 16px 0', fontSize: '16px' }}>
+                    {topoContractId && topoSubsystemType ? 'Edytor topologii' : 'Otwórz lub utwórz topologię'}
+                  </h3>
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '20px', flexWrap: 'wrap' }}>
@@ -389,6 +490,12 @@ export const NetworkPage: React.FC = () => {
                     subsystemIndex={topoSubsystemIndex}
                     subsystemType={topoSubsystemType}
                     readOnly={!canAllocate}
+                    onSaved={() => {
+                      // Refresh topology list after save
+                      networkTopologyService.getAll()
+                        .then(data => setTopologies(data))
+                        .catch(() => {/* silent */});
+                    }}
                   />
                 ) : (
                   <div className="network-empty-state">
