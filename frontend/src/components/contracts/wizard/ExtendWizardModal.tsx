@@ -7,6 +7,7 @@ import type { ExtendWizardModalProps, ExtendStepInfo } from './types/extend-wiza
 import { useExtendWizardState } from './hooks/useExtendWizardState';
 import contractService from '../../../services/contract.service';
 import taskRelationshipService from '../../../services/taskRelationship.service';
+import networkTopologyService from '../../../services/networkTopology.service';
 import { generateAllTasks, buildTaskNameFromDetails, resolveTaskVariant } from './utils/taskGenerator';
 
 // Extend-specific step components
@@ -267,6 +268,56 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
 
       // Save relationships (frontend-only, non-fatal)
       await saveRelationships();
+
+      // Save / update network topologies (non-fatal – topology errors must not break extend)
+      if (extendData.networkTopologies) {
+        const determineSubsystem = (subsystemIndex: number) => {
+          const newCount = extendData.newSubsystems.length;
+          if (subsystemIndex < newCount) {
+            return extendData.newSubsystems[subsystemIndex];
+          }
+          return extendData.existingSubsystems[subsystemIndex - newCount];
+        };
+
+        for (const [subsystemIndexStr, topology] of Object.entries(extendData.networkTopologies)) {
+          const subsystemIndex = parseInt(subsystemIndexStr, 10);
+          const subsystem = determineSubsystem(subsystemIndex);
+          if (!subsystem) continue;
+
+          try {
+            const existingTopology = await networkTopologyService.getByContractAndSubsystem(
+              contract.id,
+              subsystemIndex
+            );
+
+            if (existingTopology) {
+              await networkTopologyService.update(existingTopology.id, {
+                name: existingTopology.name,
+                contractId: contract.id,
+                subsystemIndex,
+                subsystemType: subsystem.type,
+                nodes: topology.nodes,
+                connections: topology.connections,
+                notes: 'Zaktualizowano podczas rozszerzania kontraktu',
+              });
+              console.log(`✅ Updated topology for subsystem ${subsystemIndex} (version++)`);
+            } else {
+              await networkTopologyService.create({
+                name: `Topologia ${subsystem.type} - ${contract.customName}`,
+                contractId: contract.id,
+                subsystemIndex,
+                subsystemType: subsystem.type,
+                nodes: topology.nodes,
+                connections: topology.connections,
+                notes: 'Utworzono podczas rozszerzania kontraktu',
+              });
+              console.log(`✅ Created new topology for subsystem ${subsystemIndex}`);
+            }
+          } catch (topoErr: unknown) {
+            console.error(`❌ Failed to save topology for subsystem ${subsystemIndex}:`, topoErr);
+          }
+        }
+      }
 
       setWizardSubmitted(true);
       handleNext(); // move to success step
