@@ -15,6 +15,7 @@ import taskService from '../../../services/task.service';
 import type { Task } from '../../../types/task.types';
 import { CompleteTaskAndCreateAssetModal } from '../../tasks/CompleteTaskAndCreateAssetModal';
 import taskRelationshipService from '../../../services/taskRelationship.service';
+import networkTopologyService from '../../../services/networkTopology.service';
 
 // Step Components
 import { BasicDataStep } from './steps/BasicDataStep';
@@ -530,7 +531,34 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         // Save task relationships (create mode) – map wizard keys to task numbers from response
         const createdSubsystems = response.subsystems || [];
         await saveRelationshipsCreateMode(createdSubsystems);
-        
+
+        // Save network topologies for SMOKIP subsystems
+        if (wizardData.networkTopologies && Object.keys(wizardData.networkTopologies).length > 0) {
+          const contractId = response.id;
+          for (const [subsystemIndexStr, topology] of Object.entries(wizardData.networkTopologies)) {
+            const subsystemIndex = parseInt(subsystemIndexStr, 10);
+            const subsystem = wizardData.subsystems[subsystemIndex];
+            if (!subsystem) {
+              console.warn(`⚠️ Subsystem at index ${subsystemIndex} not found, skipping topology save`);
+              continue;
+            }
+            try {
+              await networkTopologyService.create({
+                name: `Topologia ${subsystem.type} - ${wizardData.customName}`,
+                contractId: contractId,
+                subsystemIndex: subsystemIndex,
+                subsystemType: subsystem.type,
+                nodes: topology.nodes,
+                connections: topology.connections,
+                notes: 'Utworzono automatycznie w kreatorze kontraktu'
+              });
+              console.log(`✅ Saved topology for ${subsystem.type} (subsystem ${subsystemIndex})`);
+            } catch (topoError) {
+              console.error(`❌ Failed to save topology for subsystem ${subsystemIndex}:`, topoError);
+            }
+          }
+        }
+
         // Store created contract ID and full contract for the shipping step
         if (response.id) {
           setCreatedContractId(response.id);
