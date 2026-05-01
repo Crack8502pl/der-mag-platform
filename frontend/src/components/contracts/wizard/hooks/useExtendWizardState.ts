@@ -10,6 +10,8 @@ import type { ExtendWizardData, ExistingSubsystem } from '../types/extend-wizard
 import type { SubsystemWizardData, TaskDetail, InfrastructureData, TaskInfrastructure, LogisticsData, WizardTaskRelationships } from '../types/wizard.types';
 import { formatKilometrazDisplay, cleanKilometrazInput } from '../utils/validation';
 import taskRelationshipService from '../../../../services/taskRelationship.service';
+import networkTopologyService from '../../../../services/networkTopology.service';
+import type { TopologyNode, TopologyConnection } from '../../../../types/network-topology.types';
 
 interface UseExtendWizardStateProps {
   contractId: number;
@@ -163,7 +165,26 @@ export const useExtendWizardState = ({
         }
       }
 
-      setExtendData(prev => ({ ...prev, existingSubsystems, taskRelationships, existingTaskRelationships: structuredClone(taskRelationships) }));
+      // Load existing network topologies (non-fatal – wizard works fine even without them)
+      const networkTopologies: Record<number, { nodes: TopologyNode[]; connections: TopologyConnection[] }> = {};
+      try {
+        const topologiesResponse = await networkTopologyService.getAllByContract(contractId);
+        if (topologiesResponse.length > 0) {
+          topologiesResponse.forEach(topology => {
+            networkTopologies[topology.subsystemIndex] = {
+              nodes: topology.nodes,
+              connections: topology.connections
+            };
+          });
+          console.log(`✅ Loaded ${topologiesResponse.length} topologies for contract ${contractId}`);
+        } else {
+          console.log(`ℹ️ No topologies found for contract ${contractId} (this is OK)`);
+        }
+      } catch (topologyError) {
+        console.warn('⚠️ Failed to load topologies (non-critical):', topologyError);
+      }
+
+      setExtendData(prev => ({ ...prev, existingSubsystems, taskRelationships, existingTaskRelationships: structuredClone(taskRelationships), networkTopologies }));
     } catch (err) {
       console.error('[useExtendWizardState] Load error:', err);
       setError('Nie udało się wczytać danych kontraktu');
