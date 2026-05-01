@@ -23,6 +23,8 @@ export interface ExtendWizardData {
   existingSubsystems: ExistingSubsystem[];
   newSubsystems: SubsystemWizardData[];
   taskRelationships?: WizardTaskRelationships;
+  /** Original relationships loaded from backend – preserved to detect edits */
+  existingTaskRelationships?: WizardTaskRelationships;
   infrastructure?: InfrastructureData;
   logistics?: Partial<LogisticsData>;
   networkTopologies?: Record<number, { nodes: TopologyNode[]; connections: TopologyConnection[] }>;

@@ -126,6 +126,12 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
   onUpdateExtendData,
 }) => {
   const [activeTask, setActiveTask] = useState<FlatTask | null>(null);
+  const [isEditingExisting, setIsEditingExisting] = useState(false);
+  const [showWarningModal, setShowWarningModal] = useState(false);
+
+  // No-op handlers used in read-only DndContext (DndContext is required by
+  // useDroppable inside HierarchyTreeView, even when all interactions are disabled)
+  const noop = () => {};
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -442,9 +448,96 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
     );
   }
 
+  // ── Read-only mode (extend mode, existing relationships not yet unlocked) ───
+
+  const hasExistingRelationships =
+    extendMode &&
+    extendData?.existingTaskRelationships &&
+    Object.keys(extendData.existingTaskRelationships).length > 0;
+
+  if (extendMode && hasExistingRelationships && !isEditingExisting) {
+    return (
+      <div className="wizard-step-content relationships-step">
+        <h3>🌳 Hierarchia zadań</h3>
+        <p className="info-text">
+          Istniejąca hierarchia zadań w kontrakcie. Kliknij „🔓 Edytuj hierarchię", aby wprowadzić zmiany.
+        </p>
+
+        {/* Read-only tree view – DndContext required by useDroppable inside HierarchyTreeView */}
+        <DndContext sensors={sensors} onDragStart={noop} onDragEnd={noop}>
+          <div className="rel-panel">
+            <h4>🌳 Aktualna hierarchia ({parentNodes.length} węzły nadrzędne)</h4>
+            <div className="hierarchy-panel">
+              <HierarchyTreeView
+                parentNodes={parentNodes}
+                allTasks={childTasks}
+                relationships={relationships}
+                onRemoveChild={noop}
+                readOnly={true}
+              />
+            </div>
+          </div>
+        </DndContext>
+
+        {/* Edit button */}
+        <div className="rel-edit-action">
+          <button
+            className="btn btn-warning"
+            onClick={() => setShowWarningModal(true)}
+          >
+            🔓 Edytuj hierarchię
+          </button>
+        </div>
+
+        {/* Warning modal */}
+        {showWarningModal && (
+          <div className="rel-warning-overlay" onClick={() => setShowWarningModal(false)}>
+            <div className="rel-warning-modal" onClick={(e) => e.stopPropagation()}>
+              <h3>⚠️ Ostrzeżenie</h3>
+              <p>
+                Zmiana hierarchii może spowodować błędy w istniejących zależnościach między zadaniami.
+                Operacja ta może wpłynąć na:
+              </p>
+              <ul>
+                <li>Istniejące zależności logistyczne</li>
+                <li>Powiązania LCS → SKP → Przejazdy</li>
+                <li>Konfigurację nastawni</li>
+              </ul>
+              <p>Czy na pewno chcesz kontynuować?</p>
+              <div className="rel-warning-modal-actions">
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setShowWarningModal(false)}
+                >
+                  Anuluj
+                </button>
+                <button
+                  className="btn btn-danger"
+                  onClick={() => {
+                    setIsEditingExisting(true);
+                    setShowWarningModal(false);
+                  }}
+                >
+                  Tak, edytuj
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="wizard-step-content relationships-step">
       <h3>🌳 Hierarchia zadań</h3>
+
+      {isEditingExisting && (
+        <div className="rel-edit-badge">
+          ⚠️ Edytujesz istniejące zależności. Upewnij się, że nie powodują konfliktu.
+        </div>
+      )}
+
       <p className="info-text">
         Przeciągnij zadania podrzędne (Nastawnia, SKP, Przejazdy) do węzłów nadrzędnych (LCS lub Nastawnia),
         aby określić hierarchię. Nastawnia może być zarówno węzłem nadrzędnym jak i podrzędnym LCS.
