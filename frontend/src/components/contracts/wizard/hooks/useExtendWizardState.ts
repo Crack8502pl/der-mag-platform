@@ -163,7 +163,7 @@ export const useExtendWizardState = ({
         }
       }
 
-      setExtendData(prev => ({ ...prev, existingSubsystems, taskRelationships }));
+      setExtendData(prev => ({ ...prev, existingSubsystems, taskRelationships, existingTaskRelationships: { ...taskRelationships } }));
     } catch (err) {
       console.error('[useExtendWizardState] Load error:', err);
       setError('Nie udało się wczytać danych kontraktu');

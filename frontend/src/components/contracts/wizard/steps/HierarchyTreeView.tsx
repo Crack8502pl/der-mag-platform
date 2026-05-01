@@ -39,6 +39,8 @@ interface HierarchyTreeViewProps {
   allTasks: HierarchyTask[];
   relationships: WizardTaskRelationships;
   onRemoveChild: (parentWizardId: string, childKey: string) => void;
+  /** When true, disables all drag-and-drop targets and hides remove buttons */
+  readOnly?: boolean;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -60,24 +62,25 @@ function getTaskIcon(taskType: string): string {
 interface TreeNodeComponentProps {
   node: TreeNode;
   onRemoveChild: (parentWizardId: string, childKey: string) => void;
+  readOnly?: boolean;
 }
 
-const TreeNodeComponent: React.FC<TreeNodeComponentProps> = ({ node, onRemoveChild }) => {
+const TreeNodeComponent: React.FC<TreeNodeComponentProps> = ({ node, onRemoveChild, readOnly }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: `parent-${node.taskWizardId}`,
-    disabled: !node.isDroppable,
+    disabled: readOnly || !node.isDroppable,
   });
 
   return (
     <div className={`tree-node level-${node.level}`}>
       <div
-        ref={node.isDroppable ? setNodeRef : undefined}
-        className={`tree-node-content${isOver ? ' drop-over' : ''}`}
+        ref={node.isDroppable && !readOnly ? setNodeRef : undefined}
+        className={`tree-node-content${isOver && !readOnly ? ' drop-over' : ''}`}
       >
         <div className="tree-node-header">
           <span className="tree-node-icon">{getTaskIcon(node.taskType)}</span>
           <span className="tree-node-label">{node.label}</span>
-          {node.level > 0 && node.parentWizardId && (
+          {!readOnly && node.level > 0 && node.parentWizardId && (
             <button
               className="tree-node-remove"
               onClick={() => onRemoveChild(node.parentWizardId!, node.key)}
@@ -89,7 +92,7 @@ const TreeNodeComponent: React.FC<TreeNodeComponentProps> = ({ node, onRemoveChi
           )}
         </div>
 
-        {node.isDroppable && node.children.length === 0 && (
+        {!readOnly && node.isDroppable && node.children.length === 0 && (
           <div className="tree-node-drop-zone">
             ↓ Upuść tutaj zadania podrzędne
           </div>
@@ -103,6 +106,7 @@ const TreeNodeComponent: React.FC<TreeNodeComponentProps> = ({ node, onRemoveChi
               key={child.key}
               node={child}
               onRemoveChild={onRemoveChild}
+              readOnly={readOnly}
             />
           ))}
         </div>
@@ -118,6 +122,7 @@ export const HierarchyTreeView: React.FC<HierarchyTreeViewProps> = ({
   allTasks,
   relationships,
   onRemoveChild,
+  readOnly,
 }) => {
   const buildTree = (): TreeNode[] => {
     const roots: TreeNode[] = [];
@@ -205,6 +210,7 @@ export const HierarchyTreeView: React.FC<HierarchyTreeViewProps> = ({
           key={node.key}
           node={node}
           onRemoveChild={onRemoveChild}
+          readOnly={readOnly}
         />
       ))}
     </div>
