@@ -129,6 +129,10 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
   const [isEditingExisting, setIsEditingExisting] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState(false);
 
+  // No-op handlers used in read-only DndContext (DndContext is required by
+  // useDroppable inside HierarchyTreeView, even when all interactions are disabled)
+  const noop = () => {};
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
@@ -460,7 +464,7 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
         </p>
 
         {/* Read-only tree view – DndContext required by useDroppable inside HierarchyTreeView */}
-        <DndContext sensors={sensors} onDragStart={() => {}} onDragEnd={() => {}}>
+        <DndContext sensors={sensors} onDragStart={noop} onDragEnd={noop}>
           <div className="rel-panel">
             <h4>🌳 Aktualna hierarchia ({parentNodes.length} węzły nadrzędne)</h4>
             <div className="hierarchy-panel">
@@ -468,7 +472,7 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
                 parentNodes={parentNodes}
                 allTasks={childTasks}
                 relationships={relationships}
-                onRemoveChild={() => {}}
+                onRemoveChild={noop}
                 readOnly={true}
               />
             </div>
