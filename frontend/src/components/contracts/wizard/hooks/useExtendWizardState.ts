@@ -166,15 +166,21 @@ export const useExtendWizardState = ({
       }
 
       // Load existing network topologies (non-fatal – wizard works fine even without them)
-      const networkTopologies: Record<number, { nodes: TopologyNode[]; connections: TopologyConnection[] }> = {};
+      const networkTopologies: Record<number | string, { nodes: TopologyNode[]; connections: TopologyConnection[] }> = {};
       try {
         const topologiesResponse = await networkTopologyService.getAllByContract(contractId);
         if (topologiesResponse.length > 0) {
           topologiesResponse.forEach(topology => {
-            networkTopologies[topology.subsystemIndex] = {
-              nodes: topology.nodes,
-              connections: topology.connections
-            };
+            // Match topology to subsystem by position index.
+            // subsystemIndex stored in DB equals the subsystem's creation order, which
+            // matches the position in existingSubsystems (ordered by createdAt ASC).
+            const subsystem = existingSubsystems[topology.subsystemIndex];
+            if (subsystem) {
+              networkTopologies[`subsystem-${subsystem.id}`] = {
+                nodes: topology.nodes,
+                connections: topology.connections
+              };
+            }
           });
           console.log(`✅ Loaded ${topologiesResponse.length} topologies for contract ${contractId}`);
         } else {

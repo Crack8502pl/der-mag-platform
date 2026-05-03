@@ -27,7 +27,7 @@ export interface ExtendWizardData {
   existingTaskRelationships?: WizardTaskRelationships;
   infrastructure?: InfrastructureData;
   logistics?: Partial<LogisticsData>;
-  networkTopologies?: Record<number, { nodes: TopologyNode[]; connections: TopologyConnection[] }>;
+  networkTopologies?: Record<number | string, { nodes: TopologyNode[]; connections: TopologyConnection[] }>;
 }
 
 export interface ExtendStepInfo {

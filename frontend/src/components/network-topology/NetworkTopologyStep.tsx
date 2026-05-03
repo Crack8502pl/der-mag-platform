@@ -55,10 +55,23 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const dragRef = useRef<DragState | null>(null);
 
+  /** Returns the topology storage key for the current subsystem.
+   * Existing subsystems in ExtendWizard carry a subsystemId – use a stable string key
+   * to avoid index conflicts when new subsystems are prepended to the list.
+   * New subsystems and CreateWizard use the numeric subsystemIndex. */
+  const getTopologyKey = useCallback((): number | string => {
+    const subsystem = wizardData.subsystems[subsystemIndex];
+    return subsystem?.subsystemId !== undefined
+      ? `subsystem-${subsystem.subsystemId}`
+      : subsystemIndex;
+  }, [subsystemIndex, wizardData.subsystems]);
+
   // Initialize nodes from wizardData on mount
   useEffect(() => {
+    const topologyKey = getTopologyKey();
+
     // Load existing topology data if available
-    const existing = wizardData.networkTopologies?.[subsystemIndex];
+    const existing = wizardData.networkTopologies?.[topologyKey];
     if (existing && existing.nodes.length > 0) {
       setNodes(existing.nodes);
       setConnections(existing.connections);
@@ -93,13 +106,13 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     onUpdate({
       networkTopologies: {
         ...(wizardData.networkTopologies ?? {}),
-        [subsystemIndex]: { nodes, connections },
+        [getTopologyKey()]: { nodes, connections },
       },
     });
     setIsDirty(false);
     setSuccessMsg('Topologia zapisana w kreatorze');
     setTimeout(() => setSuccessMsg(null), 3000);
-  }, [nodes, connections, subsystemIndex, wizardData.networkTopologies, onUpdate]);
+  }, [nodes, connections, getTopologyKey, wizardData.networkTopologies, onUpdate]);
 
   // Auto-layout nodes in a grid
   const handleAutoLayout = useCallback(() => {
