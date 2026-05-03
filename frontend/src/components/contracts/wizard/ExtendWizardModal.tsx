@@ -124,15 +124,23 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
       type: SubsystemWizardData['type'];
       taskDetails: TaskDetail[];
       params: SubsystemWizardData['params'];
+      subsystemId?: number;
     }> = [];
+    // New SMOKIP subsystems (no DB ID yet)
     extendData.newSubsystems.forEach((sub) => {
       if (shouldShowTopologyStep(sub.type)) {
         result.push({ type: sub.type, taskDetails: sub.taskDetails ?? [], params: sub.params });
       }
     });
+    // Existing SMOKIP subsystems with new tasks (have DB ID)
     extendData.existingSubsystems.forEach((sub) => {
       if (shouldShowTopologyStep(sub.type) && sub.addingNewTasks) {
-        result.push({ type: sub.type, taskDetails: sub.newTasks, params: {} });
+        result.push({
+          type: sub.type,
+          taskDetails: [...sub.existingTasks, ...sub.newTasks],
+          params: {},
+          subsystemId: sub.id,
+        });
       }
     });
     return result;
@@ -271,50 +279,68 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
 
       // Save / update network topologies (non-fatal – topology errors must not break extend)
       if (extendData.networkTopologies) {
-        const determineSubsystem = (subsystemIndex: number) => {
-          const newCount = extendData.newSubsystems.length;
-          if (subsystemIndex < newCount) {
-            return extendData.newSubsystems[subsystemIndex];
-          }
-          return extendData.existingSubsystems[subsystemIndex - newCount];
-        };
+        // New SMOKIP subsystems in order (for computing their DB subsystemIndex)
+        const newSMOKIPSubs = extendData.newSubsystems.filter(s => shouldShowTopologyStep(s.type));
 
-        for (const [subsystemIndexStr, topology] of Object.entries(extendData.networkTopologies)) {
-          const subsystemIndex = parseInt(subsystemIndexStr, 10);
-          const subsystem = determineSubsystem(subsystemIndex);
-          if (!subsystem) continue;
-
+        for (const [key, topology] of Object.entries(extendData.networkTopologies)) {
           try {
-            const existingTopology = await networkTopologyService.getByContractAndSubsystem(
-              contract.id,
-              subsystemIndex
-            );
+            if (key.startsWith('subsystem-')) {
+              // Existing subsystem – key = 'subsystem-{id}'
+              const subsystemId = parseInt(key.replace('subsystem-', ''), 10);
+              const existingSubsystem = extendData.existingSubsystems.find(s => s.id === subsystemId);
+              if (!existingSubsystem) continue;
+              // DB subsystemIndex = position in existingSubsystems (ordered by creation)
+              const dbSubsystemIndex = extendData.existingSubsystems.indexOf(existingSubsystem);
 
-            if (existingTopology) {
-              await networkTopologyService.update(existingTopology.id, {
-                name: existingTopology.name,
-                contractId: contract.id,
-                subsystemIndex,
-                subsystemType: subsystem.type,
-                nodes: topology.nodes,
-                connections: topology.connections,
-                notes: 'Zaktualizowano podczas rozszerzania kontraktu',
-              });
-              console.log(`✅ Updated topology for subsystem ${subsystemIndex} (version++)`);
+              const existingTopology = await networkTopologyService.getByContractAndSubsystem(
+                contract.id,
+                dbSubsystemIndex
+              );
+              if (existingTopology) {
+                await networkTopologyService.update(existingTopology.id, {
+                  name: existingTopology.name,
+                  contractId: contract.id,
+                  subsystemIndex: dbSubsystemIndex,
+                  subsystemType: existingSubsystem.type,
+                  nodes: topology.nodes,
+                  connections: topology.connections,
+                  notes: 'Zaktualizowano podczas rozszerzania kontraktu',
+                });
+                console.log(`✅ Updated topology for existing subsystem ${subsystemId} (dbIndex=${dbSubsystemIndex})`);
+              } else {
+                await networkTopologyService.create({
+                  name: `Topologia ${existingSubsystem.type} - ${contract.customName}`,
+                  contractId: contract.id,
+                  subsystemIndex: dbSubsystemIndex,
+                  subsystemType: existingSubsystem.type,
+                  nodes: topology.nodes,
+                  connections: topology.connections,
+                  notes: 'Utworzono podczas rozszerzania kontraktu',
+                });
+                console.log(`✅ Created topology for existing subsystem ${subsystemId} (dbIndex=${dbSubsystemIndex})`);
+              }
             } else {
+              // New subsystem – numeric key = position in new SMOKIP subsystems list
+              const topoIdx = parseInt(key, 10);
+              const newSub = newSMOKIPSubs[topoIdx];
+              if (!newSub) continue;
+              // DB subsystemIndex for new subsystem comes after all existing subsystems
+              const newSubOrigIdx = extendData.newSubsystems.indexOf(newSub);
+              const dbSubsystemIndex = extendData.existingSubsystems.length + newSubOrigIdx;
+
               await networkTopologyService.create({
-                name: `Topologia ${subsystem.type} - ${contract.customName}`,
+                name: `Topologia ${newSub.type} - ${contract.customName}`,
                 contractId: contract.id,
-                subsystemIndex,
-                subsystemType: subsystem.type,
+                subsystemIndex: dbSubsystemIndex,
+                subsystemType: newSub.type,
                 nodes: topology.nodes,
                 connections: topology.connections,
                 notes: 'Utworzono podczas rozszerzania kontraktu',
               });
-              console.log(`✅ Created new topology for subsystem ${subsystemIndex}`);
+              console.log(`✅ Created topology for new subsystem index ${topoIdx} (dbIndex=${dbSubsystemIndex})`);
             }
           } catch (topoErr: unknown) {
-            console.error(`❌ Failed to save topology for subsystem ${subsystemIndex}:`, topoErr);
+            console.error(`❌ Failed to save topology for key ${key}:`, topoErr);
           }
         }
       }
@@ -566,6 +592,7 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
           type: s.type,
           params: s.params,
           taskDetails: s.taskDetails,
+          ...(s.subsystemId !== undefined ? { subsystemId: s.subsystemId } : {}),
         })) as SubsystemWizardData[],
         networkTopologies: extendData.networkTopologies,
       };
@@ -575,7 +602,7 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
           onUpdate={(updates) => {
             if (updates.networkTopologies) {
               updateExtendData({
-                networkTopologies: updates.networkTopologies as Record<number, { nodes: TopologyNode[]; connections: TopologyConnection[] }>,
+                networkTopologies: updates.networkTopologies as Record<number | string, { nodes: TopologyNode[]; connections: TopologyConnection[] }>,
               });
             }
           }}

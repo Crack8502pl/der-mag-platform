@@ -57,8 +57,15 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
 
   // Initialize nodes from wizardData on mount
   useEffect(() => {
+    // Determine topology key: use subsystemId-based key for existing subsystems (ExtendWizard),
+    // fall back to subsystemIndex for new subsystems (CreateWizard / new ExtendWizard subsystems)
+    const subsystem = wizardData.subsystems[subsystemIndex];
+    const topologyKey = (subsystem as any)?.subsystemId !== undefined
+      ? `subsystem-${(subsystem as any).subsystemId}`
+      : subsystemIndex;
+
     // Load existing topology data if available
-    const existing = wizardData.networkTopologies?.[subsystemIndex];
+    const existing = wizardData.networkTopologies?.[topologyKey];
     if (existing && existing.nodes.length > 0) {
       setNodes(existing.nodes);
       setConnections(existing.connections);
@@ -66,7 +73,6 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     }
 
     // Initialize nodes from subsystem taskDetails
-    const subsystem = wizardData.subsystems[subsystemIndex];
     const taskDetails = subsystem?.taskDetails ?? [];
     const initialNodes: TopologyNode[] = taskDetails.map((task, idx) => ({
       id: task.taskWizardId ?? crypto.randomUUID(),
@@ -90,16 +96,20 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
 
   // Save topology to wizardData (no API calls)
   const handleSave = useCallback(() => {
+    const subsystem = wizardData.subsystems[subsystemIndex];
+    const topologyKey = (subsystem as any)?.subsystemId !== undefined
+      ? `subsystem-${(subsystem as any).subsystemId}`
+      : subsystemIndex;
     onUpdate({
       networkTopologies: {
         ...(wizardData.networkTopologies ?? {}),
-        [subsystemIndex]: { nodes, connections },
+        [topologyKey]: { nodes, connections },
       },
     });
     setIsDirty(false);
     setSuccessMsg('Topologia zapisana w kreatorze');
     setTimeout(() => setSuccessMsg(null), 3000);
-  }, [nodes, connections, subsystemIndex, wizardData.networkTopologies, onUpdate]);
+  }, [nodes, connections, subsystemIndex, wizardData.subsystems, wizardData.networkTopologies, onUpdate]);
 
   // Auto-layout nodes in a grid
   const handleAutoLayout = useCallback(() => {

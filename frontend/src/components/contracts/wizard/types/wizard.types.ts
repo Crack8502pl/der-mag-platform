@@ -127,8 +127,8 @@ export interface WizardData {
   logistics?: Partial<LogisticsData>;
   /** Task relationships: maps LCS taskWizardId to an array of child task keys */
   taskRelationships?: WizardTaskRelationships;
-  /** Network topology data per subsystem (indexed by subsystemIndex) */
-  networkTopologies?: Record<number, { nodes: TopologyNode[]; connections: TopologyConnection[] }>;
+  /** Network topology data per subsystem (indexed by subsystemIndex for new, or subsystem-{id} for existing) */
+  networkTopologies?: Record<number | string, { nodes: TopologyNode[]; connections: TopologyConnection[] }>;
 }
 
 export interface GeneratedTask {
