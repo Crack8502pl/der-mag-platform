@@ -4,7 +4,7 @@
 // Uses @dnd-kit/core for drag-and-drop interaction.
 // Also supports extendMode for the extend wizard.
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -136,6 +136,31 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
+
+  // Check whether there are new tasks in SMOKIP subsystems that need to be assigned
+  const hasNewSMOKIPTasks = useMemo(() => {
+    if (!extendMode || !extendData) return false;
+
+    const hasNewInExisting = extendData.existingSubsystems.some(
+      s => (s.type === 'SMOKIP_A' || s.type === 'SMOKIP_B') &&
+           s.addingNewTasks &&
+           s.newTasks.some(t => CHILD_TASK_TYPES.includes(t.taskType))
+    );
+
+    const hasNewSubsystems = extendData.newSubsystems.some(
+      s => (s.type === 'SMOKIP_A' || s.type === 'SMOKIP_B') &&
+           (s.taskDetails ?? []).some(t => CHILD_TASK_TYPES.includes(t.taskType))
+    );
+
+    return hasNewInExisting || hasNewSubsystems;
+  }, [extendMode, extendData]);
+
+  // Auto-unlock edit mode when there are new child tasks to assign to the hierarchy
+  useEffect(() => {
+    if (hasNewSMOKIPTasks) {
+      setIsEditingExisting(true);
+    }
+  }, [hasNewSMOKIPTasks]);
 
   // ── Build flat lists of parent nodes and eligible child tasks ───────────────
 
