@@ -45,7 +45,7 @@
     "tough-cookie": "^5.1.0",
     "micromatch": "^4.0.8",
     "glob": "^11.0.0",
-    "uuid": "^13.0.0"
+    "uuid": "^14.0.0"
   },
   "keywords": [
     "der-mag",
@@ -90,7 +90,7 @@
     "sharp": "^0.33.1",
     "typeorm": "^0.3.28",
     "typescript": "^5.9.3",
-    "uuid": "^13.0.0",
+    "uuid": "^14.0.0",
     "web-push": "^3.6.7",
     "webdav-server": "^2.6.2",
     "winston": "^3.19.0",
