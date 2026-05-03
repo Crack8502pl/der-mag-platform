@@ -158,6 +158,19 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                   </div>
                 </div>
                 <div className="form-group">
+                  <label>Linia kolejowa <span className="text-muted">(opcjonalnie)</span></label>
+                  <input
+                    type="text"
+                    placeholder="np. LK-1"
+                    value={task.liniaKolejowa || ''}
+                    onChange={(e) => {
+                      const linia = e.target.value;
+                      const newNazwa = generateTaskName('PRZEJAZD_KAT_A', { ...task, liniaKolejowa: linia }, linia);
+                      onUpdateTask(subsystem.id, idx, { liniaKolejowa: linia, nazwa: newNazwa });
+                    }}
+                  />
+                </div>
+                <div className="form-group">
                   <label>Kilometraż <span className="required">*</span></label>
                   <input
                     type="text"
@@ -196,6 +209,19 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                   </div>
                 </div>
                 <div className="form-group">
+                  <label>Linia kolejowa <span className="text-muted">(opcjonalnie)</span></label>
+                  <input
+                    type="text"
+                    placeholder="np. LK-1"
+                    value={task.liniaKolejowa || ''}
+                    onChange={(e) => {
+                      const linia = e.target.value;
+                      const newNazwa = generateTaskName('PRZEJAZD_KAT_B', { ...task, liniaKolejowa: linia }, linia);
+                      onUpdateTask(subsystem.id, idx, { liniaKolejowa: linia, nazwa: newNazwa });
+                    }}
+                  />
+                </div>
+                <div className="form-group">
                   <label>Kilometraż <span className="required">*</span></label>
                   <input
                     type="text"
@@ -219,6 +245,19 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                   </div>
                 </div>
                 <div className="form-group">
+                  <label>Linia kolejowa <span className="text-muted">(opcjonalnie)</span></label>
+                  <input
+                    type="text"
+                    placeholder="np. LK-1"
+                    value={task.liniaKolejowa || ''}
+                    onChange={(e) => {
+                      const linia = e.target.value;
+                      const newNazwa = generateTaskName('SKP', { ...task, liniaKolejowa: linia }, linia);
+                      onUpdateTask(subsystem.id, idx, { liniaKolejowa: linia, nazwa: newNazwa });
+                    }}
+                  />
+                </div>
+                <div className="form-group">
                   <label>Kilometraż <span className="required">*</span></label>
                   <input
                     type="text"
@@ -240,6 +279,19 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                   <div className="name-preview">
                     {generateTaskName('NASTAWNIA', task, liniaKolejowa)}
                   </div>
+                </div>
+                <div className="form-group">
+                  <label>Linia kolejowa <span className="text-muted">(opcjonalnie)</span></label>
+                  <input
+                    type="text"
+                    placeholder="np. LK-1"
+                    value={task.liniaKolejowa || ''}
+                    onChange={(e) => {
+                      const linia = e.target.value;
+                      const newNazwa = generateTaskName('NASTAWNIA', { ...task, liniaKolejowa: linia }, linia);
+                      onUpdateTask(subsystem.id, idx, { liniaKolejowa: linia, nazwa: newNazwa });
+                    }}
+                  />
                 </div>
                 <div className="form-group">
                   <label>Nazwa Nastawni <span className="text-muted">(opcjonalnie)</span></label>
@@ -293,6 +345,19 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                   <div className="name-preview">
                     {generateTaskName('LCS', task, liniaKolejowa)}
                   </div>
+                </div>
+                <div className="form-group">
+                  <label>Linia kolejowa <span className="text-muted">(opcjonalnie)</span></label>
+                  <input
+                    type="text"
+                    placeholder="np. LK-1"
+                    value={task.liniaKolejowa || ''}
+                    onChange={(e) => {
+                      const linia = e.target.value;
+                      const newNazwa = generateTaskName('LCS', { ...task, liniaKolejowa: linia }, linia);
+                      onUpdateTask(subsystem.id, idx, { liniaKolejowa: linia, nazwa: newNazwa });
+                    }}
+                  />
                 </div>
                 <div className="form-group">
                   <label>Nazwa LCS <span className="text-muted">(opcjonalnie)</span></label>

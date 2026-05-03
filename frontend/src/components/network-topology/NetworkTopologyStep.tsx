@@ -8,6 +8,7 @@ import type {
   ConnectionTechnology,
 } from '../../types/network-topology.types';
 import type { WizardData } from '../contracts/wizard/types/wizard.types';
+import { parseWizardKilometraz } from '../contracts/wizard/utils/fiberTaskUtils';
 import { TopologyToolbar } from './TopologyToolbar';
 import { TopologySidebar } from './TopologySidebar';
 import { ConnectionModal } from './ConnectionModal';
@@ -91,7 +92,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
       },
       data: {
         taskId: undefined,
-        km: task.kilometraz ? parseFloat(task.kilometraz) : undefined,
+        km: parseWizardKilometraz(task.kilometraz),
       },
     }));
     setNodes(initialNodes);
@@ -281,7 +282,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     (t, i) => ({
       id: i,
       name: t.nazwa || t.taskType || `Zadanie ${i + 1}`,
-      km: t.kilometraz ? parseFloat(t.kilometraz) : undefined,
+      km: parseWizardKilometraz(t.kilometraz),
     })
   );
 

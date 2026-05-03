@@ -91,7 +91,7 @@ const DraggableChip: React.FC<DraggableChipProps> = ({ task, isAssigned }) => {
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={`task-chip${isDragging ? ' dragging' : ''}${isAssigned ? ' assigned' : ''}${task.isExisting ? ' existing-readonly' : ''}`}
+      className={`task-chip${isDragging ? ' dragging' : ''}${isAssigned && !task.isExisting ? ' assigned' : ''}${task.isExisting ? ' existing-readonly' : ''}`}
       title={
         task.isExisting
           ? 'Istniejące zadanie (tylko do odczytu – nie można przeciągnąć)'
