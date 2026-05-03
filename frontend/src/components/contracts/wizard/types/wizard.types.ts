@@ -52,6 +52,8 @@ export interface SubsystemWizardData {
   ipPool?: string;
   smwData?: SmwWizardData;
   smwStep?: number;
+  /** DB subsystem ID for existing subsystems in ExtendWizard – used to key topology data */
+  subsystemId?: number;
 }
 
 /**

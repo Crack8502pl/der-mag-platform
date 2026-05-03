@@ -592,7 +592,7 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
           type: s.type,
           params: s.params,
           taskDetails: s.taskDetails,
-          ...(s.subsystemId !== undefined ? { subsystemId: s.subsystemId } : {}),
+          subsystemId: s.subsystemId,
         })) as SubsystemWizardData[],
         networkTopologies: extendData.networkTopologies,
       };
