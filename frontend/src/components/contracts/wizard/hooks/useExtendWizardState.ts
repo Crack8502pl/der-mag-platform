@@ -155,9 +155,13 @@ export const useExtendWizardState = ({
               childTaskKeys: rel.children
                 .map(child => {
                   const childTask = sub.existingTasks.find(t => t.taskNumber === child.childTaskNumber);
-                  return childTask?.taskWizardId ?? `existing-${child.childTaskNumber}`;
+                  if (!childTask) return null;
+
+                  // Use the same key format as TaskRelationshipsStep to ensure keys match
+                  const childIdx = sub.existingTasks.indexOf(childTask);
+                  return childTask.taskWizardId ?? `existing-${sub.id}-${childIdx}`;
                 })
-                .filter(Boolean)
+                .filter((k): k is string => !!k)
             };
           }
         } catch (err) {

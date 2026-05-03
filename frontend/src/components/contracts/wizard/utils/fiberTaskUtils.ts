@@ -5,12 +5,26 @@ import type { TaskDetail } from '../types/wizard.types';
 import type { FiberEndpoint } from '../../../../types/fiber.types';
 
 /**
- * Parse a wizard kilometraż string in "XXX,XXX" format (e.g. "123,456") to a
- * numeric km value (e.g. 123.456). Returns undefined for falsy / non-numeric input.
+ * Parse a wizard kilometraż string to a numeric km value.
+ * Handles PKP formats:
+ *   "123+456"  → 123.456  (km + metres separated by '+')
+ *   "123,456"  → 123.456  (comma as decimal separator)
+ *   "123.456"  → 123.456  (dot as decimal separator)
+ * Returns undefined for falsy / non-numeric input.
  */
 export const parseWizardKilometraz = (value?: string): number | undefined => {
   if (!value) return undefined;
-  const parsed = Number(value.trim().replace(',', '.'));
+  const cleaned = value.trim().replace(/\s/g, '');
+  if (cleaned.includes('+')) {
+    const parts = cleaned.split('+');
+    if (parts.length === 2) {
+      const km = Number(parts[0]);
+      const m = Number(parts[1]);
+      if (Number.isFinite(km) && Number.isFinite(m) && m >= 0 && m < 1000) return km + m / 1000;
+    }
+    return undefined;
+  }
+  const parsed = Number(cleaned.replace(',', '.'));
   return Number.isFinite(parsed) ? parsed : undefined;
 };
 
