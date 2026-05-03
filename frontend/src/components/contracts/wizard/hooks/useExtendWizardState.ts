@@ -105,7 +105,7 @@ export const useExtendWizardState = ({
         })
         .map(sub => {
           const systemType = (sub.systemType || sub.type) as SubsystemType;
-          const tasks: TaskDetail[] = (sub.tasks || []).map(task => {
+          const tasks: TaskDetail[] = (sub.tasks || []).map((task, taskIdx) => {
             const meta = task.metadata || {};
             return {
               id: task.id,
@@ -121,7 +121,7 @@ export const useExtendWizardState = ({
               gpsLatitude: meta.gpsLatitude?.toString() || '',
               gpsLongitude: meta.gpsLongitude?.toString() || '',
               googleMapsUrl: meta.googleMapsUrl || '',
-              taskWizardId: meta.taskWizardId || `existing-${task.taskNumber}`
+              taskWizardId: meta.taskWizardId || `existing-${sub.id}-${taskIdx}`
             } as TaskDetail;
           });
 
