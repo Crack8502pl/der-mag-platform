@@ -171,7 +171,9 @@ export const useExtendWizardState = ({
         const topologiesResponse = await networkTopologyService.getAllByContract(contractId);
         if (topologiesResponse.length > 0) {
           topologiesResponse.forEach(topology => {
-            // Map topology to subsystem by position index (subsystemIndex = position in creation order)
+            // Match topology to subsystem by position index.
+            // subsystemIndex stored in DB equals the subsystem's creation order, which
+            // matches the position in existingSubsystems (ordered by createdAt ASC).
             const subsystem = existingSubsystems[topology.subsystemIndex];
             if (subsystem) {
               networkTopologies[`subsystem-${subsystem.id}`] = {
