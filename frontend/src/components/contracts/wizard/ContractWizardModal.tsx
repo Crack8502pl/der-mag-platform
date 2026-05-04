@@ -634,10 +634,23 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
         const childTaskNumbers: string[] = [];
         for (const childKey of rel.childTaskKeys) {
-          const [childSIdx, childDIdx] = childKey.split('-').map(Number);
-          if (childSIdx !== sIdx) continue; // Only same subsystem
-          const childTaskNumber = keyToTaskNumber.get(`${childSIdx}-${childDIdx}`);
-          if (childTaskNumber) childTaskNumbers.push(childTaskNumber);
+          // Check if key is in numeric {sIdx}-{dIdx} format
+          const parts = childKey.split('-');
+          if (parts.length === 2 && !isNaN(Number(parts[0])) && !isNaN(Number(parts[1]))) {
+            // Numeric format: {subsystemIndex}-{taskDetailIndex}
+            const childSIdx = Number(parts[0]);
+            const childDIdx = Number(parts[1]);
+            if (childSIdx !== sIdx) continue; // Only same subsystem
+            const childTaskNumber = keyToTaskNumber.get(`${childSIdx}-${childDIdx}`);
+            if (childTaskNumber) childTaskNumbers.push(childTaskNumber);
+          } else {
+            // UUID/taskWizardId format — find by taskWizardId in this subsystem's details
+            const childDetailIdx = details.findIndex((d) => d.taskWizardId === childKey);
+            if (childDetailIdx !== -1) {
+              const childTaskNumber = keyToTaskNumber.get(`${sIdx}-${childDetailIdx}`);
+              if (childTaskNumber) childTaskNumbers.push(childTaskNumber);
+            }
+          }
         }
 
         if (childTaskNumbers.length > 0) {
@@ -681,10 +694,22 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
         const childTaskNumbers: string[] = [];
         for (const childKey of rel.childTaskKeys) {
-          const [childSIdx, childDIdx] = childKey.split('-').map(Number);
-          if (childSIdx !== sIdx) continue;
-          const childTaskNumber = details[childDIdx]?.taskNumber;
-          if (childTaskNumber) childTaskNumbers.push(childTaskNumber);
+          // Check if key is in numeric {sIdx}-{dIdx} format
+          const parts = childKey.split('-');
+          if (parts.length === 2 && !isNaN(Number(parts[0])) && !isNaN(Number(parts[1]))) {
+            // Numeric format: {subsystemIndex}-{taskDetailIndex}
+            const childSIdx = Number(parts[0]);
+            const childDIdx = Number(parts[1]);
+            if (childSIdx !== sIdx) continue;
+            const childTaskNumber = details[childDIdx]?.taskNumber;
+            if (childTaskNumber) childTaskNumbers.push(childTaskNumber);
+          } else {
+            // UUID/taskWizardId format — find by taskWizardId in this subsystem's details
+            const childDetail = details.find((d) => d.taskWizardId === childKey);
+            if (childDetail?.taskNumber) {
+              childTaskNumbers.push(childDetail.taskNumber);
+            }
+          }
         }
 
         if (childTaskNumbers.length > 0) {

@@ -76,12 +76,13 @@ function buildLabel(taskType: string, task: { kilometraz?: string; nazwa?: strin
 interface DraggableChipProps {
   task: FlatTask;
   isAssigned: boolean;
+  allowExistingDrag?: boolean;
 }
 
-const DraggableChip: React.FC<DraggableChipProps> = ({ task, isAssigned }) => {
+const DraggableChip: React.FC<DraggableChipProps> = ({ task, isAssigned, allowExistingDrag }) => {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.key,
-    disabled: isAssigned || task.isExisting,
+    disabled: isAssigned || (task.isExisting && !allowExistingDrag),
   });
 
   const typeShort = TASK_TYPE_LABELS[task.taskType]?.split(' ').pop() ?? task.taskType;
@@ -91,9 +92,9 @@ const DraggableChip: React.FC<DraggableChipProps> = ({ task, isAssigned }) => {
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={`task-chip${isDragging ? ' dragging' : ''}${isAssigned && !task.isExisting ? ' assigned' : ''}${task.isExisting ? ' existing-readonly' : ''}`}
+      className={`task-chip${isDragging ? ' dragging' : ''}${isAssigned && !task.isExisting ? ' assigned' : ''}${task.isExisting && !allowExistingDrag ? ' existing-readonly' : ''}`}
       title={
-        task.isExisting
+        task.isExisting && !allowExistingDrag
           ? 'Istniejące zadanie (tylko do odczytu – nie można przeciągnąć)'
           : isAssigned
           ? 'Już przypisane do węzła nadrzędnego'
@@ -102,7 +103,7 @@ const DraggableChip: React.FC<DraggableChipProps> = ({ task, isAssigned }) => {
     >
       <span className="task-chip-badge">{typeShort}</span>
       {task.label}
-      {task.isExisting && <span style={{ marginLeft: '4px', opacity: 0.7 }}>🔒</span>}
+      {task.isExisting && !allowExistingDrag && <span style={{ marginLeft: '4px', opacity: 0.7 }}>🔒</span>}
     </div>
   );
 };
@@ -567,7 +568,7 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
         Przeciągnij zadania podrzędne (Nastawnia, SKP, Przejazdy) do węzłów nadrzędnych (LCS lub Nastawnia),
         aby określić hierarchię. Nastawnia może być zarówno węzłem nadrzędnym jak i podrzędnym LCS.
         Krok opcjonalny – możesz go pominąć.
-        {extendMode && (
+        {extendMode && !isEditingExisting && (
           <> Zadania oznaczone 🔒 są istniejące i <strong>tylko do odczytu</strong> — nie można ich przeciągnąć.</>
         )}
       </p>
@@ -586,6 +587,7 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
                     key={task.key}
                     task={task}
                     isAssigned={assignedKeys.has(task.key)}
+                    allowExistingDrag={extendMode && isEditingExisting}
                   />
                 ))
               )}
