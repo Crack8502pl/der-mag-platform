@@ -13,6 +13,8 @@ interface Props {
   onClose: () => void;
   onRequestShipping?: () => void;
   onCompleteInstallationTask?: (taskNumber: string) => void;
+  /** Non-fatal warnings from post-creation saves (e.g. topology or hierarchy failures) */
+  warnings?: string[];
 }
 
 export const SuccessStep: React.FC<Props> = ({
@@ -21,7 +23,8 @@ export const SuccessStep: React.FC<Props> = ({
   generatedTasks,
   onClose,
   onRequestShipping,
-  onCompleteInstallationTask
+  onCompleteInstallationTask,
+  warnings,
 }) => {
   const { hasPermission } = usePermissions();
   const canCreateAsset = hasPermission('assets', 'create');
@@ -58,6 +61,17 @@ export const SuccessStep: React.FC<Props> = ({
         ))}
       </ul>
       <p><strong>Łącznie: {generatedTasks.length} zadań</strong></p>
+
+      {warnings && warnings.length > 0 && (
+        <div className="alert alert-warning" style={{ textAlign: 'left', marginTop: '12px' }}>
+          <strong>⚠️ Kontrakt został zapisany, ale wystąpiły problemy z dodatkowym zapisem:</strong>
+          <ul style={{ margin: '8px 0 0 16px', padding: 0 }}>
+            {warnings.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {canCreateAsset && installationTasks.length > 0 && onCompleteInstallationTask && (
         <div className="success-installation-tasks">
