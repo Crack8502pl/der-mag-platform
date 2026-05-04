@@ -591,6 +591,12 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
   };
 
   /**
+   * Returns true when a relationship childKey uses the numeric `{subsystemIndex}-{taskDetailIndex}` format.
+   * UUID/taskWizardId keys (e.g. from LCS tasks) fail this check and must be resolved by taskWizardId.
+   */
+  const isNumericKey = (key: string): boolean => /^\d+-\d+$/.test(key);
+
+  /**
    * Save task relationships in CREATE mode.
    * Maps wizard task keys to task numbers from the backend response.
    */
@@ -634,10 +640,20 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
         const childTaskNumbers: string[] = [];
         for (const childKey of rel.childTaskKeys) {
-          const [childSIdx, childDIdx] = childKey.split('-').map(Number);
-          if (childSIdx !== sIdx) continue; // Only same subsystem
-          const childTaskNumber = keyToTaskNumber.get(`${childSIdx}-${childDIdx}`);
-          if (childTaskNumber) childTaskNumbers.push(childTaskNumber);
+          if (isNumericKey(childKey)) {
+            // Numeric format: {subsystemIndex}-{taskDetailIndex}
+            const [childSIdx, childDIdx] = childKey.split('-').map(Number);
+            if (childSIdx !== sIdx) continue; // Only same subsystem
+            const childTaskNumber = keyToTaskNumber.get(`${childSIdx}-${childDIdx}`);
+            if (childTaskNumber) childTaskNumbers.push(childTaskNumber);
+          } else {
+            // UUID/taskWizardId format — find by taskWizardId in this subsystem's details
+            const childDetailIdx = details.findIndex((d) => d.taskWizardId === childKey);
+            if (childDetailIdx !== -1) {
+              const childTaskNumber = keyToTaskNumber.get(`${sIdx}-${childDetailIdx}`);
+              if (childTaskNumber) childTaskNumbers.push(childTaskNumber);
+            }
+          }
         }
 
         if (childTaskNumbers.length > 0) {
@@ -681,10 +697,19 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
         const childTaskNumbers: string[] = [];
         for (const childKey of rel.childTaskKeys) {
-          const [childSIdx, childDIdx] = childKey.split('-').map(Number);
-          if (childSIdx !== sIdx) continue;
-          const childTaskNumber = details[childDIdx]?.taskNumber;
-          if (childTaskNumber) childTaskNumbers.push(childTaskNumber);
+          if (isNumericKey(childKey)) {
+            // Numeric format: {subsystemIndex}-{taskDetailIndex}
+            const [childSIdx, childDIdx] = childKey.split('-').map(Number);
+            if (childSIdx !== sIdx) continue;
+            const childTaskNumber = details[childDIdx]?.taskNumber;
+            if (childTaskNumber) childTaskNumbers.push(childTaskNumber);
+          } else {
+            // UUID/taskWizardId format — find by taskWizardId in this subsystem's details
+            const childDetail = details.find((d) => d.taskWizardId === childKey);
+            if (childDetail?.taskNumber) {
+              childTaskNumbers.push(childDetail.taskNumber);
+            }
+          }
         }
 
         if (childTaskNumbers.length > 0) {
