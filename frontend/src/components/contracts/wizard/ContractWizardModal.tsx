@@ -10,7 +10,7 @@ import { useWizardState } from './hooks/useWizardState';
 import { useWizardDraft } from '../../../hooks/useWizardDraft';
 import { generateAllTasks, buildTaskNameFromDetails, resolveTaskVariant } from './utils/taskGenerator';
 import { validateUniqueIPPools } from './utils/validation';
-import type { WizardProps, WizardData, GeneratedTask } from './types/wizard.types';
+import type { WizardProps, WizardData, GeneratedTask, SubsystemWizardData } from './types/wizard.types';
 import taskService from '../../../services/task.service';
 import type { Task } from '../../../types/task.types';
 import { CompleteTaskAndCreateAssetModal } from '../../tasks/CompleteTaskAndCreateAssetModal';
@@ -535,13 +535,32 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         // Save network topologies for SMOKIP subsystems
         if (wizardData.networkTopologies && Object.keys(wizardData.networkTopologies).length > 0) {
           const contractId = response.id;
-          for (const [subsystemIndexStr, topology] of Object.entries(wizardData.networkTopologies)) {
-            const subsystemIndex = parseInt(subsystemIndexStr, 10);
-            const subsystem = wizardData.subsystems[subsystemIndex];
-            if (!subsystem) {
-              console.warn(`⚠️ Subsystem at index ${subsystemIndex} not found, skipping topology save`);
-              continue;
+          for (const [key, topology] of Object.entries(wizardData.networkTopologies)) {
+            let subsystem: SubsystemWizardData | undefined;
+            let subsystemIndex: number;
+
+            if (key.startsWith('subsystem-')) {
+              // Edit mode: key = "subsystem-{subsystemId}" — find by id or subsystemId
+              const subsystemId = parseInt(key.replace('subsystem-', ''), 10);
+              const subIdx = wizardData.subsystems.findIndex(
+                (s) => s.id === subsystemId || s.subsystemId === subsystemId
+              );
+              if (subIdx === -1) {
+                console.warn(`⚠️ Subsystem with id ${subsystemId} not found, skipping topology save`);
+                continue;
+              }
+              subsystem = wizardData.subsystems[subIdx];
+              subsystemIndex = subIdx;
+            } else {
+              // Create mode: key = numeric subsystemIndex
+              subsystemIndex = parseInt(key, 10);
+              subsystem = wizardData.subsystems[subsystemIndex];
+              if (!subsystem) {
+                console.warn(`⚠️ Subsystem at index ${subsystemIndex} not found, skipping topology save`);
+                continue;
+              }
             }
+
             try {
               await networkTopologyService.create({
                 name: `Topologia ${subsystem.type} - ${wizardData.customName}`,
@@ -550,7 +569,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
                 subsystemType: subsystem.type,
                 nodes: topology.nodes,
                 connections: topology.connections,
-                notes: 'Utworzono automatycznie w kreatorze kontraktu'
+                notes: 'Utworzono automatycznie w kreatorze kontraktu',
               });
               console.log(`✅ Saved topology for ${subsystem.type} (subsystem ${subsystemIndex})`);
             } catch (topoError) {

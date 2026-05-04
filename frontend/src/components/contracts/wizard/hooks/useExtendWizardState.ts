@@ -184,6 +184,8 @@ export const useExtendWizardState = ({
                 nodes: topology.nodes,
                 connections: topology.connections
               };
+            } else {
+              console.warn(`⚠️ [useExtendWizardState] topology.subsystemIndex=${topology.subsystemIndex} did not match any existingSubsystem (total: ${existingSubsystems.length}) — topology id=${topology.id} skipped`);
             }
           });
           console.log(`✅ Loaded ${topologiesResponse.length} topologies for contract ${contractId}`);
