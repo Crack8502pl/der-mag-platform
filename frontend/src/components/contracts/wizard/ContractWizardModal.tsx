@@ -9,6 +9,7 @@ import type { Contract } from '../../../services/contract.service';
 import { useWizardState } from './hooks/useWizardState';
 import { useWizardDraft } from '../../../hooks/useWizardDraft';
 import { generateAllTasks, buildTaskNameFromDetails, resolveTaskVariant } from './utils/taskGenerator';
+import { toSubsystemType } from './utils/typeGuards';
 import { validateUniqueIPPools } from './utils/validation';
 import type { WizardProps, WizardData, GeneratedTask, SubsystemWizardData } from './types/wizard.types';
 import taskService from '../../../services/task.service';
@@ -605,7 +606,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
                   number: task.taskNumber,
                   name: task.taskName || task.taskType || 'Zadanie',  // ✅ Dodaj fallback
                   type: task.taskType,
-                  subsystemType: subsystem.systemType,
+                  subsystemType: toSubsystemType(subsystem.systemType),
                   }))
           );
         
