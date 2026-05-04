@@ -132,9 +132,9 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
         result.push({ type: sub.type, taskDetails: sub.taskDetails ?? [], params: sub.params });
       }
     });
-    // Existing SMOKIP subsystems with new tasks (have DB ID)
+    // Existing SMOKIP subsystems (have DB ID) — show topology for all, not only addingNewTasks
     extendData.existingSubsystems.forEach((sub) => {
-      if (shouldShowTopologyStep(sub.type) && sub.addingNewTasks) {
+      if (shouldShowTopologyStep(sub.type)) {
         result.push({
           type: sub.type,
           taskDetails: [...sub.existingTasks, ...sub.newTasks],
