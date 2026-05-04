@@ -603,7 +603,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
             .filter((task) => task.taskNumber && task.taskName && task.taskType)  // Filtruj niepełne dane
             .map((task) => ({
                   number: task.taskNumber,
-                  name: task.taskName,
+                  name: task.taskName || task.taskType || 'Zadanie',  // ✅ Dodaj fallback
                   type: task.taskType,
                   subsystemType: subsystem.systemType,
                   }))
