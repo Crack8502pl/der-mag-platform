@@ -594,10 +594,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
    * Returns true when a relationship childKey uses the numeric `{subsystemIndex}-{taskDetailIndex}` format.
    * UUID/taskWizardId keys (e.g. from LCS tasks) fail this check and must be resolved by taskWizardId.
    */
-  const isNumericKey = (key: string): boolean => {
-    const parts = key.split('-');
-    return parts.length === 2 && !isNaN(Number(parts[0])) && !isNaN(Number(parts[1]));
-  };
+  const isNumericKey = (key: string): boolean => /^\d+-\d+$/.test(key);
 
   /**
    * Save task relationships in CREATE mode.
