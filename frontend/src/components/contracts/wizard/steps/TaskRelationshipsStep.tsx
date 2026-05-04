@@ -130,6 +130,9 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
   const [isEditingExisting, setIsEditingExisting] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState(false);
 
+  // In extend wizard, existing tasks can be dragged only when editing hierarchy
+  const allowExistingDrag = !!(extendMode && isEditingExisting);
+
   // No-op handlers used in read-only DndContext (DndContext is required by
   // useDroppable inside HierarchyTreeView, even when all interactions are disabled)
   const noop = () => {};
@@ -568,7 +571,7 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
         Przeciągnij zadania podrzędne (Nastawnia, SKP, Przejazdy) do węzłów nadrzędnych (LCS lub Nastawnia),
         aby określić hierarchię. Nastawnia może być zarówno węzłem nadrzędnym jak i podrzędnym LCS.
         Krok opcjonalny – możesz go pominąć.
-        {extendMode && !isEditingExisting && (
+        {extendMode && !allowExistingDrag && (
           <> Zadania oznaczone 🔒 są istniejące i <strong>tylko do odczytu</strong> — nie można ich przeciągnąć.</>
         )}
       </p>
@@ -587,7 +590,7 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
                     key={task.key}
                     task={task}
                     isAssigned={assignedKeys.has(task.key)}
-                    allowExistingDrag={extendMode && isEditingExisting}
+                    allowExistingDrag={allowExistingDrag}
                   />
                 ))
               )}

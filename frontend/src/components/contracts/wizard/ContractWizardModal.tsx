@@ -591,6 +591,15 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
   };
 
   /**
+   * Returns true when a relationship childKey uses the numeric `{subsystemIndex}-{taskDetailIndex}` format.
+   * UUID/taskWizardId keys (e.g. from LCS tasks) fail this check and must be resolved by taskWizardId.
+   */
+  const isNumericKey = (key: string): boolean => {
+    const parts = key.split('-');
+    return parts.length === 2 && !isNaN(Number(parts[0])) && !isNaN(Number(parts[1]));
+  };
+
+  /**
    * Save task relationships in CREATE mode.
    * Maps wizard task keys to task numbers from the backend response.
    */
@@ -634,12 +643,9 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
         const childTaskNumbers: string[] = [];
         for (const childKey of rel.childTaskKeys) {
-          // Check if key is in numeric {sIdx}-{dIdx} format
-          const parts = childKey.split('-');
-          if (parts.length === 2 && !isNaN(Number(parts[0])) && !isNaN(Number(parts[1]))) {
+          if (isNumericKey(childKey)) {
             // Numeric format: {subsystemIndex}-{taskDetailIndex}
-            const childSIdx = Number(parts[0]);
-            const childDIdx = Number(parts[1]);
+            const [childSIdx, childDIdx] = childKey.split('-').map(Number);
             if (childSIdx !== sIdx) continue; // Only same subsystem
             const childTaskNumber = keyToTaskNumber.get(`${childSIdx}-${childDIdx}`);
             if (childTaskNumber) childTaskNumbers.push(childTaskNumber);
@@ -694,12 +700,9 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
         const childTaskNumbers: string[] = [];
         for (const childKey of rel.childTaskKeys) {
-          // Check if key is in numeric {sIdx}-{dIdx} format
-          const parts = childKey.split('-');
-          if (parts.length === 2 && !isNaN(Number(parts[0])) && !isNaN(Number(parts[1]))) {
+          if (isNumericKey(childKey)) {
             // Numeric format: {subsystemIndex}-{taskDetailIndex}
-            const childSIdx = Number(parts[0]);
-            const childDIdx = Number(parts[1]);
+            const [childSIdx, childDIdx] = childKey.split('-').map(Number);
             if (childSIdx !== sIdx) continue;
             const childTaskNumber = details[childDIdx]?.taskNumber;
             if (childTaskNumber) childTaskNumbers.push(childTaskNumber);
