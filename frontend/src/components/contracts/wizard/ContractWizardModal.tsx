@@ -60,6 +60,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [saveWarnings, setSaveWarnings] = useState<string[]>([]);
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
   const [createdContractId, setCreatedContractId] = useState<number | null>(null);
   const [createdContract, setCreatedContract] = useState<Contract | null>(null);
@@ -527,14 +528,16 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         });
         
         console.log('✅ Contract created:', response);
+        const createdContract = response.contract;
+        const createdContractId = createdContract.id;
 
         // Save task relationships (create mode) – map wizard keys to task numbers from response
         const createdSubsystems = response.subsystems || [];
-        await saveRelationshipsCreateMode(createdSubsystems);
+        const relWarnings = await saveRelationshipsCreateMode(createdSubsystems);
 
         // Save network topologies for SMOKIP subsystems
+        const topoWarnings: string[] = [];
         if (wizardData.networkTopologies && Object.keys(wizardData.networkTopologies).length > 0) {
-          const contractId = response.id;
           for (const [key, topology] of Object.entries(wizardData.networkTopologies)) {
             let subsystem: SubsystemWizardData | undefined;
             let subsystemIndex: number;
@@ -564,7 +567,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
             try {
               await networkTopologyService.create({
                 name: `Topologia ${subsystem.type} - ${wizardData.customName}`,
-                contractId: contractId,
+                contractId: createdContractId,
                 subsystemIndex: subsystemIndex,
                 subsystemType: subsystem.type,
                 nodes: topology.nodes,
@@ -572,18 +575,27 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
                 notes: 'Utworzono automatycznie w kreatorze kontraktu',
               });
               console.log(`✅ Saved topology for ${subsystem.type} (subsystem ${subsystemIndex})`);
-            } catch (topoError) {
+            } catch (topoError: unknown) {
+              const msg = (topoError as { response?: { data?: { message?: string } }; message?: string })
+                .response?.data?.message || (topoError as { message?: string }).message || String(topoError);
               console.error(`❌ Failed to save topology for subsystem ${subsystemIndex}:`, topoError);
+              topoWarnings.push(`Nie udało się zapisać topologii dla ${subsystem.type}: ${msg}`);
             }
           }
         }
 
-        // Store created contract ID and full contract for the shipping step
-        if (response.id) {
-          setCreatedContractId(response.id);
-          setCreatedContract(response);
-          setShippingActive(true);  // Auto-activate shipping wizard
+        // Collect all non-fatal warnings and surface them on the success screen
+        const allWarnings = [...relWarnings, ...topoWarnings];
+        if (allWarnings.length > 0) {
+          setSaveWarnings(allWarnings);
         }
+
+        // Store created contract ID and full contract for the shipping step
+        setCreatedContractId(createdContractId);
+        setCreatedContract(createdContract);
+        // Advance to success step so the user can see confirmation (and any warnings)
+        // before optionally requesting shipping.
+        setCurrentStep(getTotalSteps());
         
         // Update generated tasks with actual task numbers from backend
         const fetchedTasks: GeneratedTask[] = createdSubsystems.flatMap((subsystem) => 
@@ -618,20 +630,32 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
   /**
    * Save task relationships in CREATE mode.
    * Maps wizard task keys to task numbers from the backend response.
+   * Returns an array of non-fatal warning messages (empty on full success).
    */
   const saveRelationshipsCreateMode = async (
     createdSubsystems: Array<{ id?: number; systemType: string; tasks?: Array<{ taskNumber: string; taskType: string }> }>
-  ) => {
+  ): Promise<string[]> => {
+    const warnings: string[] = [];
     const taskRelationships = wizardData.taskRelationships;
-    if (!taskRelationships || Object.keys(taskRelationships).length === 0) return;
+    if (!taskRelationships || Object.keys(taskRelationships).length === 0) return warnings;
 
-    // Build {subsystemIndex}-{taskDetailIndex} → task number map
+    // Build {subsystemIndex}-{taskDetailIndex} → task number map.
+    // Skip auto-generated KOMPLETACJA_SZAF tasks so that indices stay aligned
+    // with the wizard taskDetails array (which never includes cabinet tasks).
     const keyToTaskNumber = new Map<string, string>();
     createdSubsystems.forEach((sub, sIdx) => {
-      (sub.tasks ?? []).forEach((task, tIdx) => {
-        keyToTaskNumber.set(`${sIdx}-${tIdx}`, task.taskNumber);
+      let detailIdx = 0;
+      (sub.tasks ?? []).forEach((task) => {
+        if (task.taskType === 'KOMPLETACJA_SZAF') return; // skip auto-generated cabinet tasks
+        keyToTaskNumber.set(`${sIdx}-${detailIdx}`, task.taskNumber);
+        detailIdx++;
       });
     });
+
+    if (import.meta.env.DEV) {
+      console.debug('🔗 saveRelationshipsCreateMode – keyToTaskNumber:', Object.fromEntries(keyToTaskNumber));
+      console.debug('🔗 taskRelationships keys:', Object.keys(taskRelationships));
+    }
 
     // Build per-subsystem relationship payloads
     for (let sIdx = 0; sIdx < wizardData.subsystems.length; sIdx++) {
@@ -640,7 +664,12 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
       const createdSub = createdSubsystems[sIdx];
       const subsystemId = createdSub?.id;
-      if (!subsystemId) continue;
+      if (!subsystemId) {
+        const msg = `Brak ID podsystemu ${sub.type} (indeks ${sIdx}) – hierarchia nie została zapisana`;
+        console.warn(`⚠️ ${msg}`);
+        warnings.push(msg);
+        continue;
+      }
 
       const details = sub.taskDetails ?? [];
       const relationships: Array<{ parentTaskNumber: string; childTaskNumbers: string[]; parentType: string }> = [];
@@ -648,14 +677,17 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       for (const [parentWizardId, rel] of Object.entries(taskRelationships)) {
         // Find the parent task detail that has this wizardId (can be LCS or NASTAWNIA)
         const parentDetailIdx = details.findIndex(
-          (d) =>
+          (d, dIdx) =>
             (d.taskType === rel.parentType) &&
-            (d.taskWizardId === parentWizardId || `${sIdx}-${details.indexOf(d)}` === parentWizardId)
+            (d.taskWizardId === parentWizardId || `${sIdx}-${dIdx}` === parentWizardId)
         );
         if (parentDetailIdx === -1) continue;
 
         const parentTaskNumber = keyToTaskNumber.get(`${sIdx}-${parentDetailIdx}`);
-        if (!parentTaskNumber) continue;
+        if (!parentTaskNumber) {
+          console.warn(`⚠️ No task number found for parent detail ${sIdx}-${parentDetailIdx} (${rel.parentType})`);
+          continue;
+        }
 
         const childTaskNumbers: string[] = [];
         for (const childKey of rel.childTaskKeys) {
@@ -680,14 +712,24 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         }
       }
 
+      if (import.meta.env.DEV) {
+        console.debug(`🔗 Subsystem ${sub.type} (id=${subsystemId}) – relationships to save:`, relationships);
+      }
+
       if (relationships.length > 0) {
         try {
           await taskRelationshipService.bulkCreateFromWizard({ subsystemId, relationships });
-        } catch (relErr) {
-          console.warn(`Non-fatal: could not save relationships for subsystem ${subsystemId}:`, relErr);
+          console.log(`✅ Saved ${relationships.length} relationship(s) for subsystem ${subsystemId}`);
+        } catch (relErr: unknown) {
+          const msg = (relErr as { response?: { data?: { message?: string } }; message?: string })
+            .response?.data?.message || (relErr as { message?: string }).message || String(relErr);
+          console.warn(`⚠️ Could not save relationships for subsystem ${subsystemId}:`, relErr);
+          warnings.push(`Nie udało się zapisać hierarchii dla ${sub.type}: ${msg}`);
         }
       }
     }
+
+    return warnings;
   };
 
   /**
@@ -956,7 +998,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
               : undefined);
         return (
           <SuccessStep
-            contractNumber={wizardData.contractNumber}
+            contractNumber={createdContract?.contractNumber || wizardData.contractNumber}
             wizardData={wizardData}
             generatedTasks={generatedTasks}
             onClose={() => {
@@ -965,6 +1007,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
             }}
             onRequestShipping={handleRequestShipping}
             onCompleteInstallationTask={handleCompleteInstallationTask}
+            warnings={saveWarnings.length > 0 ? saveWarnings : undefined}
           />
         );
       },

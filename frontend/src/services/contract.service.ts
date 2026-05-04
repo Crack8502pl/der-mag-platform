@@ -90,6 +90,19 @@ export interface CreateContractDto {
   status?: string;
 }
 
+/** Response shape returned by POST /api/contracts/wizard */
+export interface WizardCreateResponse {
+  contract: Contract;
+  subsystems: Array<{
+    id: number;
+    systemType: string;
+    tasks?: Array<{ taskNumber: string; taskType: string; taskName?: string }>;
+    [key: string]: unknown;
+  }>;
+  tasksCreated: number;
+  subsystemTasksCreated: number;
+}
+
 class ContractService {
   async getContracts(params?: any): Promise<{ data: Contract[]; count: number }> {
     const response = await api.get('/contracts', { params });
@@ -177,7 +190,7 @@ class ContractService {
       [key: string]: number | boolean;
     };
     tasks?: Array<{ number: string; name: string; type: string }>;
-  }): Promise<Contract> {
+  }): Promise<WizardCreateResponse> {
     const response = await api.post('/contracts/wizard', data);
     return response.data.data;
   }
