@@ -135,7 +135,7 @@ export const HierarchyTreeView: React.FC<HierarchyTreeViewProps> = ({
 
       return rel.childTaskKeys
         .map((childKey): TreeNode | null => {
-          const childTask = allTasks.find((t) => t.key === childKey);
+          const childTask = allTasks.find((t) => t.key === childKey || t.taskWizardId === childKey);
           if (!childTask) return null;
 
           processedKeys.add(childKey);
