@@ -598,14 +598,16 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         setCurrentStep(getTotalSteps());
         
         // Update generated tasks with actual task numbers from backend
-        const fetchedTasks: GeneratedTask[] = createdSubsystems.flatMap((subsystem) => 
-          (subsystem.tasks || []).map((task) => ({
-            number: task.taskNumber,
-            name: task.taskName,
-            type: task.taskType,
-            subsystemType: subsystem.systemType as any
-          }))
-        );
+        const fetchedTasks: GeneratedTask[] = createdSubsystems.flatMap((subsystem) =>
+            (subsystem.tasks || [])
+            .filter((task) => task.taskNumber && task.taskName && task.taskType)  // Filtruj niepełne dane
+            .map((task) => ({
+                  number: task.taskNumber,
+                  name: task.taskName,
+                  type: task.taskType,
+                  subsystemType: subsystem.systemType,
+                  }))
+          );
         
         setGeneratedTasks(fetchedTasks);
         // Disable auto-save and clear draft on successful creation
