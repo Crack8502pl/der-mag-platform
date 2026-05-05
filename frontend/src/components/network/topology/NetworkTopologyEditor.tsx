@@ -27,7 +27,6 @@ interface NetworkTopologyEditorProps {
 }
 
 const NODE_WIDTH = 140;
-const NODE_HEIGHT = 60;
 
 // Backend node shape (may differ from frontend TopologyNode)
 interface BackendTopologyNode {

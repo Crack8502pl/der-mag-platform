@@ -36,7 +36,6 @@ interface DragState {
 }
 
 const NODE_WIDTH = 140;
-const NODE_HEIGHT = 60;
 
 export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
   wizardData,
