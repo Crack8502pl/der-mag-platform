@@ -14,6 +14,9 @@ import { TopologySidebar } from './TopologySidebar';
 import { ConnectionModal } from './ConnectionModal';
 import { AuxiliaryNodeModal } from './AuxiliaryNodeModal';
 import { autoLayoutNodes } from './utils/autoLayout';
+import { optimizeLayout } from './utils/forceDirectedLayout';
+import { findCrossingConnections } from './utils/lineIntersection';
+import { getConnectionEndpoints } from './utils/edgeRouting';
 import { CustomNode } from '../network/topology/CustomNode';
 import '../../components/network/topology/NetworkTopologyEditor.css';
 import './NetworkTopologyStep.css';
@@ -54,6 +57,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     target: TopologyNode;
   } | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [crossingConnections, setCrossingConnections] = useState<Set<string>>(new Set());
   const dragRef = useRef<DragState | null>(null);
 
   /** Returns the topology storage key for the current subsystem.
@@ -121,6 +125,34 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     setNodes(laid);
     setIsDirty(true);
   }, [nodes]);
+
+  // Force-directed layout: reduces crossings and spreads nodes evenly
+  const handleOptimizeLayout = useCallback(() => {
+    const optimized = optimizeLayout(nodes, connections);
+    setNodes(optimized);
+    setIsDirty(true);
+  }, [nodes, connections]);
+
+  // Detect crossing connections whenever nodes or connections change
+  useEffect(() => {
+    const connectionLines = connections
+      .map(conn => {
+        const src = nodes.find(n => n.id === conn.source);
+        const tgt = nodes.find(n => n.id === conn.target);
+        if (!src || !tgt) return null;
+        const { sourcePoint, targetPoint } = getConnectionEndpoints(src, tgt);
+        return { id: conn.id, start: sourcePoint, end: targetPoint };
+      })
+      .filter((c): c is NonNullable<typeof c> => c !== null);
+
+    const crossings = findCrossingConnections(connectionLines);
+    const crossingIds = new Set<string>();
+    crossings.forEach(([id1, id2]) => {
+      crossingIds.add(id1);
+      crossingIds.add(id2);
+    });
+    setCrossingConnections(crossingIds);
+  }, [nodes, connections]);
 
   // Delete selected node or connection
   const handleDeleteSelected = useCallback(() => {
@@ -292,11 +324,8 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     return sum + dist;
   }, 0);
 
-  // Center point of a node for SVG line endpoints
-  const nodeCenter = (node: TopologyNode) => ({
-    x: node.position.x + NODE_WIDTH / 2,
-    y: node.position.y + NODE_HEIGHT / 2,
-  });
+
+
 
   return (
     <div className="topology-step">
@@ -304,8 +333,10 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
 
       <TopologyToolbar
         onAutoLayout={handleAutoLayout}
+        onOptimizeLayout={handleOptimizeLayout}
         onSave={handleSave}
         isDirty={isDirty}
+        crossingCount={crossingConnections.size > 0 ? Math.round(crossingConnections.size / 2) : 0}
       />
 
       <div className="topology-step-body">
@@ -402,9 +433,13 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
                 const src = nodes.find(n => n.id === conn.source);
                 const tgt = nodes.find(n => n.id === conn.target);
                 if (!src || !tgt) return null;
-                const { x: x1, y: y1 } = nodeCenter(src);
-                const { x: x2, y: y2 } = nodeCenter(tgt);
+                const { sourcePoint, targetPoint } = getConnectionEndpoints(src, tgt);
+                const x1 = sourcePoint.x;
+                const y1 = sourcePoint.y;
+                const x2 = targetPoint.x;
+                const y2 = targetPoint.y;
                 const isSelected = conn.id === selectedId;
+                const isCrossing = crossingConnections.has(conn.id);
                 const tech = (conn.technology ?? 'fiber').toLowerCase();
                 return (
                   <g key={conn.id}>
@@ -426,7 +461,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
                       y1={y1}
                       x2={x2}
                       y2={y2}
-                      className={`topology-conn topology-conn--${tech}${isSelected ? ' topology-conn--selected' : ''}`}
+                      className={`topology-conn topology-conn--${tech}${isSelected ? ' topology-conn--selected' : ''}${isCrossing ? ' topology-conn--crossing' : ''}`}
                       style={{ pointerEvents: 'none' }}
                       markerEnd={`url(#step-arrow-${tech})`}
                     />

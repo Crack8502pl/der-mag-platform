@@ -12,6 +12,9 @@ import type {
 import { AddNodeModal } from './AddNodeModal';
 import { TopologyHistoryModal } from './TopologyHistoryModal';
 import { CustomNode } from './CustomNode';
+import { getConnectionEndpoints } from '../../network-topology/utils/edgeRouting';
+import { findCrossingConnections } from '../../network-topology/utils/lineIntersection';
+import { optimizeLayout } from '../../network-topology/utils/forceDirectedLayout';
 import './NetworkTopologyEditor.css';
 import '../../../styles/grover-theme.css';
 
@@ -83,6 +86,7 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
   const [connectionTech, setConnectionTech] = useState<ConnectionTechnology>('fiber');
   const [showAddNodeModal, setShowAddNodeModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [crossingConnections, setCrossingConnections] = useState<Set<string>>(new Set());
 
   const dragRef = useRef<DragState | null>(null);
 
@@ -392,11 +396,35 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
     setShowHistoryModal(false);
   }, []);
 
-  // Center point of a node (for SVG line endpoints)
-  const nodeCenter = (node: TopologyNode) => ({
-    x: node.position.x + NODE_WIDTH / 2,
-    y: node.position.y + NODE_HEIGHT / 2,
-  });
+  // Force-directed layout: reduces crossings and spreads nodes evenly
+  const handleOptimizeLayout = useCallback(() => {
+    if (readOnly) return;
+    const optimized = optimizeLayout(nodes, connections);
+    setNodes(optimized);
+    setIsDirty(true);
+  }, [readOnly, nodes, connections]);
+
+  // Detect crossing connections whenever nodes or connections change
+  useEffect(() => {
+    const connectionLines = connections
+      .map(conn => {
+        const src = nodes.find(n => n.id === conn.source);
+        const tgt = nodes.find(n => n.id === conn.target);
+        if (!src || !tgt) return null;
+        const { sourcePoint, targetPoint } = getConnectionEndpoints(src, tgt);
+        return { id: conn.id, start: sourcePoint, end: targetPoint };
+      })
+      .filter((c): c is NonNullable<typeof c> => c !== null);
+
+    const crossings = findCrossingConnections(connectionLines);
+    const crossingIds = new Set<string>();
+    crossings.forEach(([id1, id2]) => {
+      crossingIds.add(id1);
+      crossingIds.add(id2);
+    });
+    setCrossingConnections(crossingIds);
+  }, [nodes, connections]);
+
 
   if (loading) {
     return (
@@ -452,6 +480,24 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
           >
             🗑️ Usuń zaznaczony
           </button>
+
+          <button
+            className={`btn btn-sm ${crossingConnections.size > 0 ? 'btn-warning' : 'btn-secondary'}`}
+            onClick={handleOptimizeLayout}
+            title="Optymalizuj układ - usuń krzyżowania linii (force-directed)"
+          >
+            ⚡ Optymalizuj
+            {crossingConnections.size > 0 && ` (${Math.round(crossingConnections.size / 2)})`}
+          </button>
+
+          {crossingConnections.size > 0 && (
+            <div className="topology-crossing-warning">
+              ⚠️ {Math.round(crossingConnections.size / 2)}{' '}
+              {Math.round(crossingConnections.size / 2) === 1
+                ? 'krzyżujące się połączenie'
+                : 'krzyżujących się połączeń'}
+            </div>
+          )}
 
           <div className="topology-toolbar-spacer" />
 
@@ -522,9 +568,13 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
             const src = nodes.find(n => n.id === conn.source);
             const tgt = nodes.find(n => n.id === conn.target);
             if (!src || !tgt) return null;
-            const { x: x1, y: y1 } = nodeCenter(src);
-            const { x: x2, y: y2 } = nodeCenter(tgt);
+            const { sourcePoint, targetPoint } = getConnectionEndpoints(src, tgt);
+            const x1 = sourcePoint.x;
+            const y1 = sourcePoint.y;
+            const x2 = targetPoint.x;
+            const y2 = targetPoint.y;
             const isSelected = conn.id === selectedId;
+            const isCrossing = crossingConnections.has(conn.id);
             const techClass = (conn.technology ?? 'fiber').toLowerCase();
 
             return (
@@ -551,7 +601,7 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
                   y1={y1}
                   x2={x2}
                   y2={y2}
-                  className={`topology-conn topology-conn--${techClass}${isSelected ? ' topology-conn--selected' : ''}`}
+                  className={`topology-conn topology-conn--${techClass}${isSelected ? ' topology-conn--selected' : ''}${isCrossing ? ' topology-conn--crossing' : ''}`}
                   style={{ pointerEvents: 'none' }}
                   markerEnd={`url(#${svgPrefix}-arrow-${techClass})`}
                 />
