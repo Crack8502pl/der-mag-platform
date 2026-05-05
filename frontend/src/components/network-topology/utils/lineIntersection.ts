@@ -37,11 +37,12 @@ export function doLinesIntersect(line1: LineSegment, line2: LineSegment): boolea
 }
 
 /**
- * Znajduje wszystkie krzyżujące się połączenia w topologii
- * @returns Tablica par ID połączeń, które się krzyżują
+ * Znajduje wszystkie krzyżujące się połączenia w topologii.
+ * Używa nodeId do wykrywania wspólnych węzłów zamiast porównywania współrzędnych
+ * (które mogą mieć błędy floating-point przy edge routing).
  */
 export function findCrossingConnections(
-  connections: Array<{ id: string; start: Point; end: Point }>
+  connections: Array<{ id: string; sourceId: string; targetId: string; start: Point; end: Point }>
 ): Array<[string, string]> {
   const crossings: Array<[string, string]> = [];
 
@@ -50,12 +51,12 @@ export function findCrossingConnections(
       const conn1 = connections[i];
       const conn2 = connections[j];
 
-      // Pomiń linie dzielące węzeł końcowy (to nie jest krzyżowanie)
+      // Pomiń połączenia dzielące węzeł — to nie jest krzyżowanie
       const shareNode =
-        (conn1.start.x === conn2.start.x && conn1.start.y === conn2.start.y) ||
-        (conn1.start.x === conn2.end.x && conn1.start.y === conn2.end.y) ||
-        (conn1.end.x === conn2.start.x && conn1.end.y === conn2.start.y) ||
-        (conn1.end.x === conn2.end.x && conn1.end.y === conn2.end.y);
+        conn1.sourceId === conn2.sourceId ||
+        conn1.sourceId === conn2.targetId ||
+        conn1.targetId === conn2.sourceId ||
+        conn1.targetId === conn2.targetId;
 
       if (shareNode) continue;
 

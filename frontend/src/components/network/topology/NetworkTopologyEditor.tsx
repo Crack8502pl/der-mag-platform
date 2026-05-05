@@ -412,7 +412,13 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
         const tgt = nodes.find(n => n.id === conn.target);
         if (!src || !tgt) return null;
         const { sourcePoint, targetPoint } = getConnectionEndpoints(src, tgt);
-        return { id: conn.id, start: sourcePoint, end: targetPoint };
+        return {
+          id: conn.id,
+          sourceId: conn.source,
+          targetId: conn.target,
+          start: sourcePoint,
+          end: targetPoint,
+        };
       })
       .filter((c): c is NonNullable<typeof c> => c !== null);
 

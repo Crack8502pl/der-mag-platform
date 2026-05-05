@@ -188,13 +188,7 @@ export function optimizeLayout(
     }
   }
 
-  return forceNodes.map(({ vx: _vx, vy: _vy, fx: _fx, fy: _fy, ...node }) => ({
-    id: node.id,
-    type: node.type,
-    label: node.label,
-    position: { x: node.position.x, y: node.position.y },
-    data: node.data,
-  }));
+  return forceNodes.map(({ vx: _vx, vy: _vy, fx: _fx, fy: _fy, ...node }) => node);
 }
 
 function getNodeCenter(node: TopologyNode): Point {
