@@ -544,14 +544,14 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
               const msg = (topoError as { response?: { data?: { message?: string } }; message?: string })
                 .response?.data?.message || (topoError as { message?: string }).message || String(topoError);
               console.error(`❌ Failed to save topology for subsystem ${subsystemIndex}:`, topoError);
-              topoWarnings.push(`Nie udało się zapisać topologii dla ${subsystem.type}: ${msg}`);
+              topoWarnings.push(`Nie udało się zapisać topologii dla ${subsystem?.type ?? 'unknown'}: ${msg}`);
             }
           }
         }
 
         // Surface any topology warnings on the success screen
         if (topoWarnings.length > 0) {
-          setSaveWarnings(prev => [...(prev || []), ...topoWarnings]);
+          setSaveWarnings(prev => [...prev, ...topoWarnings]);
         }
 
         setCurrentStep(getTotalSteps()); // Success step
