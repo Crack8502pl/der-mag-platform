@@ -16,13 +16,21 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
+export class PositionDto {
+  @IsNumber()
+  x: number;
+
+  @IsNumber()
+  y: number;
+}
+
 export class TopologyNodeDto {
   @IsString()
   @IsOptional()
   id?: string;
 
   @IsString()
-  type: string;
+  nodeType: string;
 
   @IsString()
   sourceType: string;
@@ -32,11 +40,9 @@ export class TopologyNodeDto {
   @MaxLength(200)
   label: string;
 
-  @IsNumber()
-  positionX: number;
-
-  @IsNumber()
-  positionY: number;
+  @ValidateNested()
+  @Type(() => PositionDto)
+  position: PositionDto;
 
   @IsNumber()
   @IsOptional()
@@ -62,10 +68,10 @@ export class TopologyConnectionDto {
   id?: string;
 
   @IsString()
-  sourceNodeId: string;
+  source: string;
 
   @IsString()
-  targetNodeId: string;
+  target: string;
 
   @IsEnum(ConnectionTechnology)
   technology: ConnectionTechnology;
