@@ -697,34 +697,41 @@ const handleNodeClick = (nodeId: string) => {
 };
 ```
 
-**Renderowanie połączeń SVG:**
+**Renderowanie połączeń SVG (routing bezpośredni + wykrywanie krzyżowań):**
 ```tsx
-<svg className="topology-connections-layer">
+// Wykrywanie krzyżowań aktualizowane przy każdej zmianie węzłów/połączeń
+const [crossingConnections, setCrossingConnections] = useState<Set<string>>(new Set());
+
+useEffect(() => {
+  const connectionLines = connections.map(conn => {
+    const { sourcePoint, targetPoint } = getConnectionEndpoints(src, tgt);
+    return { id: conn.id, sourceId: conn.source, targetId: conn.target,
+             start: sourcePoint, end: targetPoint };
+  }).filter(Boolean);
+  const crossings = findCrossingConnections(connectionLines);
+  const ids = new Set<string>();
+  crossings.forEach(([a, b]) => { ids.add(a); ids.add(b); });
+  setCrossingConnections(ids);
+}, [nodes, connections]);
+
+// Renderowanie — linie zaczynają/kończą się na krawędziach węzłów
+<svg className="topology-connections-svg">
   {connections.map(conn => {
-    const sourceNode = nodes.find(n => n.id === conn.source);
-    const targetNode = nodes.find(n => n.id === conn.target);
-    if (!sourceNode || !targetNode) return null;
-    const color = TECHNOLOGY_COLORS[conn.technology ?? 'fiber'];
+    const { sourcePoint, targetPoint } = getConnectionEndpoints(src, tgt);
+    const isCrossing = crossingConnections.has(conn.id);
     return (
       <g key={conn.id}>
-        <line
-          x1={sourceNode.position.x + NODE_WIDTH / 2}
-          y1={sourceNode.position.y + NODE_HEIGHT / 2}
-          x2={targetNode.position.x + NODE_WIDTH / 2}
-          y2={targetNode.position.y + NODE_HEIGHT / 2}
-          stroke={color}
-          strokeWidth={2}
-        />
-        {conn.label && (
-          <text
-            x={(sourceNode.position.x + targetNode.position.x) / 2 + NODE_WIDTH / 2}
-            y={(sourceNode.position.y + targetNode.position.y) / 2 + NODE_HEIGHT / 2}
-            fontSize={10}
-            fill={color}
-          >
-            {conn.label}
-          </text>
-        )}
+        {/* Przezroczysta szeroka linia ułatwiająca kliknięcie */}
+        <line x1={sourcePoint.x} y1={sourcePoint.y}
+              x2={targetPoint.x} y2={targetPoint.y}
+              stroke="transparent" strokeWidth="16"
+              style={{ pointerEvents: 'stroke', cursor: 'pointer' }} />
+        {/* Widoczna linia — czerwona dla krzyżujących się */}
+        <line x1={sourcePoint.x} y1={sourcePoint.y}
+              x2={targetPoint.x} y2={targetPoint.y}
+              className={`topology-conn topology-conn--${tech}
+                ${isSelected ? 'topology-conn--selected' : ''}
+                ${isCrossing ? 'topology-conn--crossing' : ''}`} />
       </g>
     );
   })}
@@ -946,6 +953,159 @@ export function validateTopology(
 }
 ```
 
+### 8.4 lineIntersection — Wykrywanie krzyżowań
+
+Plik: `frontend/src/components/network-topology/utils/lineIntersection.ts`
+
+Moduł geometryczny do wykrywania przecięć linii połączeń. Używany zarówno przez edytor (wizualizacja) jak i przez algorytm force-directed (optymalizacja).
+
+```typescript
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface LineSegment {
+  start: Point;
+  end: Point;
+}
+
+/**
+ * Oblicza odległość euklidesową między dwoma punktami.
+ */
+export function pointDistance(p1: Point, p2: Point): number {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+/**
+ * Sprawdza czy dwa odcinki się przecinają (algorytm CCW).
+ * Ignoruje edge cases z liniami równoległymi i pokrywającymi się
+ * (nie są traktowane jako przecięcie).
+ * @returns true jeśli linie się przecinają
+ */
+export function doLinesIntersect(line1: LineSegment, line2: LineSegment): boolean { ... }
+
+/**
+ * Znajduje wszystkie krzyżujące się połączenia w topologii.
+ * Używa nodeId do wykrywania wspólnych węzłów (połączenia dzielące węzeł
+ * nie są traktowane jako krzyżowanie).
+ * @returns Tablica par [connId1, connId2] krzyżujących się połączeń
+ */
+export function findCrossingConnections(
+  connections: Array<{ id: string; sourceId: string; targetId: string; start: Point; end: Point }>
+): Array<[string, string]> { ... }
+```
+
+#### Użycie w komponentach
+
+```typescript
+// Wykrywanie krzyżowań po każdej zmianie węzłów lub połączeń
+useEffect(() => {
+  const connectionLines = connections.map(conn => {
+    const { sourcePoint, targetPoint } = getConnectionEndpoints(src, tgt);
+    return { id: conn.id, sourceId: conn.source, targetId: conn.target,
+             start: sourcePoint, end: targetPoint };
+  }).filter(Boolean);
+
+  const crossings = findCrossingConnections(connectionLines);
+  const crossingIds = new Set<string>();
+  crossings.forEach(([id1, id2]) => { crossingIds.add(id1); crossingIds.add(id2); });
+  setCrossingConnections(crossingIds);
+}, [nodes, connections]);
+```
+
+### 8.5 edgeRouting — Routing do krawędzi węzłów
+
+Plik: `frontend/src/components/network-topology/utils/edgeRouting.ts`
+
+Implementacja routingu bezpośredniego: linie połączeń zaczynają się i kończą na **krawędziach prostokątów** węzłów, nie w ich środkach.
+
+```typescript
+const NODE_WIDTH = 140;
+const NODE_HEIGHT = 60;
+
+/**
+ * Oblicza punkt zaczepienia linii na krawędzi węzła.
+ * Promień z centrum węzła w kierunku celu przecina krawędź prostokąta.
+ */
+export function getEdgeConnectionPoint(
+  node: TopologyNode,
+  targetX: number,
+  targetY: number
+): EdgePoint {
+  const nodeCenterX = node.position.x + NODE_WIDTH / 2;
+  const nodeCenterY = node.position.y + NODE_HEIGHT / 2;
+  const dx = targetX - nodeCenterX;
+  const dy = targetY - nodeCenterY;
+  // Oblicza parametr t dla przecięcia z każdą krawędzią i wybiera najmniejszy
+  let t = Infinity;
+  if (dirX > 0) t = Math.min(t, halfWidth / dirX);
+  if (dirX < 0) t = Math.min(t, -halfWidth / dirX);
+  if (dirY > 0) t = Math.min(t, halfHeight / dirY);
+  if (dirY < 0) t = Math.min(t, -halfHeight / dirY);
+  return { x: nodeCenterX + dirX * t, y: nodeCenterY + dirY * t };
+}
+
+/**
+ * Oblicza punkty zaczepienia obu końców połączenia.
+ * Linia zaczyna się na krawędzi węzła źródłowego i kończy
+ * na krawędzi węzła docelowego.
+ */
+export function getConnectionEndpoints(
+  sourceNode: TopologyNode,
+  targetNode: TopologyNode
+): { sourcePoint: EdgePoint; targetPoint: EdgePoint } { ... }
+```
+
+### 8.6 forceDirectedLayout — Algorytm optymalizacji układu
+
+Plik: `frontend/src/components/network-topology/utils/forceDirectedLayout.ts`
+
+Algorytm siłowy (force-directed) minimalizujący krzyżowania połączeń. Uruchamiany **manualnie** przyciskiem "Optymalizuj układ" — węzły nie przesuwają się automatycznie.
+
+#### Parametry algorytmu
+
+| Stała | Wartość | Opis |
+|-------|---------|------|
+| `REPULSION_STRENGTH` | 5000 | Siła odpychania Coulomba między węzłami |
+| `SPRING_STRENGTH` | 0.05 | Stała sprężyny Hooke'a dla połączonych węzłów |
+| `SPRING_LENGTH` | 200 | Naturalna długość sprężyny (px) |
+| `CROSSING_PENALTY` | 8000 | Kara za krzyżujące się linie (odpychanie) |
+| `DAMPING` | 0.85 | Tłumienie prędkości (zbieżność algorytmu) |
+| `MAX_ITERATIONS` | 300 | Maksymalna liczba iteracji |
+| `MIN_ENERGY` | 0.5 | Próg energii dla wczesnego zakończenia |
+
+#### Kolejność sił w każdej iteracji
+
+1. **Odpychanie Coulomba** — każda para węzłów odpycha się (proporcjonalnie do 1/d²)
+2. **Sprężyna Hooke'a** — połączone węzły przyciągają się do odległości `SPRING_LENGTH`
+3. **Kara za krzyżowania** — węzły połączeń krzyżujących się są odpychane
+4. **Aktualizacja pozycji** — prędkości i pozycje aktualizowane z tłumieniem; węzły ograniczone do obszaru canvasu
+
+```typescript
+export function optimizeLayout(
+  nodes: TopologyNode[],
+  connections: TopologyConnection[]
+): TopologyNode[] {
+  // Iteracje force-directed...
+  // Wczesne zakończenie gdy totalEnergy < MIN_ENERGY
+  return updatedNodes;
+}
+```
+
+#### Integracja z edytorem
+
+```typescript
+// NetworkTopologyStep.tsx / NetworkTopologyEditor.tsx
+const handleOptimizeLayout = useCallback(() => {
+  const optimized = optimizeLayout(nodes, connections);
+  setNodes(optimized);
+  setIsDirty(true);
+}, [nodes, connections]);
+```
+
 ---
 
 ## 9. Frontend — Modals i Sidebar
@@ -1056,22 +1216,25 @@ Pasek narzędzi na górze edytora:
 
 ```tsx
 interface TopologyToolbarProps {
-  version: number;
-  isDirty: boolean;
-  isSaving: boolean;
   onAutoLayout: () => void;
+  onOptimizeLayout?: () => void;  // Uruchamia force-directed layout
   onSave: () => void;
-  onExportPdf?: () => void;
-  onHistory: () => void;
+  onExportPDF?: () => void;
+  isSaving?: boolean;
+  isDirty?: boolean;
+  version?: number;
+  crossingCount?: number;         // Liczba wykrytych krzyżowań
 }
 ```
 
-| Przycisk | Stan | Skrót | Opis |
-|---------|------|-------|------|
-| ⚡ Auto-Layout | zawsze | — | Rozmieszcza węzły wg kilometrażu |
-| 💾 Zapisz (v{n}) | tylko gdy `isDirty` | — | Zapisuje jako nową wersję |
-| 📄 PDF | zawsze | — | Eksport do PDF |
-| 🕐 Historia | zawsze | — | Otwiera TopologyHistoryModal |
+| Przycisk | Stan | Opis |
+|---------|------|------|
+| 📊 Auto-układ | zawsze | Rozmieszcza węzły w siatce wg kilometrażu |
+| ⚡ Optymalizuj (N) | gdy `onOptimizeLayout` przekazany | Uruchamia force-directed layout; liczba krzyżowań w nawiasie; pomarańczowy gdy krzyżowania > 0 |
+| 📄 PDF | gdy `onExportPDF` przekazany | Eksport do PDF |
+| 💾 Zapisz (vN) | gdy `isDirty` | Zapisuje jako nową wersję |
+
+Gdy `crossingCount > 0`, wyświetla się dodatkowo ostrzeżenie: `⚠️ Wykryto N krzyżujących się połączeń`.
 
 Style pliku: `frontend/src/components/network-topology/TopologyToolbar.css`
 
