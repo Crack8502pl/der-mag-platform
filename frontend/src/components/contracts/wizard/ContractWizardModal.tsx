@@ -479,6 +479,88 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         // Save task relationships (edit mode) – use existing task numbers from taskDetails
         await saveRelationshipsEditMode();
 
+        // Save network topologies for SMOKIP subsystems (edit mode)
+        const topoWarnings: string[] = [];
+        if (wizardData.networkTopologies && Object.keys(wizardData.networkTopologies).length > 0) {
+          if (import.meta.env.DEV) {
+            console.debug(`🌐 [editMode] Saving ${Object.keys(wizardData.networkTopologies).length} topology entries`);
+          }
+          for (const [key, topology] of Object.entries(wizardData.networkTopologies)) {
+            let subsystem: SubsystemWizardData | undefined;
+            let subsystemIndex: number;
+
+            if (key.startsWith('subsystem-')) {
+              // Edit mode: key = "subsystem-{subsystemId}" — find by id or subsystemId
+              const subsystemId = parseInt(key.replace('subsystem-', ''), 10);
+              const subIdx = wizardData.subsystems.findIndex(
+                (s) => s.id === subsystemId || s.subsystemId === subsystemId
+              );
+              if (subIdx === -1) {
+                console.warn(`⚠️ Subsystem with id ${subsystemId} not found, skipping topology save`);
+                continue;
+              }
+              subsystem = wizardData.subsystems[subIdx];
+              subsystemIndex = subIdx;
+            } else {
+              // Numeric index key (fallback)
+              subsystemIndex = parseInt(key, 10);
+              subsystem = wizardData.subsystems[subsystemIndex];
+              if (!subsystem) {
+                console.warn(`⚠️ Subsystem at index ${subsystemIndex} not found, skipping topology save`);
+                continue;
+              }
+            }
+
+            try {
+              if (import.meta.env.DEV) {
+                console.debug(`🌐 Processing topology for subsystem ${subsystem.type} (index=${subsystemIndex}, id=${subsystem.id})`);
+              }
+              // Check if topology already exists for this contract/subsystem
+              const existingTopology = await networkTopologyService.getByContractAndSubsystem(
+                contractToEdit.id,
+                subsystemIndex
+              );
+
+              if (existingTopology) {
+                // Update existing topology (creates a new immutable version)
+                await networkTopologyService.update(existingTopology.id, {
+                  name: existingTopology.name,
+                  contractId: contractToEdit.id,
+                  subsystemIndex: subsystemIndex,
+                  subsystemType: subsystem.type,
+                  nodes: topology.nodes,
+                  connections: topology.connections,
+                  notes: 'Zaktualizowano w kreatorze kontraktu (edit)',
+                });
+                console.log(`✅ Updated topology for ${subsystem.type} (subsystem ${subsystemIndex})`);
+              } else {
+                // Create new topology
+                await networkTopologyService.create({
+                  name: `Topologia ${subsystem.type} - ${wizardData.customName}`,
+                  contractId: contractToEdit.id,
+                  subsystemIndex: subsystemIndex,
+                  subsystemType: subsystem.type,
+                  nodes: topology.nodes,
+                  connections: topology.connections,
+                  notes: 'Utworzono w kreatorze kontraktu (edit)',
+                });
+                console.log(`✅ Created topology for ${subsystem.type} (subsystem ${subsystemIndex})`);
+              }
+            } catch (topoError: unknown) {
+              const msg = (topoError as { response?: { data?: { message?: string } }; message?: string })
+                .response?.data?.message || (topoError as { message?: string }).message || String(topoError);
+              console.error(`❌ Failed to save topology for subsystem ${subsystemIndex}:`, topoError);
+              topoWarnings.push(`Nie udało się zapisać topologii dla ${subsystem.type}: ${msg}`);
+            }
+          }
+        }
+
+        if (topoWarnings.length > 0) {
+          setSaveWarnings((prev) => [...(prev || []), ...topoWarnings]);
+        }
+
+        setWizardSubmitted(true);
+        await clearDraft();
         setCurrentStep(getTotalSteps()); // Success step
       } else {
         // CREATE MODE - create new contract
@@ -741,14 +823,36 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
    */
   const saveRelationshipsEditMode = async () => {
     const taskRelationships = wizardData.taskRelationships;
-    if (!taskRelationships || Object.keys(taskRelationships).length === 0) return;
+
+    if (import.meta.env.DEV) {
+      console.debug('🔗 [saveRelationshipsEditMode] Starting...', {
+        relationshipKeys: Object.keys(taskRelationships || {}),
+        subsystems: wizardData.subsystems.map((s) => ({
+          id: s.id,
+          type: s.type,
+          taskDetailsCount: s.taskDetails?.length ?? 0,
+        })),
+      });
+    }
+
+    if (!taskRelationships || Object.keys(taskRelationships).length === 0) {
+      if (import.meta.env.DEV) console.debug('🔗 No task relationships to save (empty or undefined)');
+      return;
+    }
 
     for (let sIdx = 0; sIdx < wizardData.subsystems.length; sIdx++) {
       const sub = wizardData.subsystems[sIdx];
       if (sub.type !== 'SMOKIP_A' && sub.type !== 'SMOKIP_B') continue;
-      if (!sub.id) continue;
+      if (!sub.id) {
+        if (import.meta.env.DEV) console.debug(`🔗 Subsystem at index ${sIdx} (${sub.type}) has no id, skipping`);
+        continue;
+      }
 
       const details = sub.taskDetails ?? [];
+      if (import.meta.env.DEV) {
+        console.debug(`🔗 Processing subsystem ${sIdx}: type=${sub.type}, id=${sub.id}, taskDetails=${details.length}`);
+      }
+
       const relationships: Array<{ parentTaskNumber: string; childTaskNumbers: string[]; parentType: string }> = [];
 
       for (const [parentWizardId, rel] of Object.entries(taskRelationships)) {
@@ -756,7 +860,14 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           (d, dIdx) => d.taskType === rel.parentType &&
             (d.taskWizardId === parentWizardId || `${sIdx}-${dIdx}` === parentWizardId)
         );
-        if (parentDetailIdx === -1 || !details[parentDetailIdx].taskNumber) continue;
+        if (parentDetailIdx === -1) {
+          if (import.meta.env.DEV) console.debug(`🔗 Parent ${parentWizardId} not found in subsystem ${sIdx}`);
+          continue;
+        }
+        if (!details[parentDetailIdx].taskNumber) {
+          if (import.meta.env.DEV) console.debug(`⚠️ Parent task ${parentWizardId} (idx=${parentDetailIdx}) has no taskNumber, skipping`);
+          continue;
+        }
         const parentDetail = details[parentDetailIdx];
 
         const childTaskNumbers: string[] = [];
@@ -766,29 +877,45 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
             const [childSIdx, childDIdx] = childKey.split('-').map(Number);
             if (childSIdx !== sIdx) continue;
             const childTaskNumber = details[childDIdx]?.taskNumber;
-            if (childTaskNumber) childTaskNumbers.push(childTaskNumber);
+            if (childTaskNumber) {
+              childTaskNumbers.push(childTaskNumber);
+            } else if (import.meta.env.DEV) {
+              console.debug(`⚠️ Child task at ${childKey} has no taskNumber`);
+            }
           } else {
             // UUID/taskWizardId format — find by taskWizardId in this subsystem's details
             const childDetail = details.find((d) => d.taskWizardId === childKey);
             if (childDetail?.taskNumber) {
               childTaskNumbers.push(childDetail.taskNumber);
+            } else if (import.meta.env.DEV) {
+              console.debug(`⚠️ Child task ${childKey} not found or has no taskNumber in subsystem ${sIdx}`);
             }
           }
         }
 
         if (childTaskNumbers.length > 0) {
           relationships.push({ parentTaskNumber: parentDetail.taskNumber!, childTaskNumbers, parentType: rel.parentType });
+          if (import.meta.env.DEV) {
+            console.debug(`🔗 Added relationship: ${parentDetail.taskNumber} -> [${childTaskNumbers.join(', ')}] (${rel.parentType})`);
+          }
         }
+      }
+
+      if (import.meta.env.DEV) {
+        console.debug(`🔗 Built ${relationships.length} relationship(s) for subsystem ${sub.id}`);
       }
 
       if (relationships.length > 0) {
         try {
           await taskRelationshipService.bulkCreateFromWizard({ subsystemId: sub.id, relationships });
+          console.log(`✅ Saved ${relationships.length} relationship(s) for subsystem ${sub.id}`);
         } catch (relErr) {
           console.warn(`Non-fatal: could not save relationships for subsystem ${sub.id}:`, relErr);
         }
       }
     }
+
+    if (import.meta.env.DEV) console.debug('🔗 [saveRelationshipsEditMode] Completed');
   };
 
   const handleCompleteInstallationTask = async (taskNumber: string) => {
