@@ -26,6 +26,22 @@ interface NetworkTopologyEditorProps {
 const NODE_WIDTH = 140;
 const NODE_HEIGHT = 60;
 
+// Helper: Map backend topology node to frontend format
+// Backend returns { nodeType, kilometre, taskId } but frontend expects { type, data: { km, taskId } }
+function mapBackendNodeToFrontend(backendNode: any): TopologyNode {
+  return {
+    id: backendNode.id,
+    type: backendNode.nodeType || backendNode.type,
+    label: backendNode.label,
+    position: backendNode.position,
+    data: {
+      taskId: backendNode.taskId ?? backendNode.data?.taskId,
+      km: backendNode.kilometre ?? backendNode.data?.km,
+      icon: backendNode.data?.icon,
+    },
+  };
+}
+
 interface DragState {
   nodeId: string;
   startMouseX: number;
@@ -71,7 +87,7 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
         if (!mounted) return;
         if (topology) {
           setTopologyMeta(topology);
-          setNodes(topology.nodes);
+          setNodes(topology.nodes.map(mapBackendNodeToFrontend));
           setConnections(topology.connections);
         }
       })
@@ -358,7 +374,7 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
   // Restore a version from history
   const handleRestore = useCallback((topology: NetworkTopologyData) => {
     setTopologyMeta(topology);
-    setNodes(topology.nodes);
+    setNodes(topology.nodes.map(mapBackendNodeToFrontend));
     setConnections(topology.connections);
     setIsDirty(false);
     setShowHistoryModal(false);
