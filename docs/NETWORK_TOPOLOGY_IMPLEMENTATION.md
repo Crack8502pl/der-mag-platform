@@ -1106,6 +1106,24 @@ const handleOptimizeLayout = useCallback(() => {
 }, [nodes, connections]);
 ```
 
+#### Porównanie: autoLayoutNodes() vs optimizeLayout()
+
+| Cecha | `autoLayoutNodes()` (grid) | `optimizeLayout()` (force-directed) |
+|-------|---------------------------|--------------------------------------|
+| **Algorytm** | Siatka prostokątna | Symulacja fizyczna (siły) |
+| **Cel** | Porządkowanie węzłów | Minimalizacja krzyżowań |
+| **Czas działania** | Natychmiastowy | ~1–2 s dla 15+ węzłów (szacowane) |
+| **Determinizm** | Tak (zawsze ten sam wynik) | Tak (deterministyczny dla tej samej pozycji startowej) |
+| **Sortowanie** | Rosnąco wg kilometrażu | Według topologii połączeń |
+| **Krzyżowania** | Mogą wystąpić | Aktywnie redukowane |
+| **Kiedy użyć** | Na początku, by zainicjować układ | Po dodaniu wielu połączeń z krzyżowaniami |
+| **Przycisk** | 📊 Auto-układ | ⚡ Optymalizuj / ⚡ Optymalizuj (N) |
+
+**Zalecany workflow:**
+1. Kliknij **📊 Auto-układ** — węzły ułożą się w czytelnej siatce
+2. Dodaj połączenia między węzłami
+3. Jeśli pojawią się krzyżowania (linie czerwone), kliknij **⚡ Optymalizuj** — algorytm force-directed zredukuje krzyżowania
+
 ---
 
 ## 9. Frontend — Modals i Sidebar
