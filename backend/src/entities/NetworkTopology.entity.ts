@@ -15,11 +15,10 @@ import { Contract } from './Contract';
 
 export interface TopologyNode {
   id: string;
-  type: string;          // NodeType
+  nodeType: string;      // NodeType
   sourceType: string;    // NodeSourceType: 'task' | 'external' | 'auxiliary'
   label: string;
-  positionX: number;
-  positionY: number;
+  position: { x: number; y: number };
   kilometre?: number;
   isActive?: boolean;    // dla auxiliary nodes
   taskId?: number;
@@ -28,8 +27,8 @@ export interface TopologyNode {
 
 export interface TopologyConnection {
   id: string;
-  sourceNodeId: string;
-  targetNodeId: string;
+  source: string;
+  target: string;
   technology: string;    // 'FIBER' | 'LAN'
   distance?: number;
   notes?: string;
