@@ -457,6 +457,7 @@ export const useWizardState = ({
               return {
                 id: task.id, // IMPORTANT - preserve task ID
                 taskNumber: task.taskNumber, // IMPORTANT - preserve task number for relationships
+                taskWizardId: task.taskNumber, // FIX: use taskNumber as stable wizardId so relationship keys match
                 taskType,
                 kilometraz: meta.kilometraz || '',
                 kategoria: meta.kategoria || '',
