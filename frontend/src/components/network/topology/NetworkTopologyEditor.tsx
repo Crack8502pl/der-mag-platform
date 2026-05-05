@@ -481,23 +481,30 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
             🗑️ Usuń zaznaczony
           </button>
 
-          <button
-            className={`btn btn-sm ${crossingConnections.size > 0 ? 'btn-warning' : 'btn-secondary'}`}
-            onClick={handleOptimizeLayout}
-            title="Optymalizuj układ - usuń krzyżowania linii (force-directed)"
-          >
-            ⚡ Optymalizuj
-            {crossingConnections.size > 0 && ` (${Math.round(crossingConnections.size / 2)})`}
-          </button>
+          {(() => {
+            const crossingCount = Math.floor(crossingConnections.size / 2);
+            return (
+              <>
+                <button
+                  className={`btn btn-sm ${crossingConnections.size > 0 ? 'btn-warning' : 'btn-secondary'}`}
+                  onClick={handleOptimizeLayout}
+                  title="Optymalizuj układ - usuń krzyżowania linii (force-directed)"
+                >
+                  ⚡ Optymalizuj
+                  {crossingCount > 0 && ` (${crossingCount})`}
+                </button>
 
-          {crossingConnections.size > 0 && (
-            <div className="topology-crossing-warning">
-              ⚠️ {Math.round(crossingConnections.size / 2)}{' '}
-              {Math.round(crossingConnections.size / 2) === 1
-                ? 'krzyżujące się połączenie'
-                : 'krzyżujących się połączeń'}
-            </div>
-          )}
+                {crossingCount > 0 && (
+                  <div className="topology-crossing-warning">
+                    ⚠️ {crossingCount}{' '}
+                    {crossingCount === 1
+                      ? 'krzyżujące się połączenie'
+                      : 'krzyżujących się połączeń'}
+                  </div>
+                )}
+              </>
+            );
+          })()}
 
           <div className="topology-toolbar-spacer" />
 

@@ -336,7 +336,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
         onOptimizeLayout={handleOptimizeLayout}
         onSave={handleSave}
         isDirty={isDirty}
-        crossingCount={crossingConnections.size > 0 ? Math.round(crossingConnections.size / 2) : 0}
+        crossingCount={Math.floor(crossingConnections.size / 2)}
       />
 
       <div className="topology-step-body">
