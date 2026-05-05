@@ -42,6 +42,32 @@
   font-size: 13px;
 }
 
+/* Warning button for crossing detection */
+.btn-warning {
+  background: var(--warning, #ff9800);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+}
+
+.btn-warning:hover {
+  background: #e67e00;
+}
+
+/* Crossing warning badge in toolbar */
+.topology-crossing-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(255, 152, 0, 0.15);
+  border: 1px solid rgba(255, 152, 0, 0.4);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--warning, #ff9800);
+  font-weight: 600;
+}
+
 /* Technology select inside toolbar */
 .topology-tech-select {
   background: var(--bg-input);
@@ -101,6 +127,19 @@
 .topology-conn--selected {
   stroke-width: 3;
   filter: drop-shadow(0 0 5px currentColor);
+}
+
+/* Crossing connections — highlighted in red with pulsing animation */
+.topology-conn--crossing {
+  stroke: #e74c3c !important;
+  stroke-width: 3;
+  opacity: 0.85;
+  animation: topology-pulse-crossing 1.5s ease-in-out infinite;
+}
+
+@keyframes topology-pulse-crossing {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
 }
 
 /* ─── Empty state ─────────────────────────────────────────────── */
