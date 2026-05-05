@@ -479,6 +479,81 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         // Save task relationships (edit mode) – use existing task numbers from taskDetails
         await saveRelationshipsEditMode();
 
+        // Save network topologies for SMOKIP subsystems (edit mode)
+        const topoWarnings: string[] = [];
+        if (wizardData.networkTopologies && Object.keys(wizardData.networkTopologies).length > 0) {
+          for (const [key, topology] of Object.entries(wizardData.networkTopologies)) {
+            let subsystem: SubsystemWizardData | undefined;
+            let subsystemIndex: number;
+
+            if (key.startsWith('subsystem-')) {
+              // Edit mode: key = "subsystem-{subsystemId}" — find by id or subsystemId
+              const subsystemId = parseInt(key.replace('subsystem-', ''), 10);
+              const subIdx = wizardData.subsystems.findIndex(
+                (s) => s.id === subsystemId || s.subsystemId === subsystemId
+              );
+              if (subIdx === -1) {
+                console.warn(`⚠️ Subsystem with id ${subsystemId} not found, skipping topology save`);
+                continue;
+              }
+              subsystem = wizardData.subsystems[subIdx];
+              subsystemIndex = subIdx;
+            } else {
+              // Numeric index key (shouldn't happen in edit mode, but handle it)
+              subsystemIndex = parseInt(key, 10);
+              subsystem = wizardData.subsystems[subsystemIndex];
+              if (!subsystem) {
+                console.warn(`⚠️ Subsystem at index ${subsystemIndex} not found, skipping topology save`);
+                continue;
+              }
+            }
+
+            try {
+              // Check if topology already exists for this contract/subsystem
+              const existingTopology = await networkTopologyService.getByContractAndSubsystem(
+                contractToEdit.id,
+                subsystemIndex
+              );
+
+              if (existingTopology) {
+                // Update existing topology (creates a new immutable version)
+                await networkTopologyService.update(existingTopology.id, {
+                  name: existingTopology.name,
+                  contractId: contractToEdit.id,
+                  subsystemIndex: subsystemIndex,
+                  subsystemType: subsystem.type,
+                  nodes: topology.nodes,
+                  connections: topology.connections,
+                  notes: 'Zaktualizowano w kreatorze kontraktu (edit)',
+                });
+                console.log(`✅ Updated topology for ${subsystem.type} (subsystem ${subsystemIndex})`);
+              } else {
+                // Create new topology
+                await networkTopologyService.create({
+                  name: `Topologia ${subsystem.type} - ${wizardData.customName}`,
+                  contractId: contractToEdit.id,
+                  subsystemIndex: subsystemIndex,
+                  subsystemType: subsystem.type,
+                  nodes: topology.nodes,
+                  connections: topology.connections,
+                  notes: 'Utworzono w kreatorze kontraktu (edit)',
+                });
+                console.log(`✅ Created topology for ${subsystem.type} (subsystem ${subsystemIndex})`);
+              }
+            } catch (topoError: unknown) {
+              const msg = (topoError as { response?: { data?: { message?: string } }; message?: string })
+                .response?.data?.message || (topoError as { message?: string }).message || String(topoError);
+              console.error(`❌ Failed to save topology for subsystem ${subsystemIndex}:`, topoError);
+              topoWarnings.push(`Nie udało się zapisać topologii dla ${subsystem.type}: ${msg}`);
+            }
+          }
+        }
+
+        // Surface any topology warnings on the success screen
+        if (topoWarnings.length > 0) {
+          setSaveWarnings(prev => [...(prev || []), ...topoWarnings]);
+        }
+
         setCurrentStep(getTotalSteps()); // Success step
       } else {
         // CREATE MODE - create new contract
