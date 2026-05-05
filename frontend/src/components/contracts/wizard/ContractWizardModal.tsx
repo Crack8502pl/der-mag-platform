@@ -17,6 +17,10 @@ import type { Task } from '../../../types/task.types';
 import { CompleteTaskAndCreateAssetModal } from '../../tasks/CompleteTaskAndCreateAssetModal';
 import taskRelationshipService from '../../../services/taskRelationship.service';
 import networkTopologyService from '../../../services/networkTopology.service';
+import type {
+  TopologyNode as WizardTopologyNode,
+  TopologyConnection as WizardTopologyConnection,
+} from '../../../types/network-topology.types';
 
 // Step Components
 import { BasicDataStep } from './steps/BasicDataStep';
@@ -48,8 +52,52 @@ import { ZasilanieConfigStep } from './subsystems/zasilanie/ZasilanieConfigStep'
 import '../../../styles/grover-theme.css';
 import '../WizardStepIndicator.css';
 
+// ─── Helpers: map wizard-state topology objects to backend DTO format ──────────
 
-export const ContractWizardModal: React.FC<WizardProps> = ({ 
+interface BackendTopologyNodeDto {
+  id: string;
+  nodeType: string;
+  sourceType: string;
+  label: string;
+  position: { x: number; y: number };
+  kilometre?: number;
+  isActive?: boolean;
+  taskId?: number;
+}
+
+interface BackendTopologyConnectionDto {
+  id: string;
+  source: string;
+  target: string;
+  technology: 'FIBER' | 'LAN';
+  distance?: number;
+  notes?: string;
+}
+
+function mapWizardNodeToDto(node: WizardTopologyNode): BackendTopologyNodeDto {
+  return {
+    id: node.id,
+    nodeType: node.type,
+    sourceType: 'task',
+    label: node.label,
+    position: node.position,
+    kilometre: node.data?.km,
+    taskId: node.data?.taskId,
+  };
+}
+
+function mapWizardConnectionToDto(conn: WizardTopologyConnection): BackendTopologyConnectionDto {
+  return {
+    id: conn.id,
+    source: conn.source,
+    target: conn.target,
+    technology: (conn.technology?.toUpperCase() ?? 'FIBER') as 'FIBER' | 'LAN',
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+
+export const ContractWizardModal: React.FC<WizardProps> = ({
   onClose, 
   onSuccess, 
   editMode = false,
@@ -423,8 +471,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         contractId: contractToEdit!.id,
         subsystemIndex: subsystemIndex,
         subsystemType: subsystem.type,
-        nodes: topology.nodes,
-        connections: topology.connections,
+        nodes: topology.nodes.map(mapWizardNodeToDto) as any,
+        connections: topology.connections.map(mapWizardConnectionToDto) as any,
         notes: 'Zaktualizowano w kreatorze kontraktu (edit)',
       });
       console.log(`✅ Updated topology for subsystem ${subsystemIndex}`);
@@ -434,8 +482,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         contractId: contractToEdit!.id,
         subsystemIndex: subsystemIndex,
         subsystemType: subsystem.type,
-        nodes: topology.nodes,
-        connections: topology.connections,
+        nodes: topology.nodes.map(mapWizardNodeToDto) as any,
+        connections: topology.connections.map(mapWizardConnectionToDto) as any,
         notes: 'Utworzono w kreatorze kontraktu (edit)',
       });
       console.log(`✅ Created topology for subsystem ${subsystemIndex}`);
@@ -811,8 +859,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
                 contractId: createdContractId,
                 subsystemIndex: subsystemIndex,
                 subsystemType: subsystem.type,
-                nodes: topology.nodes,
-                connections: topology.connections,
+                nodes: topology.nodes.map(mapWizardNodeToDto) as any,
+                connections: topology.connections.map(mapWizardConnectionToDto) as any,
                 notes: 'Utworzono automatycznie w kreatorze kontraktu',
               });
               console.log(`✅ Saved topology for ${subsystem.type} (subsystem ${subsystemIndex})`);
