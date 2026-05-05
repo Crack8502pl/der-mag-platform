@@ -130,9 +130,30 @@ export class NetworkTopologyController {
    */
   create = async (req: Request, res: Response): Promise<void> => {
     try {
+      console.log('📥 POST /api/network-topologies - Request body:', JSON.stringify(req.body, null, 2));
+      console.log('📊 Body fields:', {
+        name: req.body.name,
+        contractId: req.body.contractId,
+        subsystemIndex: req.body.subsystemIndex,
+        subsystemType: req.body.subsystemType,
+        nodesCount: req.body.nodes?.length,
+        connectionsCount: req.body.connections?.length,
+      });
+
       const dto = plainToClass(CreateNetworkTopologyDto, req.body);
       const errors = await validate(dto);
       if (errors.length > 0) {
+        console.error('❌ Validation errors:', JSON.stringify(errors, null, 2));
+        console.error('❌ Detailed validation errors:', errors.map(e => ({
+          field: e.property,
+          value: e.value,
+          constraints: e.constraints,
+          children: e.children?.map(child => ({
+            field: child.property,
+            value: child.value,
+            constraints: child.constraints,
+          })),
+        })));
         res.status(400).json({
           success: false,
           error: 'VALIDATION_ERROR',
@@ -142,6 +163,7 @@ export class NetworkTopologyController {
         return;
       }
 
+      console.log('✅ Validation passed, creating topology...');
       const topology = await networkTopologyService.create(dto);
       res.status(201).json({ success: true, data: topology });
     } catch (error: any) {

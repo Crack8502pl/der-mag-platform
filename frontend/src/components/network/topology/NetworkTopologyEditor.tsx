@@ -234,19 +234,99 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
   // Save topology (immutable: creates new version or first record)
   const handleSave = useCallback(async () => {
     if (saving) return;
+
+    // Frontend validation before sending
+    const validationErrors: string[] = [];
+
+    if (!contractId || contractId < 1) {
+      validationErrors.push('Nieprawidłowe ID kontraktu');
+    }
+
+    if (!subsystemType) {
+      validationErrors.push('Brak typu podsystemu');
+    }
+
+    nodes.forEach((n, idx) => {
+      if (!n.label) validationErrors.push(`Node ${idx}: brak etykiety`);
+      if (!n.type) validationErrors.push(`Node ${idx}: brak nodeType`);
+      if (typeof n.position?.x !== 'number') validationErrors.push(`Node ${idx}: brak position.x`);
+      if (typeof n.position?.y !== 'number') validationErrors.push(`Node ${idx}: brak position.y`);
+    });
+
+    connections.forEach((c, idx) => {
+      if (!c.source) validationErrors.push(`Connection ${idx}: brak source`);
+      if (!c.target) validationErrors.push(`Connection ${idx}: brak target`);
+      if (!c.technology) validationErrors.push(`Connection ${idx}: brak technology`);
+      const techUpper = c.technology?.toUpperCase();
+      if (c.technology && !['FIBER', 'LAN'].includes(techUpper!)) {
+        validationErrors.push(`Connection ${idx}: nieprawidłowa technologia "${c.technology}"`);
+      }
+    });
+
+    if (validationErrors.length > 0) {
+      console.error('❌ Frontend validation failed:', validationErrors);
+      setError(`Błędy walidacji:\n${validationErrors.join('\n')}`);
+      return;
+    }
+
+    console.log('✅ Frontend validation passed');
+
     try {
       setSaving(true);
       setError(null);
+
+      console.log('📤 Saving topology...');
+      console.log('📊 Current state:', {
+        contractId,
+        subsystemIndex,
+        subsystemType,
+        nodesCount: nodes.length,
+        connectionsCount: connections.length,
+        topologyMeta,
+      });
 
       const dto: Partial<NetworkTopologyData> = {
         name: topologyMeta?.name ?? `Topologia ${subsystemType}`,
         contractId,
         subsystemIndex,
         subsystemType,
-        nodes,
-        connections,
+        // Map from network-topology.types (frontend) to backend DTO field names:
+        // - type → nodeType, add sourceType fallback, position from position.x/y
+        nodes: nodes.map(n => ({
+          id: n.id,
+          nodeType: n.type,
+          sourceType: (n as any).sourceType ?? 'manual',
+          label: n.label,
+          position: { x: n.position?.x ?? 0, y: n.position?.y ?? 0 },
+          kilometre: (n as any).kilometre,
+          isActive: (n as any).isActive,
+          taskId: n.data?.taskId,
+        })) as any,
+        // Map from network-topology.types (frontend) to backend DTO field names:
+        // - sourceNodeId/targetNodeId → source/target, technology to uppercase
+        connections: connections.map(c => ({
+          id: c.id,
+          source: (c as any).sourceNodeId ?? c.source,
+          target: (c as any).targetNodeId ?? c.target,
+          technology: (c.technology?.toUpperCase() ?? 'FIBER') as any,
+          distance: (c as any).distance,
+          notes: (c as any).notes,
+        })) as any,
         notes: topologyMeta?.notes ?? undefined,
       };
+
+      if (import.meta.env.DEV) {
+        console.log('📦 DTO to send:', JSON.stringify(dto, null, 2));
+        console.log('🔍 Mapped connections:', connections.map((c, idx) => ({
+          idx,
+          original: { source: c.source, target: c.target, technology: c.technology },
+          mapped: {
+            source: (c as any).sourceNodeId ?? c.source,
+            target: (c as any).targetNodeId ?? c.target,
+            technology: c.technology?.toUpperCase() ?? 'FIBER',
+          },
+        })));
+      }
 
       let saved: NetworkTopologyData;
       if (topologyMeta) {
@@ -260,8 +340,16 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
       setSuccessMsg('Topologia zapisana pomyślnie');
       setTimeout(() => setSuccessMsg(null), 3000);
       onSaved?.(saved);
-    } catch {
-      setError('Błąd zapisywania topologii');
+    } catch (error: any) {
+      console.error('❌ Save failed:', error);
+      console.error('❌ Response status:', error.response?.status);
+      console.error('❌ Response data:', JSON.stringify(error.response?.data, null, 2));
+      console.error('❌ Request config:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        data: error.config?.data,
+      });
+      setError(`Błąd zapisywania topologii: ${error.response?.data?.message || error.message}`);
     } finally {
       setSaving(false);
     }
