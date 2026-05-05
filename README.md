@@ -439,6 +439,8 @@ Moduł wizualnego projektowania topologii sieciowych dla podsystemów **SMOKIP_A
 - 🔗 **Łączenie węzłów** — technologie: światłowód 🟠 i LAN 🔵
 - 📏 **Auto-kalkulacja odległości** na podstawie kilometrażu zadań
 - ⚡ **Auto-Layout** — automatyczne rozmieszczenie węzłów w siatce
+- 🔧 **Optymalizuj układ** — algorytm force-directed minimalizujący krzyżowania połączeń
+- 🔴 **Wykrywanie krzyżowań** — linie przecinające się oznaczane na czerwono
 - 🕐 **Historia wersji** — każdy zapis tworzy niemodyfikowalną wersję
 - 📄 **Export PDF** — eksport diagramu topologii
 - 🔄 **Integracja z wizardem** — krok 6 tylko dla SMOKIP_A/B (z przyciskiem "Pomiń ▷")
