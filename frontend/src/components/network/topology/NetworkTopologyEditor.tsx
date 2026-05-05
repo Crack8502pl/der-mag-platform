@@ -258,7 +258,7 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
       if (!c.target) validationErrors.push(`Connection ${idx}: brak target`);
       if (!c.technology) validationErrors.push(`Connection ${idx}: brak technology`);
       const techUpper = c.technology?.toUpperCase();
-      if (c.technology && !['FIBER', 'LAN'].includes(techUpper ?? '')) {
+      if (c.technology && !['FIBER', 'LAN'].includes(techUpper!)) {
         validationErrors.push(`Connection ${idx}: nieprawidłowa technologia "${c.technology}"`);
       }
     });
@@ -290,6 +290,8 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
         contractId,
         subsystemIndex,
         subsystemType,
+        // Map from network-topology.types (frontend) to backend DTO field names:
+        // - type → nodeType, add sourceType fallback, position from position.x/y
         nodes: nodes.map(n => ({
           id: n.id,
           nodeType: n.type,
@@ -300,6 +302,8 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
           isActive: (n as any).isActive,
           taskId: n.data?.taskId,
         })) as any,
+        // Map from network-topology.types (frontend) to backend DTO field names:
+        // - sourceNodeId/targetNodeId → source/target, technology to uppercase
         connections: connections.map(c => ({
           id: c.id,
           source: (c as any).sourceNodeId ?? c.source,
@@ -311,16 +315,18 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
         notes: topologyMeta?.notes ?? undefined,
       };
 
-      console.log('📦 DTO to send:', JSON.stringify(dto, null, 2));
-      console.log('🔍 Mapped connections:', connections.map((c, idx) => ({
-        idx,
-        original: { source: c.source, target: c.target, technology: c.technology },
-        mapped: {
-          source: (c as any).sourceNodeId ?? c.source,
-          target: (c as any).targetNodeId ?? c.target,
-          technology: c.technology?.toUpperCase() ?? 'FIBER',
-        },
-      })));
+      if (import.meta.env.DEV) {
+        console.log('📦 DTO to send:', JSON.stringify(dto, null, 2));
+        console.log('🔍 Mapped connections:', connections.map((c, idx) => ({
+          idx,
+          original: { source: c.source, target: c.target, technology: c.technology },
+          mapped: {
+            source: (c as any).sourceNodeId ?? c.source,
+            target: (c as any).targetNodeId ?? c.target,
+            technology: c.technology?.toUpperCase() ?? 'FIBER',
+          },
+        })));
+      }
 
       let saved: NetworkTopologyData;
       if (topologyMeta) {
