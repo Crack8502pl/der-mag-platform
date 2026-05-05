@@ -454,7 +454,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           setLoading(true);
           await saveSubsystemImmediately(stepInfo.subsystemIndex);
         } catch (err: any) {
-          setError(`Błąd podczas zapisywania podsystemu: ${err.message}`);
+          setError(`Błąd podczas zapisywania podsystemu: ${err?.message || 'Nieznany błąd'}`);
           setLoading(false);
           return;
         } finally {
@@ -469,7 +469,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         setLoading(true);
         await saveRelationshipsEditMode();
       } catch (err: any) {
-        console.warn('Non-fatal: failed to save relationships incrementally:', err);
+        console.warn('Non-fatal: failed to save relationships incrementally:', err?.message || err);
       } finally {
         setLoading(false);
       }
@@ -481,7 +481,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         setLoading(true);
         await saveTopologyImmediately(stepInfo.subsystemIndex);
       } catch (err: any) {
-        console.warn('Non-fatal: failed to save topology incrementally:', err);
+        console.warn('Non-fatal: failed to save topology incrementally:', err?.message || err);
       } finally {
         setLoading(false);
       }
