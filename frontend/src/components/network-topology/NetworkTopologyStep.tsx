@@ -58,6 +58,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [crossingConnections, setCrossingConnections] = useState<Set<string>>(new Set());
   const dragRef = useRef<DragState | null>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   /** Returns the topology storage key for the current subsystem.
    * Existing subsystems in ExtendWizard carry a subsystemId – use a stable string key
@@ -297,6 +298,63 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     [nodes.length]
   );
 
+  // Canvas drag-over: allow drop
+  const handleCanvasDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }, []);
+
+  // Canvas drop: create a node from the dragged sidebar task
+  const handleCanvasDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      try {
+        const dataStr = e.dataTransfer.getData('application/json');
+        if (!dataStr) return;
+
+        const data = JSON.parse(dataStr) as { type: string; taskId: number; label: string; km?: number };
+        if (data.type !== 'task') return;
+
+        const canvasRect = canvasRef.current?.getBoundingClientRect();
+        if (!canvasRect) return;
+
+        const dropX = e.clientX - canvasRect.left;
+        const dropY = e.clientY - canvasRect.top;
+
+        const taskDetail = wizardData.subsystems[subsystemIndex]?.taskDetails?.[data.taskId];
+        if (!taskDetail) return;
+
+        const taskWizardId = taskDetail.taskWizardId;
+
+        // Prevent duplicates: if the node is already on the canvas, ignore
+        if (taskWizardId && nodes.some(n => n.id === taskWizardId)) {
+          console.warn('Task already exists on canvas');
+          return;
+        }
+
+        const newNode: TopologyNode = {
+          id: taskWizardId || crypto.randomUUID(),
+          type: 'task' as const,
+          label: data.label || `Zadanie ${data.taskId}`,
+          position: {
+            x: Math.max(0, dropX - NODE_WIDTH / 2),
+            y: Math.max(0, dropY - 30),
+          },
+          data: {
+            taskId: undefined,
+            km: data.km ?? parseWizardKilometraz(taskDetail.kilometraz),
+          },
+        };
+
+        setNodes(prev => [...prev, newNode]);
+        setIsDirty(true);
+      } catch (error) {
+        console.error('Drop error:', error);
+      }
+    },
+    [nodes, wizardData, subsystemIndex]
+  );
+
   // Add an external node directly
   const handleAddExternal = useCallback(() => {
     const externalCount = nodes.filter(n => n.type === 'external').length;
@@ -397,11 +455,14 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
 
           {/* Canvas */}
           <div
+            ref={canvasRef}
             className={`topology-canvas${connectingMode ? ' topology-canvas--connecting' : ''}`}
             onClick={() => {
               setSelectedId(null);
               if (connectingMode) setConnectingSource(null);
             }}
+            onDragOver={handleCanvasDragOver}
+            onDrop={handleCanvasDrop}
           >
             {nodes.length === 0 && (
               <div className="topology-empty-state">
