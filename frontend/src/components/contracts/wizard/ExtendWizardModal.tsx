@@ -2,9 +2,10 @@
 // Extend Wizard Modal — allows extending CREATED / IN_PROGRESS contracts
 // with new subsystems and/or new tasks in existing subsystems.
 
-import React, { useState, useEffect, useMemo } from 'react';
-import type { ExtendWizardModalProps, ExtendStepInfo } from './types/extend-wizard.types';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import type { ExtendWizardModalProps, ExtendStepInfo, ExtendWizardData } from './types/extend-wizard.types';
 import { useExtendWizardState } from './hooks/useExtendWizardState';
+import { useWizardDraft } from '../../../hooks/useWizardDraft';
 import contractService from '../../../services/contract.service';
 import taskRelationshipService from '../../../services/taskRelationship.service';
 import networkTopologyService from '../../../services/networkTopology.service';
@@ -142,6 +143,51 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
     managerCode: contract.managerCode || '',
     liniaKolejowa: contract.liniaKolejowa,
   });
+
+  // ── Draft management ────────────────────────────────────────────────────────
+  const {
+    setData: setDraftData,
+    setCurrentStep: setDraftCurrentStep,
+    saveDraft: saveDraftNow,
+    isSaving: draftIsSaving,
+    lastSaveTime: draftLastSaveTime,
+    showRestoreModal: showDraftRestoreModal,
+    savedDraft,
+    restoreDraft: handleRestoreDraft,
+    discardDraft: handleDiscardDraft,
+    clearDraft,
+  } = useWizardDraft<ExtendWizardData>({
+    wizardType: `contract-wizard-extend-${contract.id}`,
+    initialData: extendData,
+    autoSaveInterval: 30000,
+    enabled: true,
+    autoSaveEnabled: currentStep >= 2 && !wizardSubmitted,
+    onRestore: (data) => {
+      updateExtendData(data);
+    },
+  });
+
+  // Keep draft data and step in sync with live wizard state (debounced 500ms).
+  const draftSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    setDraftCurrentStep(currentStep);
+    if (draftSyncTimerRef.current) clearTimeout(draftSyncTimerRef.current);
+    if (currentStep >= 2) {
+      draftSyncTimerRef.current = setTimeout(() => {
+        console.log('[ExtendWizard] Syncing draft:', {
+          currentStep,
+          contractId: contract.id,
+          existingSubsystemsCount: extendData.existingSubsystems?.length || 0,
+          newSubsystemsCount: extendData.newSubsystems?.length || 0,
+          hasRelationships: !!extendData.taskRelationships,
+        });
+        setDraftData(extendData);
+      }, 500);
+    }
+    return () => {
+      if (draftSyncTimerRef.current) clearTimeout(draftSyncTimerRef.current);
+    };
+  }, [extendData, currentStep, setDraftData, setDraftCurrentStep, contract.id]);
 
   // Load contract data on mount. loadContractData is stable (hook function reference never changes),
   // so it is safe to exclude it from deps to avoid re-running on every render.
@@ -391,6 +437,7 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
       }
 
       setWizardSubmitted(true);
+      await clearDraft();
       handleNext(); // move to success step
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } }; message?: string };
@@ -777,6 +824,30 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
 
         {error && <div className="alert alert-error">{error}</div>}
 
+        {/* Draft restore modal */}
+        {showDraftRestoreModal && savedDraft && (
+          <div className="modal-overlay" style={{ zIndex: 1100 }}>
+            <div className="modal-content" style={{ maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>📋 Przywróć draft</h2>
+              </div>
+              <div className="modal-body">
+                <p>Znaleziono zapisany draft rozszerzenia kontraktu z dnia <strong>{new Date(savedDraft.updatedAt).toLocaleString('pl-PL')}</strong>.</p>
+                <p>Czy chcesz przywrócić poprzednią sesję?</p>
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-secondary" onClick={handleDiscardDraft}>
+                  🗑️ Odrzuć
+                </button>
+                <div className="footer-spacer" />
+                <button className="btn btn-primary" onClick={handleRestoreDraft}>
+                  ✅ Przywróć
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="modal-body">{renderStep()}</div>
 
         {/* Footer nav – only for steps without built-in buttons */}
@@ -785,6 +856,17 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
             {currentStep > 1 && (
               <button className="btn btn-secondary" onClick={handleBack} disabled={loading}>
                 ← Wstecz
+              </button>
+            )}
+            {/* Draft save button – visible from step 2 */}
+            {currentStep >= 2 && (
+              <button
+                className="btn btn-secondary"
+                onClick={() => saveDraftNow()}
+                disabled={draftIsSaving}
+                title={draftLastSaveTime ? `Ostatni zapis: ${draftLastSaveTime.toLocaleTimeString('pl-PL')}` : 'Zapisz draft'}
+              >
+                {draftIsSaving ? '⏳ Zapisywanie...' : '💾 Zapisz draft'}
               </button>
             )}
             <div className="footer-spacer" />
