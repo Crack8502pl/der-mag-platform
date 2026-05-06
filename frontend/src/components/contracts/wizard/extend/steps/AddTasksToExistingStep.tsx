@@ -5,13 +5,14 @@ import React from 'react';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../../config/subsystemWizardConfig';
 import type { ExistingSubsystem } from '../../types/extend-wizard.types';
 import type { TaskDetail } from '../../types/wizard.types';
-import { cleanKilometrazInput, OPTIONAL_KILOMETRAZ_HELP } from '../../utils/validation';
+import { cleanKilometrazInput, formatLiniaKolejowa, OPTIONAL_KILOMETRAZ_HELP } from '../../utils/validation';
 import { generateTaskName } from '../../utils/taskNameGenerator';
+import { GPSLocationInput } from '../../common/GPSLocationInput';
 
 interface AddTasksToExistingStepProps {
   subsystem: ExistingSubsystem;
   liniaKolejowa?: string;
-  onAddTask: (subsystemId: number, taskType: TaskDetail['taskType']) => void;
+  onAddTask: (subsystemId: number, taskType: TaskDetail['taskType'], initialData?: Partial<TaskDetail>) => void;
   onRemoveTask: (subsystemId: number, taskIndex: number) => void;
   onUpdateTask: (subsystemId: number, taskIndex: number, updates: Partial<TaskDetail>) => void;
   onKilometrazBlur: (subsystemId: number, taskIndex: number, value: string) => void;
@@ -71,6 +72,39 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
     const cleaned = cleanKilometrazInput(value);
     const newNazwa = generateTaskName(taskType, { ...subsystem.newTasks[taskIndex], taskType: taskType as TaskDetail['taskType'], kilometraz: cleaned }, liniaKolejowa);
     onUpdateTask(subsystem.id, taskIndex, { kilometraz: cleaned, nazwa: newNazwa });
+  };
+
+  const handleLiniaKolejowaBlur = (taskIndex: number, value: string) => {
+    if (value.trim()) {
+      const formatted = formatLiniaKolejowa(value);
+      onUpdateTask(subsystem.id, taskIndex, { liniaKolejowa: formatted });
+    }
+  };
+
+  const handleCuidCheckbox = (lcsTaskIndex: number, checked: boolean) => {
+    const lcsTask = subsystem.newTasks[lcsTaskIndex];
+    onUpdateTask(subsystem.id, lcsTaskIndex, { hasCUID: checked });
+    if (checked) {
+      const cuidInitial: Partial<TaskDetail> = {
+        liniaKolejowa: lcsTask.liniaKolejowa,
+        miejscowosc: lcsTask.miejscowosc,
+        nazwaLCS: lcsTask.nazwaLCS,
+        nazwa: lcsTask.nazwa,
+        gpsLatitude: lcsTask.gpsLatitude,
+        gpsLongitude: lcsTask.gpsLongitude,
+        googleMapsUrl: lcsTask.googleMapsUrl,
+        kilometraz: lcsTask.kilometraz,
+        linkedLCSId: lcsTask.taskWizardId,
+      };
+      onAddTask(subsystem.id, 'CUID', cuidInitial);
+    } else {
+      const cuidIndex = subsystem.newTasks.findIndex(
+        (t) => t.taskType === 'CUID' && t.linkedLCSId === lcsTask.taskWizardId
+      );
+      if (cuidIndex !== -1) {
+        onRemoveTask(subsystem.id, cuidIndex);
+      }
+    }
   };
 
   return (
@@ -158,6 +192,15 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                   </div>
                 </div>
                 <div className="form-group">
+                  <label>Lokalizacja GPS <span className="text-muted">(opcjonalne)</span></label>
+                  <GPSLocationInput
+                    gpsLatitude={task.gpsLatitude}
+                    gpsLongitude={task.gpsLongitude}
+                    googleMapsUrl={task.googleMapsUrl}
+                    onUpdate={(updates) => onUpdateTask(subsystem.id, idx, updates)}
+                  />
+                </div>
+                <div className="form-group">
                   <label>Linia kolejowa <span className="text-muted">(opcjonalnie)</span></label>
                   <input
                     type="text"
@@ -168,7 +211,9 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                       const newNazwa = generateTaskName('PRZEJAZD_KAT_A', { ...task, liniaKolejowa: linia }, linia);
                       onUpdateTask(subsystem.id, idx, { liniaKolejowa: linia, nazwa: newNazwa });
                     }}
+                    onBlur={(e) => handleLiniaKolejowaBlur(idx, e.target.value)}
                   />
+                  <small className="form-help">Format: LK-XXX lub E-XX (auto-normalizacja)</small>
                 </div>
                 <div className="form-group">
                   <label>Kilometraż <span className="required">*</span></label>
@@ -209,6 +254,15 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                   </div>
                 </div>
                 <div className="form-group">
+                  <label>Lokalizacja GPS <span className="text-muted">(opcjonalne)</span></label>
+                  <GPSLocationInput
+                    gpsLatitude={task.gpsLatitude}
+                    gpsLongitude={task.gpsLongitude}
+                    googleMapsUrl={task.googleMapsUrl}
+                    onUpdate={(updates) => onUpdateTask(subsystem.id, idx, updates)}
+                  />
+                </div>
+                <div className="form-group">
                   <label>Linia kolejowa <span className="text-muted">(opcjonalnie)</span></label>
                   <input
                     type="text"
@@ -219,7 +273,9 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                       const newNazwa = generateTaskName('PRZEJAZD_KAT_B', { ...task, liniaKolejowa: linia }, linia);
                       onUpdateTask(subsystem.id, idx, { liniaKolejowa: linia, nazwa: newNazwa });
                     }}
+                    onBlur={(e) => handleLiniaKolejowaBlur(idx, e.target.value)}
                   />
+                  <small className="form-help">Format: LK-XXX lub E-XX (auto-normalizacja)</small>
                 </div>
                 <div className="form-group">
                   <label>Kilometraż <span className="required">*</span></label>
@@ -245,6 +301,15 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                   </div>
                 </div>
                 <div className="form-group">
+                  <label>Lokalizacja GPS <span className="text-muted">(opcjonalne)</span></label>
+                  <GPSLocationInput
+                    gpsLatitude={task.gpsLatitude}
+                    gpsLongitude={task.gpsLongitude}
+                    googleMapsUrl={task.googleMapsUrl}
+                    onUpdate={(updates) => onUpdateTask(subsystem.id, idx, updates)}
+                  />
+                </div>
+                <div className="form-group">
                   <label>Linia kolejowa <span className="text-muted">(opcjonalnie)</span></label>
                   <input
                     type="text"
@@ -255,7 +320,9 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                       const newNazwa = generateTaskName('SKP', { ...task, liniaKolejowa: linia }, linia);
                       onUpdateTask(subsystem.id, idx, { liniaKolejowa: linia, nazwa: newNazwa });
                     }}
+                    onBlur={(e) => handleLiniaKolejowaBlur(idx, e.target.value)}
                   />
+                  <small className="form-help">Format: LK-XXX lub E-XX (auto-normalizacja)</small>
                 </div>
                 <div className="form-group">
                   <label>Kilometraż <span className="required">*</span></label>
@@ -281,6 +348,15 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                   </div>
                 </div>
                 <div className="form-group">
+                  <label>Lokalizacja GPS <span className="text-muted">(opcjonalne)</span></label>
+                  <GPSLocationInput
+                    gpsLatitude={task.gpsLatitude}
+                    gpsLongitude={task.gpsLongitude}
+                    googleMapsUrl={task.googleMapsUrl}
+                    onUpdate={(updates) => onUpdateTask(subsystem.id, idx, updates)}
+                  />
+                </div>
+                <div className="form-group">
                   <label>Linia kolejowa <span className="text-muted">(opcjonalnie)</span></label>
                   <input
                     type="text"
@@ -291,7 +367,9 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                       const newNazwa = generateTaskName('NASTAWNIA', { ...task, liniaKolejowa: linia }, linia);
                       onUpdateTask(subsystem.id, idx, { liniaKolejowa: linia, nazwa: newNazwa });
                     }}
+                    onBlur={(e) => handleLiniaKolejowaBlur(idx, e.target.value)}
                   />
+                  <small className="form-help">Format: LK-XXX lub E-XX (auto-normalizacja)</small>
                 </div>
                 <div className="form-group">
                   <label>Nazwa Nastawni <span className="text-muted">(opcjonalnie)</span></label>
@@ -347,6 +425,15 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                   </div>
                 </div>
                 <div className="form-group">
+                  <label>Lokalizacja GPS <span className="text-muted">(opcjonalne)</span></label>
+                  <GPSLocationInput
+                    gpsLatitude={task.gpsLatitude}
+                    gpsLongitude={task.gpsLongitude}
+                    googleMapsUrl={task.googleMapsUrl}
+                    onUpdate={(updates) => onUpdateTask(subsystem.id, idx, updates)}
+                  />
+                </div>
+                <div className="form-group">
                   <label>Linia kolejowa <span className="text-muted">(opcjonalnie)</span></label>
                   <input
                     type="text"
@@ -357,7 +444,9 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                       const newNazwa = generateTaskName('LCS', { ...task, liniaKolejowa: linia }, linia);
                       onUpdateTask(subsystem.id, idx, { liniaKolejowa: linia, nazwa: newNazwa });
                     }}
+                    onBlur={(e) => handleLiniaKolejowaBlur(idx, e.target.value)}
                   />
+                  <small className="form-help">Format: LK-XXX lub E-XX (auto-normalizacja)</small>
                 </div>
                 <div className="form-group">
                   <label>Nazwa LCS <span className="text-muted">(opcjonalnie)</span></label>
@@ -399,6 +488,55 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                     onBlur={(e) => onKilometrazBlur(subsystem.id, idx, e.target.value)}
                   />
                   <small className="form-help">{OPTIONAL_KILOMETRAZ_HELP}</small>
+                </div>
+                <div className="form-group cuid-checkbox-group">
+                  <label className="checkbox-inline-group">
+                    <input
+                      type="checkbox"
+                      checked={task.hasCUID || false}
+                      onChange={(e) => handleCuidCheckbox(idx, e.target.checked)}
+                    />
+                    <span>CUiD (Centrum Utrzymania i Diagnostyki)</span>
+                  </label>
+                  <small className="form-help">
+                    Zaznacz, jeśli LCS ma CUiD. Automatycznie tworzy dodatkowe zadanie CUID.
+                  </small>
+                </div>
+              </div>
+            )}
+
+            {/* CUID */}
+            {task.taskType === 'CUID' && (
+              <div className="task-fields">
+                <div className="form-group">
+                  <label>📌 Nazwa zadania <span className="text-muted">(automatyczna)</span></label>
+                  <div className="name-preview">
+                    {generateTaskName('CUID', task, liniaKolejowa)}
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Lokalizacja GPS <span className="text-muted">(opcjonalne)</span></label>
+                  <GPSLocationInput
+                    gpsLatitude={task.gpsLatitude}
+                    gpsLongitude={task.gpsLongitude}
+                    googleMapsUrl={task.googleMapsUrl}
+                    onUpdate={(updates) => onUpdateTask(subsystem.id, idx, updates)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Linia kolejowa <span className="text-muted">(opcjonalnie)</span></label>
+                  <input
+                    type="text"
+                    placeholder="np. LK-1"
+                    value={task.liniaKolejowa || ''}
+                    onChange={(e) => {
+                      const linia = e.target.value;
+                      const newNazwa = generateTaskName('CUID', { ...task, liniaKolejowa: linia }, linia);
+                      onUpdateTask(subsystem.id, idx, { liniaKolejowa: linia, nazwa: newNazwa });
+                    }}
+                    onBlur={(e) => handleLiniaKolejowaBlur(idx, e.target.value)}
+                  />
+                  <small className="form-help">Format: LK-XXX lub E-XX (auto-normalizacja)</small>
                 </div>
               </div>
             )}
