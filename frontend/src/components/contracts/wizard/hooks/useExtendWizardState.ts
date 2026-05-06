@@ -181,8 +181,31 @@ export const useExtendWizardState = ({
             const subsystem = existingSubsystems[topology.subsystemIndex];
             if (subsystem) {
               networkTopologies[`subsystem-${subsystem.id}`] = {
-                nodes: topology.nodes,
-                connections: topology.connections
+                nodes: topology.nodes.map((n): TopologyNode => {
+                  // Backend stores nodes with `nodeType`; frontend uses `type`.
+                  // Cast to handle both formats (topology may have been saved by either wizard).
+                  const backendNode = n as unknown as { nodeType?: string; taskId?: number; kilometre?: number };
+                  return {
+                    id: n.id,
+                    type: (n.type ?? backendNode.nodeType ?? 'task') as TopologyNode['type'],
+                    label: n.label,
+                    position: n.position,
+                    data: {
+                      taskId: n.data?.taskId ?? backendNode.taskId,
+                      km: n.data?.km ?? backendNode.kilometre,
+                    },
+                  };
+                }),
+                connections: topology.connections.map((c): TopologyConnection => ({
+                  id: c.id,
+                  source: c.source,
+                  target: c.target,
+                  // Backend stores technology as uppercase (FIBER/LAN); frontend uses lowercase.
+                  technology: c.technology
+                    ? (c.technology.toLowerCase() as TopologyConnection['technology'])
+                    : undefined,
+                  label: c.label,
+                })),
               };
             } else {
               console.warn(`⚠️ [useExtendWizardState] topology.subsystemIndex=${topology.subsystemIndex} did not match any existingSubsystem (total: ${existingSubsystems.length}) — topology id=${topology.id} skipped`);

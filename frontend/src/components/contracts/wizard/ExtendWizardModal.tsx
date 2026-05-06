@@ -43,6 +43,51 @@ import type { TopologyNode, TopologyConnection } from '../../../types/network-to
 
 import './ContractWizardModal.css';
 
+// ─── Helpers: map wizard-state topology objects to backend DTO format ──────────
+
+interface BackendTopologyNodeDto {
+  id: string;
+  nodeType: string;
+  sourceType: string;
+  label: string;
+  position: { x: number; y: number };
+  kilometre?: number;
+  isActive?: boolean;
+  taskId?: number;
+}
+
+interface BackendTopologyConnectionDto {
+  id: string;
+  source: string;
+  target: string;
+  technology: 'FIBER' | 'LAN';
+  distance?: number;
+  notes?: string;
+}
+
+function mapWizardNodeToDto(node: TopologyNode): BackendTopologyNodeDto {
+  return {
+    id: node.id,
+    nodeType: node.type,
+    sourceType: 'task',
+    label: node.label,
+    position: node.position,
+    kilometre: node.data?.km,
+    taskId: node.data?.taskId,
+  };
+}
+
+function mapWizardConnectionToDto(conn: TopologyConnection): BackendTopologyConnectionDto {
+  return {
+    id: conn.id,
+    source: conn.source,
+    target: conn.target,
+    technology: (conn.technology?.toUpperCase() ?? 'FIBER') as 'FIBER' | 'LAN',
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+
 const ALLOWED_STATUSES = ['CREATED', 'IN_PROGRESS'] as const;
 
 export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, onClose, onSuccess }) => {
@@ -302,8 +347,8 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
                   contractId: contract.id,
                   subsystemIndex: dbSubsystemIndex,
                   subsystemType: existingSubsystem.type,
-                  nodes: topology.nodes,
-                  connections: topology.connections,
+                  nodes: topology.nodes.map(mapWizardNodeToDto) as any,
+                  connections: topology.connections.map(mapWizardConnectionToDto) as any,
                   notes: 'Zaktualizowano podczas rozszerzania kontraktu',
                 });
                 console.log(`✅ Updated topology for existing subsystem ${subsystemId} (dbIndex=${dbSubsystemIndex})`);
@@ -313,8 +358,8 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
                   contractId: contract.id,
                   subsystemIndex: dbSubsystemIndex,
                   subsystemType: existingSubsystem.type,
-                  nodes: topology.nodes,
-                  connections: topology.connections,
+                  nodes: topology.nodes.map(mapWizardNodeToDto) as any,
+                  connections: topology.connections.map(mapWizardConnectionToDto) as any,
                   notes: 'Utworzono podczas rozszerzania kontraktu',
                 });
                 console.log(`✅ Created topology for existing subsystem ${subsystemId} (dbIndex=${dbSubsystemIndex})`);
@@ -333,8 +378,8 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
                 contractId: contract.id,
                 subsystemIndex: dbSubsystemIndex,
                 subsystemType: newSub.type,
-                nodes: topology.nodes,
-                connections: topology.connections,
+                nodes: topology.nodes.map(mapWizardNodeToDto) as any,
+                connections: topology.connections.map(mapWizardConnectionToDto) as any,
                 notes: 'Utworzono podczas rozszerzania kontraktu',
               });
               console.log(`✅ Created topology for new subsystem index ${topoIdx} (dbIndex=${dbSubsystemIndex})`);
