@@ -32,7 +32,7 @@ interface UseExtendWizardStateReturn {
 
   // Existing subsystems management
   toggleAddingNewTasks: (subsystemId: number) => void;
-  addTaskToExisting: (subsystemId: number, taskType: TaskDetail['taskType']) => void;
+  addTaskToExisting: (subsystemId: number, taskType: TaskDetail['taskType'], initialData?: Partial<TaskDetail>) => void;
   removeTaskFromExisting: (subsystemId: number, taskIndex: number) => void;
   updateExistingTaskDetail: (subsystemId: number, taskIndex: number, updates: Partial<TaskDetail>) => void;
 
@@ -237,7 +237,7 @@ export const useExtendWizardState = ({
     }));
   };
 
-  const addTaskToExisting = (subsystemId: number, taskType: TaskDetail['taskType']) => {
+  const addTaskToExisting = (subsystemId: number, taskType: TaskDetail['taskType'], initialData?: Partial<TaskDetail>) => {
     setExtendData(prev => {
       const subsystem = prev.existingSubsystems.find(s => s.id === subsystemId);
       if (!subsystem) return prev;
@@ -247,7 +247,8 @@ export const useExtendWizardState = ({
         taskWizardId: taskType === 'LCS' ? crypto.randomUUID() : `extend-${subsystemId}-${Date.now()}`,
         kilometraz: '',
         nazwa: '',
-        kategoria: taskType === 'PRZEJAZD_KAT_A' ? 'KAT A' : taskType === 'PRZEJAZD_KAT_B' ? 'KAT B' : undefined
+        kategoria: taskType === 'PRZEJAZD_KAT_A' ? 'KAT A' : taskType === 'PRZEJAZD_KAT_B' ? 'KAT B' : undefined,
+        ...initialData,
       };
 
       return {
