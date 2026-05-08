@@ -1,0 +1,126 @@
+/* CustomOrdersStep.css
+   Supports grover-theme (dark) and huskey-theme (light) via CSS variables */
+
+.custom-orders-step .step-description {
+  color: var(--text-secondary, #666);
+  margin-bottom: 20px;
+}
+
+/* ── List container ─────────────────────────────────────────────────────── */
+.custom-orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.custom-orders-empty {
+  font-size: 14px;
+  color: var(--text-muted, #888);
+  font-style: italic;
+}
+
+/* ── Order card ─────────────────────────────────────────────────────────── */
+.custom-order-card {
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: var(--bg-secondary, #f5f5f5);
+}
+
+.custom-order-add-card {
+  border-style: dashed;
+  background: var(--bg-primary, #fff);
+}
+
+/* ── Display mode ───────────────────────────────────────────────────────── */
+.custom-order-display {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.custom-order-index {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-secondary, #666);
+  flex-shrink: 0;
+  min-width: 20px;
+  padding-top: 2px;
+}
+
+.custom-order-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.custom-order-description {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #222);
+}
+
+.custom-order-meta {
+  font-size: 13px;
+  color: var(--text-secondary, #555);
+  margin-top: 4px;
+}
+
+.custom-order-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── Edit form ──────────────────────────────────────────────────────────── */
+.custom-order-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-order-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* ── Form helpers ───────────────────────────────────────────────────────── */
+.custom-orders-step .form-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.custom-orders-step .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.custom-orders-step .form-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #555);
+}
+
+.custom-orders-step .form-group input,
+.custom-orders-step .form-group textarea {
+  padding: 7px 9px;
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--bg-input, #fff);
+  color: var(--text-primary, #222);
+}
+
+.custom-orders-step .form-group input:focus,
+.custom-orders-step .form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-color, #0066cc);
+}
+
+.custom-orders-step .form-group textarea {
+  resize: vertical;
+}

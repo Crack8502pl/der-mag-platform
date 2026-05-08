@@ -1,5 +1,5 @@
 // src/components/contracts/wizard/steps/LogisticsStep.tsx
-// Step: Logistics/shipping data collection
+// Step: Logistics/shipping data collection – multiple delivery addresses
 
 import React from 'react';
 import type { WizardData, LogisticsData, DeliveryAddress, OrderEmailsConfig } from '../types/wizard.types';
@@ -12,7 +12,8 @@ interface Props {
 }
 
 /**
- * Auto-format Polish phone number to +48-XXX-XXX-XXX on blur
+ * Auto-format Polish phone number to +48-XXX-XXX-XXX on blur.
+ * Accepts 9 raw digits or 11 digits starting with "48".
  */
 const formatPhoneNumber = (raw: string): string => {
   const digits = raw.replace(/\D/g, '');
@@ -34,156 +35,191 @@ export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
 
   const deliveryAddresses: DeliveryAddress[] = logistics.deliveryAddresses || [];
 
-  const handleChange = (field: keyof LogisticsData, value: string) => {
-    onUpdate({
-      logistics: {
-        ...logistics,
-        [field]: value,
-      },
+  // Collect all task keys already assigned in addresses BEFORE the given index
+  const getAssignedBefore = (addrIdx: number): Set<string> => {
+    const assigned = new Set<string>();
+    deliveryAddresses.slice(0, addrIdx).forEach((addr) => {
+      addr.taskIds.forEach((id) => assigned.add(id));
     });
+    return assigned;
   };
 
-  const handlePhoneBlur = () => {
-    if (logistics.contactPhone) {
-      const formatted = formatPhoneNumber(logistics.contactPhone);
-      if (formatted !== logistics.contactPhone) {
-        handleChange('contactPhone', formatted);
-      }
-    }
-  };
-
-  const updateDeliveryAddress = (idx: number, patch: Partial<DeliveryAddress>) => {
+  const updateAddress = (idx: number, patch: Partial<DeliveryAddress>) => {
     const updated = deliveryAddresses.map((d, i) => (i === idx ? { ...d, ...patch } : d));
     onUpdate({ logistics: { ...logistics, deliveryAddresses: updated } });
   };
 
   const addDeliveryAddress = () => {
-    const updated = [...deliveryAddresses, { address: '', taskIds: [] }];
-    onUpdate({ logistics: { ...logistics, deliveryAddresses: updated } });
+    const newAddr: DeliveryAddress = {
+      id: crypto.randomUUID(),
+      address: '',
+      contactPhone: '',
+      contactPerson: '',
+      taskIds: [],
+    };
+    onUpdate({ logistics: { ...logistics, deliveryAddresses: [...deliveryAddresses, newAddr] } });
   };
 
   const removeDeliveryAddress = (idx: number) => {
     const updated = deliveryAddresses.filter((_, i) => i !== idx);
-    onUpdate({ logistics: { ...logistics, deliveryAddresses: updated.length > 0 ? updated : undefined } });
+    onUpdate({ logistics: { ...logistics, deliveryAddresses: updated } });
   };
 
-  const toggleTaskForDelivery = (addrIdx: number, taskKey: string, checked: boolean) => {
+  const toggleTask = (addrIdx: number, taskKey: string, checked: boolean) => {
     const current = deliveryAddresses[addrIdx];
     const taskIds = checked
       ? [...current.taskIds, taskKey]
       : current.taskIds.filter((id) => id !== taskKey);
-    updateDeliveryAddress(addrIdx, { taskIds });
+    updateAddress(addrIdx, { taskIds });
   };
 
-  const hasPhone = !!logistics.contactPhone?.trim();
+  const handlePhoneBlur = (addrIdx: number, raw: string) => {
+    const formatted = formatPhoneNumber(raw);
+    if (formatted !== raw) {
+      updateAddress(addrIdx, { contactPhone: formatted });
+    }
+  };
+
+  const handleLogisticsField = (
+    field: keyof Pick<LogisticsData, 'shippingNotes' | 'preferredDeliveryDate'>,
+    value: string
+  ) => {
+    onUpdate({ logistics: { ...logistics, [field]: value } });
+  };
+
+  const handleEmailField = (field: keyof OrderEmailsConfig, value: string) => {
+    onUpdate({
+      logistics: {
+        ...logistics,
+        orderEmails: { ...logistics.orderEmails, [field]: value } as OrderEmailsConfig,
+      },
+    });
+  };
 
   return (
     <div className="wizard-step-content logistics-step">
-      <h3>Dane logistyczne</h3>
+      <h3>📦 Dane logistyczne</h3>
       <p className="step-description">
-        Podaj adresy dostawy i dane kontaktowe odbiorcy. Pola oznaczone <span className="required-mark">*</span> są wymagane.
+        Podaj adresy dostawy i dane kontaktowe odbiorcy. Pola oznaczone{' '}
+        <span className="required-mark">*</span> są wymagane.
       </p>
 
       <div className="logistics-form">
         {/* Delivery addresses */}
         <div className="form-section">
-          <h4>📦 Adresy dostawy</h4>
+          <div className="delivery-section-header">
+            <h4>📍 Adresy dostawy</h4>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={addDeliveryAddress}>
+              ➕ Dodaj adres
+            </button>
+          </div>
 
           {deliveryAddresses.length === 0 && (
-            <p className="delivery-empty-hint">Brak adresów dostawy. Kliknij poniżej, aby dodać.</p>
+            <p className="delivery-empty-hint">Brak adresów dostawy. Kliknij powyżej, aby dodać.</p>
           )}
 
-          {deliveryAddresses.map((delivery, idx) => (
-            <div key={idx} className="delivery-address-item">
-              <div className="delivery-address-header">
-                <strong>Adres dostawy #{idx + 1}</strong>
-                <button
-                  type="button"
-                  className="btn btn-danger btn-sm"
-                  onClick={() => removeDeliveryAddress(idx)}
-                >
-                  🗑️ Usuń adres
-                </button>
-              </div>
+          {deliveryAddresses.map((delivery, idx) => {
+            const assignedBefore = getAssignedBefore(idx);
+            const availableTasks = allTasks.filter((_task, taskIdx) => {
+              const key = `${allTasks[taskIdx].subsystemType}-${taskIdx}`;
+              return !assignedBefore.has(key);
+            });
 
-              <div className="form-group">
-                <label>Adres</label>
-                <textarea
-                  value={delivery.address}
-                  onChange={(e) => updateDeliveryAddress(idx, { address: e.target.value })}
-                  placeholder="ul. Przykładowa 1, 00-001 Warszawa"
-                  rows={3}
-                />
-              </div>
+            return (
+              <div key={delivery.id || idx} className="delivery-address-card">
+                <div className="delivery-address-header">
+                  <span className="delivery-address-title">Adres {idx + 1}</span>
+                  <button
+                    type="button"
+                    className="remove-address-btn"
+                    onClick={() => removeDeliveryAddress(idx)}
+                    title="Usuń adres"
+                  >
+                    ✕ Usuń
+                  </button>
+                </div>
 
-              {allTasks.length > 0 && (
-                <div className="form-group">
-                  <label>Dotyczy zadań:</label>
-                  <div className="task-selection-grid">
-                    {allTasks.map((task, taskIdx) => {
-                      // Composite key matching the per-task infrastructure key pattern
-                      const taskKey = `${task.subsystemType}-${taskIdx}`;
-                      return (
-                        <label key={taskKey} className="checkbox-item">
-                          <input
-                            type="checkbox"
-                            checked={delivery.taskIds.includes(taskKey)}
-                            onChange={(e) => toggleTaskForDelivery(idx, taskKey, e.target.checked)}
-                          />
-                          <span>{task.type} – {task.name || `Zadanie #${taskIdx + 1}`}</span>
-                        </label>
-                      );
-                    })}
+                {/* Contact info per address */}
+                <div className="form-subsection">
+                  <div className="form-subsection-title">📞 Dane kontaktowe</div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>
+                        Telefon kontaktowy <span className="required-mark">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={delivery.contactPhone}
+                        onChange={(e) => updateAddress(idx, { contactPhone: e.target.value })}
+                        onBlur={(e) => handlePhoneBlur(idx, e.target.value)}
+                        placeholder="+48-XXX-XXX-XXX"
+                        className={!delivery.contactPhone.trim() ? 'input-invalid' : ''}
+                      />
+                      {!delivery.contactPhone.trim() && (
+                        <span className="field-error">Telefon jest wymagany</span>
+                      )}
+                      <span className="field-hint">9-cyfrowy numer → auto-format +48-XXX-XXX-XXX</span>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Osoba kontaktowa</label>
+                      <input
+                        type="text"
+                        value={delivery.contactPerson}
+                        onChange={(e) => updateAddress(idx, { contactPerson: e.target.value })}
+                        placeholder="Imię i nazwisko"
+                      />
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
-          ))}
 
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={addDeliveryAddress}
-          >
-            ➕ Dodaj adres dostawy
-          </button>
-        </div>
+                {/* Address field */}
+                <div className="form-group">
+                  <label>Adres</label>
+                  <textarea
+                    value={delivery.address}
+                    onChange={(e) => updateAddress(idx, { address: e.target.value })}
+                    placeholder="ul. Przykładowa 1, 00-001 Warszawa"
+                    rows={3}
+                  />
+                </div>
 
-        {/* Contact */}
-        <div className="form-section">
-          <h4>📞 Dane kontaktowe</h4>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>
-                Telefon kontaktowy <span className="required-mark">*</span>
-              </label>
-              <input
-                type="tel"
-                value={logistics.contactPhone || ''}
-                onChange={(e) => handleChange('contactPhone', e.target.value)}
-                onBlur={handlePhoneBlur}
-                placeholder="np. 500 123 456 lub +48-500-123-456"
-                className={!hasPhone ? 'input-invalid' : ''}
-              />
-              {!hasPhone && (
-                <span className="field-error">Telefon kontaktowy jest wymagany</span>
-              )}
-              <span className="field-hint">
-                9-cyfrowy numer zostanie automatycznie sformatowany do +48-XXX-XXX-XXX
-              </span>
-            </div>
-
-            <div className="form-group">
-              <label>Osoba kontaktowa</label>
-              <input
-                type="text"
-                value={logistics.contactPerson || ''}
-                onChange={(e) => handleChange('contactPerson', e.target.value)}
-                placeholder="Imię i nazwisko"
-              />
-            </div>
-          </div>
+                {/* Task assignment */}
+                {allTasks.length > 0 && (
+                  <div className="task-list-section">
+                    <div className="task-list-hint">
+                      Lista Zadań: do zaznaczenia
+                      {idx > 0 && '. Nie wyświetlamy wyżej zaznaczonych'}
+                    </div>
+                    {availableTasks.length === 0 ? (
+                      <p className="task-list-empty">
+                        Wszystkie zadania są już przypisane do wcześniejszych adresów.
+                      </p>
+                    ) : (
+                      availableTasks.map((task) => {
+                        const globalTaskIdx = allTasks.indexOf(task);
+                        const taskKey = `${task.subsystemType}-${globalTaskIdx}`;
+                        return (
+                          <label key={taskKey} className="task-checkbox-item">
+                            <input
+                              type="checkbox"
+                              checked={delivery.taskIds.includes(taskKey)}
+                              onChange={(e) => toggleTask(idx, taskKey, e.target.checked)}
+                            />
+                            <span>
+                              {task.number && task.number !== task.name ? `${task.number} – ` : ''}
+                              {task.name || `Zadanie #${globalTaskIdx + 1}`}
+                              {task.subsystemType ? ` (${task.subsystemType})` : ''}
+                            </span>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Optional fields */}
@@ -196,7 +232,7 @@ export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
               <input
                 type="date"
                 value={logistics.preferredDeliveryDate || ''}
-                onChange={(e) => handleChange('preferredDeliveryDate', e.target.value)}
+                onChange={(e) => handleLogisticsField('preferredDeliveryDate', e.target.value)}
               />
             </div>
           </div>
@@ -205,7 +241,7 @@ export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
             <label>Uwagi do wysyłki</label>
             <textarea
               value={logistics.shippingNotes || ''}
-              onChange={(e) => handleChange('shippingNotes', e.target.value)}
+              onChange={(e) => handleLogisticsField('shippingNotes', e.target.value)}
               placeholder="Dodatkowe instrukcje, godziny dostaw, wymogi specjalne..."
               rows={3}
             />
@@ -227,12 +263,7 @@ export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
               <input
                 type="email"
                 value={logistics.orderEmails?.cameras || ''}
-                onChange={(e) => onUpdate({
-                  logistics: {
-                    ...logistics,
-                    orderEmails: { ...logistics.orderEmails, cameras: e.target.value } as OrderEmailsConfig
-                  }
-                })}
+                onChange={(e) => handleEmailField('cameras', e.target.value)}
                 placeholder="kamery@firma.pl"
               />
               <span className="field-hint">Kamery IP, analogowe, akcesoria kamerowe</span>
@@ -245,12 +276,7 @@ export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
               <input
                 type="email"
                 value={logistics.orderEmails?.switches || ''}
-                onChange={(e) => onUpdate({
-                  logistics: {
-                    ...logistics,
-                    orderEmails: { ...logistics.orderEmails, switches: e.target.value } as OrderEmailsConfig
-                  }
-                })}
+                onChange={(e) => handleEmailField('switches', e.target.value)}
                 placeholder="siec@firma.pl"
               />
               <span className="field-hint">Switche, routery, konwertery, moduły SFP</span>
@@ -265,12 +291,7 @@ export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
               <input
                 type="email"
                 value={logistics.orderEmails?.recorders || ''}
-                onChange={(e) => onUpdate({
-                  logistics: {
-                    ...logistics,
-                    orderEmails: { ...logistics.orderEmails, recorders: e.target.value } as OrderEmailsConfig
-                  }
-                })}
+                onChange={(e) => handleEmailField('recorders', e.target.value)}
                 placeholder="rejestratory@firma.pl"
               />
               <span className="field-hint">Rejestratory NVR, DVR, dyski HDD</span>
@@ -283,12 +304,7 @@ export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
               <input
                 type="email"
                 value={logistics.orderEmails?.general || ''}
-                onChange={(e) => onUpdate({
-                  logistics: {
-                    ...logistics,
-                    orderEmails: { ...logistics.orderEmails, general: e.target.value } as OrderEmailsConfig
-                  }
-                })}
+                onChange={(e) => handleEmailField('general', e.target.value)}
                 placeholder="zamowienia@firma.pl"
               />
               <span className="field-hint">Kable, akcesoria, elementy montażowe</span>
@@ -301,7 +317,7 @@ export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
               padding: '12px 16px',
               background: 'rgba(255, 193, 7, 0.08)',
               border: '1px solid rgba(255, 193, 7, 0.3)',
-              borderRadius: '8px'
+              borderRadius: '8px',
             }}
           >
             <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -310,12 +326,7 @@ export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
             <input
               type="email"
               value={logistics.orderEmails?.warehouse || ''}
-              onChange={(e) => onUpdate({
-                logistics: {
-                  ...logistics,
-                  orderEmails: { ...logistics.orderEmails, warehouse: e.target.value } as OrderEmailsConfig
-                }
-              })}
+              onChange={(e) => handleEmailField('warehouse', e.target.value)}
               placeholder="magazyn@firma.pl"
             />
             <span className="field-hint">
@@ -330,12 +341,7 @@ export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
             </label>
             <textarea
               value={logistics.orderEmails?.notes || ''}
-              onChange={(e) => onUpdate({
-                logistics: {
-                  ...logistics,
-                  orderEmails: { ...logistics.orderEmails, notes: e.target.value } as OrderEmailsConfig
-                }
-              })}
+              onChange={(e) => handleEmailField('notes', e.target.value)}
               placeholder="Dodatkowe informacje o harmonogramach powiadomień, preferencjach kontaktu..."
               rows={3}
             />

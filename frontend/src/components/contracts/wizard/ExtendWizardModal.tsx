@@ -20,6 +20,8 @@ import { AddTasksToExistingStep } from './extend/steps/AddTasksToExistingStep';
 import { TaskRelationshipsStep } from './steps/TaskRelationshipsStep';
 import { InfrastructureStep } from './steps/InfrastructureStep';
 import { LogisticsStep } from './steps/LogisticsStep';
+import { TaskConfigurationStep } from './steps/TaskConfigurationStep';
+import { CustomOrdersStep } from './steps/CustomOrdersStep';
 import { PreviewStep } from './steps/PreviewStep';
 import { NetworkTopologyStep } from '../../network-topology/NetworkTopologyStep';
 
@@ -286,6 +288,10 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
 
     steps.push({ type: 'infrastructure' });
     steps.push({ type: 'logistics' });
+    steps.push({ type: 'task-config' });
+    if (extendData.customOrdersEnabled) {
+      steps.push({ type: 'custom-orders' });
+    }
     steps.push({ type: 'preview' });
     steps.push({ type: 'success' });
 
@@ -508,10 +514,9 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
     if (currentStepInfo.type === 'logistics') {
       const addresses = extendData.logistics?.deliveryAddresses;
       const hasAddresses =
-        (addresses && addresses.length > 0 && addresses.some((d) => d.address.trim())) ||
-        !!(extendData.logistics as { deliveryAddress?: string } | undefined)?.deliveryAddress?.trim();
-      const hasPhone = !!extendData.logistics?.contactPhone?.trim();
-      return hasAddresses && hasPhone;
+        (addresses && addresses.length > 0 && addresses.some((d) => d.address.trim()));
+      const hasPhone = !!(addresses?.some((d) => d.contactPhone.trim()));
+      return !!hasAddresses && hasPhone;
     }
     return true;
   };
@@ -530,6 +535,9 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
     logistics: extendData.logistics,
     taskRelationships: extendData.taskRelationships,
     networkTopologies: extendData.networkTopologies,
+    customOrdersEnabled: extendData.customOrdersEnabled,
+    taskConfigurations: extendData.taskConfigurations,
+    customOrders: extendData.customOrders,
   };
 
   // ── Step rendering ──────────────────────────────────────────────────────────
@@ -726,6 +734,40 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
       );
     }
 
+    if (step.type === 'task-config') {
+      const virtualData = {
+        ...virtualWizardData,
+        customOrdersEnabled: extendData.customOrdersEnabled,
+        taskConfigurations: extendData.taskConfigurations,
+      };
+      return (
+        <TaskConfigurationStep
+          wizardData={virtualData}
+          onUpdate={(updates) => {
+            updateExtendData({
+              customOrdersEnabled: updates.customOrdersEnabled ?? extendData.customOrdersEnabled,
+              taskConfigurations: updates.taskConfigurations ?? extendData.taskConfigurations,
+            });
+          }}
+        />
+      );
+    }
+
+    if (step.type === 'custom-orders') {
+      const virtualData = {
+        ...virtualWizardData,
+        customOrders: extendData.customOrders,
+      };
+      return (
+        <CustomOrdersStep
+          wizardData={virtualData}
+          onUpdate={(updates) => {
+            updateExtendData({ customOrders: updates.customOrders ?? extendData.customOrders });
+          }}
+        />
+      );
+    }
+
     if (step.type === 'preview') {
       return (
         <PreviewStep
@@ -806,6 +848,8 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
                 topology: 'Topologia',
                 infrastructure: 'Infrastruktura',
                 logistics: 'Logistyka',
+                'task-config': 'Konf. Zadań',
+                'custom-orders': 'Zamówienia',
                 preview: 'Podgląd',
                 success: 'Sukces',
               };

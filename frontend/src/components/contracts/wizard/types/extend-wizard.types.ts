@@ -28,10 +28,13 @@ export interface ExtendWizardData {
   infrastructure?: InfrastructureData;
   logistics?: Partial<LogisticsData>;
   networkTopologies?: Record<number | string, { nodes: TopologyNode[]; connections: TopologyConnection[] }>;
+  customOrdersEnabled?: boolean;
+  taskConfigurations?: Record<string, import('./wizard.types').TaskConfiguration>;
+  customOrders?: import('./wizard.types').CustomOrderItem[];
 }
 
 export interface ExtendStepInfo {
-  type: 'review' | 'subsystems-overview' | 'config' | 'details' | 'add-tasks' | 'relationships' | 'topology' | 'infrastructure' | 'logistics' | 'preview' | 'success';
+  type: 'review' | 'subsystems-overview' | 'config' | 'details' | 'add-tasks' | 'relationships' | 'topology' | 'infrastructure' | 'logistics' | 'task-config' | 'custom-orders' | 'preview' | 'success';
   subsystemIndex?: number;
   isNew?: boolean;
 }

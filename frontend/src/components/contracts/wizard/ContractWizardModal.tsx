@@ -30,6 +30,8 @@ import { SuccessStep } from './steps/SuccessStep';
 import { ShipmentWizardStep } from './steps/ShipmentWizardStep';
 import { InfrastructureStep } from './steps/InfrastructureStep';
 import { LogisticsStep } from './steps/LogisticsStep';
+import { TaskConfigurationStep } from './steps/TaskConfigurationStep';
+import { CustomOrdersStep } from './steps/CustomOrdersStep';
 import { TaskRelationshipsStep } from './steps/TaskRelationshipsStep';
 import { NetworkTopologyStep } from '../../network-topology/NetworkTopologyStep';
 
@@ -210,7 +212,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
   // Step at which draft save button is shown (config, details, relationships, infrastructure, logistics, preview, success)
   const isDraftStep = (stepType: string) =>
-    ['config', 'details', 'relationships', 'topology', 'infrastructure', 'logistics', 'preview'].includes(stepType);
+    ['config', 'details', 'relationships', 'topology', 'infrastructure', 'logistics', 'task-config', 'custom-orders', 'preview'].includes(stepType);
 
   /** Returns true when a topology step should be shown for the given subsystem type */
   const shouldShowTopologyStep = (subsystemType: string): boolean =>
@@ -226,6 +228,10 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     steps += 1; // Logistics
     // Relationships step: only when SMOKIP subsystems have LCS tasks
     if (hasRelationshipsStep()) steps += 1;
+    // Task Configuration step (always shown when there are subsystems)
+    steps += 1;
+    // Custom Orders step (conditional)
+    if (wizardData.customOrdersEnabled) steps += 1;
     return steps + 1; // +1 for Success
   };
 
@@ -262,6 +268,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     
     if (step === ++stepCount) return { type: 'infrastructure' as const };
     if (step === ++stepCount) return { type: 'logistics' as const };
+    if (step === ++stepCount) return { type: 'task-config' as const };
+    if (wizardData.customOrdersEnabled && step === ++stepCount) return { type: 'custom-orders' as const };
     
     return step === ++stepCount ? { type: 'preview' as const } : { type: 'success' as const };
   };
@@ -285,12 +293,10 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     }
     if (stepInfo.type === 'logistics') {
       const addresses = wizardData.logistics?.deliveryAddresses;
-      const legacyAddress = (wizardData.logistics as { deliveryAddress?: string } | undefined)?.deliveryAddress;
-      const hasAddresses =
-        ((addresses?.length ?? 0) > 0 && !!addresses?.some(d => d.address.trim())) ||
-        !!legacyAddress?.trim();
-      if (!hasAddresses) return 'Podaj co najmniej jeden adres dostawy';
-      if (!wizardData.logistics?.contactPhone?.trim()) return 'Podaj telefon kontaktowy';
+      if (!addresses || addresses.length === 0 || !addresses.some(d => d.address.trim()))
+        return 'Podaj co najmniej jeden adres dostawy';
+      if (!addresses.some(d => d.contactPhone.trim()))
+        return 'Podaj telefon kontaktowy dla co najmniej jednego adresu';
     }
     return '';
   };
@@ -1154,11 +1160,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     }
     if (stepInfo.type === 'logistics') {
       const addresses = wizardData.logistics?.deliveryAddresses;
-      const legacyAddress = (wizardData.logistics as { deliveryAddress?: string } | undefined)?.deliveryAddress;
-      const hasAddresses =
-        ((addresses?.length ?? 0) > 0 && !!addresses?.some(d => d.address.trim())) ||
-        !!legacyAddress?.trim();
-      const hasPhone = !!wizardData.logistics?.contactPhone?.trim();
+      const hasAddresses = (addresses?.length ?? 0) > 0 && !!addresses?.some(d => d.address.trim());
+      const hasPhone = !!addresses?.some(d => d.contactPhone.trim());
       return hasAddresses && hasPhone;
     }
     if (stepInfo.type === 'preview') {
@@ -1173,21 +1176,35 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
   // Compute canProceed once per render so JSX doesn't call the function twice.
   const canProceedValue = canProceed();
 
+  const getStepLabel = (stepIndex: number): string => {
+    const info = getStepInfo(stepIndex);
+    const labels: Record<string, string> = {
+      basic: 'Dane',
+      selection: 'Podsystemy',
+      config: 'Konfiguracja',
+      details: 'Szczegóły',
+      relationships: 'Powiązania',
+      topology: 'Topologia',
+      infrastructure: 'Infrastruktura',
+      logistics: 'Logistyka',
+      'task-config': 'Konf. Zadań',
+      'custom-orders': 'Zamówienia',
+      preview: 'Podgląd',
+      success: 'Sukces',
+    };
+    return labels[info.type] ?? `Krok ${stepIndex}`;
+  };
+
   const renderStepIndicator = () => {
     const totalSteps = getTotalSteps();
-    const maxStepsToShow = 6;
+    const maxStepsToShow = 8;
     const steps = [];
     
     for (let i = 1; i <= Math.min(totalSteps, maxStepsToShow); i++) {
-      const labels = ['', 'Dane', 'Podsystemy'];
-      let label = labels[i] || `Krok ${i}`;
-      if (i === totalSteps - 1) label = 'Podgląd';
-      if (i === totalSteps) label = 'Sukces';
-      
       steps.push(
         <div key={i} className={`wizard-step ${currentStep === i ? 'active' : ''} ${currentStep > i ? 'completed' : ''}`}>
           <span className="step-number">{i}</span>
-          <span className="step-label">{label}</span>
+          <span className="step-label">{getStepLabel(i)}</span>
         </div>
       );
     }
@@ -1296,6 +1313,18 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       ),
       logistics: () => (
         <LogisticsStep
+          wizardData={wizardData}
+          onUpdate={updateWizardData}
+        />
+      ),
+      'task-config': () => (
+        <TaskConfigurationStep
+          wizardData={wizardData}
+          onUpdate={updateWizardData}
+        />
+      ),
+      'custom-orders': () => (
+        <CustomOrdersStep
           wizardData={wizardData}
           onUpdate={updateWizardData}
         />
