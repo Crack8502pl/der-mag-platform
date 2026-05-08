@@ -2,6 +2,24 @@
    DESKTOP - Draggable Widget
    ============================================ */
 
+:root {
+  --token-timer-content-bg: rgba(255, 255, 255, 0.04);
+  --token-timer-content-border: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="husky"],
+body.light-theme {
+  --token-timer-content-bg: rgba(0, 0, 0, 0.04);
+  --token-timer-content-border: rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --token-timer-content-bg: rgba(0, 0, 0, 0.04);
+    --token-timer-content-border: rgba(0, 0, 0, 0.08);
+  }
+}
+
 .token-timer-widget {
   position: fixed;
   top: 20px;
@@ -72,6 +90,10 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
+  background: var(--token-timer-content-bg);
+  border: 1px solid var(--token-timer-content-border);
+  border-radius: 8px;
+  padding: 6px 8px;
 }
 
 .timer-icon {

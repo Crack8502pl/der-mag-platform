@@ -200,16 +200,19 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
             <div className="task-config-sidebar-title">📋 Lista Zadań</div>
 
             {/* Custom orders toggle */}
-            <label className="custom-orders-toggle">
+            <div className="custom-orders-toggle">
+              <label htmlFor="customOrders" className="custom-orders-label">
+                <strong>Zamówienia Niestandardowe</strong>
+              </label>
               <input
                 type="checkbox"
+                id="customOrders"
                 checked={customOrdersEnabled}
                 onChange={(e) =>
                   onUpdate({ customOrdersEnabled: e.target.checked })
                 }
               />
-              <span>☑️ Zamówienia Niestandardowe</span>
-            </label>
+            </div>
           </div>
 
           {taskEntries.length === 0 ? (

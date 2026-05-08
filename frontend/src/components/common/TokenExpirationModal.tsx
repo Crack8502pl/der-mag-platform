@@ -37,7 +37,7 @@ export const TokenExpirationModal: React.FC<Props> = ({
         </h2>
         
         {error && (
-          <p className="modal-error" style={{ color: '#ff6b6b', marginBottom: '10px' }}>
+          <p className="modal-error">
             ⚠️ {error}
           </p>
         )}
