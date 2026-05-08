@@ -5,7 +5,7 @@ import type { ResolvedMaterial, StepProps, TaskConfiguration } from '../types/wi
 import { buildWizardTaskEntries, type WizardTaskEntry } from '../utils/taskConfiguration';
 import './TaskConfigurationStep.css';
 
-const evaluateFormula = (base: number, formula?: string): number => {
+const evaluateFormula = (base: number, formula?: string, context?: string): number => {
   if (!formula) {
     return base;
   }
@@ -29,12 +29,20 @@ const evaluateFormula = (base: number, formula?: string): number => {
     case '-':
       return base - operand;
     case '/':
-      return operand !== 0 ? base / operand : base;
+      if (operand === 0) {
+        console.warn('Invalid BOM dependency formula: division by zero', { formula, context });
+        return base;
+      }
+      return base / operand;
     default:
       return base;
   }
 };
 
+/**
+ * Resolves BOM material quantities for a template using subsystem configuration data.
+ * Supports FIXED, FROM_CONFIG, PER_UNIT and DEPENDENT quantity sources.
+ */
 const resolveQuantities = (
   template: BomSubsystemTemplate,
   configParams: Record<string, any>
@@ -68,7 +76,11 @@ const resolveQuantities = (
       }
       case 'DEPENDENT': {
         if (item.dependsOnItemId && itemQuantities.has(item.dependsOnItemId)) {
-          quantity = evaluateFormula(itemQuantities.get(item.dependsOnItemId) || 0, item.dependencyFormula);
+          quantity = evaluateFormula(
+            itemQuantities.get(item.dependsOnItemId) || 0,
+            item.dependencyFormula,
+            item.materialName
+          );
         }
         break;
       }
@@ -153,14 +165,14 @@ export const TaskConfigurationStep: React.FC<StepProps> = ({ wizardData, onUpdat
       return;
     }
 
-    let cancelled = false;
+    let isCancelled = false;
     const preloadConfigurations = async () => {
       try {
         const loadedEntries = await Promise.all(
           missingTasks.map(async (task) => [task.key, await buildTaskConfiguration(task)] as const)
         );
 
-        if (cancelled) {
+        if (isCancelled) {
           return;
         }
 
@@ -171,14 +183,17 @@ export const TaskConfigurationStep: React.FC<StepProps> = ({ wizardData, onUpdat
           },
         });
       } catch (error) {
-        console.error('Nie udało się wczytać konfiguracji BOM dla zadań:', error);
+        console.error('Nie udało się wczytać konfiguracji BOM dla zadań:', {
+          error,
+          tasks: missingTasks.map((task) => `${task.taskNumber}:${task.taskType}`),
+        });
       }
     };
 
     void preloadConfigurations();
 
     return () => {
-      cancelled = true;
+      isCancelled = true;
     };
   }, [onUpdate, taskEntries, wizardData.taskConfigurations]);
 

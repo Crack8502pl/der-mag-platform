@@ -17,6 +17,7 @@ import { requiresCabinetCompletion } from '../config/taskTypes';
 import { SubsystemTask } from '../entities/SubsystemTask';
 import { BomSubsystemTemplateService } from '../services/BomSubsystemTemplateService';
 import { SubsystemType } from '../entities/BomSubsystemTemplate';
+import { autoApplyTaskConfiguration } from '../utils/taskConfiguration';
 
 interface FiberConnectionData {
   odleglosc?: number;
@@ -53,6 +54,30 @@ function isValidEmailFormat(email: string): boolean {
   const domain = email.slice(atIdx + 1);
   const dotIdx = domain.lastIndexOf('.');
   return dotIdx > 0 && dotIdx < domain.length - 1;
+}
+
+function buildTechnicalSpecs(
+  infrastructure: unknown,
+  logistics: unknown,
+  customOrdersEnabled: unknown,
+  customOrders: unknown
+): Record<string, any> | null {
+  const hasCustomOrders = Array.isArray(customOrders) && customOrders.length > 0;
+  if (
+    infrastructure === undefined &&
+    logistics === undefined &&
+    customOrdersEnabled === undefined &&
+    !hasCustomOrders
+  ) {
+    return null;
+  }
+
+  return {
+    ...(infrastructure !== undefined ? { infrastructure } : {}),
+    ...(logistics !== undefined ? { logistics } : {}),
+    ...(customOrdersEnabled !== undefined ? { customOrdersEnabled: !!customOrdersEnabled } : {}),
+    ...(hasCustomOrders ? { customOrders } : {}),
+  };
 }
 
 /**
@@ -92,31 +117,6 @@ async function autoApplyBomTemplate(
       `⚠️ Nie udało się zastosować szablonu BOM do KOMPLETACJA_SZAF (${taskNumber}):`,
       { error: bomError instanceof Error ? bomError.message : String(bomError) }
     );
-  }
-}
-
-async function autoApplyTaskConfiguration(
-  taskMetadata: Record<string, any> | undefined,
-  taskId: number,
-  taskNumber: string
-): Promise<void> {
-  const templateId = Number(taskMetadata?.bom?.templateId);
-  if (!templateId || Number.isNaN(templateId)) {
-    return;
-  }
-
-  try {
-    await BomSubsystemTemplateService.applyTemplateToTask(
-      taskId,
-      templateId,
-      taskMetadata?.bomConfigParams || {}
-    );
-    serverLogger.info(`✅ Zastosowano konfigurację BOM do zadania ${taskNumber}`, { templateId });
-  } catch (bomError) {
-    serverLogger.warn(`⚠️ Nie udało się zastosować konfiguracji BOM do zadania ${taskNumber}`, {
-      templateId,
-      error: bomError instanceof Error ? bomError.message : String(bomError),
-    });
   }
 }
 
@@ -527,6 +527,13 @@ export class ContractController {
         }
       }
 
+      const technicalSpecs = buildTechnicalSpecs(
+        infrastructure,
+        logistics,
+        customOrdersEnabled,
+        customOrders
+      );
+
       // 1. Utwórz kontrakt
       const contract = await this.contractService.createContract({
         customName,
@@ -534,9 +541,7 @@ export class ContractController {
         managerCode,
         projectManagerId: parseInt(projectManagerId),
         liniaKolejowa: req.body.liniaKolejowa,
-        ...((infrastructure || logistics || customOrdersEnabled || (Array.isArray(customOrders) && customOrders.length > 0))
-          ? { technicalSpecs: { infrastructure, logistics, customOrdersEnabled, customOrders } }
-          : {})
+        ...(technicalSpecs ? { technicalSpecs } : {})
       });
 
       // 2. Utwórz podsystemy
@@ -944,13 +949,17 @@ export class ContractController {
         return;
       }
 
-      if (infrastructure || logistics || customOrdersEnabled !== undefined || Array.isArray(customOrders)) {
+      const technicalSpecs = buildTechnicalSpecs(
+        infrastructure,
+        logistics,
+        customOrdersEnabled,
+        customOrders
+      );
+
+      if (technicalSpecs) {
         const mergedTechnicalSpecs = {
           ...(contract.technicalSpecs || {}),
-          ...(infrastructure !== undefined ? { infrastructure } : {}),
-          ...(logistics !== undefined ? { logistics } : {}),
-          ...(customOrdersEnabled !== undefined ? { customOrdersEnabled: !!customOrdersEnabled } : {}),
-          ...(Array.isArray(customOrders) ? { customOrders } : {}),
+          ...technicalSpecs,
         };
 
         await AppDataSource.getRepository(ContractEntity).update(contractId, {

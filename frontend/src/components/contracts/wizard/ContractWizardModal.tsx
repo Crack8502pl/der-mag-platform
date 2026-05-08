@@ -818,6 +818,9 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       } else {
         // CREATE MODE - create new contract
         const subsystemsData = wizardData.subsystems.map((subsystem) => {
+          // Rebuild tasks per subsystem instead of filtering the flattened generatedTasks list.
+          // This preserves correct task ordering when a contract contains multiple subsystems
+          // of the same type and keeps task configuration payloads aligned with taskDetails.
           const subsystemTasks = generateAllTasks([subsystem], wizardData.liniaKolejowa);
           const params = subsystem.type === 'SMW' && subsystem.smwData 
             ? subsystem.smwData 

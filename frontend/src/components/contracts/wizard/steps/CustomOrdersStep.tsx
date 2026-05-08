@@ -9,6 +9,13 @@ const EMPTY_ORDER = {
   notes: '',
 };
 
+const validateOrderItem = (item: typeof EMPTY_ORDER): boolean =>
+  !!item.description.trim() && item.quantity > 0 && !!item.unit.trim();
+
+const createOrderId = (): string =>
+  globalThis.crypto?.randomUUID?.() ||
+  `custom-order-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
 export const CustomOrdersStep: React.FC<StepProps> = ({ wizardData, onUpdate }) => {
   const [draft, setDraft] = useState(EMPTY_ORDER);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -25,12 +32,12 @@ export const CustomOrdersStep: React.FC<StepProps> = ({ wizardData, onUpdate }) 
   };
 
   const handleSubmit = () => {
-    if (!draft.description.trim() || draft.quantity <= 0 || !draft.unit.trim()) {
+    if (!validateOrderItem(draft)) {
       return;
     }
 
     const nextItem: CustomOrderItem = {
-      id: editingId || crypto.randomUUID(),
+      id: editingId || createOrderId(),
       description: draft.description.trim(),
       quantity: draft.quantity,
       unit: draft.unit.trim(),

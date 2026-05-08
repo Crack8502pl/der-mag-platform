@@ -15,7 +15,9 @@ export interface WizardTaskEntry {
 }
 
 const toConfigParams = (params: SubsystemWizardData['params']): Record<string, any> =>
-  params && typeof params === 'object' ? (params as Record<string, any>) : {};
+  params && typeof params === 'object' && !Array.isArray(params)
+    ? (params as Record<string, any>)
+    : {};
 
 export const buildWizardTaskEntries = (wizardData: WizardData): WizardTaskEntry[] =>
   wizardData.subsystems.flatMap((subsystem, subsystemIndex) => {
