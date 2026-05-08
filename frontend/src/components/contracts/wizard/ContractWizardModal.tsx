@@ -1197,10 +1197,9 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
   const renderStepIndicator = () => {
     const totalSteps = getTotalSteps();
-    const maxStepsToShow = 8;
     const steps = [];
     
-    for (let i = 1; i <= Math.min(totalSteps, maxStepsToShow); i++) {
+    for (let i = 1; i <= totalSteps; i++) {
       steps.push(
         <div key={i} className={`wizard-step ${currentStep === i ? 'active' : ''} ${currentStep > i ? 'completed' : ''}`}>
           <span className="step-number">{i}</span>
