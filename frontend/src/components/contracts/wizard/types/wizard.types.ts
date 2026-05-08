@@ -83,10 +83,16 @@ export interface InfrastructureData {
 }
 
 /**
- * Delivery address with associated task selection
+ * Delivery address with associated task selection and contact information
  */
 export interface DeliveryAddress {
+  /** Unique identifier (UUID) assigned at creation time */
+  id: string;
   address: string;
+  /** Contact phone for this delivery address. Format: +48-XXX-XXX-XXX */
+  contactPhone: string;
+  contactPerson: string;
+  /** Array of taskWizardId / taskKey values assigned to this address */
   taskIds: string[];
 }
 
@@ -106,14 +112,56 @@ export interface OrderEmailsConfig {
  * Logistics/Shipping data
  */
 export interface LogisticsData {
-  deliveryAddress: string;
-  deliveryAddresses?: DeliveryAddress[];
-  contactPhone: string;
-  contactPerson?: string;
+  /** Multiple delivery addresses (each with own contact info and task assignments) */
+  deliveryAddresses: DeliveryAddress[];
   shippingNotes?: string;
   preferredDeliveryDate?: string;
   // E-mail addresses for order notifications
   orderEmails?: OrderEmailsConfig;
+}
+
+/**
+ * Single resolved material from a BOM template
+ */
+export interface ResolvedMaterial {
+  id: number;
+  materialName: string;
+  catalogNumber?: string;
+  quantity: number;
+  unit: string;
+  quantitySource: 'FIXED' | 'FROM_CONFIG' | 'PER_UNIT' | 'DEPENDENT';
+  groupName: string;
+  requiresIp: boolean;
+  isSelected: boolean;
+}
+
+/**
+ * Per-task BOM configuration
+ */
+export interface TaskConfiguration {
+  taskId: string;
+  taskNumber: string;
+  taskName: string;
+  taskType: string;
+  subsystemType: string;
+  taskVariant?: string | null;
+  bomTemplateId?: number;
+  bomTemplateVersion?: number;
+  materials: ResolvedMaterial[];
+  configParams?: Record<string, unknown>;
+  isConfigured: boolean;
+  lastModified?: Date;
+}
+
+/**
+ * Custom (non-standard) order item
+ */
+export interface CustomOrderItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  notes?: string;
 }
 
 export interface WizardData {
@@ -131,6 +179,12 @@ export interface WizardData {
   taskRelationships?: WizardTaskRelationships;
   /** Network topology data per subsystem (indexed by subsystemIndex for new, or subsystem-{id} for existing) */
   networkTopologies?: Record<number | string, { nodes: TopologyNode[]; connections: TopologyConnection[] }>;
+  /** Whether the custom orders step should be shown (set via checkbox in TaskConfigurationStep) */
+  customOrdersEnabled?: boolean;
+  /** Per-task BOM configurations, keyed by taskWizardId */
+  taskConfigurations?: Record<string, TaskConfiguration>;
+  /** Custom (non-standard) order items */
+  customOrders?: CustomOrderItem[];
 }
 
 export interface GeneratedTask {
@@ -141,7 +195,7 @@ export interface GeneratedTask {
 }
 
 export interface StepInfo {
-  type: 'basic' | 'selection' | 'config' | 'details' | 'relationships' | 'topology' | 'infrastructure' | 'logistics' | 'preview' | 'success' | 'shipping';
+  type: 'basic' | 'selection' | 'config' | 'details' | 'relationships' | 'topology' | 'infrastructure' | 'logistics' | 'task-config' | 'custom-orders' | 'preview' | 'success' | 'shipping';
   subsystemIndex?: number;
   subsystemType?: SubsystemType;
 }

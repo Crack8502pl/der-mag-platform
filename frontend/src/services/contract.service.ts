@@ -59,9 +59,18 @@ export interface Contract {
   technicalSpecs?: {
     infrastructure?: Record<string, any>;
     logistics?: {
+      /** @deprecated legacy single address field */
       deliveryAddress?: string;
-      deliveryAddresses?: Array<{ address: string; taskIds: (string | number)[] }>;
+      deliveryAddresses?: Array<{
+        id?: string;
+        address: string;
+        contactPhone?: string;
+        contactPerson?: string;
+        taskIds: (string | number)[];
+      }>;
+      /** @deprecated moved to per-address contactPhone */
       contactPhone?: string;
+      /** @deprecated moved to per-address contactPerson */
       contactPerson?: string;
       shippingNotes?: string;
       preferredDeliveryDate?: string;

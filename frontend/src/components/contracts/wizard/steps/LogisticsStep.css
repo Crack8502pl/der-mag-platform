@@ -1,4 +1,5 @@
-/* LogisticsStep.css — all selectors scoped under .logistics-step */
+/* LogisticsStep.css — all selectors scoped under .logistics-step
+   Supports grover-theme (dark) and huskey-theme (light) via CSS variables */
 
 .logistics-step .step-description {
   color: var(--text-secondary, #666);
@@ -149,3 +150,116 @@
   cursor: pointer;
 }
 
+
+/* ── Delivery section header (title + add button side-by-side) ───────────── */
+.logistics-step .delivery-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.logistics-step .delivery-section-header h4 {
+  margin-bottom: 0;
+}
+
+/* ── Delivery address card ───────────────────────────────────────────────── */
+.logistics-step .delivery-address-card {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--bg-tertiary, var(--bg-input, #f9f9f9));
+  border-radius: 10px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  position: relative;
+}
+
+.logistics-step .delivery-address-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border-color, #e0e0e0);
+}
+
+.logistics-step .delivery-address-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #222);
+}
+
+.logistics-step .remove-address-btn {
+  background: var(--danger-color, #d32f2f);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: opacity 0.2s;
+}
+
+.logistics-step .remove-address-btn:hover {
+  opacity: 0.85;
+}
+
+/* ── Sub-section (contact info block inside a card) ─────────────────────── */
+.logistics-step .form-subsection {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  background: var(--bg-secondary, #fff);
+}
+
+.logistics-step .form-subsection-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary, #555);
+  margin-bottom: 8px;
+}
+
+/* ── Task list inside address card ──────────────────────────────────────── */
+.logistics-step .task-list-section {
+  margin-top: 14px;
+}
+
+.logistics-step .task-list-hint {
+  font-size: 13px;
+  color: var(--text-secondary, #666);
+  margin-bottom: 8px;
+  font-style: italic;
+}
+
+.logistics-step .task-list-empty {
+  font-size: 13px;
+  color: var(--text-muted, #888);
+  font-style: italic;
+  margin: 4px 0;
+}
+
+.logistics-step .task-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg-secondary, var(--bg-card, #fff));
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.15s;
+}
+
+.logistics-step .task-checkbox-item:hover {
+  background: var(--bg-hover, #f0f0f0);
+}
+
+.logistics-step .task-checkbox-item input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--primary-color, #0066cc);
+}

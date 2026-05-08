@@ -40,12 +40,15 @@ Code
 | 3..N | `config` | Konfiguracja podsystemu | ✅ Tak | Per podsystem - ilości jednostek |
 | 3+..N+ | `details` | Szczegóły zadań | ⚠️ Tylko SMOK | Kilometraż, kategoria, GPS (tylko SMOKIP_A/B) |
 | N+1 | `infrastructure` | Parametry infrastruktury | ❌ Nie | Szafy, słupy, uwagi terenowe |
-| N+2 | `logistics` | Dane logistyczne | ✅ Tak | Adresy dostawy, telefon, e-maile |
-| N+3 | `preview` | Podgląd | ✅ Tak | Podsumowanie przed zapisem |
-| N+4 | `success` | Sukces | ℹ️ Info | Potwierdzenie utworzenia + opcja wysyłki |
+| N+2 | `logistics` | Dane logistyczne | ✅ Tak | Wielokrotne adresy dostawy (z telefonem per adres), e-maile |
+| N+3 | `task-config` | Konfiguracja Zadań | ❌ Nie | BOM per zadanie — automatyczne szablony, edycja ilości |
+| N+4 | `custom-orders` | Zamówienia Niestandardowe | ❌ Warunkowy | Niestandardowe pozycje poza BOM (gdy `customOrdersEnabled=true`) |
+| N+5 | `preview` | Podgląd | ✅ Tak | Podsumowanie przed zapisem |
+| N+6 | `success` | Sukces | ℹ️ Info | Potwierdzenie utworzenia + opcja wysyłki |
 
 **Specjalne kroki:**
 - `shipping` - Opcjonalny krok po `success` (wysyłka materiałów)
+- `custom-orders` - Wyświetlany warunkowo gdy `wizardData.customOrdersEnabled === true`
 
 ---
 

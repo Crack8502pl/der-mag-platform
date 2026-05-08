@@ -487,3 +487,74 @@ POST /api/contracts/wizard
 │ Łącznie: 11 zadań z 2 podsystemów           │
 └─────────────────────────────────────────────┘
 ```
+
+---
+
+## Krok 7: Logistyka — Wielokrotne Adresy Dostawy
+
+```
+Stan: adres 1 z zadaniami
+┌─────────────────────────────────────────────────────────┐
+│ 📦 Dane logistyczne                                      │
+│ 📍 Adresy dostawy              [➕ Dodaj adres]          │
+│                                                          │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ Adres 1                                   [✕ Usuń] │ │
+│ │ 📞 Dane kontaktowe                                   │ │
+│ │ Telefon *: [+48-XXX-XXX-XXX]  Osoba: [Jan Nowak]  │ │
+│ │ Adres: [ul. Przykładowa 1, 00-001 Warszawa        ] │ │
+│ │ Lista Zadań: do zaznaczenia                          │ │
+│ │ ☑ P000010126 - Przejazd Kat A #1 (SMOKIP_A)        │ │
+│ │ ☑ P000020126 - Przejazd Kat A #2 (SMOKIP_A)        │ │
+│ │ ☐ P000030126 - SKP #1 (SMOKIP_A)                   │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                          │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ Adres 2                                   [✕ Usuń] │ │
+│ │ 📞 Dane kontaktowe                                   │ │
+│ │ Telefon *: [+48-YYY-YYY-YYY]  Osoba: [Anna Nowak] │ │
+│ │ Adres: [ul. Inna 5, 00-002 Kraków                 ] │ │
+│ │ Lista Zadań: do zaznaczenia.                         │ │
+│ │ Nie wyświetlaj wyżej zaznaczonych                    │ │
+│ │ ☐ P000030126 - SKP #1 (SMOKIP_A)                   │ │  
+│ │ (P00001 i P00002 ukryte - przypisane do Adresu 1)   │ │
+│ └─────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Krok 8: Konfiguracja Zadań (BOM Integration)
+
+```
+┌─────────────────────┬────────────────────────────────────────────────┐
+│   SIDEBAR (320px)   │   WORKSPACE (flex: 1)                          │
+│                     │                                                │
+│ 📋 Lista Zadań      │  📦 BOM SMOKIP-A – Przejazd Kat A   v1.02     │
+│                     │                                                │
+│ ☑️ Zamówienia       │  ┌──────────────────────────────────────────┐  │
+│   Niestandardowe    │  │ 🖥️ Urządzenia (3)                         │  │
+│                     │  │ # │ Materiał    │ Ilość │ J. │ Źródło   │  │
+│ ⏳ SMOKIP_A-0       │  │ 1 │ Sterownik  │   1   │ sz │ FIXED    │  │
+│ ✅ SMOKIP_A-1       │  │ 2 │ Switch PoE │   2   │ sz │ PER_UNIT │  │
+│ ⏳ SMOKIP_A-2       │  └──────────────────────────────────────────┘  │
+│                     │                                                │
+│                     │  [✅ Zastosuj BOM do zadania]                  │
+└─────────────────────┴────────────────────────────────────────────────┘
+```
+
+## Krok 9: Zamówienia Niestandardowe (warunkowy)
+
+Wyświetlany tylko gdy `customOrdersEnabled = true` (ustawiany przez checkbox w Kroku 8).
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ 📝 Zamówienia Niestandardowe                            │
+│                                                          │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ 1. Kabel specjalny 50m                              │ │
+│ │    Ilość: 50 mb  ·  Uwagi: Do realizacji w Q2       │ │
+│ │    [✏️ Edytuj] [🗑️ Usuń]                             │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                          │
+│ [➕ Dodaj pozycję]                                       │
+└─────────────────────────────────────────────────────────┘
+```
