@@ -115,15 +115,26 @@ frontend/
 
 ### Grover Theme Colors
 ```css
---primary-color: #ff6b35      /* Orange accent */
---primary-hover: #e55a2a      /* Hover state */
---bg-dark: #1a1a1a            /* Main background */
---bg-card: #252525            /* Card background */
+/* PRIMARY - Pomarańczowy owczarka niemieckiego */
+--primary-color: #ff6b35      /* 🟠 Orange accent (tan owczarka) */
+--primary-hover: #e55a2a      /* 🟠 Hover state */
+
+/* BACKGROUNDS - Ciemne brązy */
+--bg-dark: #1a1a1a            /* Main background (czarna sierść) */
+--bg-card: #252525            /* Card background (ciemnobrązowy) */
+
+/* TEXT */
 --text-primary: #ffffff       /* Primary text */
 --text-secondary: #a0aec0     /* Secondary text */
---success: #48bb78            /* Success state */
---error: #f56565              /* Error state */
+
+/* STATUS - Różne kolory dla różnych statusów */
+--success: #48bb78            /* ✅ Success state (zielony TYLKO tutaj) */
+--warning: #ed8936            /* ⚠️ Warning (pomarańczowy) */
+--error: #f56565              /* ❌ Error state (czerwony) */
+--info: #4299e1               /* ℹ️ Info state (niebieski) */
 ```
+
+**WAŻNE:** Nigdy nie używaj `#4caf50` (zielony) jako `--primary-color` w grover-theme!
 
 ### UI Components
 - Dark theme with high contrast

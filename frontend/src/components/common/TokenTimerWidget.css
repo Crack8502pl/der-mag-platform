@@ -16,10 +16,12 @@
   --text-secondary: #aaa;
   --text-muted: #888;
   --border-color: #333;
-  --primary-color: #4caf50;
-  --success-color: #4caf50;
-  --warning-color: #ff9800;
-  --danger-color: #f44336;
+  --primary-color: #ff6b35;
+  --primary-hover: #e55a2a;
+  --success-color: #48bb78;
+  --warning-color: #ed8936;
+  --danger-color: #f56565;
+  --info-color: #4299e1;
   --token-timer-content-bg: rgba(255, 255, 255, 0.04);
   --token-timer-content-border: rgba(255, 255, 255, 0.08);
   --token-timer-shadow: rgba(0, 0, 0, 0.3);
@@ -28,12 +30,12 @@
   --tooltip-bg: #1e1e1e;
   --tooltip-border: #404040;
   --timer-progress-bg: rgba(255, 255, 255, 0.1);
-  --success-color-alpha: rgba(76, 175, 80, 0.1);
-  --warning-color-alpha: rgba(255, 152, 0, 0.1);
-  --danger-color-alpha: rgba(244, 67, 54, 0.1);
-  --danger-color-alpha-strong: rgba(244, 67, 54, 0.2);
-  --danger-shadow-soft: rgba(244, 67, 54, 0.4);
-  --danger-shadow-strong: rgba(244, 67, 54, 0.7);
+  --success-color-alpha: rgba(72, 187, 120, 0.1);
+  --warning-color-alpha: rgba(237, 137, 54, 0.1);
+  --danger-color-alpha: rgba(245, 101, 101, 0.1);
+  --danger-color-alpha-strong: rgba(245, 101, 101, 0.2);
+  --danger-shadow-soft: rgba(245, 101, 101, 0.4);
+  --danger-shadow-strong: rgba(245, 101, 101, 0.7);
 }
 
 /* Huskey Theme (Light Mode) - Manual override */
@@ -47,7 +49,9 @@ body.light-theme {
   --text-secondary: #666;
   --text-muted: #999;
   --border-color: #e0e0e0;
-  --primary-color: #4caf50;
+  --primary-color: #2563EB;
+  --primary-hover: #1D4ED8;
+  --info-color: #1976d2;
   --success-color: #388e3c;
   --warning-color: #f57c00;
   --danger-color: #d32f2f;
@@ -78,7 +82,9 @@ body.light-theme {
     --text-secondary: #666;
     --text-muted: #999;
     --border-color: #e0e0e0;
-    --primary-color: #4caf50;
+    --primary-color: #2563EB;
+    --primary-hover: #1D4ED8;
+    --info-color: #1976d2;
     --success-color: #388e3c;
     --warning-color: #f57c00;
     --danger-color: #d32f2f;

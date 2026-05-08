@@ -11,13 +11,13 @@
   --text-secondary: #aaa;
   --text-muted: #888;
   --border-color: #333;
-  --primary-color: #1976d2;
-  --primary-color-alpha: rgba(25, 118, 210, 0.12);
-  --success-color: #4caf50;
-  --success-color-alpha: rgba(76, 175, 80, 0.12);
-  --danger-color: #f44336;
-  --warning-color: #ff9800;
-  --warning-color-alpha: rgba(255, 152, 0, 0.12);
+  --primary-color: #ff6b35;
+  --primary-color-alpha: rgba(255, 107, 53, 0.12);
+  --success-color: #48bb78;
+  --success-color-alpha: rgba(72, 187, 120, 0.12);
+  --danger-color: #f56565;
+  --warning-color: #ed8936;
+  --warning-color-alpha: rgba(237, 137, 54, 0.12);
   --dependent-color: #ab47bc;
   --dependent-color-alpha: rgba(171, 71, 188, 0.12);
 }
@@ -36,8 +36,8 @@
     --text-secondary: #666;
     --text-muted: #888;
     --border-color: #ddd;
-    --primary-color: #0066cc;
-    --primary-color-alpha: rgba(0, 102, 204, 0.12);
+    --primary-color: #2563EB;
+    --primary-color-alpha: rgba(37, 99, 235, 0.12);
     --success-color: #388e3c;
     --success-color-alpha: rgba(56, 142, 60, 0.12);
     --danger-color: #d32f2f;
@@ -60,8 +60,8 @@ body.light-theme {
   --text-secondary: #666;
   --text-muted: #888;
   --border-color: #ddd;
-  --primary-color: #0066cc;
-  --primary-color-alpha: rgba(0, 102, 204, 0.12);
+  --primary-color: #2563EB;
+  --primary-color-alpha: rgba(37, 99, 235, 0.12);
   --success-color: #388e3c;
   --success-color-alpha: rgba(56, 142, 60, 0.12);
   --danger-color: #d32f2f;
