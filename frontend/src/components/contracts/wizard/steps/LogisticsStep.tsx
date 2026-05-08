@@ -51,7 +51,7 @@ export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
 
   const addDeliveryAddress = () => {
     const newAddr: DeliveryAddress = {
-      id: `addr-${Date.now()}`,
+      id: crypto.randomUUID(),
       address: '',
       contactPhone: '',
       contactPerson: '',
@@ -189,7 +189,7 @@ export const LogisticsStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
                   <div className="task-list-section">
                     <div className="task-list-hint">
                       Lista Zadań: do zaznaczenia
-                      {idx > 0 && '. Nie wyświetlaj wyżej zaznaczonych'}
+                      {idx > 0 && '. Nie wyświetlamy wyżej zaznaczonych'}
                     </div>
                     {availableTasks.length === 0 ? (
                       <p className="task-list-empty">

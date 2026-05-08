@@ -1,7 +1,7 @@
 // src/components/contracts/wizard/steps/TaskConfigurationStep.tsx
 // Step 8: Task Configuration – sidebar with task list + workspace with BOM per task
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { WizardData, TaskConfiguration, ResolvedMaterial } from '../types/wizard.types';
 import { generateAllTasks } from '../utils/taskGenerator';
 import { resolveTaskVariant } from '../utils/taskGenerator';
@@ -82,6 +82,11 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
   const taskConfigs: Record<string, TaskConfiguration> = wizardData.taskConfigurations || {};
   const customOrdersEnabled = !!wizardData.customOrdersEnabled;
 
+  // Use a ref to always read the latest taskConfigs inside async callbacks without
+  // adding it as a dependency of loadTemplate (which would cause infinite re-renders).
+  const taskConfigsRef = useRef(taskConfigs);
+  taskConfigsRef.current = taskConfigs;
+
   const activeTask = taskEntries.find((t) => t.key === activeTaskKey);
   const activeConfig = activeTaskKey ? taskConfigs[activeTaskKey] : undefined;
 
@@ -99,18 +104,22 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           return;
         }
 
-        const configParams = taskConfigs[task.key]?.configParams || {};
-        const materials: ResolvedMaterial[] = template.items.map((item) => ({
-          id: item.id ?? 0,
-          materialName: item.materialName,
-          catalogNumber: item.catalogNumber,
-          quantity: resolveMaterialQuantity(item, configParams),
-          unit: item.unit,
-          quantitySource: item.quantitySource,
-          groupName: item.groupName || 'Inne',
-          requiresIp: item.requiresIp,
-          isSelected: item.isRequired,
-        }));
+        // Read the latest configs via ref to avoid stale closure
+        const currentConfigs = taskConfigsRef.current;
+        const configParams = currentConfigs[task.key]?.configParams || {};
+        const materials: ResolvedMaterial[] = template.items
+          .filter((item) => item.id !== undefined)
+          .map((item, itemIdx) => ({
+            id: item.id ?? itemIdx,
+            materialName: item.materialName,
+            catalogNumber: item.catalogNumber,
+            quantity: resolveMaterialQuantity(item, configParams),
+            unit: item.unit,
+            quantitySource: item.quantitySource,
+            groupName: item.groupName || 'Inne',
+            requiresIp: item.requiresIp,
+            isSelected: item.isRequired,
+          }));
 
         const updatedConfig: TaskConfiguration = {
           taskId: task.key,
@@ -127,7 +136,7 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
         };
 
         onUpdate({
-          taskConfigurations: { ...taskConfigs, [task.key]: updatedConfig },
+          taskConfigurations: { ...currentConfigs, [task.key]: updatedConfig },
         });
       } catch {
         setTemplateError('Nie udało się załadować szablonu BOM.');
@@ -135,16 +144,18 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
         setLoadingTemplate(false);
       }
     },
-    [taskConfigs, onUpdate]
+    [onUpdate]
   );
 
-  // Auto-load template when switching to a task that has no config yet
+  // Auto-load template when switching to a task that has no config yet.
+  // We intentionally only react to activeTaskKey changes; taskConfigs is read
+  // via taskConfigsRef to avoid stale closures without triggering re-runs.
   useEffect(() => {
-    if (activeTask && !taskConfigs[activeTask.key]) {
+    const current = taskConfigsRef.current;
+    if (activeTask && !current[activeTask.key]) {
       loadTemplate(activeTask);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTaskKey]);
+  }, [activeTaskKey, activeTask, loadTemplate]);
 
   const updateMaterial = (taskKey: string, materialId: number, patch: Partial<ResolvedMaterial>) => {
     const config = taskConfigs[taskKey];

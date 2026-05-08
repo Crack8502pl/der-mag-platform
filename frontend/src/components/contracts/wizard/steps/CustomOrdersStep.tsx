@@ -32,7 +32,7 @@ export const CustomOrdersStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
   const handleAdd = () => {
     if (!newForm.description.trim()) return;
     const item: CustomOrderItem = {
-      id: `co-${Date.now()}`,
+      id: crypto.randomUUID(),
       ...newForm,
     };
     saveOrders([...customOrders, item]);
