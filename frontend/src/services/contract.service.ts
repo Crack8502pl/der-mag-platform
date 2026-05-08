@@ -3,7 +3,7 @@
 
 import api from './api';
 import type { Asset } from './asset.service';
-import type { InfrastructureData, LogisticsData } from '../components/contracts/wizard/types/wizard.types';
+import type { CustomOrderItem, InfrastructureData, LogisticsData } from '../components/contracts/wizard/types/wizard.types';
 
 export interface SubsystemTask {
   id: number;
@@ -74,6 +74,8 @@ export interface Contract {
         notes?: string;
       };
     };
+    customOrdersEnabled?: boolean;
+    customOrders?: CustomOrderItem[];
   };
   createdAt: string;
   updatedAt: string;
@@ -141,6 +143,8 @@ class ContractService {
       taskRelationships?: any;
       infrastructure?: any;
       logistics?: any;
+      customOrdersEnabled?: boolean;
+      customOrders?: CustomOrderItem[];
     }
   ): Promise<any> {
     const response = await api.post(`/contracts/${contractId}/extend`, payload);
@@ -178,11 +182,13 @@ class ContractService {
     liniaKolejowa?: string;
     infrastructure?: InfrastructureData;
     logistics?: Partial<LogisticsData>;
+    customOrdersEnabled?: boolean;
+    customOrders?: CustomOrderItem[];
     subsystems?: Array<{
       type: string;
       params: Record<string, number | boolean | any>;  // Allow complex objects like SmwWizardData
       ipPool?: string;
-      tasks: Array<{ number: string; name: string; type: string }>;
+      tasks: Array<{ number: string; name: string; type: string; metadata?: Record<string, any> }>;
     }>;
     // Legacy support:
     subsystemType?: string | null;

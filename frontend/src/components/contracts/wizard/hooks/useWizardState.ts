@@ -59,7 +59,10 @@ export const useWizardState = ({
     projectManagerId: initialUserId,
     managerCode: initialEmployeeCode,
     liniaKolejowa: '', // Initialize railway line field
-    subsystems: []
+    subsystems: [],
+    customOrdersEnabled: false,
+    taskConfigurations: {},
+    customOrders: [],
   });
 
   const [detectedSubsystems, setDetectedSubsystems] = useState<SubsystemType[]>([]);
@@ -429,7 +432,9 @@ export const useWizardState = ({
         orderDate: contract.orderDate?.split('T')[0] || '',
         projectManagerId: contract.projectManagerId?.toString() || '',
         managerCode: contract.managerCode || '',
-        liniaKolejowa: (contract as any).liniaKolejowa || '' // Load liniaKolejowa if present
+        liniaKolejowa: (contract as any).liniaKolejowa || '', // Load liniaKolejowa if present
+        customOrdersEnabled: !!contract.technicalSpecs?.customOrdersEnabled,
+        customOrders: contract.technicalSpecs?.customOrders || [],
       }));
       
       // 2. Fetch subsystems from backend
@@ -477,10 +482,35 @@ export const useWizardState = ({
           } as SubsystemWizardData;
         })
         .filter((sub): sub is SubsystemWizardData => sub !== null) as SubsystemWizardData[];
+
+      const taskConfigurations = Object.fromEntries(
+        existingSubsystems.flatMap((sub) =>
+          (sub.tasks || [])
+            .filter((task) => !!task.metadata?.bom)
+            .map((task) => [
+              task.taskNumber,
+              {
+                taskId: task.taskNumber,
+                taskNumber: task.taskNumber,
+                taskName: task.taskName,
+                taskType: task.taskType,
+                subsystemType: sub.systemType as SubsystemType,
+                taskVariant: task.taskType,
+                bomTemplateId: task.metadata?.bom?.templateId,
+                bomTemplateVersion: task.metadata?.bom?.templateVersion,
+                materials: task.metadata?.bom?.materials || [],
+                configParams: task.metadata?.bomConfigParams || {},
+                isConfigured: true,
+                lastModified: task.updatedAt ? new Date(task.updatedAt) : undefined,
+              },
+            ])
+        )
+      );
       
       setWizardData(prev => ({
         ...prev,
-        subsystems: wizardSubsystems
+        subsystems: wizardSubsystems,
+        taskConfigurations,
       }));
       
       // 4. Set detected subsystems

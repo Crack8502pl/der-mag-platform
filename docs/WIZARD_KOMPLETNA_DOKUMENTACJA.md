@@ -2272,3 +2272,45 @@ Stworzyłem **kompletny dokument techniczny** (ponad 2500 linii!) zawierający:
 ## 🎯 **Kluczowe odkrycia:**
 
 -
+
+---
+
+## Krok 8: Konfiguracja Zadań
+
+### Cel
+Automatyczne zaciąganie szablonów BOM dla każdego zadania z możliwością edycji ilości i wyboru materiałów.
+
+### Layout
+- **Left Sidebar (380px):** Lista zadań pogrupowana per podsystem
+- **Right Workspace:** Konfiguracja BOM dla aktywnego zadania
+
+### Funkcjonalności
+1. Automatyczne zaciąganie szablonu BOM na podstawie `subsystemType` i `taskVariant`
+2. Rozwiązywanie ilości na podstawie parametrów konfiguracji (FIXED, FROM_CONFIG, PER_UNIT, DEPENDENT)
+3. Edycja ilości materiałów
+4. Checkboxy wyboru dla pozycji opcjonalnych
+5. Checkbox `Zamówienia Niestandardowe` warunkujący krok 9
+6. Zastosowanie BOM do zadania via API lub zapis do payloadu kreatora
+
+### API
+- `GET /api/bom-subsystem-templates/for/:subsystemType/:taskVariant`
+- `POST /api/bom-subsystem-templates/:templateId/apply/:taskId`
+
+## Krok 9: Zamówienia Dodatkowe (warunkowy)
+
+### Warunek wyświetlenia
+Wyświetlany tylko gdy `wizardData.customOrdersEnabled === true`
+
+### Funkcjonalności
+Dodawanie niestandardowych pozycji zamówienia poza standardową konfiguracją BOM.
+
+### Struktura danych
+```typescript
+interface CustomOrderItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  notes?: string;
+}
+```

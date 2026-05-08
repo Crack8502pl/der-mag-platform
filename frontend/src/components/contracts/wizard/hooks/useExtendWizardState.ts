@@ -21,6 +21,7 @@ interface UseExtendWizardStateProps {
   projectManagerId: string;
   managerCode?: string;
   liniaKolejowa?: string;
+  technicalSpecs?: Record<string, any>;
 }
 
 interface UseExtendWizardStateReturn {
@@ -66,7 +67,8 @@ export const useExtendWizardState = ({
   orderDate,
   projectManagerId,
   managerCode = '',
-  liniaKolejowa = ''
+  liniaKolejowa = '',
+  technicalSpecs,
 }: UseExtendWizardStateProps): UseExtendWizardStateReturn => {
 
   const [extendData, setExtendData] = useState<ExtendWizardData>({
@@ -79,7 +81,10 @@ export const useExtendWizardState = ({
     liniaKolejowa,
     existingSubsystems: [],
     newSubsystems: [],
-    taskRelationships: {}
+    taskRelationships: {},
+    customOrdersEnabled: !!technicalSpecs?.customOrdersEnabled,
+    customOrders: technicalSpecs?.customOrders || [],
+    taskConfigurations: {},
   });
 
   const [detectedSubsystems, setDetectedSubsystems] = useState<SubsystemType[]>([]);
@@ -135,6 +140,38 @@ export const useExtendWizardState = ({
             ipPool: sub.ipPool
           } as ExistingSubsystem;
         });
+
+      const taskConfigurations = Object.fromEntries(
+        existingSubsystems.flatMap((sub) =>
+          sub.existingTasks
+            .filter((task) => {
+              const sourceTask = (subsystems.find((item) => item.id === sub.id)?.tasks || [])
+                .find((candidate) => candidate.taskNumber === task.taskNumber);
+              return !!sourceTask?.metadata?.bom;
+            })
+            .map((task) => {
+              const sourceTask = (subsystems.find((item) => item.id === sub.id)?.tasks || [])
+                .find((candidate) => candidate.taskNumber === task.taskNumber);
+
+              return [
+                task.taskWizardId || task.taskNumber || `existing-${sub.id}-${task.taskType}`,
+                {
+                  taskId: task.taskWizardId || task.taskNumber || `existing-${sub.id}-${task.taskType}`,
+                  taskNumber: task.taskNumber || '',
+                  taskName: task.nazwa || '',
+                  taskType: task.taskType,
+                  subsystemType: sub.type,
+                  taskVariant: task.taskType,
+                  bomTemplateId: sourceTask?.metadata?.bom?.templateId,
+                  bomTemplateVersion: sourceTask?.metadata?.bom?.templateVersion,
+                  materials: sourceTask?.metadata?.bom?.materials || [],
+                  configParams: sourceTask?.metadata?.bomConfigParams || {},
+                  isConfigured: true,
+                },
+              ];
+            })
+        )
+      );
 
       // Load task relationships for SMOKIP subsystems that have LCS or NASTAWNIA parent tasks.
       // Relationships for other subsystem types or task types are not used by the extend wizard.
@@ -219,7 +256,14 @@ export const useExtendWizardState = ({
         console.warn('⚠️ Failed to load topologies (non-critical):', topologyError);
       }
 
-      setExtendData(prev => ({ ...prev, existingSubsystems, taskRelationships, existingTaskRelationships: structuredClone(taskRelationships), networkTopologies }));
+      setExtendData(prev => ({
+        ...prev,
+        existingSubsystems,
+        taskRelationships,
+        existingTaskRelationships: structuredClone(taskRelationships),
+        networkTopologies,
+        taskConfigurations,
+      }));
     } catch (err) {
       console.error('[useExtendWizardState] Load error:', err);
       setError('Nie udało się wczytać danych kontraktu');

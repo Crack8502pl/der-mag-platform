@@ -1,4 +1,12 @@
-import type { SubsystemWizardData, TaskDetail, WizardTaskRelationships, InfrastructureData, LogisticsData } from './wizard.types';
+import type {
+  SubsystemWizardData,
+  TaskDetail,
+  WizardTaskRelationships,
+  InfrastructureData,
+  LogisticsData,
+  TaskConfiguration,
+  CustomOrderItem,
+} from './wizard.types';
 import type { SubsystemType } from '../../../../config/subsystemWizardConfig';
 import type { TopologyNode, TopologyConnection } from '../../../../types/network-topology.types';
 
@@ -28,10 +36,13 @@ export interface ExtendWizardData {
   infrastructure?: InfrastructureData;
   logistics?: Partial<LogisticsData>;
   networkTopologies?: Record<number | string, { nodes: TopologyNode[]; connections: TopologyConnection[] }>;
+  customOrdersEnabled?: boolean;
+  taskConfigurations?: Record<string, TaskConfiguration>;
+  customOrders?: CustomOrderItem[];
 }
 
 export interface ExtendStepInfo {
-  type: 'review' | 'subsystems-overview' | 'config' | 'details' | 'add-tasks' | 'relationships' | 'topology' | 'infrastructure' | 'logistics' | 'preview' | 'success';
+  type: 'review' | 'subsystems-overview' | 'config' | 'details' | 'add-tasks' | 'relationships' | 'topology' | 'infrastructure' | 'logistics' | 'task-config' | 'custom-orders' | 'preview' | 'success';
   subsystemIndex?: number;
   isNew?: boolean;
 }
@@ -42,10 +53,23 @@ export interface ExtendContractPayload {
   taskRelationships?: WizardTaskRelationships;
   infrastructure?: InfrastructureData;
   logistics?: Partial<LogisticsData>;
+  customOrdersEnabled?: boolean;
+  taskConfigurations?: Record<string, TaskConfiguration>;
+  customOrders?: CustomOrderItem[];
 }
 
 export interface ExtendWizardModalProps {
-  contract: { id: number; contractNumber: string; customName: string; orderDate: string | Date; projectManagerId?: number; managerCode?: string; liniaKolejowa?: string; status: string; };
+  contract: {
+    id: number;
+    contractNumber: string;
+    customName: string;
+    orderDate: string | Date;
+    projectManagerId?: number;
+    managerCode?: string;
+    liniaKolejowa?: string;
+    status: string;
+    technicalSpecs?: Record<string, any>;
+  };
   onClose: () => void;
   onSuccess: () => void;
 }

@@ -30,6 +30,8 @@ import { SuccessStep } from './steps/SuccessStep';
 import { ShipmentWizardStep } from './steps/ShipmentWizardStep';
 import { InfrastructureStep } from './steps/InfrastructureStep';
 import { LogisticsStep } from './steps/LogisticsStep';
+import { TaskConfigurationStep } from './steps/TaskConfigurationStep';
+import { CustomOrdersStep } from './steps/CustomOrdersStep';
 import { TaskRelationshipsStep } from './steps/TaskRelationshipsStep';
 import { NetworkTopologyStep } from '../../network-topology/NetworkTopologyStep';
 
@@ -48,6 +50,7 @@ import { SspConfigStep } from './subsystems/ssp/SspConfigStep';
 import { LanConfigStep } from './subsystems/lan/LanConfigStep';
 import { OtkConfigStep } from './subsystems/otk/OtkConfigStep';
 import { ZasilanieConfigStep } from './subsystems/zasilanie/ZasilanieConfigStep';
+import { buildTaskConfigurationMetadata, hasAllTaskConfigurations } from './utils/taskConfiguration';
 
 import '../../../styles/grover-theme.css';
 import '../WizardStepIndicator.css';
@@ -210,7 +213,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
   // Step at which draft save button is shown (config, details, relationships, infrastructure, logistics, preview, success)
   const isDraftStep = (stepType: string) =>
-    ['config', 'details', 'relationships', 'topology', 'infrastructure', 'logistics', 'preview'].includes(stepType);
+    ['config', 'details', 'relationships', 'topology', 'infrastructure', 'logistics', 'task-config', 'custom-orders', 'preview'].includes(stepType);
 
   /** Returns true when a topology step should be shown for the given subsystem type */
   const shouldShowTopologyStep = (subsystemType: string): boolean =>
@@ -226,6 +229,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     steps += 1; // Logistics
     // Relationships step: only when SMOKIP subsystems have LCS tasks
     if (hasRelationshipsStep()) steps += 1;
+    steps += 1; // Task configuration
+    if (wizardData.customOrdersEnabled) steps += 1; // Custom orders
     return steps + 1; // +1 for Success
   };
 
@@ -262,11 +267,47 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
     
     if (step === ++stepCount) return { type: 'infrastructure' as const };
     if (step === ++stepCount) return { type: 'logistics' as const };
+    if (step === ++stepCount) return { type: 'task-config' as const };
+    if (wizardData.customOrdersEnabled && step === ++stepCount) return { type: 'custom-orders' as const };
     
     return step === ++stepCount ? { type: 'preview' as const } : { type: 'success' as const };
   };
 
+  const getStepLabel = (stepIndex: number): string => {
+    const stepInfo = getStepInfo(stepIndex);
+
+    switch (stepInfo.type) {
+      case 'basic': return 'Dane';
+      case 'selection': return 'Podsystemy';
+      case 'config': return 'Konfiguracja';
+      case 'details': return 'Szczegóły';
+      case 'relationships': return 'Powiązania';
+      case 'topology': return 'Topologia';
+      case 'infrastructure': return 'Infrastruktura';
+      case 'logistics': return 'Logistyka';
+      case 'task-config': return 'Konf. Zadań';
+      case 'custom-orders': return 'Zamówienia';
+      case 'preview': return 'Podgląd';
+      case 'success': return 'Sukces';
+      default: return `Krok ${stepIndex}`;
+    }
+  };
+
   const getCurrentStepInfo = () => getStepInfo(currentStep);
+
+  const buildTaskMetadata = (
+    baseMetadata: Record<string, any> | undefined,
+    taskConfigurationKey?: string
+  ) => {
+    const taskConfiguration = taskConfigurationKey
+      ? wizardData.taskConfigurations?.[taskConfigurationKey]
+      : undefined;
+
+    return {
+      ...(baseMetadata || {}),
+      ...buildTaskConfigurationMetadata(taskConfiguration),
+    };
+  };
 
   const getValidationHint = (): string => {
     const stepInfo = getCurrentStepInfo();
@@ -291,6 +332,9 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
         !!legacyAddress?.trim();
       if (!hasAddresses) return 'Podaj co najmniej jeden adres dostawy';
       if (!wizardData.logistics?.contactPhone?.trim()) return 'Podaj telefon kontaktowy';
+    }
+    if (stepInfo.type === 'task-config' && !hasAllTaskConfigurations(wizardData)) {
+      return 'Skonfiguruj BOM dla wszystkich zadań';
     }
     return '';
   };
@@ -333,7 +377,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
             gpsLongitude: detail?.gpsLongitude || null,
             googleMapsUrl: detail?.googleMapsUrl || null,
             fiberConnections: detail?.fiberConnections?.length ? detail.fiberConnections : null,
-            metadata: {
+            metadata: buildTaskMetadata({
               kilometraz: detail?.kilometraz || null,
               kategoria: detail?.kategoria || null,
               miejscowosc: detail?.miejscowosc || null,
@@ -341,7 +385,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
                 cabinetType: taskInfra.cabinetType,
                 generateCabinetCompletion: taskInfra.generateCabinetCompletion ?? true,
               } : {})
-            }
+            }, detail?.taskWizardId || detail?.taskNumber || `${subsystem.type}-${subsystemIndex}-${idx}`)
           };
         })
       };
@@ -402,7 +446,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
             gpsLongitude: t.gpsLongitude || null,
             googleMapsUrl: t.googleMapsUrl || null,
             fiberConnections: t.fiberConnections?.length ? t.fiberConnections : null,
-            metadata: {
+            metadata: buildTaskMetadata({
               kilometraz: t.kilometraz,
               kategoria: t.kategoria,
               miejscowosc: t.miejscowosc,
@@ -410,7 +454,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
                 cabinetType: taskInfra.cabinetType,
                 generateCabinetCompletion: taskInfra.generateCabinetCompletion ?? true,
               } : {})
-            }
+            }, t.taskWizardId || t.taskNumber || `${subsystem.type}-${subsystemIndex}-${taskDetailIdx}`)
           };
         })
       });
@@ -694,12 +738,15 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
                   gpsLongitude: detail?.gpsLongitude || null,
                   googleMapsUrl: detail?.googleMapsUrl || null,
                   fiberConnections: detail?.fiberConnections?.length ? detail.fiberConnections : null,
-                  metadata: taskInfra?.cabinetType
-                    ? {
-                        cabinetType: taskInfra.cabinetType,
-                        generateCabinetCompletion: taskInfra.generateCabinetCompletion ?? true,
-                      }
-                    : undefined,
+                  metadata: buildTaskMetadata(
+                    taskInfra?.cabinetType
+                      ? {
+                          cabinetType: taskInfra.cabinetType,
+                          generateCabinetCompletion: taskInfra.generateCabinetCompletion ?? true,
+                        }
+                      : undefined,
+                    detail?.taskWizardId || detail?.taskNumber || `${subsystem.type}-${subIdx}-${idx}`
+                  ),
                 };
               })
             };
@@ -771,7 +818,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       } else {
         // CREATE MODE - create new contract
         const subsystemsData = wizardData.subsystems.map((subsystem) => {
-          const subsystemTasks = generatedTasks.filter(t => t.subsystemType === subsystem.type);
+          const subsystemTasks = generateAllTasks([subsystem], wizardData.liniaKolejowa);
           const params = subsystem.type === 'SMW' && subsystem.smwData 
             ? subsystem.smwData 
             : subsystem.params;
@@ -782,18 +829,22 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
             tasks: subsystemTasks.map((t, idx) => {
               // For SMOKIP subsystems, task details are in the same order as generated tasks
               const detail = subsystem.taskDetails?.[idx];
-              return {
-                number: t.number,
-                name: t.name,
-                type: t.type,
-                gpsLatitude: detail?.gpsLatitude || null,
-                gpsLongitude: detail?.gpsLongitude || null,
-                googleMapsUrl: detail?.googleMapsUrl || null,
-                fiberConnections: detail?.fiberConnections?.length ? detail.fiberConnections : null,
-              };
-            })
-          };
-        });
+                return {
+                  number: t.number,
+                  name: t.name,
+                  type: t.type,
+                  gpsLatitude: detail?.gpsLatitude || null,
+                  gpsLongitude: detail?.gpsLongitude || null,
+                  googleMapsUrl: detail?.googleMapsUrl || null,
+                  fiberConnections: detail?.fiberConnections?.length ? detail.fiberConnections : null,
+                  metadata: buildTaskMetadata(
+                    undefined,
+                    detail?.taskWizardId || detail?.taskNumber || `${subsystem.type}-${wizardData.subsystems.indexOf(subsystem)}-${idx}`
+                  ),
+                };
+              })
+            };
+          });
 
         console.log('📤 Sending contract data:', {
           contractNumber: wizardData.contractNumber || undefined,
@@ -813,6 +864,8 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           liniaKolejowa: wizardData.liniaKolejowa || undefined,
           infrastructure: wizardData.infrastructure,
           logistics: wizardData.logistics,
+          customOrdersEnabled: wizardData.customOrdersEnabled,
+          customOrders: wizardData.customOrders,
           subsystems: subsystemsData
         });
         
@@ -1161,6 +1214,9 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       const hasPhone = !!wizardData.logistics?.contactPhone?.trim();
       return hasAddresses && hasPhone;
     }
+    if (stepInfo.type === 'task-config') {
+      return hasAllTaskConfigurations(wizardData);
+    }
     if (stepInfo.type === 'preview') {
       const canProceedPreview = generatedTasks.length > 0;
       console.log('🔍 Preview step canProceed:', canProceedPreview, 'generatedTasks:', generatedTasks.length);
@@ -1175,19 +1231,13 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
 
   const renderStepIndicator = () => {
     const totalSteps = getTotalSteps();
-    const maxStepsToShow = 6;
     const steps = [];
     
-    for (let i = 1; i <= Math.min(totalSteps, maxStepsToShow); i++) {
-      const labels = ['', 'Dane', 'Podsystemy'];
-      let label = labels[i] || `Krok ${i}`;
-      if (i === totalSteps - 1) label = 'Podgląd';
-      if (i === totalSteps) label = 'Sukces';
-      
+    for (let i = 1; i <= totalSteps; i++) {
       steps.push(
         <div key={i} className={`wizard-step ${currentStep === i ? 'active' : ''} ${currentStep > i ? 'completed' : ''}`}>
           <span className="step-number">{i}</span>
-          <span className="step-label">{label}</span>
+          <span className="step-label">{getStepLabel(i)}</span>
         </div>
       );
     }
@@ -1296,6 +1346,18 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
       ),
       logistics: () => (
         <LogisticsStep
+          wizardData={wizardData}
+          onUpdate={updateWizardData}
+        />
+      ),
+      'task-config': () => (
+        <TaskConfigurationStep
+          wizardData={wizardData}
+          onUpdate={updateWizardData}
+        />
+      ),
+      'custom-orders': () => (
+        <CustomOrdersStep
           wizardData={wizardData}
           onUpdate={updateWizardData}
         />

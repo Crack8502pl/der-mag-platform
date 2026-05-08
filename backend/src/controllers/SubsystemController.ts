@@ -12,6 +12,7 @@ import { TaskType } from '../entities/TaskType';
 import { Contract } from '../entities/Contract';
 import { serverLogger } from '../utils/logger';
 import { requiresCabinetCompletion } from '../config/taskTypes';
+import { BomSubsystemTemplateService } from '../services/BomSubsystemTemplateService';
 import * as fs from 'fs';
 
 // Interfejs dla żądań uwierzytelnionych
@@ -20,6 +21,31 @@ interface AuthenticatedRequest extends Request {
   userRole?: string;
   params: any;
   file?: any;
+}
+
+async function autoApplyTaskConfiguration(
+  taskMetadata: Record<string, any> | undefined,
+  taskId: number,
+  taskNumber: string
+): Promise<void> {
+  const templateId = Number(taskMetadata?.bom?.templateId);
+  if (!templateId || Number.isNaN(templateId)) {
+    return;
+  }
+
+  try {
+    await BomSubsystemTemplateService.applyTemplateToTask(
+      taskId,
+      templateId,
+      taskMetadata?.bomConfigParams || {}
+    );
+    serverLogger.info(`✅ Zastosowano konfigurację BOM do zadania ${taskNumber}`, { templateId });
+  } catch (bomError) {
+    serverLogger.warn(`⚠️ Nie udało się zastosować konfiguracji BOM do zadania ${taskNumber}`, {
+      templateId,
+      error: bomError instanceof Error ? bomError.message : String(bomError),
+    });
+  }
 }
 
 export class SubsystemController {
@@ -293,6 +319,7 @@ export class SubsystemController {
                     });
                     const savedMainTask = await taskRepository.save(mainTask);
                     createdMainTasks.push(savedMainTask);
+                    await autoApplyTaskConfiguration(taskData.metadata || {}, savedMainTask.id, subsystemTask.taskNumber);
 
                     // Automatyczne tworzenie zadania KOMPLETACJA_SZAF
                     // Sprawdź czy taskData.metadata zawiera flagę generateCabinetCompletion
@@ -750,6 +777,7 @@ export class SubsystemController {
 
             const savedMainTask = await taskRepository.save(mainTask);
             createdMainTasks.push(savedMainTask);
+            await autoApplyTaskConfiguration(taskData.metadata || {}, savedMainTask.id, subsystemTask.taskNumber);
 
             // Automatyczne tworzenie zadania KOMPLETACJA_SZAF jeśli metadata zawiera cabinetType
             const taskMeta = taskData.metadata || {};

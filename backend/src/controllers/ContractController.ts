@@ -3,7 +3,7 @@
 
 import { Request, Response } from 'express';
 import { ContractService } from '../services/ContractService';
-import { ContractStatus } from '../entities/Contract';
+import { Contract as ContractEntity, ContractStatus } from '../entities/Contract';
 import { SubsystemService } from '../services/SubsystemService';
 import { SystemType } from '../entities/Subsystem';
 import { SubsystemTaskService } from '../services/SubsystemTaskService';
@@ -92,6 +92,31 @@ async function autoApplyBomTemplate(
       `⚠️ Nie udało się zastosować szablonu BOM do KOMPLETACJA_SZAF (${taskNumber}):`,
       { error: bomError instanceof Error ? bomError.message : String(bomError) }
     );
+  }
+}
+
+async function autoApplyTaskConfiguration(
+  taskMetadata: Record<string, any> | undefined,
+  taskId: number,
+  taskNumber: string
+): Promise<void> {
+  const templateId = Number(taskMetadata?.bom?.templateId);
+  if (!templateId || Number.isNaN(templateId)) {
+    return;
+  }
+
+  try {
+    await BomSubsystemTemplateService.applyTemplateToTask(
+      taskId,
+      templateId,
+      taskMetadata?.bomConfigParams || {}
+    );
+    serverLogger.info(`✅ Zastosowano konfigurację BOM do zadania ${taskNumber}`, { templateId });
+  } catch (bomError) {
+    serverLogger.warn(`⚠️ Nie udało się zastosować konfiguracji BOM do zadania ${taskNumber}`, {
+      templateId,
+      error: bomError instanceof Error ? bomError.message : String(bomError),
+    });
   }
 }
 
@@ -460,6 +485,8 @@ export class ContractController {
         subsystems, // New: array of subsystems
         infrastructure, // Infrastructure data from wizard
         logistics,      // Logistics data from wizard
+        customOrdersEnabled,
+        customOrders,
         // Legacy support:
         subsystemType,
         subsystemParams,
@@ -507,8 +534,8 @@ export class ContractController {
         managerCode,
         projectManagerId: parseInt(projectManagerId),
         liniaKolejowa: req.body.liniaKolejowa,
-        ...((infrastructure || logistics)
-          ? { technicalSpecs: { infrastructure, logistics } }
+        ...((infrastructure || logistics || customOrdersEnabled || (Array.isArray(customOrders) && customOrders.length > 0))
+          ? { technicalSpecs: { infrastructure, logistics, customOrdersEnabled, customOrders } }
           : {})
       });
 
@@ -617,7 +644,10 @@ export class ContractController {
                   subsystemId: subsystem.id,
                   taskName: taskData.name || 'Zadanie',
                   taskType: taskData.type || 'GENERIC',
-                  metadata: subsystemParams
+                  metadata: {
+                    ...(subsystemParams || {}),
+                    ...(taskData.metadata || {}),
+                  }
                 });
                 createdTasks.push(subsystemTask);
                 
@@ -648,6 +678,7 @@ export class ContractController {
                       logistics: logistics ?? undefined,
                       configParams: {
                         ...(subsystemParams || {}),
+                        ...(taskData.metadata || {}),
                         ...(Array.isArray(taskData.fiberConnections) && taskData.fiberConnections.length > 0 ? {
                           fiberSchema: {
                             schematLacznosci: taskData.fiberConnections,
@@ -664,6 +695,7 @@ export class ContractController {
                   
                   const savedMainTask = await taskRepository.save(mainTask);
                   createdMainTasks.push(savedMainTask);
+                  await autoApplyTaskConfiguration(taskData.metadata || {}, savedMainTask.id, subsystemTask.taskNumber);
 
                   // Automatyczne tworzenie zadania KOMPLETACJA_SZAF
                   // Klucz w infrastructure.perTask odpowiada formatowi `${type}-${globalTaskIdx}`
@@ -892,6 +924,8 @@ export class ContractController {
         extendedSubsystems,
         infrastructure,
         logistics,
+        customOrdersEnabled,
+        customOrders,
       } = req.body;
 
       // 1. Weryfikacja istnienia kontraktu
@@ -908,6 +942,21 @@ export class ContractController {
           message: 'Można rozszerzyć tylko kontrakty ze statusem "Utworzony" lub "W trakcie"',
         });
         return;
+      }
+
+      if (infrastructure || logistics || customOrdersEnabled !== undefined || Array.isArray(customOrders)) {
+        const mergedTechnicalSpecs = {
+          ...(contract.technicalSpecs || {}),
+          ...(infrastructure !== undefined ? { infrastructure } : {}),
+          ...(logistics !== undefined ? { logistics } : {}),
+          ...(customOrdersEnabled !== undefined ? { customOrdersEnabled: !!customOrdersEnabled } : {}),
+          ...(Array.isArray(customOrders) ? { customOrders } : {}),
+        };
+
+        await AppDataSource.getRepository(ContractEntity).update(contractId, {
+          technicalSpecs: mergedTechnicalSpecs as any,
+        });
+        contract.technicalSpecs = mergedTechnicalSpecs;
       }
 
       const taskRepository = AppDataSource.getRepository(Task);
@@ -966,7 +1015,10 @@ export class ContractController {
                   subsystemId: subsystem.id,
                   taskName: taskData.name || 'Zadanie',
                   taskType: taskData.type || 'GENERIC',
-                  metadata: subsystemParams,
+                  metadata: {
+                    ...(subsystemParams || {}),
+                    ...(taskData.metadata || {}),
+                  },
                 });
                 createdTasks.push(subsystemTask);
 
@@ -992,11 +1044,15 @@ export class ContractController {
                       taskVariant: taskData.type || null,
                       infrastructure: infrastructure ?? undefined,
                       logistics: logistics ?? undefined,
-                      configParams: subsystemParams || {},
+                      configParams: {
+                        ...(subsystemParams || {}),
+                        ...(taskData.metadata || {}),
+                      },
                     },
                   });
                   const savedMainTask = await taskRepository.save(mainTask);
                   createdMainTasks.push(savedMainTask);
+                  await autoApplyTaskConfiguration(taskData.metadata || {}, savedMainTask.id, subsystemTask.taskNumber);
 
                   const taskKey = `${type}-${globalTaskIdx}`;
                   const taskInfra = (infrastructure as InfrastructureData)?.perTask?.[taskKey];
@@ -1115,7 +1171,8 @@ export class ContractController {
                       configParams: taskData.metadata || {},
                     },
                   });
-                  await taskRepository.save(mainTask);
+                  const savedMainTask = await taskRepository.save(mainTask);
+                  await autoApplyTaskConfiguration(taskData.metadata || {}, savedMainTask.id, subsystemTask.taskNumber);
                 } catch (taskError) {
                   serverLogger.error('Failed to create main task:', { taskName: taskData.name, error: taskError instanceof Error ? taskError.message : String(taskError) });
                 }

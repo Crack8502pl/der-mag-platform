@@ -116,6 +116,50 @@ export interface LogisticsData {
   orderEmails?: OrderEmailsConfig;
 }
 
+/**
+ * Resolved material entry generated from a BOM template
+ */
+export interface ResolvedMaterial {
+  id: number;
+  materialName: string;
+  catalogNumber?: string;
+  quantity: number;
+  unit: string;
+  quantitySource: 'FIXED' | 'FROM_CONFIG' | 'PER_UNIT' | 'DEPENDENT';
+  groupName: string;
+  requiresIp: boolean;
+  isSelected: boolean;
+}
+
+/**
+ * Task configuration with BOM template integration
+ */
+export interface TaskConfiguration {
+  taskId: string;
+  taskNumber: string;
+  taskName: string;
+  taskType: string;
+  subsystemType: string;
+  taskVariant?: string | null;
+  bomTemplateId?: number;
+  bomTemplateVersion?: number;
+  materials: ResolvedMaterial[];
+  configParams?: Record<string, any>;
+  isConfigured: boolean;
+  lastModified?: Date;
+}
+
+/**
+ * Custom order item for step 9
+ */
+export interface CustomOrderItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  notes?: string;
+}
+
 export interface WizardData {
   contractNumber: string;
   customName: string;
@@ -131,6 +175,9 @@ export interface WizardData {
   taskRelationships?: WizardTaskRelationships;
   /** Network topology data per subsystem (indexed by subsystemIndex for new, or subsystem-{id} for existing) */
   networkTopologies?: Record<number | string, { nodes: TopologyNode[]; connections: TopologyConnection[] }>;
+  customOrdersEnabled?: boolean;
+  taskConfigurations?: Record<string, TaskConfiguration>;
+  customOrders?: CustomOrderItem[];
 }
 
 export interface GeneratedTask {
@@ -141,7 +188,7 @@ export interface GeneratedTask {
 }
 
 export interface StepInfo {
-  type: 'basic' | 'selection' | 'config' | 'details' | 'relationships' | 'topology' | 'infrastructure' | 'logistics' | 'preview' | 'success' | 'shipping';
+  type: 'basic' | 'selection' | 'config' | 'details' | 'relationships' | 'topology' | 'infrastructure' | 'logistics' | 'task-config' | 'custom-orders' | 'preview' | 'success' | 'shipping';
   subsystemIndex?: number;
   subsystemType?: SubsystemType;
 }
@@ -178,4 +225,3 @@ export type WizardTaskRelationships = Record<string, WizardTaskRelationship>;
 
 /** @deprecated Use WizardTaskRelationship instead */
 export type WizardLCSRelationship = WizardTaskRelationship;
-

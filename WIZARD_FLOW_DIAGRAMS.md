@@ -487,3 +487,46 @@ POST /api/contracts/wizard
 │ Łącznie: 11 zadań z 2 podsystemów           │
 └─────────────────────────────────────────────┘
 ```
+
+## Step 8: Konfiguracja Zadań
+
+```text
+[Lista zadań w sidebarze]
+        |
+        v
+[Auto-load aktywnego template BOM]
+        |
+        v
+[Resolve quantities z params podsystemu]
+        |
+        +--> [Brak template] --> [Zapis zadania bez materiałów]
+        |
+        v
+[Edycja ilości / wyboru materiałów]
+        |
+        v
+[Zastosuj BOM do zadania]
+        |
+        v
+[taskConfigurations w wizardData]
+```
+
+## Step 9: Zamówienia Dodatkowe
+
+```text
+[Checkbox "Zamówienia niestandardowe"]
+        |
+        +--> [off] --> [Pomijamy krok 9]
+        |
+        v
+[Formularz dodatkowej pozycji]
+        |
+        v
+[Dodaj / edytuj / usuń pozycję]
+        |
+        v
+[customOrders w wizardData]
+        |
+        v
+[Podgląd kontraktu]
+```

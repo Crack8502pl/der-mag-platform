@@ -20,6 +20,8 @@ import { AddTasksToExistingStep } from './extend/steps/AddTasksToExistingStep';
 import { TaskRelationshipsStep } from './steps/TaskRelationshipsStep';
 import { InfrastructureStep } from './steps/InfrastructureStep';
 import { LogisticsStep } from './steps/LogisticsStep';
+import { TaskConfigurationStep } from './steps/TaskConfigurationStep';
+import { CustomOrdersStep } from './steps/CustomOrdersStep';
 import { PreviewStep } from './steps/PreviewStep';
 import { NetworkTopologyStep } from '../../network-topology/NetworkTopologyStep';
 
@@ -41,6 +43,7 @@ import { ZasilanieConfigStep } from './subsystems/zasilanie/ZasilanieConfigStep'
 
 import type { WizardData, SubsystemWizardData, TaskDetail } from './types/wizard.types';
 import type { TopologyNode, TopologyConnection } from '../../../types/network-topology.types';
+import { buildTaskConfigurationMetadata, hasAllTaskConfigurations } from './utils/taskConfiguration';
 
 import './ContractWizardModal.css';
 
@@ -142,6 +145,7 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
     projectManagerId: contract.projectManagerId?.toString() ?? '',
     managerCode: contract.managerCode || '',
     liniaKolejowa: contract.liniaKolejowa,
+    technicalSpecs: contract.technicalSpecs,
   });
 
   // ── Draft management ────────────────────────────────────────────────────────
@@ -286,6 +290,10 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
 
     steps.push({ type: 'infrastructure' });
     steps.push({ type: 'logistics' });
+    steps.push({ type: 'task-config' });
+    if (extendData.customOrdersEnabled) {
+      steps.push({ type: 'custom-orders' });
+    }
     steps.push({ type: 'preview' });
     steps.push({ type: 'success' });
 
@@ -295,6 +303,13 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
   const stepSequence = buildStepSequence();
   const totalSteps = stepSequence.length;
   const currentStepInfo: ExtendStepInfo = stepSequence[currentStep - 1] ?? { type: 'review' };
+
+  const buildTaskMetadata = (taskConfigurationKey?: string, baseMetadata?: Record<string, any>) => ({
+    ...(baseMetadata || {}),
+    ...buildTaskConfigurationMetadata(
+      taskConfigurationKey ? extendData.taskConfigurations?.[taskConfigurationKey] : undefined
+    ),
+  });
 
   const handleNext = () => {
     // When leaving config step for SMOKIP, initialize task details
@@ -335,6 +350,9 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
                 gpsLatitude: detail?.gpsLatitude || null,
                 gpsLongitude: detail?.gpsLongitude || null,
                 googleMapsUrl: detail?.googleMapsUrl || null,
+                metadata: buildTaskMetadata(
+                  detail?.taskWizardId || detail?.taskNumber || `${sub.type}-${idx}`
+                ),
               };
             }),
           };
@@ -343,24 +361,29 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
           .filter((s) => s.addingNewTasks && s.newTasks.length > 0)
           .map((s) => ({
             subsystemId: s.id,
-            newTasks: s.newTasks.map((t) => ({
+            newTasks: s.newTasks.map((t, taskIdx) => ({
               name: buildTaskNameFromDetails(t.taskType, t, extendData.liniaKolejowa),
               type: resolveTaskVariant(t.taskType, t),
               gpsLatitude: t.gpsLatitude || null,
               gpsLongitude: t.gpsLongitude || null,
               googleMapsUrl: t.googleMapsUrl || null,
-              metadata: {
-                kilometraz: t.kilometraz,
-                kategoria: t.kategoria,
-                miejscowosc: t.miejscowosc,
-                nazwaLCS: t.nazwaLCS,
-                nazwaNastawnii: t.nazwaNastawnii,
-                liniaKolejowa: t.liniaKolejowa || extendData.liniaKolejowa,
-              },
+              metadata: buildTaskMetadata(
+                t.taskWizardId || t.taskNumber || `existing-${s.id}-${taskIdx}`,
+                {
+                  kilometraz: t.kilometraz,
+                  kategoria: t.kategoria,
+                  miejscowosc: t.miejscowosc,
+                  nazwaLCS: t.nazwaLCS,
+                  nazwaNastawnii: t.nazwaNastawnii,
+                  liniaKolejowa: t.liniaKolejowa || extendData.liniaKolejowa,
+                }
+              ),
             })),
           })),
         infrastructure: extendData.infrastructure,
         logistics: extendData.logistics,
+        customOrdersEnabled: extendData.customOrdersEnabled,
+        customOrders: extendData.customOrders,
       };
 
       await contractService.extendContract(contract.id, payload);
@@ -513,6 +536,9 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
       const hasPhone = !!extendData.logistics?.contactPhone?.trim();
       return hasAddresses && hasPhone;
     }
+    if (currentStepInfo.type === 'task-config') {
+      return hasAllTaskConfigurations(taskConfigurationWizardData);
+    }
     return true;
   };
 
@@ -530,6 +556,24 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
     logistics: extendData.logistics,
     taskRelationships: extendData.taskRelationships,
     networkTopologies: extendData.networkTopologies,
+    customOrdersEnabled: extendData.customOrdersEnabled,
+    taskConfigurations: extendData.taskConfigurations,
+    customOrders: extendData.customOrders,
+  };
+
+  const taskConfigurationWizardData: WizardData = {
+    ...virtualWizardData,
+    subsystems: [
+      ...extendData.existingSubsystems
+        .filter((subsystem) => subsystem.addingNewTasks || subsystem.existingTasks.length > 0)
+        .map((subsystem) => ({
+          type: subsystem.type,
+          params: {},
+          taskDetails: [...subsystem.existingTasks, ...subsystem.newTasks],
+          subsystemId: subsystem.id,
+        })),
+      ...extendData.newSubsystems,
+    ] as SubsystemWizardData[],
   };
 
   // ── Step rendering ──────────────────────────────────────────────────────────
@@ -726,10 +770,28 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
       );
     }
 
+    if (step.type === 'task-config') {
+      return (
+        <TaskConfigurationStep
+          wizardData={taskConfigurationWizardData}
+          onUpdate={(updates) => updateExtendData(updates as Partial<ExtendWizardData>)}
+        />
+      );
+    }
+
+    if (step.type === 'custom-orders') {
+      return (
+        <CustomOrdersStep
+          wizardData={taskConfigurationWizardData}
+          onUpdate={(updates) => updateExtendData(updates as Partial<ExtendWizardData>)}
+        />
+      );
+    }
+
     if (step.type === 'preview') {
       return (
         <PreviewStep
-          wizardData={virtualWizardData}
+          wizardData={taskConfigurationWizardData}
           generatedTasks={[]}
           extendMode={true}
           extendPreviewData={{ extendData }}
@@ -806,6 +868,8 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
                 topology: 'Topologia',
                 infrastructure: 'Infrastruktura',
                 logistics: 'Logistyka',
+                'task-config': 'Konf. Zadań',
+                'custom-orders': 'Zamówienia',
                 preview: 'Podgląd',
                 success: 'Sukces',
               };
@@ -899,4 +963,3 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
     </div>
   );
 };
-
