@@ -1,3 +1,76 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   GROVER THEME (Dark Mode) - Default
+   ══════════════════════════════════════════════════════════════════════════ */
+:root {
+  --bg-primary: #121212;
+  --bg-secondary: #1e1e1e;
+  --bg-tertiary: #2d2d2d;
+  --bg-card: #1e1e1e;
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --text-primary: #e0e0e0;
+  --text-secondary: #aaa;
+  --text-muted: #888;
+  --border-color: #333;
+  --primary-color: #1976d2;
+  --primary-color-alpha: rgba(25, 118, 210, 0.12);
+  --success-color: #4caf50;
+  --success-color-alpha: rgba(76, 175, 80, 0.12);
+  --danger-color: #f44336;
+  --warning-color: #ff9800;
+  --warning-color-alpha: rgba(255, 152, 0, 0.12);
+  --dependent-color: #ab47bc;
+  --dependent-color-alpha: rgba(171, 71, 188, 0.12);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HUSKEY THEME (Light Mode) - Media Query
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --bg-tertiary: #e8e8e8;
+    --bg-card: #ffffff;
+    --bg-hover: rgba(0, 0, 0, 0.05);
+    --text-primary: #1a1a1a;
+    --text-secondary: #666;
+    --text-muted: #888;
+    --border-color: #ddd;
+    --primary-color: #0066cc;
+    --primary-color-alpha: rgba(0, 102, 204, 0.12);
+    --success-color: #388e3c;
+    --success-color-alpha: rgba(56, 142, 60, 0.12);
+    --danger-color: #d32f2f;
+    --warning-color: #f57c00;
+    --warning-color-alpha: rgba(245, 124, 0, 0.12);
+    --dependent-color: #7b1fa2;
+    --dependent-color-alpha: rgba(123, 31, 162, 0.12);
+  }
+}
+
+/* Manual override dla huskey-theme */
+:root[data-theme="husky"],
+body.light-theme {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary: #e8e8e8;
+  --bg-card: #ffffff;
+  --bg-hover: rgba(0, 0, 0, 0.05);
+  --text-primary: #1a1a1a;
+  --text-secondary: #666;
+  --text-muted: #888;
+  --border-color: #ddd;
+  --primary-color: #0066cc;
+  --primary-color-alpha: rgba(0, 102, 204, 0.12);
+  --success-color: #388e3c;
+  --success-color-alpha: rgba(56, 142, 60, 0.12);
+  --danger-color: #d32f2f;
+  --warning-color: #f57c00;
+  --warning-color-alpha: rgba(245, 124, 0, 0.12);
+  --dependent-color: #7b1fa2;
+  --dependent-color-alpha: rgba(123, 31, 162, 0.12);
+}
+
 /* TaskConfigurationStep.css
    Supports grover-theme (dark) and huskey-theme (light) via CSS variables */
 
@@ -13,32 +86,37 @@
   gap: 0;
   height: 100%;
   min-height: 480px;
-  border: 1px solid var(--border-color, #e0e0e0);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   overflow: hidden;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 /* ── Sidebar ────────────────────────────────────────────────────────────── */
 .task-config-sidebar {
   width: 320px;
   flex-shrink: 0;
-  background: var(--bg-secondary, #f5f5f5);
-  border-right: 1px solid var(--border-color, #e0e0e0);
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .task-config-sidebar-header {
   padding: 14px 16px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
-  background: var(--bg-secondary, #f5f5f5);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .task-config-sidebar-title {
   font-size: 14px;
   font-weight: 700;
-  color: var(--text-primary, #222);
+  color: var(--text-primary);
   margin-bottom: 10px;
 }
 
@@ -49,21 +127,21 @@
   padding: 12px 16px;
   border-radius: 8px;
   margin-top: 12px;
-  border: 1px solid var(--border-color, #ddd);
-  background: var(--bg-tertiary, var(--bg-primary, #fff));
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
   transition: background 0.2s, border-color 0.2s;
 }
 
 .custom-orders-toggle:hover {
-  background: var(--bg-hover, #f0f0f0);
-  border-color: var(--primary-color, #0066cc);
+  background: var(--bg-hover);
+  border-color: var(--primary-color);
 }
 
 .custom-orders-label {
   flex: 1;
   cursor: pointer;
   font-size: 14px;
-  color: var(--text-primary, #222);
+  color: var(--text-primary);
   user-select: none;
 }
 
@@ -71,13 +149,13 @@
   width: 22px;
   height: 22px;
   cursor: pointer;
-  accent-color: var(--primary-color, #0066cc);
+  accent-color: var(--primary-color);
   margin: 0;
 }
 
 .task-config-empty-hint {
   font-size: 13px;
-  color: var(--text-muted, #888);
+  color: var(--text-muted);
   font-style: italic;
   padding: 12px 16px;
 }
@@ -98,21 +176,23 @@
   border-radius: 7px;
   cursor: pointer;
   margin-bottom: 4px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   border: 1px solid transparent;
   transition: background 0.15s, border-color 0.15s;
 }
 
 .task-config-task-item:hover {
-  background: var(--bg-hover, #e8e8e8);
+  background: var(--bg-hover);
 }
 
 .task-config-task-item.active {
-  background: var(--primary-color-alpha, rgba(0, 102, 204, 0.12));
-  border-color: var(--primary-color, #0066cc);
+  background: var(--primary-color-alpha);
+  border-color: var(--primary-color);
 }
 
 .task-config-task-item.configured {
-  border-left: 3px solid var(--success-color, #388e3c);
+  border-left: 3px solid var(--success-color);
 }
 
 .task-config-status-icon {
@@ -124,14 +204,14 @@
 .task-config-task-label {
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-secondary, #555);
+  color: var(--text-secondary);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .task-config-task-name {
   font-size: 12px;
-  color: var(--text-primary, #222);
+  color: var(--text-primary);
   line-height: 1.3;
 }
 
@@ -141,7 +221,8 @@
   min-width: 0;
   overflow-y: auto;
   padding: 20px;
-  background: var(--bg-primary, #fff);
+  background: var(--bg-primary);
+  transition: background 0.2s ease;
 }
 
 .task-config-placeholder {
@@ -151,12 +232,12 @@
   justify-content: center;
   height: 200px;
   gap: 12px;
-  color: var(--text-muted, #888);
+  color: var(--text-muted);
   font-size: 14px;
 }
 
 .task-config-error {
-  color: var(--danger-color, #d32f2f);
+  color: var(--danger-color);
 }
 
 .task-config-workspace-header {
@@ -166,28 +247,29 @@
   gap: 12px;
   margin-bottom: 16px;
   padding: 20px 24px;
-  background: var(--bg-secondary, #f5f5f5);
-  border-bottom: 2px solid var(--border-color, #e0e0e0);
+  background: var(--bg-secondary);
+  border-bottom: 2px solid var(--border-color);
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .task-config-workspace-header h4 {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
-  color: var(--text-primary, #222);
+  color: var(--text-primary);
 }
 
 .bom-version {
   font-size: 12px;
   font-weight: 400;
-  color: var(--text-muted, #888);
+  color: var(--text-muted);
 }
 
 .bom-configured-badge {
   font-size: 12px;
-  background: rgba(56, 142, 60, 0.12);
-  color: var(--success-color, #388e3c);
-  border: 1px solid rgba(56, 142, 60, 0.3);
+  background: var(--success-color-alpha);
+  color: var(--success-color);
+  border: 1px solid var(--success-color);
   border-radius: 12px;
   padding: 2px 10px;
   white-space: nowrap;
@@ -201,10 +283,10 @@
 .bom-group-title {
   font-size: 13px;
   font-weight: 700;
-  color: var(--text-secondary, #555);
+  color: var(--text-secondary);
   padding: 6px 0;
   margin-bottom: 6px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -217,19 +299,23 @@
 }
 
 .bom-table th {
-  background: var(--bg-secondary, #f5f5f5);
-  color: var(--text-secondary, #555);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   font-weight: 600;
   padding: 6px 8px;
   text-align: left;
-  border-bottom: 2px solid var(--border-color, #e0e0e0);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .bom-table td {
   padding: 6px 8px;
-  border-bottom: 1px solid var(--border-color, #f0f0f0);
-  color: var(--text-primary, #222);
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
   vertical-align: middle;
+}
+
+.bom-table tbody tr:hover {
+  background: var(--bg-hover);
 }
 
 .bom-row-deselected {
@@ -237,37 +323,38 @@
 }
 
 .bom-cell-num {
-  color: var(--text-muted, #888);
+  color: var(--text-muted);
   width: 28px;
 }
 
 .bom-cell-unit {
   font-size: 11px;
-  color: var(--text-muted, #888);
+  color: var(--text-muted);
 }
 
 .bom-material-name {
   font-weight: 500;
+  color: var(--text-primary);
 }
 
 .bom-catalog-num {
   font-size: 11px;
-  color: var(--text-muted, #888);
+  color: var(--text-secondary);
 }
 
 .bom-qty-input {
   width: 64px;
   padding: 3px 6px;
-  border: 1px solid var(--border-color, #ccc);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 13px;
-  background: var(--bg-input, #fff);
-  color: var(--text-primary, #222);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .bom-qty-input:focus {
   outline: none;
-  border-color: var(--primary-color, #0066cc);
+  border-color: var(--primary-color);
 }
 
 /* Source badges */
@@ -279,16 +366,16 @@
   white-space: nowrap;
 }
 
-.bom-source-fixed      { background: rgba(25, 118, 210, 0.12); color: #1565c0; }
-.bom-source-from_config { background: rgba(245, 124, 0, 0.12);  color: #e65100; }
-.bom-source-per_unit   { background: rgba(56, 142, 60, 0.12);  color: #2e7d32; }
-.bom-source-dependent  { background: rgba(123, 31, 162, 0.12); color: #6a1b9a; }
+.bom-source-fixed { background: var(--primary-color-alpha); color: var(--primary-color); }
+.bom-source-from_config { background: var(--warning-color-alpha); color: var(--warning-color); }
+.bom-source-per_unit { background: var(--success-color-alpha); color: var(--success-color); }
+.bom-source-dependent { background: var(--dependent-color-alpha); color: var(--dependent-color); }
 
 /* ── Apply section ──────────────────────────────────────────────────────── */
 .bom-apply-section {
   margin-top: 20px;
   padding-top: 14px;
-  border-top: 2px solid var(--border-color, #e0e0e0);
+  border-top: 2px solid var(--border-color);
   display: flex;
   align-items: center;
 }
@@ -302,7 +389,7 @@
   .task-config-sidebar {
     width: 100%;
     border-right: none;
-    border-bottom: 1px solid var(--border-color, #e0e0e0);
+    border-bottom: 1px solid var(--border-color);
     max-height: 220px;
   }
 }

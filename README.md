@@ -54,6 +54,7 @@ Grover Platform to kompleksowy system do zarządzania zadaniami infrastrukturaln
 ### Frontend
 - ⚛️ **React 18 + TypeScript + Vite** - nowoczesny stack frontend
 - 🎨 **Grover Theme** - ciemny motyw z pomarańczowymi akcentami (#ff6b35)
+- 🌓 **System motywów CSS (Grover/Huskey)** - pełne wsparcie `:root` + `@media (prefers-color-scheme: light)` + `body.light-theme` (szczegóły: `docs/CSS_THEME_SYSTEM.md`)
 - 🔐 **Protected Routes** - routing z granularnymi uprawnieniami
 - 🏪 **Zustand State Management** - zarządzanie stanem aplikacji
 - 🔄 **Force Password Change** - wymuszanie zmiany hasła z walidacją w czasie rzeczywistym
