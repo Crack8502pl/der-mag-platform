@@ -3,12 +3,7 @@
 
 import React from 'react';
 import type { Subsystem, SubsystemTask } from '../../services/contract.service';
-
-interface CameraPoint {
-  id: number;
-  name: string;
-  poleType: string | null;
-}
+import type { CameraPoint } from '../../types/camera-point.types';
 
 interface ShipmentDataModalProps {
   subsystem: Subsystem;
@@ -44,6 +39,7 @@ export const ShipmentDataModal: React.FC<ShipmentDataModalProps> = ({ subsystem,
             <li key={cp.id}>
               <code>{cp.name}</code>
               {cp.poleType && <span className="pole-type-badge"> — {cp.poleType}</span>}
+              {cp.hasUziom && <span className="pole-uziom-badge">⏚ uziom</span>}
             </li>
           ))}
         </ul>
