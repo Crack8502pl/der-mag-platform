@@ -707,6 +707,7 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
             }
           }}
           subsystemIndex={step.subsystemIndex}
+          contractId={extendData.contractId}
         />
       );
     }
@@ -943,4 +944,3 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
     </div>
   );
 };
-

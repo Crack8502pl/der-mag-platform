@@ -2,6 +2,8 @@
 // Kontroler dla endpointów kontraktów
 
 import { Request, Response } from 'express';
+import fs from 'fs/promises';
+import path from 'path';
 import { ContractService } from '../services/ContractService';
 import { ContractStatus } from '../entities/Contract';
 import { SubsystemService } from '../services/SubsystemService';
@@ -1147,6 +1149,72 @@ export class ContractController {
     } catch (error: any) {
       serverLogger.error('❌ ContractController.extendContract ERROR:', { error: error.message });
       res.status(500).json({ success: false, message: error.message });
+    }
+  };
+
+  /**
+   * POST /api/contracts/:id/topology/export-pdf
+   * Save topology PDF to contract uploads directory and return it for download.
+   */
+  exportTopologyToPdf = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const contractId = Number(req.params.id);
+      const { subsystemIndex, pdfData } = req.body as {
+        subsystemIndex?: number;
+        pdfData?: string;
+      };
+
+      if (!Number.isFinite(contractId)) {
+        res.status(400).json({ success: false, message: 'Nieprawidłowe ID kontraktu' });
+        return;
+      }
+
+      if (typeof subsystemIndex !== 'number' || typeof pdfData !== 'string' || !pdfData.trim()) {
+        res.status(400).json({ success: false, message: 'Brak wymaganych pól: subsystemIndex, pdfData' });
+        return;
+      }
+
+      if (!pdfData.startsWith('data:application/pdf;base64,')) {
+        res.status(400).json({ success: false, message: 'Nieprawidłowy format pdfData' });
+        return;
+      }
+
+      // Guard against overly large payloads (roughly ~15MB base64)
+      if (pdfData.length > 20_000_000) {
+        res.status(413).json({ success: false, message: 'Plik PDF jest za duży' });
+        return;
+      }
+
+      const contract = await this.contractService.getContractById(contractId);
+      if (!contract) {
+        res.status(404).json({ success: false, message: 'Kontrakt nie istnieje' });
+        return;
+      }
+
+      const contractDir = path.join(
+        process.cwd(),
+        'uploads',
+        'contracts',
+        contract.contractNumber
+      );
+      await fs.mkdir(contractDir, { recursive: true });
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `topology_${subsystemIndex}_${timestamp}.pdf`;
+      const filePath = path.join(contractDir, filename);
+
+      const base64 = pdfData.replace(/^data:application\/pdf;base64,/, '');
+      const buffer = Buffer.from(base64, 'base64');
+      await fs.writeFile(filePath, buffer);
+
+      res.download(filePath, filename, (err) => {
+        if (err && !res.headersSent) {
+          res.status(500).json({ success: false, message: 'Błąd pobierania pliku PDF' });
+        }
+      });
+    } catch (error: any) {
+      serverLogger.error('❌ ContractController.exportTopologyToPdf ERROR:', { error: error.message });
+      res.status(500).json({ success: false, message: 'Błąd eksportu PDF topologii' });
     }
   };
 }

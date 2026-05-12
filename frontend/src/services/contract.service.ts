@@ -178,6 +178,15 @@ class ContractService {
     return response.data;
   }
 
+  async exportTopologyPdf(contractId: number, subsystemIndex: number, pdfData: string): Promise<Blob> {
+    const response = await api.post(
+      `/contracts/${contractId}/topology/export-pdf`,
+      { subsystemIndex, pdfData },
+      { responseType: 'blob' }
+    );
+    return response.data;
+  }
+
   async createContractWithWizard(data: {
     contractNumber?: string;
     customName: string;

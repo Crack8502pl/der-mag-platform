@@ -1301,6 +1301,7 @@ export const ContractWizardModal: React.FC<WizardProps> = ({
           wizardData={wizardData}
           onUpdate={updateWizardData}
           subsystemIndex={stepInfo.subsystemIndex}
+          contractId={contractToEdit?.id}
         />
       ),
       infrastructure: () => (

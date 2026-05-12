@@ -2275,3 +2275,25 @@ Stworzyłem **kompletny dokument techniczny** (ponad 2500 linii!) zawierający:
 ## 🎯 **Kluczowe odkrycia:**
 
 -
+
+---
+
+## 🖼️ Eksport topologii do PDF
+
+### Funkcjonalność
+- Format PDF: A3 poziomo
+- Eksport zapisuje plik na backendzie i zwraca go do automatycznego pobrania
+- Lokalizacja zapisu: `backend/uploads/contracts/{contractNumber}/topology_{subsystemIndex}_{timestamp}.pdf`
+- Obsługiwane motywy: grover (ciemny) i husky (jasny)
+
+### Endpoint backend
+- `POST /api/contracts/:id/topology/export-pdf`
+- Body: `{ subsystemIndex: number, pdfData: string }`
+- Walidacja: wymagane `subsystemIndex`, `pdfData` w formacie `data:application/pdf;base64,...`
+
+### Normalizacja danych topologii
+Nowy `taskDataNormalizer.ts` zapewnia spójne dane zadań na canvasie i na sidebarach:
+- stabilne ID: `taskWizardId` → `id` → fallback `task-{index}`
+- spójny format kilometrażu (`XXX,XXX`) + wartość numeryczna do obliczeń
+- jednolity label generowany wspólną logiką (`generateTaskName`)
+- blokada duplikatów podczas drag&drop po stabilnym ID
