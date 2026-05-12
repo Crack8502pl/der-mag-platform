@@ -59,6 +59,13 @@ router.delete(
 );
 
 router.post(
+  '/:id/topology/export-pdf',
+  authenticate,
+  requirePermission('contracts', 'read'),
+  (req, res) => contractController.exportTopologyPdf(req, res)
+);
+
+router.post(
   '/:id/approve',
   authenticate,
   requirePermission('contracts', 'approve'),

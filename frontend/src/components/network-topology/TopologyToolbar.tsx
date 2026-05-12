@@ -11,6 +11,7 @@ interface TopologyToolbarProps {
   onExportPDF?: () => void;
   isSaving?: boolean;
   isDirty?: boolean;
+  isExportingPdf?: boolean;
   version?: number;
   crossingCount?: number;
 }
@@ -22,6 +23,7 @@ export const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
   onExportPDF,
   isSaving = false,
   isDirty = false,
+  isExportingPdf = false,
   version,
   crossingCount = 0,
 }) => {
@@ -48,8 +50,13 @@ export const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
       )}
 
       {onExportPDF && (
-        <button className="btn btn-secondary btn-sm" onClick={onExportPDF}>
-          📄 PDF
+        <button
+          className="btn btn-secondary btn-sm"
+          onClick={onExportPDF}
+          disabled={isExportingPdf}
+          title="Eksportuj topologię do PDF (A3 poziomo, 500 DPI)"
+        >
+          {isExportingPdf ? '⏳ Eksport...' : '📄 PDF'}
         </button>
       )}
 

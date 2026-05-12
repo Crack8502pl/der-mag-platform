@@ -688,6 +688,7 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
       // Build a virtual WizardData where subsystems maps to all topology subsystems in order
       const topoWizardData: WizardData = {
         ...virtualWizardData,
+        contractId: contract.id,
         subsystems: topologySubs.map((s) => ({
           type: s.type,
           params: s.params,
