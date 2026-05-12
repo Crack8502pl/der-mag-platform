@@ -4,6 +4,7 @@
 import { Request, Response } from 'express';
 import { plainToClass } from 'class-transformer';
 import { validate } from 'class-validator';
+import path from 'path';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import networkTopologyService from '../services/networkTopology.service';
 import {
@@ -18,6 +19,13 @@ interface TopologyPdfExportRequest {
   title?: string;
   fileName?: string;
 }
+
+const sanitizeDownloadFileName = (fileName: string): string => {
+  const baseName = path.posix.basename(path.win32.basename(fileName));
+  const sanitized = baseName.replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/^_+/, '');
+  const withFallback = sanitized || 'topologia.pdf';
+  return withFallback.toLowerCase().endsWith('.pdf') ? withFallback : `${withFallback}.pdf`;
+};
 
 export class NetworkTopologyController {
   private buildTopologyPdf = async ({
@@ -77,7 +85,7 @@ export class NetworkTopologyController {
   ): Promise<void> => {
     try {
       const pdfBytes = await this.buildTopologyPdf(req.body);
-      const fileName = (req.body.fileName || defaultFileName).replace(/[^\w.-]+/g, '_');
+      const fileName = sanitizeDownloadFileName(req.body.fileName || defaultFileName);
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);

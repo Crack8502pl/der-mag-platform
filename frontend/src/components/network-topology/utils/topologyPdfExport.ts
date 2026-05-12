@@ -5,6 +5,8 @@ import { getConnectionEndpoints } from './edgeRouting';
 const NODE_WIDTH = 140;
 const NODE_HEIGHT = 60;
 const EXPORT_PADDING = 40;
+const DEFAULT_CANVAS_WIDTH = 900;
+const DEFAULT_CANVAS_HEIGHT = 600;
 
 const escapeXml = (value: string): string =>
   value
@@ -57,11 +59,11 @@ const calculateExportLayout = (nodes: TopologyNode[], canvasElement?: HTMLDivEle
 
   const width = Math.max(
     Math.ceil(maxX - minX + EXPORT_PADDING * 2),
-    canvasElement?.scrollWidth ?? canvasElement?.clientWidth ?? 900
+    canvasElement?.scrollWidth ?? canvasElement?.clientWidth ?? DEFAULT_CANVAS_WIDTH
   );
   const height = Math.max(
     Math.ceil(maxY - minY + EXPORT_PADDING * 2),
-    canvasElement?.scrollHeight ?? canvasElement?.clientHeight ?? 600
+    canvasElement?.scrollHeight ?? canvasElement?.clientHeight ?? DEFAULT_CANVAS_HEIGHT
   );
 
   return {

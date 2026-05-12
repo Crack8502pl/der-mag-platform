@@ -19,7 +19,7 @@ export const normalizeTaskData = (
   const label = generateTaskName(task.taskType, normalizedTask, liniaKolejowa);
 
   return {
-    id: String(task.id ?? task.taskWizardId ?? `task-${fallbackIndex}`),
+    id: String(task.taskWizardId ?? task.id ?? `task-${fallbackIndex}`),
     label: label || task.nazwa || task.taskType || `Zadanie ${fallbackIndex + 1}`,
     kilometrazNumeric: parseWizardKilometraz(formattedKilometraz ?? task.kilometraz),
   };
