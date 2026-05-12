@@ -10,7 +10,7 @@ export class AddRequiresGroundingToWarehouseStock20260512 implements MigrationIn
     `);
     await queryRunner.query(`
       COMMENT ON COLUMN "warehouse_stock"."requires_grounding"
-        IS 'Czy materiał (słup) wymaga uziemienia — propagowane do CameraPoint.hasUziom przy zleceniu wysyłki'
+        IS 'Czy materiał (słup) wymaga uziomienia — propagowane do CameraPoint.hasUziom przy zleceniu wysyłki'
     `);
   }
 
