@@ -165,6 +165,7 @@ export interface CustomOrderItem {
 }
 
 export interface WizardData {
+  contractId?: number;
   contractNumber: string;
   customName: string;
   orderDate: string;
@@ -232,4 +233,3 @@ export type WizardTaskRelationships = Record<string, WizardTaskRelationship>;
 
 /** @deprecated Use WizardTaskRelationship instead */
 export type WizardLCSRelationship = WizardTaskRelationship;
-

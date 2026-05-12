@@ -141,4 +141,12 @@ router.delete(
   networkTopologyController.delete,
 );
 
+// Export topology to PDF
+router.post(
+  '/:id/topology/export-pdf',
+  authenticate,
+  requirePermission('contracts', 'update'),
+  contractController.exportTopologyToPdf
+);
+
 export default router;

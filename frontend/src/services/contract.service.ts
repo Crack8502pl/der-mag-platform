@@ -223,6 +223,28 @@ class ContractService {
     const response = await api.get(`/contracts/${contractId}/assets`);
     return response.data.data;
   }
+
+  async exportTopologyToPdf(
+    contractId: number,
+    pdfData: string,
+    subsystemIndex?: number
+  ): Promise<void> {
+    const response = await api.post(
+      `/contracts/${contractId}/topology/export-pdf`,
+      { pdfData, subsystemIndex },
+      { responseType: 'blob' }
+    );
+
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `topology_${subsystemIndex ?? 'all'}_${Date.now()}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
 }
 
 export default new ContractService();

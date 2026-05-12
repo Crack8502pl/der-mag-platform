@@ -2274,4 +2274,68 @@ Stworzyłem **kompletny dokument techniczny** (ponad 2500 linii!) zawierający:
 
 ## 🎯 **Kluczowe odkrycia:**
 
--
+- 
+
+## Normalizacja Danych Zadań
+
+### Problem
+- Różne formaty kilometrażu (XXX,XXX vs liczby)
+- Różne identyfikatory (taskWizardId vs id)
+- Niespójne nazwy zadań
+
+### Rozwiązanie: `taskDataNormalizer.ts`
+
+Wspólny util normalizujący dane zadań:
+- **Stable ID**: Priorytet `taskWizardId` > `id` > fallback
+- **Formatted Label**: Jednolite generowanie nazw
+- **Kilometraż**: Zarówno string (`XXX,XXX`) jak i numeric
+- **Duplicate Prevention**: Zadania nie mogą być wielokrotnie dodawane
+
+### Użycie
+
+```typescript
+import { normalizeTaskData } from './utils/taskDataNormalizer';
+
+const normalized = normalizeTaskData(task, index, liniaKolejowa);
+// {
+//   id: 'uuid-stable-id',
+//   label: 'LK-1 | 123,456 | KAT A',
+//   kilometraz: '123,456',
+//   kilometrazNumeric: 123.456,
+//   type: 'PRZEJAZD_KAT_A',
+//   isExisting: false
+// }
+```
+
+## Export Topologii do PDF
+
+### Funkcjonalność
+- **Format**: A3 horizontal, wysoka jakość (500 DPI)
+- **Zapis**: `uploads/contracts/{contractNumber}/topology_{subsystemIndex}_{timestamp}.pdf`
+- **Auto-download**: Plik automatycznie pobierany na klienta
+
+### Backend Endpoint
+
+```
+POST /api/contracts/:id/topology/export-pdf
+Body: { pdfData: "data:application/pdf;base64,...", subsystemIndex: 0 }
+Response: PDF file download
+```
+
+### Frontend Użycie
+
+Przycisk "📄 Export PDF" w `TopologyToolbar`:
+1. Capture canvas używając `html2canvas` (scale: 3x dla jakości)
+2. Konwersja do PDF (jsPDF, A3 landscape)
+3. Wysłanie do backendu (zapisanie + download)
+
+### Struktura Katalogów
+
+```
+uploads/
+└── contracts/
+    └── R0000001_A/
+        ├── topology_0_2026-05-12T10-30-00.pdf
+        ├── topology_1_2026-05-12T10-35-00.pdf
+        └── ...
+```

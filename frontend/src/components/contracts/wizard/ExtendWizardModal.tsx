@@ -524,6 +524,7 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
   // ── Virtual WizardData adapter for reusing InfrastructureStep/LogisticsStep ─
 
   const virtualWizardData: WizardData = {
+    contractId: contract.id,
     contractNumber: extendData.contractNumber,
     customName: extendData.customName,
     orderDate: extendData.orderDate,
@@ -943,4 +944,3 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
     </div>
   );
 };
-
