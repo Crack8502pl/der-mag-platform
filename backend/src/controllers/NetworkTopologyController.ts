@@ -4,13 +4,97 @@
 import { Request, Response } from 'express';
 import { plainToClass } from 'class-transformer';
 import { validate } from 'class-validator';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import networkTopologyService from '../services/networkTopology.service';
 import {
   CreateNetworkTopologyDto,
   UpdateNetworkTopologyDto,
 } from '../dto/network-topology.dto';
 
+const A3_LANDSCAPE_PAGE: [number, number] = [1190.55, 841.89];
+
+interface TopologyPdfExportRequest {
+  imageDataUrl?: string;
+  title?: string;
+  fileName?: string;
+}
+
 export class NetworkTopologyController {
+  private buildTopologyPdf = async ({
+    imageDataUrl,
+    title,
+  }: TopologyPdfExportRequest): Promise<Uint8Array> => {
+    if (!imageDataUrl?.startsWith('data:image/png;base64,')) {
+      throw new Error('INVALID_IMAGE_DATA');
+    }
+
+    const imageBytes = Buffer.from(imageDataUrl.split(',')[1], 'base64');
+    const pdfDocument = await PDFDocument.create();
+    const page = pdfDocument.addPage(A3_LANDSCAPE_PAGE);
+    const pngImage = await pdfDocument.embedPng(imageBytes);
+
+    const margin = 24;
+    const titleHeight = title ? 28 : 0;
+    const availableWidth = page.getWidth() - margin * 2;
+    const availableHeight = page.getHeight() - margin * 2 - titleHeight;
+    const scale = Math.min(availableWidth / pngImage.width, availableHeight / pngImage.height);
+    const imageWidth = pngImage.width * scale;
+    const imageHeight = pngImage.height * scale;
+
+    page.drawRectangle({
+      x: 0,
+      y: 0,
+      width: page.getWidth(),
+      height: page.getHeight(),
+      color: rgb(1, 1, 1),
+    });
+
+    if (title) {
+      const titleFont = await pdfDocument.embedFont(StandardFonts.HelveticaBold);
+      page.drawText(title, {
+        x: margin,
+        y: page.getHeight() - margin,
+        size: 18,
+        font: titleFont,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+    }
+
+    page.drawImage(pngImage, {
+      x: (page.getWidth() - imageWidth) / 2,
+      y: margin,
+      width: imageWidth,
+      height: imageHeight,
+    });
+
+    return pdfDocument.save();
+  };
+
+  private sendTopologyPdf = async (
+    req: Request<unknown, unknown, TopologyPdfExportRequest>,
+    res: Response,
+    defaultFileName: string
+  ): Promise<void> => {
+    try {
+      const pdfBytes = await this.buildTopologyPdf(req.body);
+      const fileName = (req.body.fileName || defaultFileName).replace(/[^\w.-]+/g, '_');
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.send(Buffer.from(pdfBytes));
+    } catch (error: any) {
+      console.error('Error in sendTopologyPdf:', error);
+      res.status(error.message === 'INVALID_IMAGE_DATA' ? 400 : 500).json({
+        success: false,
+        error: error.message === 'INVALID_IMAGE_DATA' ? 'VALIDATION_ERROR' : 'SERVER_ERROR',
+        message:
+          error.message === 'INVALID_IMAGE_DATA'
+            ? 'Nieprawidłowe dane obrazu do eksportu PDF'
+            : 'Błąd generowania PDF topologii',
+      });
+    }
+  };
+
   /**
    * GET /api/contracts/:contractId/subsystems/:subsystemIndex/topology
    * Pobierz najnowszą wersję topologii
@@ -122,6 +206,36 @@ export class NetworkTopologyController {
         message: 'Błąd serwera',
       });
     }
+  };
+
+  exportPdfWizard = async (
+    req: Request<unknown, unknown, TopologyPdfExportRequest>,
+    res: Response
+  ): Promise<void> => {
+    await this.sendTopologyPdf(req, res, 'topologia-wizard.pdf');
+  };
+
+  exportPdf = async (
+    req: Request<{ contractId: string; subsystemIndex: string }, unknown, TopologyPdfExportRequest>,
+    res: Response
+  ): Promise<void> => {
+    const contractId = parseInt(req.params.contractId, 10);
+    const subsystemIndex = parseInt(req.params.subsystemIndex, 10);
+
+    if (isNaN(contractId) || isNaN(subsystemIndex)) {
+      res.status(400).json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: 'Nieprawidłowy contractId lub subsystemIndex',
+      });
+      return;
+    }
+
+    await this.sendTopologyPdf(
+      req,
+      res,
+      `topologia-kontrakt-${contractId}-podsystem-${subsystemIndex + 1}.pdf`
+    );
   };
 
   /**

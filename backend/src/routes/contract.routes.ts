@@ -38,6 +38,12 @@ router.post(
 );
 
 router.post(
+  '/topology/export-pdf-wizard',
+  authenticate,
+  networkTopologyController.exportPdfWizard
+);
+
+router.post(
   '/',
   authenticate,
   requirePermission('contracts', 'create'),
@@ -132,6 +138,12 @@ router.put(
   '/:contractId/subsystems/:subsystemIndex/topology',
   authenticate,
   networkTopologyController.createNewVersion,
+);
+
+router.post(
+  '/:contractId/subsystems/:subsystemIndex/topology/export-pdf',
+  authenticate,
+  networkTopologyController.exportPdf,
 );
 
 // DELETE /api/contracts/:contractId/subsystems/:subsystemIndex/topology         → delete

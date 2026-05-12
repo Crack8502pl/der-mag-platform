@@ -15,6 +15,7 @@ import { CustomNode } from './CustomNode';
 import { getConnectionEndpoints } from '../../network-topology/utils/edgeRouting';
 import { findCrossingConnections } from '../../network-topology/utils/lineIntersection';
 import { optimizeLayout } from '../../network-topology/utils/forceDirectedLayout';
+import { exportTopologyPdf } from '../../network-topology/utils/topologyPdfExport';
 import './NetworkTopologyEditor.css';
 import '../../../styles/grover-theme.css';
 
@@ -88,6 +89,7 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
   const [crossingConnections, setCrossingConnections] = useState<Set<string>>(new Set());
 
   const dragRef = useRef<DragState | null>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   // Unique ID prefix for SVG markers to avoid collisions across multiple instances
   const svgPrefix = `topo-${contractId}-${subsystemIndex}`;
@@ -403,6 +405,25 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
     setIsDirty(true);
   }, [readOnly, nodes, connections]);
 
+  const handleExportPDF = useCallback(async () => {
+    try {
+      setError(null);
+      await exportTopologyPdf({
+        nodes,
+        connections,
+        canvasElement: canvasRef.current,
+        endpoint: `/contracts/${contractId}/subsystems/${subsystemIndex}/topology/export-pdf`,
+        fileName: `topologia-kontrakt-${contractId}-podsystem-${subsystemIndex + 1}.pdf`,
+        title: `Topologia ${subsystemType} · kontrakt ${contractId}`,
+      });
+      setSuccessMsg('PDF topologii został wygenerowany');
+      setTimeout(() => setSuccessMsg(null), 3000);
+    } catch (error: unknown) {
+      console.error('Export PDF failed:', error);
+      setError(error instanceof Error ? error.message : 'Nie udało się wyeksportować PDF');
+    }
+  }, [connections, contractId, nodes, subsystemIndex, subsystemType]);
+
   // Detect crossing connections whenever nodes or connections change
   useEffect(() => {
     const connectionLines = connections
@@ -517,6 +538,10 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
             📜 Historia
           </button>
 
+          <button className="btn btn-secondary btn-sm" onClick={handleExportPDF}>
+            📄 PDF A3
+          </button>
+
           <button
             className={`btn btn-sm ${isDirty ? 'btn-primary' : 'btn-secondary'}`}
             onClick={handleSave}
@@ -529,6 +554,7 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
 
       {/* Canvas */}
       <div
+        ref={canvasRef}
         className={`topology-canvas${connectingMode ? ' topology-canvas--connecting' : ''}`}
         onClick={handleCanvasClick}
       >
