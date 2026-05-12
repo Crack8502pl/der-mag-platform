@@ -9,6 +9,7 @@ interface TopologyToolbarProps {
   onOptimizeLayout?: () => void;
   onSave: () => void;
   onExportPDF?: () => void;
+  isExportingPDF?: boolean;
   isSaving?: boolean;
   isDirty?: boolean;
   version?: number;
@@ -20,6 +21,7 @@ export const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
   onOptimizeLayout,
   onSave,
   onExportPDF,
+  isExportingPDF = false,
   isSaving = false,
   isDirty = false,
   version,
@@ -48,8 +50,12 @@ export const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
       )}
 
       {onExportPDF && (
-        <button className="btn btn-secondary btn-sm" onClick={onExportPDF}>
-          📄 PDF
+        <button
+          className="btn btn-secondary btn-sm"
+          onClick={onExportPDF}
+          disabled={isExportingPDF}
+        >
+          {isExportingPDF ? '📄 Generowanie...' : '📄 Export PDF'}
         </button>
       )}
 

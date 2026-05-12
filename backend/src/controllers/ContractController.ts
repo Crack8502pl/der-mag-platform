@@ -2,6 +2,8 @@
 // Kontroler dla endpointów kontraktów
 
 import { Request, Response } from 'express';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import { ContractService } from '../services/ContractService';
 import { ContractStatus } from '../entities/Contract';
 import { SubsystemService } from '../services/SubsystemService';
@@ -1147,6 +1149,63 @@ export class ContractController {
     } catch (error: any) {
       serverLogger.error('❌ ContractController.extendContract ERROR:', { error: error.message });
       res.status(500).json({ success: false, message: error.message });
+    }
+  };
+
+  /**
+   * POST /api/contracts/:id/topology/export-pdf
+   * Save exported topology PDF under uploads/contracts/{contractNumber}
+   */
+  exportTopologyPDF = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const contractId = Number(req.params.id);
+      const { subsystemIndex, pdfDataUrl } = req.body as {
+        subsystemIndex?: number;
+        pdfDataUrl?: string;
+      };
+
+      if (!Number.isFinite(contractId) || contractId <= 0) {
+        res.status(400).json({ success: false, message: 'Nieprawidłowe ID kontraktu' });
+        return;
+      }
+
+      if (!Number.isFinite(subsystemIndex) || typeof pdfDataUrl !== 'string' || !pdfDataUrl) {
+        res.status(400).json({ success: false, message: 'Brak pdfDataUrl lub subsystemIndex' });
+        return;
+      }
+
+      if (!pdfDataUrl.startsWith('data:application/pdf;base64,')) {
+        res.status(400).json({ success: false, message: 'Nieprawidłowy format danych PDF' });
+        return;
+      }
+
+      const contract = await this.contractService.getContractById(contractId);
+      if (!contract) {
+        res.status(404).json({ success: false, message: 'Kontrakt nie znaleziony' });
+        return;
+      }
+
+      const contractDir = path.join(process.cwd(), 'uploads', 'contracts', contract.contractNumber);
+      await fs.mkdir(contractDir, { recursive: true });
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `topology_${subsystemIndex}_${timestamp}.pdf`;
+      const filePath = path.join(contractDir, filename);
+
+      const base64Data = pdfDataUrl.replace(/^data:application\/pdf;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      await fs.writeFile(filePath, buffer);
+      serverLogger.info(`[PDF Export] Saved topology PDF: ${filePath}`);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(buffer);
+    } catch (error: unknown) {
+      serverLogger.error('[PDF Export] Failed to export topology PDF', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ success: false, message: 'Błąd podczas eksportu PDF' });
     }
   };
 }

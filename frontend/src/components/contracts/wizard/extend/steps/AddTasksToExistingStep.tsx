@@ -21,9 +21,11 @@ interface AddTasksToExistingStepProps {
 }
 
 /** Returns the primary display value for an existing (read-only) task row. */
-function getTaskDisplayValue(task: TaskDetail): string {
+function getTaskDisplayValue(task: TaskDetail, liniaKolejowa?: string): string {
+  if (task.nazwa) return task.nazwa;
+  const generated = generateTaskName(task.taskType, task, liniaKolejowa);
+  if (generated) return generated;
   return (
-    task.nazwa ||
     task.kilometraz ||
     task.miejscowosc ||
     task.nazwaLCS ||
@@ -143,7 +145,7 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                     <code>{task.taskNumber || '—'}</code>
                   </td>
                   <td>
-                    {getTaskDisplayValue(task)}
+                    {getTaskDisplayValue(task, liniaKolejowa)}
                   </td>
                 </tr>
               ))}

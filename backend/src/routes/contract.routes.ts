@@ -73,6 +73,13 @@ router.post(
 );
 
 router.post(
+  '/:id/topology/export-pdf',
+  authenticate,
+  requirePermission('contracts', 'read'),
+  contractController.exportTopologyPDF
+);
+
+router.post(
   '/import',
   authenticate,
   requirePermission('contracts', 'import'),

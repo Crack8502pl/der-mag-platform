@@ -2,6 +2,7 @@
 // Real-time task name generation based on filled fields
 
 import type { TaskDetail } from '../types/wizard.types';
+import { formatKilometrazDisplay } from './validation';
 
 /**
  * Generate task name in real-time based on filled fields.
@@ -14,24 +15,27 @@ export const generateTaskName = (
 ): string => {
   const lk = detail.liniaKolejowa || liniaKolejowa || '';
   const prefix = lk ? `${lk} | ` : '';
+  const formattedKm = detail.kilometraz
+    ? formatKilometrazDisplay(detail.kilometraz)
+    : undefined;
 
   switch (taskType) {
     case 'PRZEJAZD_KAT_A':
     case 'PRZEJAZD_KAT_B':
-      if (!detail.kilometraz || !detail.kategoria) {
+      if (!formattedKm || !detail.kategoria) {
         return `${prefix}(Brak danych)`;
       }
-      return `${prefix}${detail.kilometraz} | ${detail.kategoria}`;
+      return `${prefix}${formattedKm} | ${detail.kategoria}`;
 
     case 'SKP':
-      if (!detail.kilometraz) {
+      if (!formattedKm) {
         return `${prefix}SKP (Brak kilometrażu)`;
       }
-      return `${prefix}${detail.kilometraz} | SKP`;
+      return `${prefix}${formattedKm} | SKP`;
 
     case 'NASTAWNIA': {
       const parts: string[] = [];
-      if (detail.kilometraz) parts.push(detail.kilometraz);
+      if (formattedKm) parts.push(formattedKm);
       parts.push('ND');
       if (detail.nazwaNastawnii) parts.push(detail.nazwaNastawnii);
       if (detail.miejscowosc) parts.push(detail.miejscowosc);
@@ -40,7 +44,7 @@ export const generateTaskName = (
 
     case 'LCS': {
       const parts: string[] = [];
-      if (detail.kilometraz) parts.push(detail.kilometraz);
+      if (formattedKm) parts.push(formattedKm);
       parts.push('LCS');
       if (detail.nazwaLCS) parts.push(detail.nazwaLCS);
       if (detail.miejscowosc) parts.push(detail.miejscowosc);

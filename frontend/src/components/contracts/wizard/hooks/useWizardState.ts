@@ -53,6 +53,7 @@ export const useWizardState = ({
   contractToEdit
 }: UseWizardStateProps = {}): UseWizardStateReturn => {
   const [wizardData, setWizardData] = useState<WizardData>({
+    contractId: contractToEdit?.id,
     contractNumber: '',
     customName: '',
     orderDate: '',
@@ -424,6 +425,7 @@ export const useWizardState = ({
       // 1. Set basic data
       setWizardData(prev => ({
         ...prev,
+        contractId: contract.id,
         contractNumber: contract.contractNumber || '',
         customName: contract.customName || '',
         orderDate: contract.orderDate?.split('T')[0] || '',

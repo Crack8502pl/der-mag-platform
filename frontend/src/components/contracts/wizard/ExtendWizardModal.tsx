@@ -524,6 +524,7 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
   // ── Virtual WizardData adapter for reusing InfrastructureStep/LogisticsStep ─
 
   const virtualWizardData: WizardData = {
+    contractId: extendData.contractId,
     contractNumber: extendData.contractNumber,
     customName: extendData.customName,
     orderDate: extendData.orderDate,
@@ -688,6 +689,7 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
       // Build a virtual WizardData where subsystems maps to all topology subsystems in order
       const topoWizardData: WizardData = {
         ...virtualWizardData,
+        contractId: extendData.contractId,
         subsystems: topologySubs.map((s) => ({
           type: s.type,
           params: s.params,
@@ -943,4 +945,3 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
     </div>
   );
 };
-

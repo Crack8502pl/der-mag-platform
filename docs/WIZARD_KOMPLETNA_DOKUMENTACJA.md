@@ -2275,3 +2275,45 @@ Stworzyłem **kompletny dokument techniczny** (ponad 2500 linii!) zawierający:
 ## 🎯 **Kluczowe odkrycia:**
 
 -
+
+---
+
+## 7. AKTUALIZACJA: NORMALIZACJA DANYCH TOPOLOGII
+
+Dodano util `frontend/src/components/contracts/wizard/utils/taskDataNormalizer.ts`, który ujednolica dane zadań dla topologii w obu wizardach (create + extend):
+
+- stabilny identyfikator węzła: `taskWizardId` → `id` → fallback,
+- spójne etykiety z `generateTaskName(...)`,
+- jednolite formatowanie kilometrażu (`formatKilometrazDisplay`),
+- równoległa wartość numeryczna kilometrażu do obliczeń.
+
+`NetworkTopologyStep.tsx` korzysta teraz z normalizatora przy:
+
+- inicjalizacji węzłów,
+- drag&drop z sidebaru,
+- budowie listy zadań w sidebarze.
+
+Dodatkowo `taskNameGenerator.ts` formatuje kilometraż przed wyświetleniem we wszystkich typach zadań.
+
+## 8. AKTUALIZACJA: EXPORT TOPOLOGII DO PDF
+
+Dodano eksport PDF topologii z poziomu toolbaru (`📄 Export PDF`).
+
+### Frontend
+
+- Nowy util: `frontend/src/components/contracts/wizard/utils/topologyPdfExporter.ts`
+- Biblioteki: `html2canvas`, `jspdf`
+- Parametry eksportu: **A3 landscape**, rendering jakościowy (skala dla 500 DPI), wymuszony motyw dark (`data-theme="grover"`).
+- Auto-download pliku po udanej odpowiedzi backendu.
+
+### Backend
+
+Dodano endpoint:
+
+- `POST /api/contracts/:id/topology/export-pdf`
+
+Działanie:
+
+- odbiera `{ subsystemIndex, pdfDataUrl }`,
+- zapisuje plik do `uploads/contracts/{contractNumber}/topology_{subsystemIndex}_{timestamp}.pdf`,
+- zwraca PDF jako `attachment` (auto-download po stronie frontend).
