@@ -51,7 +51,7 @@ export const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
         <button
           className="btn btn-secondary btn-sm"
           onClick={onExportPdf}
-          title="Export do PDF (A3, 500 DPI)"
+          title="Export do PDF (A3, wysoka jakość)"
         >
           📄 Export PDF
         </button>

@@ -1154,7 +1154,7 @@ export class ContractController {
 
   /**
    * POST /api/contracts/:id/topology/export-pdf
-   * Export topologii do PDF (A3 horizontal, 500 DPI)
+   * Export topologii do PDF (A3 horizontal, wysoka jakość z frontendu)
    * Zapisuje do: uploads/contracts/{contractNumber}/topology_{subsystemIndex}_{timestamp}.pdf
    */
   exportTopologyToPdf = async (req: Request, res: Response): Promise<void> => {
@@ -1182,19 +1182,46 @@ export class ContractController {
         return;
       }
 
-      const contractDir = path.join(
-        process.env.UPLOAD_DIR || './uploads',
-        'contracts',
-        contract.contractNumber || `contract-${contractId}`
-      );
+      const uploadsRoot = path.resolve(process.env.UPLOAD_DIR || './uploads');
+      const contractsRoot = path.resolve(uploadsRoot, 'contracts');
+      const safeContractFolder = (contract.contractNumber || `contract-${contractId}`)
+        .replace(/[^a-zA-Z0-9_-]/g, '_');
+      const safeSubsystemIndex = String(subsystemIndex ?? 'all')
+        .replace(/[^a-zA-Z0-9_-]/g, '_');
+
+      if (!safeContractFolder) {
+        res.status(400).json({
+          success: false,
+          message: 'Nieprawidłowy katalog kontraktu',
+        });
+        return;
+      }
+
+      const contractDir = path.resolve(contractsRoot, safeContractFolder);
+
+      if (!contractDir.startsWith(`${contractsRoot}${path.sep}`)) {
+        res.status(400).json({
+          success: false,
+          message: 'Nieprawidłowa ścieżka zapisu PDF',
+        });
+        return;
+      }
 
       if (!fs.existsSync(contractDir)) {
         fs.mkdirSync(contractDir, { recursive: true });
       }
 
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-      const filename = `topology_${subsystemIndex ?? 'all'}_${timestamp}.pdf`;
-      const filePath = path.join(contractDir, filename);
+      const timestamp = new Date().toISOString().split('.')[0].replace(/:/g, '-');
+      const filename = `topology_${safeSubsystemIndex}_${timestamp}.pdf`;
+      const filePath = path.resolve(contractDir, filename);
+
+      if (!filePath.startsWith(`${contractDir}${path.sep}`)) {
+        res.status(400).json({
+          success: false,
+          message: 'Nieprawidłowa nazwa pliku PDF',
+        });
+        return;
+      }
 
       const base64Payload = pdfData.includes(',') ? pdfData.split(',')[1] : pdfData;
       if (!base64Payload) {

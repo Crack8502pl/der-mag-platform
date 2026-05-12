@@ -2310,7 +2310,7 @@ const normalized = normalizeTaskData(task, index, liniaKolejowa);
 ## Export Topologii do PDF
 
 ### Funkcjonalność
-- **Format**: A3 horizontal, wysoka jakość (500 DPI)
+- **Format**: A3 horizontal, wysoka jakość (render `scale: 3` po stronie frontendu)
 - **Zapis**: `uploads/contracts/{contractNumber}/topology_{subsystemIndex}_{timestamp}.pdf`
 - **Auto-download**: Plik automatycznie pobierany na klienta
 
@@ -2330,6 +2330,8 @@ Przycisk "📄 Export PDF" w `TopologyToolbar`:
 3. Wysłanie do backendu (zapisanie + download)
 
 ### Struktura Katalogów
+
+`{contractNumber}` jest sanityzowany po stronie backendu (znaki spoza `[a-zA-Z0-9_-]` są zamieniane na `_`).
 
 ```
 uploads/
