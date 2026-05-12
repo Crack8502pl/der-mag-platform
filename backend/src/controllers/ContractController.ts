@@ -1200,12 +1200,14 @@ export class ContractController {
         fs.mkdirSync(contractDir, { recursive: true });
       }
 
-      const timestamp = new Date().toISOString().replace(/[^0-9]/g, '-').replace(/-+$/, '');
+      // Build a clean timestamp: "2026-05-12T10-30-45" (remove milliseconds and trailing chars)
+      const timestamp = new Date().toISOString().split('.')[0].replace(/:/g, '-');
       const filename = `topology_${subsystemIndex}_${timestamp}.pdf`;
       const filePath = path.resolve(contractDir, filename);
 
       // Guard against path traversal: ensure the resolved file path stays inside contractDir
-      if (!filePath.startsWith(path.resolve(contractDir) + path.sep)) {
+      const resolvedContractDir = path.resolve(contractDir);
+      if (!filePath.startsWith(resolvedContractDir + '/') && !filePath.startsWith(resolvedContractDir + path.sep)) {
         res.status(400).json({ success: false, message: 'Nieprawidłowa ścieżka pliku' });
         return;
       }

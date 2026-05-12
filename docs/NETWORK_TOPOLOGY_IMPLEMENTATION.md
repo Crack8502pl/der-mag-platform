@@ -2237,7 +2237,7 @@ WS     /ws/network-topology/:id                 — Real-time collaboration
 | Wersja | Data | Zmiany |
 |--------|------|--------|
 | 1.0.0 | 2026-04-30 | Pierwsza wersja dokumentacji — zamknięcie issue #408 |
-| 1.1.0 | 2026-05-12 | Normalizacja danych zadań (`taskDataNormalizer.ts`), eksport PDF (A3, 500 DPI), endpoint backend `POST /:id/topology/export-pdf` |
+| 1.1.0 | 2026-05-12 | Normalizacja danych zadań (`taskDataNormalizer.ts`), eksport PDF (A3, wysoka rozdzielczość), endpoint backend `POST /:id/topology/export-pdf` |
 
 ---
 
