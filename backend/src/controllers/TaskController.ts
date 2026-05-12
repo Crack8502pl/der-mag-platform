@@ -19,6 +19,7 @@ import { WorkflowGeneratedBom } from '../entities/WorkflowGeneratedBom';
 import { TaskMaterial } from '../entities/TaskMaterial';
 import { serverLogger } from '../utils/logger';
 import { requiresCabinetCompletion } from '../config/taskTypes';
+import { WarehouseStock } from '../entities/WarehouseStock';
 
 // Lista typów zadań, dla których NIE wolno zlecać wysyłki.
 // Powinna odzwierciedlać konfigurację frontendową (NO_SHIPMENT_TYPES).
@@ -29,12 +30,16 @@ const NO_SHIPMENT_TYPES: string[] = ['KOMPLETACJA_WYSYLKI'];
  * Generuje punkty kamerowe dla zadania na podstawie ilości słupów i typu zadania.
  * Dla SKP: S-KP-1, S-KP-2, ..., S-KP-10 (max 10)
  * Dla pozostałych (przejazd): PK-1, PK-2, ..., PK-10 (max 10)
+ *
+ * hasUziom jest jednolity dla wszystkich słupów w danym zleceniu — pochodzi
+ * z WarehouseStock.requiresGrounding pozycji katalogu wybranej przez użytkownika.
  */
 function generateCameraPoints(
   poleQuantity: number,
   taskType: string,
-  poleType: string | null
-): Array<{ id: number; name: string; poleType: string | null }> {
+  poleType: string | null,
+  hasUziom: boolean
+): Array<{ id: number; name: string; poleType: string | null; hasUziom: boolean }> {
   const count = Math.min(Math.max(0, Math.floor(poleQuantity)), 10);
   if (count === 0) return [];
 
@@ -45,6 +50,7 @@ function generateCameraPoints(
     id: i + 1,
     name: `${prefix}${i + 1}`,
     poleType: poleType || null,
+    hasUziom,
   }));
 }
 
@@ -788,6 +794,11 @@ export class TaskController {
 
       const deliveryAddress = rawDeliveryAddress.trim();
       const contactPhone = rawContactPhone.trim();
+      const parsedPoleQty = typeof poleQuantity === 'number'
+        ? poleQuantity
+        : (typeof poleQuantity === 'string' ? Number(poleQuantity) : 0);
+      const poleQty = Number.isFinite(parsedPoleQty) ? parsedPoleQty : 0;
+      const poleTypeStr = typeof poleType === 'string' ? poleType : null;
 
       // Validate non-empty after trimming
       if (!deliveryAddress || !contactPhone) {
@@ -864,6 +875,21 @@ export class TaskController {
         }
       }
 
+      // Resolve hasUziom from WarehouseStock.requiresGrounding based on catalogNumber
+      // extracted from poleProductInfo ("CATNUM | Nazwa słupa")
+      let hasUziom = false;
+      if (typeof poleProductInfo === 'string' && poleProductInfo.trim()) {
+        const catalogNumber = poleProductInfo.split('|')[0]?.trim();
+        if (catalogNumber) {
+          const warehouseStockRepo = AppDataSource.getRepository(WarehouseStock);
+          const stockItem = await warehouseStockRepo.findOne({
+            where: { catalogNumber },
+            select: ['requiresGrounding'],
+          });
+          hasUziom = stockItem?.requiresGrounding ?? false;
+        }
+      }
+
       // Atomically create shipment task and update source task substatus
       const queryRunner = AppDataSource.createQueryRunner();
       await queryRunner.connect();
@@ -894,11 +920,11 @@ export class TaskController {
             sourceTaskNumber: taskNumber,
             sourceTaskType: sourceTask.taskType,
             cabinetType: typeof cabinetType === 'string' ? cabinetType : null,
-            poleQuantity: typeof poleQuantity === 'number' ? poleQuantity : null,
-            poleType: typeof poleType === 'string' ? poleType : null,
+            poleQuantity: poleQty,
+            poleType: poleTypeStr,
             poleProductInfo: typeof poleProductInfo === 'string' ? poleProductInfo : null,
-            cameraPoints: (typeof poleQuantity === 'number' && poleQuantity > 0)
-              ? generateCameraPoints(poleQuantity, sourceTask.taskType, typeof poleType === 'string' ? poleType : null)
+            cameraPoints: poleQty > 0
+              ? generateCameraPoints(poleQty, sourceTask.taskType, poleTypeStr, hasUziom)
               : [],
           },
           bomGenerated: false,
@@ -1051,4 +1077,3 @@ export class TaskController {
     }
   }
 }
-

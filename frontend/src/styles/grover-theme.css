@@ -700,3 +700,19 @@ a:hover {
   font-weight: 400;
   margin-bottom: 12px;
 }
+
+/* ── Camera point uziom badge (ShipmentDataModal) ── */
+.pole-uziom-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 4px;
+  background: rgba(46, 160, 67, 0.15);
+  color: #3fb950;
+  border: 1px solid rgba(46, 160, 67, 0.3);
+  letter-spacing: 0.02em;
+}
