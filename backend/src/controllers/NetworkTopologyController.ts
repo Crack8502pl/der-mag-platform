@@ -22,7 +22,10 @@ interface TopologyPdfExportRequest {
 
 const sanitizeDownloadFileName = (fileName: string): string => {
   const baseName = path.posix.basename(path.win32.basename(fileName));
-  const sanitized = baseName.replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/^_+/, '');
+  const sanitized = baseName
+    .replace(/[^a-zA-Z0-9._-]+/g, '_')
+    .replace(/\.\.+/g, '_')
+    .replace(/^_+/, '');
   const withFallback = sanitized || 'topologia.pdf';
   return withFallback.toLowerCase().endsWith('.pdf') ? withFallback : `${withFallback}.pdf`;
 };

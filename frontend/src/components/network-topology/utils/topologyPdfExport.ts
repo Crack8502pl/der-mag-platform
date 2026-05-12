@@ -16,7 +16,11 @@ const escapeXml = (value: string): string =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
-const wrapLabel = (label: string, maxLineLength = 22): string[] => {
+const wrapLabel = (
+  label: string,
+  // ~22 chars keeps text inside the 140px node width without overflowing exported labels.
+  maxLineLength = 22
+): string[] => {
   const words = label.trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return [''];
 
@@ -35,6 +39,7 @@ const wrapLabel = (label: string, maxLineLength = 22): string[] => {
   });
 
   if (currentLine) lines.push(currentLine);
+  // Limit to 3 lines so the label still fits into the exported 60px-tall node.
   return lines.slice(0, 3);
 };
 
