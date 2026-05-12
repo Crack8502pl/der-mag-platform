@@ -395,7 +395,8 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     return sum + dist;
   }, 0);
 
-  // Export topology canvas to PDF (A3 horizontal, 500 DPI) and save via backend
+  // Export topology canvas to PDF (A3 horizontal) and save via backend.
+  // Scale is device-pixel-ratio-based (2× devicePixelRatio) for high quality output.
   const handleExportPdf = useCallback(async () => {
     if (!canvasRef.current || isExportingPdf) return;
     setIsExportingPdf(true);

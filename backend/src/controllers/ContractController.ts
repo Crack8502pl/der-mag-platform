@@ -1167,15 +1167,21 @@ export class ContractController {
         return;
       }
 
-      const { pdfBase64, subsystemIndex = 0 } = req.body as {
+      const { pdfBase64, subsystemIndex: rawSubsystemIndex = 0 } = req.body as {
         pdfBase64?: string;
-        subsystemIndex?: number;
+        subsystemIndex?: unknown;
       };
 
-      if (!pdfBase64) {
+      if (!pdfBase64 || typeof pdfBase64 !== 'string') {
         res.status(400).json({ success: false, message: 'Brak danych PDF' });
         return;
       }
+
+      // Validate and clamp subsystemIndex to a safe non-negative integer
+      const subsystemIndex = Math.max(
+        0,
+        Math.min(999, parseInt(String(rawSubsystemIndex ?? 0), 10) || 0)
+      );
 
       const contract = await this.contractService.getContractById(contractId);
       if (!contract) {
@@ -1194,9 +1200,15 @@ export class ContractController {
         fs.mkdirSync(contractDir, { recursive: true });
       }
 
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const timestamp = new Date().toISOString().replace(/[^0-9]/g, '-').replace(/-+$/, '');
       const filename = `topology_${subsystemIndex}_${timestamp}.pdf`;
-      const filePath = path.join(contractDir, filename);
+      const filePath = path.resolve(contractDir, filename);
+
+      // Guard against path traversal: ensure the resolved file path stays inside contractDir
+      if (!filePath.startsWith(path.resolve(contractDir) + path.sep)) {
+        res.status(400).json({ success: false, message: 'Nieprawidłowa ścieżka pliku' });
+        return;
+      }
 
       // Decode and write the PDF
       const pdfBuffer = Buffer.from(pdfBase64, 'base64');
