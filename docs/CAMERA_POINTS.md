@@ -11,7 +11,7 @@ w polu `metadata.cameraPoints`. Każdy punkt kamerowy reprezentuje **jeden słup
 interface CameraPoint {
   id: number;          // Numer porządkowy (1-based)
   name: string;        // "PK-1" (przejazd) lub "S-KP-1" (SKP)
-  poleType: string | null; // 'STALOWY' | 'KOMPOZYT' | 'INNY'
+  poleType: PoleType | null; // 'STALOWY' | 'KOMPOZYT' | 'INNY'
   hasUziom: boolean;   // Czy słup wymaga uziomowania
 }
 ```
