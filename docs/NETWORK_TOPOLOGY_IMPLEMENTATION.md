@@ -2237,6 +2237,128 @@ WS     /ws/network-topology/:id                 — Real-time collaboration
 | Wersja | Data | Zmiany |
 |--------|------|--------|
 | 1.0.0 | 2026-04-30 | Pierwsza wersja dokumentacji — zamknięcie issue #408 |
+| 1.1.0 | 2026-05-12 | Normalizacja danych zadań (`taskDataNormalizer.ts`), eksport PDF (A3, wysoka rozdzielczość), endpoint backend `POST /:id/topology/export-pdf` |
+
+---
+
+## 19. Normalizacja danych zadań (taskDataNormalizer)
+
+### 19.1 Plik
+
+`frontend/src/components/contracts/wizard/utils/taskDataNormalizer.ts`
+
+### 19.2 Cel
+
+Zapewnia **jednorodną reprezentację** `TaskDetail` stosowaną w obu wizardach
+(`ContractWizardModal` i `ExtendWizardModal`) przy budowaniu listy bocznej sidebaru
+i węzłów canvas topologii.
+
+### 19.3 Interfejs `NormalizedTaskData`
+
+```typescript
+export interface NormalizedTaskData {
+  id: string;               // Stabilny ID: taskWizardId > task.id > `task-{index}`
+  label: string;            // Etykieta — wynik generateTaskName (ta sama co pole `nazwa`)
+  kilometraz?: string;      // Sformatowany jako "XXX,XXX"
+  kilometrazNumeric?: number; // Wartość numeryczna km (do obliczeń)
+  type: TaskDetail['taskType'];
+  isExisting: boolean;      // true gdy task.id istnieje w DB
+}
+```
+
+### 19.4 Funkcja `normalizeTaskData`
+
+```typescript
+export const normalizeTaskData = (
+  task: TaskDetail,
+  index: number,
+  liniaKolejowa?: string
+): NormalizedTaskData
+```
+
+Kolejność priorytetu dla `id`:
+1. `task.taskWizardId` (UUID z sesji wizarda)
+2. `String(task.id)` (numeryczne ID z bazy)
+3. `` `task-${index}` `` (awaryjny fallback — tylko gdy brak obu powyższych)
+
+### 19.5 Zastosowanie w `NetworkTopologyStep`
+
+| Miejsce użycia | Przed | Po |
+|---|---|---|
+| Inicjalizacja węzłów (useEffect) | `task.nazwa \|\| task.taskType \|\| \`Zadanie ${idx+1}\`` | `normalizeTaskData(task, idx, lk).label` |
+| Sidebar (`sidebarTasks`) | `t.nazwa \|\| t.taskType \|\| \`Zadanie ${i+1}\`` | `normalizeTaskData(t, i, lk).label` |
+| Canvas drop (`handleCanvasDrop`) | `data.label \|\| \`Zadanie ${data.taskId}\`` | `normalizeTaskData(taskDetail, taskId, lk).label` |
+| Blokada duplikatów | tylko `taskWizardId` | stabilne `normalized.id` (obejmuje też `task.id`) |
+
+---
+
+## 20. Eksport topologii do PDF
+
+### 20.1 Format
+
+| Parametr | Wartość |
+|---|---|
+| Rozmiar papieru | A3 poziomo (420 × 297 mm) |
+| Jakość zdjęcia | JPEG 95 % |
+| Skala html2canvas | `devicePixelRatio × 2` |
+| Orientacja | landscape |
+
+### 20.2 Flow frontend → backend → download
+
+```
+Użytkownik klika "📄 PDF"
+  └─► html2canvas renderuje canvasRef.current do obrazu
+        └─► jsPDF tworzy dokument A3 landscape
+              ├─► (gdy wizardData.contractId istnieje)
+              │     └─► POST /api/contracts/:id/topology/export-pdf
+              │           body: { pdfBase64, subsystemIndex }
+              │           └─► Backend zapisuje PDF do
+              │                 uploads/contracts/{contractNumber}/topology_{idx}_{ts}.pdf
+              │               Backend streamuje plik jako attachment
+              │               Frontend pobiera blob → URL.createObjectURL → <a>.click()
+              └─► (gdy brak contractId — nowy kontrakt w kreatorze)
+                    └─► pdf.save(filename) — pobiera bezpośrednio przez przeglądarkę
+```
+
+### 20.3 Backend — endpoint
+
+`POST /api/contracts/:id/topology/export-pdf`
+
+Wymagane uprawnienie: `contracts.read`
+
+Body:
+
+```json
+{
+  "pdfBase64": "<base64-encoded PDF>",
+  "subsystemIndex": 0
+}
+```
+
+Odpowiedź: plik binarny `application/pdf` z nagłówkiem
+`Content-Disposition: attachment; filename="topology_0_2026-05-12T...pdf"`.
+
+### 20.4 Ścieżka zapisu na backendzie
+
+```
+uploads/
+└── contracts/
+    └── {safeContractNumber}/     ← tworzone automatycznie jeśli nie istnieje
+        └── topology_{subsystemIndex}_{ISO-timestamp}.pdf
+```
+
+`safeContractNumber` = `contractNumber.replace(/[^a-zA-Z0-9_-]/g, '_')`
+
+### 20.5 Nowe zależności frontendowe
+
+| Pakiet | Wersja | Rola |
+|---|---|---|
+| `html2canvas` | `^1.4.1` | Renderuje canvas DOM do obrazu |
+| `jspdf` | `^4.2.1` | Generuje dokument PDF z obrazu |
+
+Oba pakiety są **importowane dynamicznie** (`import(...)`) — nie trafiają do głównego
+bundle aplikacji, lecz są ładowane tylko gdy użytkownik kliknie "📄 PDF".
+
 
 ---
 

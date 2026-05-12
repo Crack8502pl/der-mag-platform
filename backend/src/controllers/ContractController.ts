@@ -2,6 +2,8 @@
 // Kontroler dla endpointów kontraktów
 
 import { Request, Response } from 'express';
+import path from 'path';
+import fs from 'fs';
 import { ContractService } from '../services/ContractService';
 import { ContractStatus } from '../entities/Contract';
 import { SubsystemService } from '../services/SubsystemService';
@@ -1146,6 +1148,82 @@ export class ContractController {
       });
     } catch (error: any) {
       serverLogger.error('❌ ContractController.extendContract ERROR:', { error: error.message });
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
+
+  /**
+   * Export topology diagram as PDF, save to uploads/contracts/{contractNumber}/ and stream
+   * the file back for immediate browser download.
+   *
+   * POST /api/contracts/:id/topology/export-pdf
+   * Body: { pdfBase64: string, subsystemIndex: number }
+   */
+  exportTopologyPdf = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const contractId = parseInt(req.params.id, 10);
+      if (isNaN(contractId)) {
+        res.status(400).json({ success: false, message: 'Nieprawidłowy identyfikator kontraktu' });
+        return;
+      }
+
+      const { pdfBase64, subsystemIndex: rawSubsystemIndex = 0 } = req.body as {
+        pdfBase64?: string;
+        subsystemIndex?: unknown;
+      };
+
+      if (!pdfBase64 || typeof pdfBase64 !== 'string') {
+        res.status(400).json({ success: false, message: 'Brak danych PDF' });
+        return;
+      }
+
+      // Validate and clamp subsystemIndex to a safe non-negative integer
+      const subsystemIndex = Math.max(
+        0,
+        Math.min(999, parseInt(String(rawSubsystemIndex ?? 0), 10) || 0)
+      );
+
+      const contract = await this.contractService.getContractById(contractId);
+      if (!contract) {
+        res.status(404).json({ success: false, message: 'Kontrakt nie znaleziony' });
+        return;
+      }
+
+      // Sanitize contract number: keep only alphanumeric, dash and underscore characters
+      const safeContractNumber = contract.contractNumber.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+      const uploadBase = process.env.UPLOAD_DIR ? path.resolve(process.env.UPLOAD_DIR) : path.resolve('./uploads');
+      const contractDir = path.join(uploadBase, 'contracts', safeContractNumber);
+
+      // Create directory if it does not exist
+      if (!fs.existsSync(contractDir)) {
+        fs.mkdirSync(contractDir, { recursive: true });
+      }
+
+      // Build a clean timestamp: "2026-05-12T10-30-45" (remove milliseconds and trailing chars)
+      const timestamp = new Date().toISOString().split('.')[0].replace(/:/g, '-');
+      const filename = `topology_${subsystemIndex}_${timestamp}.pdf`;
+      const filePath = path.resolve(contractDir, filename);
+
+      // Guard against path traversal: ensure the resolved file path stays inside contractDir
+      const resolvedContractDir = path.resolve(contractDir);
+      if (!filePath.startsWith(resolvedContractDir + '/') && !filePath.startsWith(resolvedContractDir + path.sep)) {
+        res.status(400).json({ success: false, message: 'Nieprawidłowa ścieżka pliku' });
+        return;
+      }
+
+      // Decode and write the PDF
+      const pdfBuffer = Buffer.from(pdfBase64, 'base64');
+      fs.writeFileSync(filePath, pdfBuffer);
+
+      serverLogger.info(`✅ Topology PDF saved: ${filePath}`);
+
+      // Stream the saved file back as a download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.sendFile(filePath);
+    } catch (error: any) {
+      serverLogger.error('❌ ContractController.exportTopologyPdf ERROR:', { error: error.message });
       res.status(500).json({ success: false, message: error.message });
     }
   };

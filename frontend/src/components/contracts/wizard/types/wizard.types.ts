@@ -185,6 +185,8 @@ export interface WizardData {
   taskConfigurations?: Record<string, TaskConfiguration>;
   /** Custom (non-standard) order items */
   customOrders?: CustomOrderItem[];
+  /** Database ID of the contract — set when editing/extending an existing contract; undefined for new contracts */
+  contractId?: number;
 }
 
 export interface GeneratedTask {

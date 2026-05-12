@@ -8,7 +8,7 @@ import type {
   ConnectionTechnology,
 } from '../../types/network-topology.types';
 import type { WizardData } from '../contracts/wizard/types/wizard.types';
-import { parseWizardKilometraz } from '../contracts/wizard/utils/fiberTaskUtils';
+import { normalizeTaskData } from '../contracts/wizard/utils/taskDataNormalizer';
 import { TopologyToolbar } from './TopologyToolbar';
 import { TopologySidebar } from './TopologySidebar';
 import { ConnectionModal } from './ConnectionModal';
@@ -57,6 +57,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
   } | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [crossingConnections, setCrossingConnections] = useState<Set<string>>(new Set());
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const dragRef = useRef<DragState | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -86,19 +87,23 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     // Initialize nodes from subsystem taskDetails
     const subsystem = wizardData.subsystems[subsystemIndex];
     const taskDetails = subsystem?.taskDetails ?? [];
-    const initialNodes: TopologyNode[] = taskDetails.map((task, idx) => ({
-      id: task.taskWizardId ?? crypto.randomUUID(),
-      type: 'task' as const,
-      label: task.nazwa || task.taskType || `Zadanie ${idx + 1}`,
-      position: {
-        x: 50 + (idx % 4) * 170,
-        y: 50 + Math.floor(idx / 4) * 110,
-      },
-      data: {
-        taskId: undefined,
-        km: parseWizardKilometraz(task.kilometraz),
-      },
-    }));
+    const liniaKolejowa = wizardData.liniaKolejowa;
+    const initialNodes: TopologyNode[] = taskDetails.map((task, idx) => {
+      const normalized = normalizeTaskData(task, idx, liniaKolejowa);
+      return {
+        id: normalized.id,
+        type: 'task' as const,
+        label: normalized.label,
+        position: {
+          x: 50 + (idx % 4) * 170,
+          y: 50 + Math.floor(idx / 4) * 110,
+        },
+        data: {
+          taskId: task.id,
+          km: normalized.kilometrazNumeric,
+        },
+      };
+    });
     setNodes(initialNodes);
     // Intentionally runs only on mount: we read initial wizard state once and let
     // the component own its local state from that point on. Re-running on every
@@ -324,25 +329,25 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
         const taskDetail = wizardData.subsystems[subsystemIndex]?.taskDetails?.[data.taskId];
         if (!taskDetail) return;
 
-        const taskWizardId = taskDetail.taskWizardId;
+        const normalized = normalizeTaskData(taskDetail, data.taskId, wizardData.liniaKolejowa);
 
-        // Prevent duplicates: if the node is already on the canvas, ignore
-        if (taskWizardId && nodes.some(n => n.id === taskWizardId)) {
-          console.warn('Task already exists on canvas');
+        // Prevent duplicates using the stable normalized ID (covers taskWizardId and DB id)
+        if (nodes.some(n => n.id === normalized.id)) {
+          console.warn('Task already exists on canvas:', normalized.label);
           return;
         }
 
         const newNode: TopologyNode = {
-          id: taskWizardId || crypto.randomUUID(),
+          id: normalized.id,
           type: 'task' as const,
-          label: data.label || `Zadanie ${data.taskId}`,
+          label: normalized.label,
           position: {
             x: Math.max(0, dropX - NODE_WIDTH / 2),
             y: Math.max(0, dropY - 30),
           },
           data: {
-            taskId: undefined,
-            km: data.km ?? parseWizardKilometraz(taskDetail.kilometraz),
+            taskId: taskDetail.id,
+            km: normalized.kilometrazNumeric,
           },
         };
 
@@ -374,11 +379,14 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
 
   // Sidebar tasks derived from subsystem taskDetails
   const sidebarTasks = (wizardData.subsystems[subsystemIndex]?.taskDetails ?? []).map(
-    (t, i) => ({
-      id: i,
-      name: t.nazwa || t.taskType || `Zadanie ${i + 1}`,
-      km: parseWizardKilometraz(t.kilometraz),
-    })
+    (t, i) => {
+      const normalized = normalizeTaskData(t, i, wizardData.liniaKolejowa);
+      return {
+        id: i,
+        name: normalized.label,
+        km: normalized.kilometrazNumeric,
+      };
+    }
   );
 
   // Stats
@@ -387,8 +395,74 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     return sum + dist;
   }, 0);
 
+  // Export topology canvas to PDF (A3 horizontal) and save via backend.
+  // Scale is device-pixel-ratio-based (2× devicePixelRatio) for high quality output.
+  const handleExportPdf = useCallback(async () => {
+    if (!canvasRef.current || isExportingPdf) return;
+    setIsExportingPdf(true);
+    try {
+      const [html2canvasModule, jsPDFModule] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
+      const html2canvas = html2canvasModule.default;
+      const { jsPDF } = jsPDFModule;
 
+      // A3 horizontal: 420 × 297 mm
+      const A3_W_MM = 420;
+      const A3_H_MM = 297;
 
+      const canvas = await html2canvas(canvasRef.current, {
+        scale: window.devicePixelRatio * 2,
+        useCORS: true,
+        backgroundColor: '#1a1a2e',
+        width: canvasRef.current.scrollWidth,
+        height: canvasRef.current.scrollHeight,
+      });
+
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a3',
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      pdf.addImage(imgData, 'JPEG', 0, 0, A3_W_MM, A3_H_MM, undefined, 'FAST');
+
+      const contractId = wizardData.contractId;
+      const defaultFilename = `topology_${subsystemIndex}_${Date.now()}.pdf`;
+
+      if (contractId) {
+        // Save via backend (streams the file back as an attachment)
+        const pdfBase64 = pdf.output('datauristring').split(',')[1];
+        const response = await fetch(`/api/contracts/${contractId}/topology/export-pdf`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ pdfBase64, subsystemIndex }),
+        });
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = defaultFilename;
+          a.click();
+          URL.revokeObjectURL(url);
+        } else {
+          // Fallback: download directly
+          pdf.save(defaultFilename);
+        }
+      } else {
+        // No contractId yet (new wizard not yet submitted): download directly
+        pdf.save(defaultFilename);
+      }
+    } catch (err) {
+      console.error('PDF export error:', err);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  }, [canvasRef, isExportingPdf, wizardData.contractId, subsystemIndex]);
 
   return (
     <div className="topology-step">
@@ -398,6 +472,8 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
         onAutoLayout={handleAutoLayout}
         onOptimizeLayout={handleOptimizeLayout}
         onSave={handleSave}
+        onExportPDF={handleExportPdf}
+        isExportingPdf={isExportingPdf}
         isDirty={isDirty}
         crossingCount={Math.floor(crossingConnections.size / 2)}
       />
