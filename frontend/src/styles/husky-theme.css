@@ -442,3 +442,14 @@
   background: var(--bg-hover);
   border-color: var(--border-color);
 }
+
+/* Camera points — grounding badge (light theme) */
+.pole-uziom-badge {
+  background: #e8f5e9;
+  color: #1b5e20;
+  border: 1px solid #a5d6a7;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.75rem;
+  margin-left: 6px;
+}

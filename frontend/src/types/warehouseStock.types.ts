@@ -89,6 +89,7 @@ export interface WarehouseStock {
   isActive: boolean;
   isHazardous: boolean;
   requiresCertification: boolean;
+  requiresGrounding: boolean;
   deviceCategory?: string;
   technicalSpecs?: any;
   lastPurchaseDate?: string;
