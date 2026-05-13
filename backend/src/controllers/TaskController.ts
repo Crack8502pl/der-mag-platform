@@ -881,6 +881,7 @@ export class TaskController {
       }
 
       // Atomically create shipment task and update source task substatus
+      const numericPoleQuantity = Number(poleQuantity);
       const queryRunner = AppDataSource.createQueryRunner();
       await queryRunner.connect();
       await queryRunner.startTransaction();
@@ -910,11 +911,11 @@ export class TaskController {
             sourceTaskNumber: taskNumber,
             sourceTaskType: sourceTask.taskType,
             cabinetType: typeof cabinetType === 'string' ? cabinetType : null,
-            poleQuantity: Number(poleQuantity) > 0 ? Number(poleQuantity) : null,
+            poleQuantity: numericPoleQuantity > 0 ? numericPoleQuantity : null,
             poleType: typeof poleType === 'string' ? poleType : null,
             poleProductInfo: typeof poleProductInfo === 'string' ? poleProductInfo : null,
-            cameraPoints: Number(poleQuantity) > 0
-              ? generateCameraPoints(Number(poleQuantity), sourceTask.taskType, typeof poleType === 'string' ? poleType : null, hasUziom)
+            cameraPoints: numericPoleQuantity > 0
+              ? generateCameraPoints(numericPoleQuantity, sourceTask.taskType, typeof poleType === 'string' ? poleType : null, hasUziom)
               : [],
           },
           bomGenerated: false,
