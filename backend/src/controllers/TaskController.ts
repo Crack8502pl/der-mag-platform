@@ -19,6 +19,7 @@ import { WorkflowGeneratedBom } from '../entities/WorkflowGeneratedBom';
 import { TaskMaterial } from '../entities/TaskMaterial';
 import { serverLogger } from '../utils/logger';
 import { requiresCabinetCompletion } from '../config/taskTypes';
+import { WarehouseStock } from '../entities/WarehouseStock';
 
 // Lista typów zadań, dla których NIE wolno zlecać wysyłki.
 // Powinna odzwierciedlać konfigurację frontendową (NO_SHIPMENT_TYPES).
@@ -33,8 +34,9 @@ const NO_SHIPMENT_TYPES: string[] = ['KOMPLETACJA_WYSYLKI'];
 function generateCameraPoints(
   poleQuantity: number,
   taskType: string,
-  poleType: string | null
-): Array<{ id: number; name: string; poleType: string | null }> {
+  poleType: string | null,
+  hasUziom: boolean
+): Array<{ id: number; name: string; poleType: string | null; hasUziom: boolean }> {
   const count = Math.min(Math.max(0, Math.floor(poleQuantity)), 10);
   if (count === 0) return [];
 
@@ -45,6 +47,7 @@ function generateCameraPoints(
     id: i + 1,
     name: `${prefix}${i + 1}`,
     poleType: poleType || null,
+    hasUziom,
   }));
 }
 
@@ -864,6 +867,19 @@ export class TaskController {
         }
       }
 
+      // Lookup WarehouseStock by catalogNumber extracted from poleProductInfo
+      // to determine whether the selected pole requires grounding (hasUziom)
+      const catalogNumber = (typeof poleProductInfo === 'string')
+        ? poleProductInfo.split('|')[0]?.trim() ?? null
+        : null;
+
+      let hasUziom = false;
+      if (catalogNumber) {
+        const stockItem = await AppDataSource.getRepository(WarehouseStock)
+          .findOne({ where: { catalogNumber } });
+        hasUziom = stockItem?.requiresGrounding ?? false;
+      }
+
       // Atomically create shipment task and update source task substatus
       const queryRunner = AppDataSource.createQueryRunner();
       await queryRunner.connect();
@@ -894,11 +910,11 @@ export class TaskController {
             sourceTaskNumber: taskNumber,
             sourceTaskType: sourceTask.taskType,
             cabinetType: typeof cabinetType === 'string' ? cabinetType : null,
-            poleQuantity: typeof poleQuantity === 'number' ? poleQuantity : null,
+            poleQuantity: Number(poleQuantity) > 0 ? Number(poleQuantity) : null,
             poleType: typeof poleType === 'string' ? poleType : null,
             poleProductInfo: typeof poleProductInfo === 'string' ? poleProductInfo : null,
-            cameraPoints: (typeof poleQuantity === 'number' && poleQuantity > 0)
-              ? generateCameraPoints(poleQuantity, sourceTask.taskType, typeof poleType === 'string' ? poleType : null)
+            cameraPoints: Number(poleQuantity) > 0
+              ? generateCameraPoints(Number(poleQuantity), sourceTask.taskType, typeof poleType === 'string' ? poleType : null, hasUziom)
               : [],
           },
           bomGenerated: false,

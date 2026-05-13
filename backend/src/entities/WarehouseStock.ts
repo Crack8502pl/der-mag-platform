@@ -144,6 +144,9 @@ export class WarehouseStock {
   @Column({ type: 'boolean', name: 'requires_certification', default: false })
   requiresCertification: boolean;
 
+  @Column({ type: 'boolean', name: 'requires_grounding', default: false })
+  requiresGrounding: boolean;
+
   // Kategoria urządzenia
   @Column({ type: 'varchar', name: 'device_category', length: 100, nullable: true })
   deviceCategory: string;
