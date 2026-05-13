@@ -2238,6 +2238,7 @@ WS     /ws/network-topology/:id                 — Real-time collaboration
 |--------|------|--------|
 | 1.0.0 | 2026-04-30 | Pierwsza wersja dokumentacji — zamknięcie issue #408 |
 | 1.1.0 | 2026-05-12 | Normalizacja danych zadań (`taskDataNormalizer.ts`), eksport PDF (A3, wysoka rozdzielczość), endpoint backend `POST /:id/topology/export-pdf` |
+| 1.1.1 | 2026-05-13 | Naprawa formatowania kilometrażu w etykietach topologii — `taskNameGenerator.ts` formatuje km przed użyciem w nazwie, `taskDataNormalizer.ts` priorytetyzuje `generateTaskName` nad `task.nazwa` |
 
 ---
 

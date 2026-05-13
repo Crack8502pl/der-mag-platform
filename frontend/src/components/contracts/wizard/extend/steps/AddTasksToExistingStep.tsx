@@ -7,6 +7,7 @@ import type { ExistingSubsystem } from '../../types/extend-wizard.types';
 import type { TaskDetail } from '../../types/wizard.types';
 import { cleanKilometrazInput, formatLiniaKolejowa, OPTIONAL_KILOMETRAZ_HELP } from '../../utils/validation';
 import { generateTaskName } from '../../utils/taskNameGenerator';
+import { normalizeTaskData } from '../../utils/taskDataNormalizer';
 import { GPSLocationInput } from '../../common/GPSLocationInput';
 
 interface AddTasksToExistingStepProps {
@@ -22,14 +23,8 @@ interface AddTasksToExistingStepProps {
 
 /** Returns the primary display value for an existing (read-only) task row. */
 function getTaskDisplayValue(task: TaskDetail): string {
-  return (
-    task.nazwa ||
-    task.kilometraz ||
-    task.miejscowosc ||
-    task.nazwaLCS ||
-    task.nazwaNastawnii ||
-    '—'
-  );
+  const normalized = normalizeTaskData(task, 0);
+  return normalized.label || task.taskNumber || '—';
 }
 
 const TASK_TYPE_LABELS: Record<string, string> = {
