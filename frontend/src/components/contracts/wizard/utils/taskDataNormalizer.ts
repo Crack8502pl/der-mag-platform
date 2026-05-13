@@ -55,7 +55,11 @@ export const normalizeTaskData = (
     ? { ...task, kilometraz, liniaKolejowa: lk }
     : { ...task, liniaKolejowa: lk };
 
-  const label = task.nazwa || generateTaskName(task.taskType, taskWithFormattedKm, lk);
+  const label =
+    generateTaskName(task.taskType, taskWithFormattedKm, lk) ||
+    task.nazwa ||
+    task.taskType ||
+    `Zadanie ${index + 1}`;
 
   return {
     id,
