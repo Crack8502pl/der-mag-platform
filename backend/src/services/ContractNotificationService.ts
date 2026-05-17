@@ -5,6 +5,7 @@ import { AppDataSource } from '../config/database';
 import { Contract } from '../entities/Contract';
 import { User } from '../entities/User';
 import EmailQueueService from './EmailQueueService';
+import SlackWebhookService from './SlackWebhookService';
 import { EmailTemplate } from '../types/EmailTypes';
 
 export class ContractNotificationService {
@@ -108,6 +109,13 @@ export class ContractNotificationService {
         });
       }
 
+      SlackWebhookService.notifyContractCreated({
+        contractNumber: contract.contractNumber,
+        customName: contract.customName,
+        projectManager: `${contract.projectManager.firstName} ${contract.projectManager.lastName}`,
+        contractUrl: `${process.env.FRONTEND_URL}/contracts/${contractId}`,
+      }).catch(err => console.error('[Slack] notifyContractCreated error:', err));
+
       console.log(`✅ Powiadomienia o utworzeniu kontraktu ${contract.contractNumber} wysłane`);
     } catch (error) {
       console.error('❌ Błąd wysyłania powiadomienia o utworzeniu kontraktu:', error);
@@ -142,6 +150,13 @@ export class ContractNotificationService {
           priority: 'high'
         });
       }
+
+      SlackWebhookService.notifyContractApproved({
+        contractNumber: contract.contractNumber,
+        customName: contract.customName,
+        projectManager: `${contract.projectManager.firstName} ${contract.projectManager.lastName}`,
+        contractUrl: `${process.env.FRONTEND_URL}/contracts/${contractId}`,
+      }).catch(err => console.error('[Slack] notifyContractApproved error:', err));
 
       console.log(`✅ Powiadomienia o zatwierdzeniu kontraktu ${contract.contractNumber} wysłane`);
     } catch (error) {
@@ -179,6 +194,14 @@ export class ContractNotificationService {
         });
       }
 
+      SlackWebhookService.notifyContractCancelled({
+        contractNumber: contract.contractNumber,
+        customName: contract.customName,
+        projectManager: `${contract.projectManager.firstName} ${contract.projectManager.lastName}`,
+        contractUrl: `${process.env.FRONTEND_URL}/contracts/${contractId}`,
+        reason,
+      }).catch(err => console.error('[Slack] notifyContractCancelled error:', err));
+
       console.log(`✅ Powiadomienia o anulowaniu kontraktu ${contract.contractNumber} wysłane`);
     } catch (error) {
       console.error('❌ Błąd wysyłania powiadomienia o anulowaniu kontraktu:', error);
@@ -206,6 +229,14 @@ export class ContractNotificationService {
         },
         priority: daysRemaining <= 3 ? 'high' : 'normal'
       });
+
+      SlackWebhookService.notifyContractDeadline({
+        contractNumber: contract.contractNumber,
+        customName: contract.customName,
+        projectManager: `${contract.projectManager.firstName} ${contract.projectManager.lastName}`,
+        contractUrl: `${process.env.FRONTEND_URL}/contracts/${contractId}`,
+        daysRemaining,
+      }).catch(err => console.error('[Slack] notifyContractDeadline error:', err));
 
       console.log(`✅ Powiadomienie o deadline kontraktu ${contract.contractNumber} wysłane (${daysRemaining} dni)`);
     } catch (error) {

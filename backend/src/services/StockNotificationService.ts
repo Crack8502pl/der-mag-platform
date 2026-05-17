@@ -6,6 +6,7 @@ import { AppDataSource } from '../config/database';
 import { WarehouseStock } from '../entities/WarehouseStock';
 import { User } from '../entities/User';
 import EmailQueueService from './EmailQueueService';
+import SlackWebhookService from './SlackWebhookService';
 import { EmailTemplate } from '../types/EmailTypes';
 import { emailConfig } from '../config/email';
 
@@ -168,6 +169,16 @@ export class StockNotificationService {
         priority: 'high'
       });
 
+      SlackWebhookService.notifyStockLow({
+        materialName: stock.materialName,
+        catalogNumber: stock.catalogNumber,
+        currentStock: stock.quantityInStock,
+        minStockLevel: stock.minStockLevel,
+        unit: stock.unit,
+        warehouseLocation: stock.warehouseLocation || 'Nie określono',
+        stockUrl: `${process.env.FRONTEND_URL}/warehouse-stock/${stockId}`,
+      }).catch(err => console.error('[Slack] notifyStockLow error:', err));
+
       // Oznacz alert jako wysłany
       await this.markAlertAsSent(stockId, 'LOW');
 
@@ -214,6 +225,15 @@ export class StockNotificationService {
         priority: 'high'
       });
 
+      SlackWebhookService.notifyStockCritical({
+        materialName: stock.materialName,
+        catalogNumber: stock.catalogNumber,
+        unit: stock.unit,
+        warehouseLocation: stock.warehouseLocation || 'Nie określono',
+        supplier: stock.supplier || undefined,
+        stockUrl: `${process.env.FRONTEND_URL}/warehouse-stock/${stockId}`,
+      }).catch(err => console.error('[Slack] notifyStockCritical error:', err));
+
       // Oznacz alert jako wysłany
       await this.markAlertAsSent(stockId, 'CRITICAL');
 
@@ -252,6 +272,14 @@ export class StockNotificationService {
           warehouseUrl: `${process.env.FRONTEND_URL}/warehouse-stock`,
         }
       });
+
+      SlackWebhookService.notifyImportCompleted({
+        imported: result.imported,
+        updated: result.updated,
+        failed: result.failed,
+        successRate,
+        warehouseUrl: `${process.env.FRONTEND_URL}/warehouse-stock`,
+      }).catch(err => console.error('[Slack] notifyImportCompleted error:', err));
 
       console.log(`✅ Powiadomienie o zakończeniu importu wysłane do ${user.email}`);
     } catch (error) {
