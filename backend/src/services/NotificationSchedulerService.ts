@@ -13,6 +13,7 @@ import { ServiceTask } from '../entities/ServiceTask';
 import EmailQueueService from './EmailQueueService';
 import ContractNotificationService from './ContractNotificationService';
 import StockNotificationService from './StockNotificationService';
+import SlackWebhookService from './SlackWebhookService';
 import { BrigadeService } from './BrigadeService';
 import { ContractService } from './ContractService';
 import { WarehouseStockService } from './WarehouseStockService';
@@ -568,6 +569,14 @@ export class NotificationSchedulerService {
           priority: 'high'
         });
       }
+
+      SlackWebhookService.notifyStockDigest({
+        date: new Date().toLocaleDateString('pl-PL'),
+        totalAlerts: alertsData.length,
+        criticalCount,
+        lowCount,
+        warehouseUrl: `${process.env.FRONTEND_URL}/warehouse-stock`,
+      }).catch(err => console.error('[Slack] notifyStockDigest error:', err));
 
       console.log(`✅ Dzienny digest alertów magazynowych wysłany (${alertsData.length} alertów)`);
     } catch (error) {

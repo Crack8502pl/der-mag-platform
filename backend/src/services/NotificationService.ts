@@ -7,6 +7,7 @@ import { User } from '../entities/User';
 import { Role } from '../entities/Role';
 import { CompletionOrder } from '../entities/CompletionOrder';
 import { PrefabricationTask } from '../entities/PrefabricationTask';
+import SlackWebhookService from './SlackWebhookService';
 
 /**
  * Stałe konfiguracyjne
@@ -277,6 +278,13 @@ export class NotificationService {
           completedAt: task.completedAt
         }
       });
+
+      SlackWebhookService.notifyPrefabricationCompleted({
+        subsystemNumber: task.subsystem.subsystemNumber,
+        contractNumber: task.subsystem.contract.contractNumber,
+        deviceCount: task.devices?.length || 0,
+        completedAt: task.completedAt ? new Date(task.completedAt).toLocaleString('pl-PL') : undefined,
+      }).catch(err => console.error('[Slack] notifyPrefabricationCompleted error:', err));
 
       console.log(`✅ Wysłano powiadomienie o zakończeniu prefabrykacji #${prefabTaskId}`);
     } catch (error) {

@@ -11,6 +11,7 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import fs from 'fs';
 import routes from './routes';
+import webhookRoutes from './routes/webhook.routes';
 import { honeypotMiddleware } from './middleware/honeypot';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { noCacheHeaders } from './middleware/noCacheHeaders';
@@ -297,6 +298,7 @@ if (enableApiTester) {
 app.use(honeypotMiddleware);
 
 // API routes (MUSZĄ być przed serwowaniem frontendu)
+app.use('/api/integrations/webhooks', noCacheHeaders, webhookRoutes);
 app.use('/api', noCacheHeaders);
 app.use('/api', routes);
 
