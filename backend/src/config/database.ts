@@ -87,10 +87,14 @@ import { AssetStatusHistory } from '../entities/AssetStatusHistory';
 import { TaskRelationship } from '../entities/TaskRelationship';
 // Network Topology
 import { NetworkTopology } from '../entities/NetworkTopology.entity';
+// Railway (PKP PLK)
+import { RailwayLine } from '../entities/RailwayLine.entity';
+import { RailwayStation } from '../entities/RailwayStation.entity';
 // Migrations
 import { BackfillWizardTaskMetadata1714080000000 } from '../migrations/1714080000000-BackfillWizardTaskMetadata';
 import { CreateNetworkTopologies20260430 } from '../migrations/20260430_create_network_topologies';
 import { AddDeletedAtToNetworkTopologies20260430 } from '../migrations/20260430_add_deleted_at_to_network_topologies';
+import { CreateRailwayTables20260517 } from '../migrations/20260517_create_railway_tables';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -205,12 +209,16 @@ export const AppDataSource = new DataSource({
     TaskRelationship,
     // Network Topology
     NetworkTopology,
+    // Railway (PKP PLK)
+    RailwayLine,
+    RailwayStation,
   ],
   subscribers: [],
   migrations: [
     BackfillWizardTaskMetadata1714080000000,
     CreateNetworkTopologies20260430,
     AddDeletedAtToNetworkTopologies20260430,
+    CreateRailwayTables20260517,
   ],
 });
 

@@ -5,9 +5,12 @@ import React from 'react';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../../config/subsystemWizardConfig';
 import type { ExistingSubsystem } from '../../types/extend-wizard.types';
 import type { TaskDetail } from '../../types/wizard.types';
-import { cleanKilometrazInput, formatLiniaKolejowa, OPTIONAL_KILOMETRAZ_HELP } from '../../utils/validation';
+import { OPTIONAL_KILOMETRAZ_HELP } from '../../utils/validation';
 import { generateTaskName } from '../../utils/taskNameGenerator';
 import { GPSLocationInput } from '../../common/GPSLocationInput';
+import { RailwayLineSelect } from '../../../../common/RailwayLineSelect';
+import { KilometrazInput } from '../../../../common/KilometrazInput';
+import '../../subsystems/SmokipDetailsStep.css';
 
 interface AddTasksToExistingStepProps {
   subsystem: ExistingSubsystem;
@@ -69,16 +72,8 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
   const addableTypes = getAddableTaskTypes(subsystem.type);
 
   const handleKilometrazChange = (taskIndex: number, value: string, taskType: string) => {
-    const cleaned = cleanKilometrazInput(value);
-    const newNazwa = generateTaskName(taskType, { ...subsystem.newTasks[taskIndex], taskType: taskType as TaskDetail['taskType'], kilometraz: cleaned }, liniaKolejowa);
-    onUpdateTask(subsystem.id, taskIndex, { kilometraz: cleaned, nazwa: newNazwa });
-  };
-
-  const handleLiniaKolejowaBlur = (taskIndex: number, value: string) => {
-    if (value.trim()) {
-      const formatted = formatLiniaKolejowa(value);
-      onUpdateTask(subsystem.id, taskIndex, { liniaKolejowa: formatted });
-    }
+    const newNazwa = generateTaskName(taskType, { ...subsystem.newTasks[taskIndex], taskType: taskType as TaskDetail['taskType'], kilometraz: value }, liniaKolejowa);
+    onUpdateTask(subsystem.id, taskIndex, { kilometraz: value, nazwa: newNazwa });
   };
 
   const handleCuidCheckbox = (lcsTaskIndex: number, checked: boolean) => {
@@ -202,27 +197,22 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                 </div>
                 <div className="form-group">
                   <label>Linia kolejowa <span className="text-muted">(opcjonalnie)</span></label>
-                  <input
-                    type="text"
-                    placeholder="np. LK-1"
+                  <RailwayLineSelect
                     value={task.liniaKolejowa || ''}
-                    onChange={(e) => {
-                      const linia = e.target.value;
-                      const newNazwa = generateTaskName('PRZEJAZD_KAT_A', { ...task, liniaKolejowa: linia }, linia);
-                      onUpdateTask(subsystem.id, idx, { liniaKolejowa: linia, nazwa: newNazwa });
+                    onChange={(code) => {
+                      const newNazwa = generateTaskName('PRZEJAZD_KAT_A', { ...task, liniaKolejowa: code }, code);
+                      onUpdateTask(subsystem.id, idx, { liniaKolejowa: code, nazwa: newNazwa });
                     }}
-                    onBlur={(e) => handleLiniaKolejowaBlur(idx, e.target.value)}
+                    placeholder="np. LK-1"
                   />
-                  <small className="form-help">Format: LK-XXX lub E-XX (auto-normalizacja)</small>
                 </div>
                 <div className="form-group">
                   <label>Kilometraż <span className="required">*</span></label>
-                  <input
-                    type="text"
-                    placeholder="np. 123+456"
+                  <KilometrazInput
                     value={task.kilometraz || ''}
-                    onChange={(e) => handleKilometrazChange(idx, e.target.value, 'PRZEJAZD_KAT_A')}
-                    onBlur={(e) => onKilometrazBlur(subsystem.id, idx, e.target.value)}
+                    onChange={(value) => handleKilometrazChange(idx, value, 'PRZEJAZD_KAT_A')}
+                    onBlur={(value) => onKilometrazBlur(subsystem.id, idx, value)}
+                    lineCode={task.liniaKolejowa || liniaKolejowa}
                     required
                   />
                 </div>
@@ -264,27 +254,22 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                 </div>
                 <div className="form-group">
                   <label>Linia kolejowa <span className="text-muted">(opcjonalnie)</span></label>
-                  <input
-                    type="text"
-                    placeholder="np. LK-1"
+                  <RailwayLineSelect
                     value={task.liniaKolejowa || ''}
-                    onChange={(e) => {
-                      const linia = e.target.value;
-                      const newNazwa = generateTaskName('PRZEJAZD_KAT_B', { ...task, liniaKolejowa: linia }, linia);
-                      onUpdateTask(subsystem.id, idx, { liniaKolejowa: linia, nazwa: newNazwa });
+                    onChange={(code) => {
+                      const newNazwa = generateTaskName('PRZEJAZD_KAT_B', { ...task, liniaKolejowa: code }, code);
+                      onUpdateTask(subsystem.id, idx, { liniaKolejowa: code, nazwa: newNazwa });
                     }}
-                    onBlur={(e) => handleLiniaKolejowaBlur(idx, e.target.value)}
+                    placeholder="np. LK-1"
                   />
-                  <small className="form-help">Format: LK-XXX lub E-XX (auto-normalizacja)</small>
                 </div>
                 <div className="form-group">
                   <label>Kilometraż <span className="required">*</span></label>
-                  <input
-                    type="text"
-                    placeholder="np. 123+456"
+                  <KilometrazInput
                     value={task.kilometraz || ''}
-                    onChange={(e) => handleKilometrazChange(idx, e.target.value, 'PRZEJAZD_KAT_B')}
-                    onBlur={(e) => onKilometrazBlur(subsystem.id, idx, e.target.value)}
+                    onChange={(value) => handleKilometrazChange(idx, value, 'PRZEJAZD_KAT_B')}
+                    onBlur={(value) => onKilometrazBlur(subsystem.id, idx, value)}
+                    lineCode={task.liniaKolejowa || liniaKolejowa}
                     required
                   />
                 </div>
@@ -311,27 +296,22 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                 </div>
                 <div className="form-group">
                   <label>Linia kolejowa <span className="text-muted">(opcjonalnie)</span></label>
-                  <input
-                    type="text"
-                    placeholder="np. LK-1"
+                  <RailwayLineSelect
                     value={task.liniaKolejowa || ''}
-                    onChange={(e) => {
-                      const linia = e.target.value;
-                      const newNazwa = generateTaskName('SKP', { ...task, liniaKolejowa: linia }, linia);
-                      onUpdateTask(subsystem.id, idx, { liniaKolejowa: linia, nazwa: newNazwa });
+                    onChange={(code) => {
+                      const newNazwa = generateTaskName('SKP', { ...task, liniaKolejowa: code }, code);
+                      onUpdateTask(subsystem.id, idx, { liniaKolejowa: code, nazwa: newNazwa });
                     }}
-                    onBlur={(e) => handleLiniaKolejowaBlur(idx, e.target.value)}
+                    placeholder="np. LK-1"
                   />
-                  <small className="form-help">Format: LK-XXX lub E-XX (auto-normalizacja)</small>
                 </div>
                 <div className="form-group">
                   <label>Kilometraż <span className="required">*</span></label>
-                  <input
-                    type="text"
-                    placeholder="np. 123+456"
+                  <KilometrazInput
                     value={task.kilometraz || ''}
-                    onChange={(e) => handleKilometrazChange(idx, e.target.value, 'SKP')}
-                    onBlur={(e) => onKilometrazBlur(subsystem.id, idx, e.target.value)}
+                    onChange={(value) => handleKilometrazChange(idx, value, 'SKP')}
+                    onBlur={(value) => onKilometrazBlur(subsystem.id, idx, value)}
+                    lineCode={task.liniaKolejowa || liniaKolejowa}
                     required
                   />
                 </div>
@@ -358,18 +338,14 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                 </div>
                 <div className="form-group">
                   <label>Linia kolejowa <span className="text-muted">(opcjonalnie)</span></label>
-                  <input
-                    type="text"
-                    placeholder="np. LK-1"
+                  <RailwayLineSelect
                     value={task.liniaKolejowa || ''}
-                    onChange={(e) => {
-                      const linia = e.target.value;
-                      const newNazwa = generateTaskName('NASTAWNIA', { ...task, liniaKolejowa: linia }, linia);
-                      onUpdateTask(subsystem.id, idx, { liniaKolejowa: linia, nazwa: newNazwa });
+                    onChange={(code) => {
+                      const newNazwa = generateTaskName('NASTAWNIA', { ...task, liniaKolejowa: code }, code);
+                      onUpdateTask(subsystem.id, idx, { liniaKolejowa: code, nazwa: newNazwa });
                     }}
-                    onBlur={(e) => handleLiniaKolejowaBlur(idx, e.target.value)}
+                    placeholder="np. LK-1"
                   />
-                  <small className="form-help">Format: LK-XXX lub E-XX (auto-normalizacja)</small>
                 </div>
                 <div className="form-group">
                   <label>Nazwa Nastawni <span className="text-muted">(opcjonalnie)</span></label>
@@ -399,16 +375,14 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                 </div>
                 <div className="form-group">
                   <label>Kilometraż <span className="text-muted">(opcjonalnie)</span></label>
-                  <input
-                    type="text"
-                    placeholder="np. 123+456"
+                  <KilometrazInput
                     value={task.kilometraz || ''}
-                    onChange={(e) => {
-                      const cleaned = cleanKilometrazInput(e.target.value);
-                      const newNazwa = generateTaskName('NASTAWNIA', { ...task, kilometraz: cleaned }, liniaKolejowa);
-                      onUpdateTask(subsystem.id, idx, { kilometraz: cleaned, nazwa: newNazwa });
+                    onChange={(value) => {
+                      const newNazwa = generateTaskName('NASTAWNIA', { ...task, kilometraz: value }, liniaKolejowa);
+                      onUpdateTask(subsystem.id, idx, { kilometraz: value, nazwa: newNazwa });
                     }}
-                    onBlur={(e) => onKilometrazBlur(subsystem.id, idx, e.target.value)}
+                    onBlur={(value) => onKilometrazBlur(subsystem.id, idx, value)}
+                    lineCode={task.liniaKolejowa || liniaKolejowa}
                   />
                   <small className="form-help">{OPTIONAL_KILOMETRAZ_HELP}</small>
                 </div>
@@ -435,18 +409,14 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                 </div>
                 <div className="form-group">
                   <label>Linia kolejowa <span className="text-muted">(opcjonalnie)</span></label>
-                  <input
-                    type="text"
-                    placeholder="np. LK-1"
+                  <RailwayLineSelect
                     value={task.liniaKolejowa || ''}
-                    onChange={(e) => {
-                      const linia = e.target.value;
-                      const newNazwa = generateTaskName('LCS', { ...task, liniaKolejowa: linia }, linia);
-                      onUpdateTask(subsystem.id, idx, { liniaKolejowa: linia, nazwa: newNazwa });
+                    onChange={(code) => {
+                      const newNazwa = generateTaskName('LCS', { ...task, liniaKolejowa: code }, code);
+                      onUpdateTask(subsystem.id, idx, { liniaKolejowa: code, nazwa: newNazwa });
                     }}
-                    onBlur={(e) => handleLiniaKolejowaBlur(idx, e.target.value)}
+                    placeholder="np. LK-1"
                   />
-                  <small className="form-help">Format: LK-XXX lub E-XX (auto-normalizacja)</small>
                 </div>
                 <div className="form-group">
                   <label>Nazwa LCS <span className="text-muted">(opcjonalnie)</span></label>
@@ -476,16 +446,14 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                 </div>
                 <div className="form-group">
                   <label>Kilometraż <span className="text-muted">(opcjonalnie)</span></label>
-                  <input
-                    type="text"
-                    placeholder="np. 123+456"
+                  <KilometrazInput
                     value={task.kilometraz || ''}
-                    onChange={(e) => {
-                      const cleaned = cleanKilometrazInput(e.target.value);
-                      const newNazwa = generateTaskName('LCS', { ...task, kilometraz: cleaned }, liniaKolejowa);
-                      onUpdateTask(subsystem.id, idx, { kilometraz: cleaned, nazwa: newNazwa });
+                    onChange={(value) => {
+                      const newNazwa = generateTaskName('LCS', { ...task, kilometraz: value }, liniaKolejowa);
+                      onUpdateTask(subsystem.id, idx, { kilometraz: value, nazwa: newNazwa });
                     }}
-                    onBlur={(e) => onKilometrazBlur(subsystem.id, idx, e.target.value)}
+                    onBlur={(value) => onKilometrazBlur(subsystem.id, idx, value)}
+                    lineCode={task.liniaKolejowa || liniaKolejowa}
                   />
                   <small className="form-help">{OPTIONAL_KILOMETRAZ_HELP}</small>
                 </div>
@@ -525,18 +493,14 @@ export const AddTasksToExistingStep: React.FC<AddTasksToExistingStepProps> = ({
                 </div>
                 <div className="form-group">
                   <label>Linia kolejowa <span className="text-muted">(opcjonalnie)</span></label>
-                  <input
-                    type="text"
-                    placeholder="np. LK-1"
+                  <RailwayLineSelect
                     value={task.liniaKolejowa || ''}
-                    onChange={(e) => {
-                      const linia = e.target.value;
-                      const newNazwa = generateTaskName('CUID', { ...task, liniaKolejowa: linia }, linia);
-                      onUpdateTask(subsystem.id, idx, { liniaKolejowa: linia, nazwa: newNazwa });
+                    onChange={(code) => {
+                      const newNazwa = generateTaskName('CUID', { ...task, liniaKolejowa: code }, code);
+                      onUpdateTask(subsystem.id, idx, { liniaKolejowa: code, nazwa: newNazwa });
                     }}
-                    onBlur={(e) => handleLiniaKolejowaBlur(idx, e.target.value)}
+                    placeholder="np. LK-1"
                   />
-                  <small className="form-help">Format: LK-XXX lub E-XX (auto-normalizacja)</small>
                 </div>
               </div>
             )}

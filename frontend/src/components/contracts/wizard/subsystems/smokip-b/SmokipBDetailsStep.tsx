@@ -1,9 +1,11 @@
 import React from 'react';
 import type { SubsystemWizardData, TaskDetail } from '../../types/wizard.types';
 import { SUBSYSTEM_WIZARD_CONFIG } from '../../../../../config/subsystemWizardConfig';
-import { OPTIONAL_KILOMETRAZ_HELP, formatLiniaKolejowa, cleanKilometrazInput } from '../../utils/validation';
+import { OPTIONAL_KILOMETRAZ_HELP } from '../../utils/validation';
 import { GPSLocationInput } from '../../common/GPSLocationInput';
 import { generateTaskName } from '../../utils/taskNameGenerator';
+import { RailwayLineSelect } from '../../../../common/RailwayLineSelect';
+import { KilometrazInput } from '../../../../common/KilometrazInput';
 import '../SmokipDetailsStep.css';
 
 interface SmokipBDetailsStepProps {
@@ -30,13 +32,6 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
 }) => {
   const config = SUBSYSTEM_WIZARD_CONFIG[subsystem.type];
   const taskDetails = subsystem.taskDetails || [];
-
-  const handleLiniaKolejowaBlur = (taskIndex: number, value: string) => {
-    if (value.trim()) {
-      const formatted = formatLiniaKolejowa(value);
-      onUpdateTask(subsystemIndex, taskIndex, { liniaKolejowa: formatted });
-    }
-  };
 
   const handleAddTask = (taskType: TaskDetail['taskType']) => {
     const initialData: Partial<TaskDetail> = detectedRailwayLine
@@ -135,20 +130,15 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
 
               <div className="form-group">
                 <label>Linia kolejowa <span className="text-muted">(opcjonalne)</span></label>
-                <input
-                  type="text"
-                  placeholder="np. LK-221, E-20"
+                <RailwayLineSelect
                   value={detail.liniaKolejowa || ''}
-                  onChange={(e) => onUpdateTask(subsystemIndex, idx, { liniaKolejowa: e.target.value })}
-                  onBlur={(e) => handleLiniaKolejowaBlur(idx, e.target.value)}
+                  onChange={(code) => onUpdateTask(subsystemIndex, idx, { liniaKolejowa: code })}
+                  placeholder="np. LK-221, E-20"
                 />
                 {detectedRailwayLine && !detail.liniaKolejowa && (
                   <small className="form-help text-success">
                     ✓ Wykryto automatycznie z nazwy kontraktu: {detectedRailwayLine}
                   </small>
-                )}
-                {!detectedRailwayLine && (
-                  <small className="form-help">Format: LK-XXX lub E-XX (auto-normalizacja)</small>
                 )}
               </div>
 
@@ -180,16 +170,14 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
                 </div>
                 <div className="form-group">
                   <label>Kilometraż <span className="required">*</span></label>
-                  <input
-                    type="text"
-                    placeholder="123456"
+                  <KilometrazInput
                     value={detail.kilometraz || ''}
-                    onChange={(e) => {
-                      const value = cleanKilometrazInput(e.target.value);
+                    onChange={(value) => {
                       const newNazwa = generateTaskName('PRZEJAZD_KAT_B', { ...detail, kilometraz: value }, detectedRailwayLine);
                       onUpdateTask(subsystemIndex, idx, { kilometraz: value, nazwa: newNazwa });
                     }}
-                    onBlur={(e) => handleKilometrazBlur(subsystemIndex, idx, e.target.value)}
+                    onBlur={(value) => handleKilometrazBlur(subsystemIndex, idx, value)}
+                    lineCode={detail.liniaKolejowa || detectedRailwayLine}
                     required
                   />
                 </div>
@@ -251,16 +239,14 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
                 </div>
                 <div className="form-group">
                   <label>Kilometraż <span className="text-muted">(opcjonalnie)</span></label>
-                  <input
-                    type="text"
-                    placeholder="123456"
+                  <KilometrazInput
                     value={detail.kilometraz || ''}
-                    onChange={(e) => {
-                      const value = cleanKilometrazInput(e.target.value);
+                    onChange={(value) => {
                       const newNazwa = generateTaskName('NASTAWNIA', { ...detail, kilometraz: value }, detectedRailwayLine);
                       onUpdateTask(subsystemIndex, idx, { kilometraz: value, nazwa: newNazwa });
                     }}
-                    onBlur={(e) => handleKilometrazBlur(subsystemIndex, idx, e.target.value)}
+                    onBlur={(value) => handleKilometrazBlur(subsystemIndex, idx, value)}
+                    lineCode={detail.liniaKolejowa || detectedRailwayLine}
                   />
                   <small className="form-help">{OPTIONAL_KILOMETRAZ_HELP}</small>
                 </div>
@@ -305,16 +291,14 @@ export const SmokipBDetailsStep: React.FC<SmokipBDetailsStepProps> = ({
                 </div>
                 <div className="form-group">
                   <label>Kilometraż <span className="text-muted">(opcjonalnie)</span></label>
-                  <input
-                    type="text"
-                    placeholder="123456"
+                  <KilometrazInput
                     value={detail.kilometraz || ''}
-                    onChange={(e) => {
-                      const value = cleanKilometrazInput(e.target.value);
+                    onChange={(value) => {
                       const newNazwa = generateTaskName('LCS', { ...detail, kilometraz: value }, detectedRailwayLine);
                       onUpdateTask(subsystemIndex, idx, { kilometraz: value, nazwa: newNazwa });
                     }}
-                    onBlur={(e) => handleKilometrazBlur(subsystemIndex, idx, e.target.value)}
+                    onBlur={(value) => handleKilometrazBlur(subsystemIndex, idx, value)}
+                    lineCode={detail.liniaKolejowa || detectedRailwayLine}
                   />
                   <small className="form-help">{OPTIONAL_KILOMETRAZ_HELP}</small>
                 </div>
