@@ -2,7 +2,7 @@
 // Main map page - sidebar with task list + OpenStreetMap view
 
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap, LayersControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { BackButton } from '../common/BackButton';
@@ -209,11 +209,23 @@ export const TasksMapPage: React.FC = () => {
                 zoom={DEFAULT_ZOOM}
                 scrollWheelZoom
               >
-                <TileLayer
-                  attribution={tileProvider.attribution}
-                  url={tileProvider.url}
-                  maxZoom={tileProvider.maxZoom}
-                />
+                <LayersControl position="topright">
+                  <LayersControl.BaseLayer checked name="Mapa">
+                    <TileLayer
+                      attribution={tileProvider.attribution}
+                      url={tileProvider.url}
+                      maxZoom={tileProvider.maxZoom}
+                    />
+                  </LayersControl.BaseLayer>
+                  <LayersControl.Overlay name="🚂 Linie kolejowe (OpenRailwayMap)">
+                    <TileLayer
+                      url="https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png"
+                      attribution='Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Map style: &copy; <a href="https://www.openrailwaymap.org">OpenRailwayMap</a> (<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>)'
+                      maxZoom={19}
+                      opacity={0.7}
+                    />
+                  </LayersControl.Overlay>
+                </LayersControl>
                 <FlyToTask task={selectedTask} />
                 <FitAllMarkers tasks={tasks} selectedTask={selectedTask} />
                 {tasks.map(task => (

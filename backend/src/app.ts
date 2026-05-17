@@ -62,7 +62,8 @@ if (isProduction && !disableCSP) {
           "https://*.tile.openstreetmap.org",  // OpenStreetMap tiles
           "https://*.openstreetmap.org",        // OSM domain
           "https://*.basemaps.cartocdn.com",    // Carto Dark basemap tiles
-          "https://unpkg.com"                   // Leaflet marker icons (fallback)
+          "https://unpkg.com",                   // Leaflet marker icons (fallback)
+          "https://*.tiles.openrailwaymap.org"   // OpenRailwayMap tiles
         ],
         connectSrc: [
           "'self'",

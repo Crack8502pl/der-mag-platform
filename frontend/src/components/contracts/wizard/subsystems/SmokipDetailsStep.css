@@ -49,3 +49,103 @@
   background: #F1F5F9;
   border-left-color: #2563EB;
 }
+
+/* ─── Railway Autocomplete Dropdown ─────────────────────────────────────── */
+
+.railway-line-select,
+.station-autocomplete {
+  position: relative;
+}
+
+.railway-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: var(--bg-card, #1e1e1e);
+  border: 1px solid var(--border-color, #333);
+  border-radius: var(--radius-md, 6px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  max-height: 240px;
+  overflow-y: auto;
+  margin-top: 2px;
+}
+
+.railway-dropdown-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-primary, #eee);
+  font-size: 0.875rem;
+  transition: background 0.15s;
+}
+
+.railway-dropdown-item:hover,
+.railway-dropdown-item:focus {
+  background: var(--bg-hover, rgba(255, 107, 53, 0.12));
+  outline: none;
+}
+
+.railway-dropdown-loading,
+.railway-dropdown-empty {
+  cursor: default;
+  color: var(--text-secondary, #888);
+  font-style: italic;
+}
+
+.railway-line-code {
+  font-weight: 600;
+  color: var(--primary-color, #ff6b35);
+  white-space: nowrap;
+}
+
+.railway-line-name {
+  color: var(--text-secondary, #ccc);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.railway-station-km {
+  color: var(--text-secondary, #aaa);
+  font-size: 0.8rem;
+  margin-left: auto;
+}
+
+/* Kilometraz wrapper */
+.kilometraz-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Husky (light) theme overrides */
+:root[data-theme="husky"] .railway-dropdown {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+:root[data-theme="husky"] .railway-dropdown-item {
+  color: #1e293b;
+}
+
+:root[data-theme="husky"] .railway-dropdown-item:hover {
+  background: #f0f7ff;
+}
+
+:root[data-theme="husky"] .railway-line-code {
+  color: #1976D2;
+}
+
+:root[data-theme="husky"] .railway-line-name {
+  color: #475569;
+}
