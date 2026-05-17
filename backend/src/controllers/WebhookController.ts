@@ -19,8 +19,6 @@ const WEBHOOK_EVENTS: WebhookEventType[] = [
 ];
 
 export class WebhookController {
-  private static configRepository = AppDataSource.getRepository(WebhookConfig);
-
   private static validateProvider(provider: unknown): provider is WebhookProvider {
     return typeof provider === 'string' && WEBHOOK_PROVIDERS.includes(provider as WebhookProvider);
   }
@@ -31,7 +29,8 @@ export class WebhookController {
 
   static async listConfigs(req: Request, res: Response): Promise<void> {
     try {
-      const configs = await WebhookController.configRepository.find({ order: { id: 'ASC' } });
+      const configRepository = AppDataSource.getRepository(WebhookConfig);
+      const configs = await configRepository.find({ order: { id: 'ASC' } });
       res.json({ success: true, data: configs });
     } catch (error: any) {
       console.error('WebhookController.listConfigs error:', error);
@@ -58,7 +57,8 @@ export class WebhookController {
         return;
       }
 
-      const config = WebhookController.configRepository.create({
+      const configRepository = AppDataSource.getRepository(WebhookConfig);
+      const config = configRepository.create({
         provider,
         webhookUrl: webhookUrl.trim(),
         eventType,
@@ -66,7 +66,7 @@ export class WebhookController {
         active: Boolean(active),
       });
 
-      const saved = await WebhookController.configRepository.save(config);
+      const saved = await configRepository.save(config);
       res.status(201).json({ success: true, data: saved });
     } catch (error: any) {
       console.error('WebhookController.createConfig error:', error);
@@ -82,7 +82,8 @@ export class WebhookController {
         return;
       }
 
-      const config = await WebhookController.configRepository.findOne({ where: { id } });
+      const configRepository = AppDataSource.getRepository(WebhookConfig);
+      const config = await configRepository.findOne({ where: { id } });
       if (!config) {
         res.status(404).json({ success: false, message: 'Konfiguracja webhooka nie istnieje' });
         return;
@@ -122,7 +123,7 @@ export class WebhookController {
         config.active = Boolean(active);
       }
 
-      const saved = await WebhookController.configRepository.save(config);
+      const saved = await configRepository.save(config);
       res.json({ success: true, data: saved });
     } catch (error: any) {
       console.error('WebhookController.updateConfig error:', error);
@@ -138,13 +139,14 @@ export class WebhookController {
         return;
       }
 
-      const config = await WebhookController.configRepository.findOne({ where: { id } });
+      const configRepository = AppDataSource.getRepository(WebhookConfig);
+      const config = await configRepository.findOne({ where: { id } });
       if (!config) {
         res.status(404).json({ success: false, message: 'Konfiguracja webhooka nie istnieje' });
         return;
       }
 
-      await WebhookController.configRepository.delete(id);
+      await configRepository.delete(id);
       res.json({ success: true });
     } catch (error: any) {
       console.error('WebhookController.deleteConfig error:', error);
