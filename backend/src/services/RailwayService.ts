@@ -1,6 +1,6 @@
 // backend/src/services/RailwayService.ts
 
-import { ILike, Like } from 'typeorm';
+import { ILike } from 'typeorm';
 import { AppDataSource } from '../config/database';
 import { RailwayLine } from '../entities/RailwayLine.entity';
 import { RailwayStation } from '../entities/RailwayStation.entity';
