@@ -14,6 +14,7 @@ import { BomSubsystemTemplateItem, QuantitySource } from '../entities/BomSubsyst
 import { DiskSpecification } from '../entities/DiskSpecification';
 
 const DEFAULT_GROUP_NAME = 'Inne';
+const DEFAULT_RECORDING_DAYS = 14;
 
 export interface BomResolveRequest {
   /** Subsystem type, e.g. 'CCTV', 'SMOKIP_A' */
@@ -143,11 +144,12 @@ export class BomResolverService {
       taskType = '',
       taskVariant = null,
       cameraCount = 0,
-      recordingDays = request.retentionDays ?? 14,
+      recordingDays: requestRecordingDays,
       bitrateMbps = 4.0,
       configParams: callerConfigParams = {},
       isStandaloneNastawnia = false
     } = request;
+    const recordingDays = requestRecordingDays ?? request.retentionDays ?? DEFAULT_RECORDING_DAYS;
     const needsRecorder = BomResolverService.needsRecorder(subsystemType, taskType, isStandaloneNastawnia);
 
     // ── 1. Fetch template ────────────────────────────────────────────────────

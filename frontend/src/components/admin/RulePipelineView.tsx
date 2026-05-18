@@ -9,6 +9,9 @@ import type {
 } from '../../services/bomTemplateDependencyRule.service';
 import { AGGREGATION_DESCRIPTIONS, MATH_DESCRIPTIONS } from '../../utils/ruleFormulaGenerator';
 
+const MAX_ITEM_LABEL_LENGTH = 22;
+const MAX_RULE_LABEL_LENGTH = 18;
+
 interface RulePipelineViewProps {
   rule: BomTemplateDependencyRule;
   templateItems: BomSubsystemTemplateItem[];
@@ -25,11 +28,13 @@ export const RulePipelineView: React.FC<RulePipelineViewProps> = ({
   const getInputLabel = (input: BomTemplateDependencyRuleInput): string => {
     if (input.inputType === 'ITEM' && input.sourceItemId) {
       const item = templateItems.find(i => i.id === input.sourceItemId);
-      return item ? item.materialName.substring(0, 22) + (item.materialName.length > 22 ? '…' : '') : `ID:${input.sourceItemId}`;
+      return item
+        ? item.materialName.substring(0, MAX_ITEM_LABEL_LENGTH) + (item.materialName.length > MAX_ITEM_LABEL_LENGTH ? '…' : '')
+        : `ID:${input.sourceItemId}`;
     }
     if (input.inputType === 'RULE_RESULT' && input.sourceRuleId) {
       const sourceRule = existingRules.find(existingRule => existingRule.id === input.sourceRuleId);
-      return sourceRule ? `⇒ ${sourceRule.ruleName.substring(0, 18)}` : `Reguła #${input.sourceRuleId}`;
+      return sourceRule ? `⇒ ${sourceRule.ruleName.substring(0, MAX_RULE_LABEL_LENGTH)}` : `Reguła #${input.sourceRuleId}`;
     }
     return '?';
   };
@@ -62,7 +67,7 @@ export const RulePipelineView: React.FC<RulePipelineViewProps> = ({
     <div style={{ marginTop: '8px' }}>
       <button
         type="button"
-        onClick={() => setExpanded(e => !e)}
+        onClick={() => setExpanded(previousExpanded => !previousExpanded)}
         style={{
           background: 'none',
           border: 'none',

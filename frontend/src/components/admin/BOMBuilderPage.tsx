@@ -138,6 +138,14 @@ const tableCellBaseStyle: React.CSSProperties = {
   borderBottom: '1px solid var(--border-color)',
 };
 
+const MAX_RULE_INPUT_MATERIAL_NAME_LENGTH = 35;
+
+const getBrokenInputsWarningMessage = (brokenCount: number): string => (
+  brokenCount === 1
+    ? 'Jedno wejście odwołuje się do usuniętych pozycji szablonu. Reguła może nie działać poprawnie.'
+    : `${brokenCount} wejścia odwołują się do usuniętych pozycji szablonu. Reguła może nie działać poprawnie.`
+);
+
 // ========== MATERIALS TAB ==========
 const MaterialsTab: React.FC = () => {
   // State for subsystem templates
@@ -1230,9 +1238,7 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                                 gap: '8px',
                               }}>
                                 <span>⚠️</span>
-                                <span>
-                                  {brokenInputs.length === 1 ? 'Jedno wejście odwołuje się' : `${brokenInputs.length} wejścia odwołują się`} do usuniętych pozycji szablonu. Reguła może nie działać poprawnie.
-                                </span>
+                                <span>{getBrokenInputsWarningMessage(brokenInputs.length)}</span>
                               </div>
                             )}
 
@@ -1302,8 +1308,8 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                                                   {sourceItem ? (
                                                     <div>
                                                       <div style={{ fontWeight: 500, fontSize: '11px' }}>
-                                                        {sourceItem.groupName ? '📦 ' : ''}{sourceItem.materialName.length > 35
-                                                          ? sourceItem.materialName.substring(0, 35) + '...'
+                                                        {sourceItem.groupName ? '📦 ' : ''}{sourceItem.materialName.length > MAX_RULE_INPUT_MATERIAL_NAME_LENGTH
+                                                          ? sourceItem.materialName.substring(0, MAX_RULE_INPUT_MATERIAL_NAME_LENGTH) + '...'
                                                           : sourceItem.materialName}
                                                       </div>
                                                       {sourceItem.catalogNumber && (
