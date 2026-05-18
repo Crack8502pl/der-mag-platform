@@ -14,6 +14,13 @@ router.get(
   (req, res) => taskRelationshipController.getBySubsystem(req, res)
 );
 
+// Get parents of a child task
+router.get(
+  '/parents/:childTaskId',
+  authenticate,
+  (req, res) => taskRelationshipController.getParents(req, res)
+);
+
 // Get children of a parent task
 router.get(
   '/children/:parentTaskId',
