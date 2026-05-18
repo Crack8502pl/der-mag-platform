@@ -6,6 +6,7 @@ import { TaskStatusBadge } from './TaskStatusBadge';
 import { LCSConfigModal } from './LCSConfigModal';
 import { NastawniConfigModal } from './NastawniConfigModal';
 import { CompleteTaskAndCreateAssetModal } from './CompleteTaskAndCreateAssetModal';
+import { TaskConfigWizard } from './TaskConfigWizard';
 import taskService from '../../services/task.service';
 import type { Task } from '../../types/task.types';
 import { getPriorityDisplay } from '../../utils/priority';
@@ -23,6 +24,7 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
   const [showLCSConfig, setShowLCSConfig] = useState(false);
   const [showNastawniConfig, setShowNastawniConfig] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
 
   const { hasPermission } = usePermissions();
   const canEdit = hasPermission('tasks', 'update');
@@ -263,6 +265,15 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
               ⚙️ Konfiguruj Nastawnie
             </button>
           )}
+          {task && canEdit && (
+            <button
+              className="btn btn-primary"
+              onClick={() => setShowWizard(true)}
+              title="Wizard konfiguracji BOM + Rejestrator"
+            >
+              🧙 Wizard konfiguracji
+            </button>
+          )}
           {canCompleteTask && (
             <button
               className="btn btn-success"
@@ -303,6 +314,18 @@ export const TaskDetailModal: React.FC<Props> = ({ taskNumber, onClose }) => {
         onClose={() => setShowCompleteModal(false)}
         onSuccess={() => {
           setShowCompleteModal(false);
+          loadTask();
+        }}
+      />
+    )}
+
+    {/* Task Config Wizard */}
+    {task && showWizard && (
+      <TaskConfigWizard
+        task={task}
+        onClose={() => setShowWizard(false)}
+        onSuccess={() => {
+          setShowWizard(false);
           loadTask();
         }}
       />
