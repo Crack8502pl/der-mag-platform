@@ -6,11 +6,11 @@ export class RailwayLine {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true, length: 20 })
+  @Column({ type: 'varchar', unique: true, length: 20 })
   @Index()
   code: string; // np. "LK-1", "E-20", "LK-221"
 
-  @Column({ length: 200 })
+  @Column({ type: 'varchar', length: 200 })
   name: string; // np. "Warszawa Centralna - Katowice"
 
   @Column({ type: 'decimal', precision: 8, scale: 3, nullable: true, name: 'length_km' })
@@ -22,10 +22,10 @@ export class RailwayLine {
   @Column({ type: 'decimal', precision: 8, scale: 3, nullable: true, name: 'km_to' })
   kmTo: number | null; // km końcowy
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   manager: string; // zarządca, domyślnie "PKP PLK S.A."
 
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   active: boolean;
 
   @OneToMany(() => RailwayStation, station => station.line)

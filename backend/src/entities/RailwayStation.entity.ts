@@ -9,13 +9,13 @@ export class RailwayStation {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ length: 200 })
+  @Column({ type: 'varchar', length: 200 })
   name: string; // np. "Warszawa Centralna"
 
-  @Column({ nullable: true, length: 20 })
+  @Column({ type: 'varchar', nullable: true, length: 20 })
   code: string | null; // kod posterunku np. "WAWA", "KRKW"
 
-  @Column({ name: 'line_code', length: 20 })
+  @Column({ type: 'varchar', name: 'line_code', length: 20 })
   @Index()
   lineCode: string; // FK logiczne do RailwayLine.code
 
@@ -23,7 +23,7 @@ export class RailwayStation {
   @JoinColumn({ name: 'line_id' })
   line: RailwayLine;
 
-  @Column({ name: 'line_id', nullable: true })
+  @Column({ type: 'int', name: 'line_id', nullable: true })
   lineId: number | null;
 
   @Column({ type: 'varchar', length: 30, default: 'stacja' })
@@ -38,10 +38,10 @@ export class RailwayStation {
   @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
   longitude: number | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   municipality: string | null; // miejscowość
 
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   active: boolean;
 
   @CreateDateColumn({ name: 'created_at' })
