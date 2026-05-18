@@ -150,8 +150,7 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
 
   // ── analyzeTemplate (identical logic to SMOKConfigModal) ────
 
-  const analyzeTemplate = (tmpl: BomSubsystemTemplate, loadedGroups: BomGroup[]): ConfigGroup[] => {
-    void loadedGroups; // groups used only for styling; config groups built from template
+  const analyzeTemplate = (tmpl: BomSubsystemTemplate, _loadedGroups: BomGroup[]): ConfigGroup[] => {
     const groupsMap = new Map<string, ConfigField[]>();
 
     for (const item of tmpl.items) {

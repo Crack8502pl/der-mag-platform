@@ -40,6 +40,9 @@ export const WizardStepRecorder: React.FC<WizardStepRecorderProps> = ({
   const { recorderRecommendation, diskRecommendation, cameraCount } = resolvedBom;
   const maxCameras = recorderRecommendation?.recorder.maxCameras ?? cameraCount;
 
+  const BITRATE_MBPS = 4;
+  const TB_PER_MBPS_PER_DAY = 0.0108;
+
   const diskPercent = diskRecommendation
     ? Math.min(100, (diskRecommendation.requiredTb / diskRecommendation.totalCapacityTb) * 100)
     : 0;
@@ -176,8 +179,8 @@ export const WizardStepRecorder: React.FC<WizardStepRecorderProps> = ({
           </div>
 
           <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-            Wzór: {retentionDays} dni × {cameraCount} kamer × 4 Mbps × 0.0108 TB/Mbps/dzień ={' '}
-            {(retentionDays * cameraCount * 4 * 0.0108).toFixed(2)} TB
+            Wzór: {retentionDays} dni × {cameraCount} kamer × {BITRATE_MBPS} Mbps × {TB_PER_MBPS_PER_DAY} TB/Mbps/dzień ={' '}
+            {(retentionDays * cameraCount * BITRATE_MBPS * TB_PER_MBPS_PER_DAY).toFixed(2)} TB
           </div>
         </div>
       )}
