@@ -11,22 +11,32 @@ import { RecorderSpecification } from '../entities/RecorderSpecification';
 import { BomTemplateDependencyRuleService } from './BomTemplateDependencyRuleService';
 import { DependencyRuleEngine } from './DependencyRuleEngine';
 import { BomSubsystemTemplateItem, QuantitySource } from '../entities/BomSubsystemTemplateItem';
+import { DiskSpecification } from '../entities/DiskSpecification';
 
 const DEFAULT_GROUP_NAME = 'Inne';
+const DEFAULT_RECORDING_DAYS = 14;
 
 export interface BomResolveRequest {
   /** Subsystem type, e.g. 'CCTV', 'SMOKIP_A' */
   subsystemType: SubsystemType;
+  /** Task type, e.g. 'LCS', 'NASTAWNIA' */
+  taskType?: string;
   /** Optional task variant used to pick the correct template */
   taskVariant?: string | null;
   /** Number of cameras — used only when subsystemType is CCTV */
   cameraCount?: number;
   /** Number of recording days — used for storage calculation */
   recordingDays?: number;
+  /** Frontend alias for recordingDays */
+  retentionDays?: number;
   /** Video bitrate in Mbps per channel (default 4.0) */
   bitrateMbps?: number;
   /** Arbitrary configuration parameters forwarded to the template resolver */
   configParams?: Record<string, unknown>;
+  /** Whether NASTAWNIA task is standalone (without LCS parent) */
+  isStandaloneNastawnia?: boolean;
+  /** Optional recorder selected by user */
+  selectedRecorderId?: number | null;
 }
 
 export interface ResolvedBomItem {
@@ -35,6 +45,10 @@ export interface ResolvedBomItem {
   catalogNumber?: string | null;
   unit: string;
   quantity: number;
+  resolvedQuantity: number;
+  defaultQuantity: number;
+  quantitySource: string;
+  configParamName?: string | null;
   groupName?: string | null;
   requiresIp: boolean;
   isRequired: boolean;
@@ -43,11 +57,26 @@ export interface ResolvedBomItem {
   warehouseStockId?: number | null;
 }
 
+export interface RecorderRecommendation {
+  recorder: RecorderSpecification;
+  isRecommended: boolean;
+  alternatives: RecorderSpecification[];
+}
+
+export interface DiskRecommendation {
+  diskSpecification: DiskSpecification | null;
+  quantity: number;
+  totalCapacityTb: number;
+  requiredTb: number;
+  isAdequate: boolean;
+}
+
 export interface BomResolveResult {
   subsystemType: SubsystemType;
   taskVariant: string | null;
   templateId: number | null;
   templateName: string | null;
+  templateVersion?: number | null;
   /** Selected recorder — only populated for CCTV subsystems */
   recorder: RecorderSpecification | null;
   /** Required storage in TB — only populated for CCTV subsystems */
@@ -58,12 +87,46 @@ export interface BomResolveResult {
   items: ResolvedBomItem[];
   /** True when no matching template was found */
   templateMissing: boolean;
+  needsRecorder: boolean;
+  cameraCount: number;
+  recorderRecommendation: RecorderRecommendation | null;
+  diskRecommendation: DiskRecommendation | null;
+  retentionDays: number;
+  isConfigured: boolean;
+  resolvedAt: string;
+  warnings: string[];
 }
 
 // Subsystem types that involve a recorder + disk storage selection
-const RECORDER_SUBSYSTEMS = new Set<SubsystemType>([SubsystemType.CCTV]);
+const RECORDER_SUBSYSTEMS = new Set<SubsystemType>([
+  SubsystemType.CCTV,
+  SubsystemType.SMOKIP_A,
+  SubsystemType.SMOKIP_B
+]);
 
 export class BomResolverService {
+  /**
+   * Determines whether a given task/subsystem combination requires a recorder.
+   * SMOKIP_B: PRZEJAZD_KAT_B/C/E/F → yes
+   * SMOKIP_A: LCS → yes; NASTAWNIA → only if standalone (no LCS parent)
+   * CCTV: always yes (when cameraCount > 0)
+   */
+  static needsRecorder(
+    subsystemType: SubsystemType,
+    taskType: string,
+    isStandaloneNastawnia: boolean = false
+  ): boolean {
+    if (subsystemType === SubsystemType.SMOKIP_B) {
+      return ['PRZEJAZD_KAT_B', 'PRZEJAZD_KAT_C', 'PRZEJAZD_KAT_E', 'PRZEJAZD_KAT_F'].includes(taskType);
+    }
+    if (subsystemType === SubsystemType.SMOKIP_A) {
+      if (taskType === 'LCS') return true;
+      if (taskType === 'NASTAWNIA') return isStandaloneNastawnia;
+      return false;
+    }
+    return subsystemType === SubsystemType.CCTV;
+  }
+
   /**
    * Resolve a full BOM for the given subsystem configuration.
    *
@@ -78,12 +141,16 @@ export class BomResolverService {
   static async resolve(request: BomResolveRequest): Promise<BomResolveResult> {
     const {
       subsystemType,
+      taskType = '',
       taskVariant = null,
       cameraCount = 0,
-      recordingDays = 14,
+      recordingDays: requestRecordingDays,
       bitrateMbps = 4.0,
-      configParams: callerConfigParams = {}
+      configParams: callerConfigParams = {},
+      isStandaloneNastawnia = false
     } = request;
+    const recordingDays = requestRecordingDays ?? request.retentionDays ?? DEFAULT_RECORDING_DAYS;
+    const needsRecorder = BomResolverService.needsRecorder(subsystemType, taskType, isStandaloneNastawnia);
 
     // ── 1. Fetch template ────────────────────────────────────────────────────
     const template = await BomSubsystemTemplateService.getTemplate(subsystemType, taskVariant);
@@ -93,11 +160,20 @@ export class BomResolverService {
       taskVariant,
       templateId: template?.id ?? null,
       templateName: template?.templateName ?? null,
+      templateVersion: template?.version ?? null,
       recorder: null,
       requiredStorageTb: null,
       diskSelections: [],
       items: [],
-      templateMissing: template === null
+      templateMissing: template === null,
+      needsRecorder,
+      cameraCount,
+      recorderRecommendation: null,
+      diskRecommendation: null,
+      retentionDays: recordingDays,
+      isConfigured: false,
+      resolvedAt: new Date().toISOString(),
+      warnings: []
     };
 
     if (!template) {
@@ -109,8 +185,14 @@ export class BomResolverService {
     let requiredStorageTb: number | null = null;
     let diskSelections: DiskSelection[] = [];
 
-    if (RECORDER_SUBSYSTEMS.has(subsystemType) && cameraCount > 0) {
-      recorder = await RecorderSelectionService.selectRecorder(cameraCount);
+    if (RECORDER_SUBSYSTEMS.has(subsystemType) && needsRecorder && cameraCount > 0) {
+      if (request.selectedRecorderId != null) {
+        recorder = await RecorderSelectionService.getRecorder(request.selectedRecorderId);
+      }
+
+      if (!recorder) {
+        recorder = await RecorderSelectionService.selectRecorder(cameraCount);
+      }
 
       requiredStorageTb = DiskConfigurationService.calculateRequiredStorage(
         cameraCount,
@@ -224,6 +306,10 @@ export class BomResolverService {
       catalogNumber: item.catalogNumber ?? null,
       unit: item.unit,
       quantity: itemQuantities.get(item.id) ?? item.defaultQuantity,
+      resolvedQuantity: itemQuantities.get(item.id) ?? item.defaultQuantity,
+      defaultQuantity: item.defaultQuantity,
+      quantitySource: item.quantitySource,
+      configParamName: item.configParamName ?? null,
       groupName: item.groupName ?? null,
       requiresIp: item.requiresIp,
       isRequired: item.isRequired,
@@ -232,12 +318,25 @@ export class BomResolverService {
       warehouseStockId: item.warehouseStockId ?? null
     }));
 
+    const totalDiskCapacityTb = diskSelections.reduce((sum, selection) => sum + selection.totalTb, 0);
+    const primaryDisk = diskSelections.length > 0
+      ? await DiskConfigurationService.getDisk(diskSelections[0].diskId)
+      : null;
+
     return {
       ...baseResult,
       recorder,
       requiredStorageTb,
       diskSelections,
-      items: resolvedItems
+      items: resolvedItems,
+      recorderRecommendation: recorder ? { recorder, isRecommended: true, alternatives: [] } : null,
+      diskRecommendation: diskSelections.length > 0 ? {
+        diskSpecification: primaryDisk,
+        quantity: diskSelections[0].quantity,
+        totalCapacityTb: totalDiskCapacityTb,
+        requiredTb: requiredStorageTb ?? 0,
+        isAdequate: totalDiskCapacityTb >= (requiredStorageTb ?? 0)
+      } : null
     };
   }
 

@@ -16,5 +16,7 @@ router.use(authenticate);
  * into a single BOM resolution response for the Wizard task-config step.
  */
 router.post('/resolve', BomResolverController.resolve);
+router.post('/resolve-bulk', BomResolverController.resolveBulk);
+router.get('/needs-recorder', BomResolverController.checkNeedsRecorder);
 
 export default router;

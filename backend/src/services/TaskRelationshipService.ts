@@ -111,6 +111,17 @@ export class TaskRelationshipService {
   }
 
   /**
+   * Get all parent relationships for a specific child task
+   */
+  async getParents(childTaskId: number): Promise<TaskRelationship[]> {
+    return await this.repo.find({
+      where: { childTaskId },
+      relations: ['parentTask'],
+      order: { id: 'ASC' },
+    });
+  }
+
+  /**
    * Delete all relationships for a given parent task
    */
   async deleteByParent(parentTaskId: number): Promise<void> {

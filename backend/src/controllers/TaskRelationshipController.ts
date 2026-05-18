@@ -49,6 +49,25 @@ export class TaskRelationshipController {
   }
 
   /**
+   * GET /api/task-relationships/parents/:childTaskId
+   * Get all parent tasks for a child task
+   */
+  async getParents(req: Request, res: Response): Promise<void> {
+    try {
+      const childTaskId = Number(req.params.childTaskId);
+      if (isNaN(childTaskId)) {
+        res.status(400).json({ success: false, message: 'Nieprawidłowe ID zadania' });
+        return;
+      }
+      const parents = await taskRelationshipService.getParents(childTaskId);
+      res.json({ success: true, data: parents });
+    } catch (error: any) {
+      console.error('Error getting parents:', error);
+      res.status(500).json({ success: false, message: error.message || 'Błąd serwera' });
+    }
+  }
+
+  /**
    * GET /api/task-relationships/children/:parentTaskId
    * Get all children for a parent task
    */

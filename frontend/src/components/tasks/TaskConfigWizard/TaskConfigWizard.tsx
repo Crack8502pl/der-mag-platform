@@ -6,6 +6,7 @@ import bomSubsystemTemplateService from '../../../services/bomSubsystemTemplate.
 import bomGroupService from '../../../services/bomGroup.service';
 import taskService from '../../../services/task.service';
 import bomResolverService from '../../../services/bomResolver.service';
+import taskRelationshipService from '../../../services/taskRelationship.service';
 import type { BomSubsystemTemplate, BomSubsystemTemplateItem } from '../../../services/bomSubsystemTemplate.service';
 import type { BomGroup } from '../../../services/bomGroup.service';
 import type { BomResolveResult } from '../../../services/bomResolver.service';
@@ -61,6 +62,7 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
   const [template, setTemplate] = useState<BomSubsystemTemplate | null>(null);
   const [configGroups, setConfigGroups] = useState<ConfigGroup[]>([]);
   const [bomGroups, setBomGroups] = useState<BomGroup[]>([]);
+  const [isStandaloneNastawnia, setIsStandaloneNastawnia] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [resolving, setResolving] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -115,6 +117,34 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
         setError('Brak informacji o typie podsystemu w zadaniu');
         setLoading(false);
         return;
+      }
+
+      // Determine isStandaloneNastawnia for SMOKIP_A NASTAWNIA tasks.
+      // A NASTAWNIA is "standalone" (needs its own recorder) when it is NOT a child
+      // of any LCS task.  Priority: explicit metadata flag → live relationship query.
+      const taskTypeCode = task.taskType?.code || '';
+      if (subsystemType === 'SMOKIP_A' && taskTypeCode === 'NASTAWNIA') {
+        const metadataFlag = task.metadata?.isStandaloneNastawnia;
+        if (typeof metadataFlag === 'boolean') {
+          setIsStandaloneNastawnia(metadataFlag);
+        } else if (task.subsystemId) {
+          try {
+            const relationships = await taskRelationshipService.getBySubsystem(task.subsystemId);
+            // Is this task's number found as a child of an LCS parent?
+            const isChild = relationships.some(
+              rel =>
+                rel.parentType === 'LCS' &&
+                rel.children.some(c => c.childTaskNumber === task.taskNumber)
+            );
+            setIsStandaloneNastawnia(!isChild);
+          } catch {
+            // If the query fails, assume standalone (safer — gives recorder when uncertain)
+            setIsStandaloneNastawnia(true);
+          }
+        } else {
+          // No subsystemId available — treat as standalone
+          setIsStandaloneNastawnia(true);
+        }
       }
 
       const tmpl = await bomSubsystemTemplateService.getTemplateFor(subsystemType, taskVariant);
@@ -210,7 +240,6 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
       const subsystemType = task.metadata?.subsystemType || task.taskType?.code || '';
       const taskType = task.taskType?.code || subsystemType;
       const taskVariant = task.metadata?.taskVariant || null;
-      const isStandaloneNastawnia = task.metadata?.isStandaloneNastawnia || false;
 
       const result = await bomResolverService.resolve({
         subsystemType,

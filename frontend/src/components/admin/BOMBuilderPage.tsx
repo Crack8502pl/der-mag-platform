@@ -23,6 +23,14 @@ import type { RecorderSpecification } from '../../services/recorderSpecification
 import type { DiskSpecification } from '../../services/diskSpecification.service';
 import { RecorderSpecificationModal } from './RecorderSpecificationModal';
 import { DiskSpecificationModal } from './DiskSpecificationModal';
+import { RuleFormulaPreview } from './RuleFormulaPreview';
+import { RulePipelineView } from './RulePipelineView';
+import {
+  generateHumanReadableFormula,
+  AGGREGATION_DESCRIPTIONS,
+  MATH_DESCRIPTIONS,
+  interpretCondition
+} from '../../utils/ruleFormulaGenerator';
 import '../../styles/grover-theme.css';
 
 type Tab = 'materials' | 'templates';
@@ -130,6 +138,14 @@ const tableCellBaseStyle: React.CSSProperties = {
   borderBottom: '1px solid var(--border-color)',
 };
 
+const MAX_RULE_INPUT_MATERIAL_NAME_LENGTH = 35;
+
+const getBrokenInputsWarningMessage = (brokenCount: number): string => (
+  brokenCount === 1
+    ? 'Jedno wejście odwołuje się do usuniętych pozycji szablonu. Reguła może nie działać poprawnie.'
+    : `${brokenCount} wejścia odwołują się do usuniętych pozycji szablonu. Reguła może nie działać poprawnie.`
+);
+
 // ========== MATERIALS TAB ==========
 const MaterialsTab: React.FC = () => {
   // State for subsystem templates
@@ -174,11 +190,11 @@ const MaterialsTab: React.FC = () => {
 
         {/* Search Bar */}
         <div style={{ marginBottom: '20px' }}>
-          <input
-            type="text"
-            className="form-control"
-            placeholder=""
-            value={templateSearchTerm}
+            <input
+              type="text"
+              className="form-control"
+              placeholder="🔍 Szukaj materiału lub numeru katalogowego..."
+              value={templateSearchTerm}
             onChange={(e) => {
               setTemplateSearchTerm(e.target.value);
               // Auto-expand matching templates
@@ -1092,6 +1108,12 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                       .sort((a, b) => a.evaluationOrder - b.evaluationOrder)
                       .map((rule) => {
                         const targetItem = selectedTemplate?.items.find(item => item.id === rule.targetItemId);
+                        const aggregationDetails = AGGREGATION_DESCRIPTIONS[rule.aggregationType];
+                        const mathDetails = MATH_DESCRIPTIONS[rule.mathOperation];
+                        const brokenInputs = (rule.inputs ?? []).filter(input =>
+                          input.inputType === 'ITEM' && input.sourceItemId &&
+                          !(selectedTemplate?.items ?? []).find(item => item.id === input.sourceItemId)
+                        );
                         
                         return (
                           <div
@@ -1174,6 +1196,72 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                               </div>
                             </div>
 
+                            {/* C1 — Human-readable summary */}
+                            <div style={{
+                              padding: '10px 14px',
+                              background: 'rgba(var(--primary-rgb, 59,130,246), 0.05)',
+                              borderLeft: '3px solid var(--primary-color)',
+                              borderRadius: 'var(--radius-sm)',
+                              marginBottom: '14px',
+                              fontSize: '13px',
+                              fontStyle: 'italic',
+                              color: 'var(--text-secondary)',
+                              lineHeight: '1.5',
+                            }}>
+                              💬 {generateHumanReadableFormula(
+                                {
+                                  ...rule,
+                                  mathOperand: rule.mathOperand ?? '',
+                                  targetItemId: rule.targetItemId ?? '',
+                                  inputs: rule.inputs ?? [],
+                                  conditions: rule.conditions ?? [],
+                                  storageDaysParam: rule.storageDaysParam ?? undefined,
+                                  storageBitrateMbps: rule.storageBitrateMbps ?? ''
+                                },
+                                selectedTemplate?.items ?? [],
+                                dependencyRules
+                              )}
+                            </div>
+
+                            {/* C3 — Broken reference warnings */}
+                            {brokenInputs.length > 0 && (
+                              <div style={{
+                                padding: '8px 12px',
+                                background: 'rgba(239,68,68,0.08)',
+                                border: '1px solid rgba(239,68,68,0.35)',
+                                borderRadius: 'var(--radius-sm)',
+                                marginBottom: '12px',
+                                fontSize: '12px',
+                                color: '#ef4444',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                              }}>
+                                <span>⚠️</span>
+                                <span>{getBrokenInputsWarningMessage(brokenInputs.length)}</span>
+                              </div>
+                            )}
+
+                            <RulePipelineView
+                              rule={rule}
+                              templateItems={selectedTemplate?.items ?? []}
+                              existingRules={dependencyRules}
+                            />
+
+                            <RuleFormulaPreview
+                              ruleId={rule.id}
+                              inputs={rule.inputs ?? []}
+                              aggregationType={rule.aggregationType}
+                              mathOperation={rule.mathOperation}
+                              mathOperand={rule.mathOperand ?? ''}
+                              conditions={rule.conditions ?? []}
+                              targetItemId={rule.targetItemId}
+                              templateItems={selectedTemplate?.items ?? []}
+                              existingRules={dependencyRules}
+                              storageDaysParam={rule.storageDaysParam || undefined}
+                              storageBitrateMbps={rule.storageBitrateMbps ?? ''}
+                            />
+
                             {/* Rule Content Grid */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                               {/* Left Column */}
@@ -1218,15 +1306,39 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                                                 </td>
                                                 <td style={{ fontSize: '11px' }}>
                                                   {sourceItem ? (
-                                                    <span title={sourceItem.materialName}>
-                                                      [{sourceItem.sortOrder}] {sourceItem.materialName.length > 30 
-                                                        ? sourceItem.materialName.substring(0, 30) + '...' 
-                                                        : sourceItem.materialName}
-                                                    </span>
+                                                    <div>
+                                                      <div style={{ fontWeight: 500, fontSize: '11px' }}>
+                                                        {sourceItem.groupName ? '📦 ' : ''}{sourceItem.materialName.length > MAX_RULE_INPUT_MATERIAL_NAME_LENGTH
+                                                          ? sourceItem.materialName.substring(0, MAX_RULE_INPUT_MATERIAL_NAME_LENGTH) + '...'
+                                                          : sourceItem.materialName}
+                                                      </div>
+                                                      {sourceItem.catalogNumber && (
+                                                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                                                          {sourceItem.catalogNumber}
+                                                        </div>
+                                                      )}
+                                                      <span style={{
+                                                        marginTop: '2px',
+                                                        display: 'inline-block',
+                                                        padding: '1px 5px',
+                                                        borderRadius: '3px',
+                                                        fontSize: '10px',
+                                                        color: '#fff',
+                                                        background: sourceItem.quantitySource === 'FROM_CONFIG' ? '#8b5cf6'
+                                                          : sourceItem.quantitySource === 'PER_UNIT' ? '#10b981'
+                                                          : sourceItem.quantitySource === 'DEPENDENT' ? '#f59e0b'
+                                                          : '#3b82f6',
+                                                      }}>
+                                                        {sourceItem.quantitySource === 'FIXED' ? '📌 Stała'
+                                                          : sourceItem.quantitySource === 'FROM_CONFIG' ? `⚙️ ${sourceItem.configParamName || 'konfig.'}`
+                                                          : sourceItem.quantitySource === 'PER_UNIT' ? `🔄 ×${sourceItem.configParamName || 'N'}`
+                                                          : '🔗 Zależna'}
+                                                      </span>
+                                                    </div>
                                                   ) : sourceRule ? (
-                                                    <span>{sourceRule.ruleName}</span>
+                                                    <span style={{ fontSize: '11px' }}>🔗 {sourceRule.ruleName}</span>
                                                   ) : (
-                                                    <span style={{ color: 'var(--text-secondary)' }}>N/A</span>
+                                                    <span style={{ color: '#ef4444', fontSize: '11px' }}>⚠️ Usunięta pozycja</span>
                                                   )}
                                                 </td>
                                                 <td>{input.inputMultiplier}</td>
@@ -1257,7 +1369,7 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                                         background: 'var(--bg-secondary)',
                                         borderRadius: 'var(--radius-sm)'
                                       }}>
-                                        {rule.aggregationType}
+                                        {aggregationDetails ? `${aggregationDetails.icon} ${aggregationDetails.label}` : rule.aggregationType}
                                       </span>
                                     </div>
                                     <div>
@@ -1267,7 +1379,7 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                                         background: 'var(--bg-secondary)',
                                         borderRadius: 'var(--radius-sm)'
                                       }}>
-                                        {rule.mathOperation}
+                                        {mathDetails ? `${mathDetails.icon} ${mathDetails.label}` : rule.mathOperation}
                                       </span>
                                       {rule.mathOperand != null && rule.mathOperation !== 'NONE' && (
                                         <span style={{ marginLeft: '5px' }}>
@@ -1275,6 +1387,19 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                                         </span>
                                       )}
                                     </div>
+                                    {rule.mathOperation === 'CALCULATE_STORAGE' && (
+                                      <div style={{ marginTop: '6px', fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+                                        <span>
+                                          💾 Parametr dni:{' '}
+                                          <code style={{ background: 'var(--bg-secondary)', padding: '1px 5px', borderRadius: '3px' }}>
+                                            {rule.storageDaysParam || 'recordingDays'}
+                                          </code>
+                                        </span>
+                                        <span>
+                                          Bitrate: <strong>{rule.storageBitrateMbps ?? 4.0} Mbps/kamerę</strong>
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -1319,7 +1444,12 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                                               </td>
                                               <td><strong>{condition.resultValue}</strong></td>
                                               <td style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                                                {condition.description || '—'}
+                                                {condition.description || interpretCondition(
+                                                  condition.comparisonOperator,
+                                                  condition.compareValue,
+                                                  condition.compareValueMax,
+                                                  condition.resultValue
+                                                )}
                                               </td>
                                             </tr>
                                           ))}
@@ -2206,4 +2336,3 @@ const DisksTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete: bo
     </div>
   );
 };
-
