@@ -20,6 +20,11 @@ import { serverLogger } from './utils/logger';
 
 const app: Application = express();
 
+// Trust proxy - required when behind nginx/reverse proxy
+// Allows express-rate-limit to correctly identify client IPs from X-Forwarded-For
+// Value '1' means trust first proxy hop; adjust if there are multiple proxies
+app.set('trust proxy', 1);
+
 // 🆕 Prevent HTTPS upgrade in local network (before helmet)
 app.use((req, res, next) => {
   // Remove HSTS and upgrade-insecure-requests for local network
