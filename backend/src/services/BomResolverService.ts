@@ -12,6 +12,8 @@ import { BomTemplateDependencyRuleService } from './BomTemplateDependencyRuleSer
 import { DependencyRuleEngine } from './DependencyRuleEngine';
 import { BomSubsystemTemplateItem, QuantitySource } from '../entities/BomSubsystemTemplateItem';
 
+const DEFAULT_GROUP_NAME = 'Inne';
+
 export interface BomResolveRequest {
   /** Subsystem type, e.g. 'CCTV', 'SMOKIP_A' */
   subsystemType: SubsystemType;
@@ -165,7 +167,7 @@ export class BomResolverService {
       switch (item.quantitySource) {
         case QuantitySource.FROM_CONFIG:
           if (item.configParamName) {
-            const prefixed = `${item.groupName || 'Inne'}_${item.configParamName}`;
+            const prefixed = `${item.groupName || DEFAULT_GROUP_NAME}_${item.configParamName}`;
             const val =
               mergedConfigParams[prefixed] ?? mergedConfigParams[item.configParamName];
             if (val !== undefined) {
@@ -176,7 +178,7 @@ export class BomResolverService {
 
         case QuantitySource.PER_UNIT:
           if (item.configParamName) {
-            const prefixed = `${item.groupName || 'Inne'}_${item.configParamName}`;
+            const prefixed = `${item.groupName || DEFAULT_GROUP_NAME}_${item.configParamName}`;
             const val =
               mergedConfigParams[prefixed] ?? mergedConfigParams[item.configParamName];
             if (val !== undefined) {
@@ -253,7 +255,7 @@ export class BomResolverService {
     if (isNaN(operand)) return base;
     switch (op) {
       case '*': return base * operand;
-      case '/': return operand !== 0 ? base / operand : base;
+      case '/': return operand !== 0 ? base / operand : (() => { console.warn(`BomResolverService: division by zero in formula "${formula}", returning base value`); return base; })();
       case '+': return base + operand;
       case '-': return base - operand;
       default:  return base;

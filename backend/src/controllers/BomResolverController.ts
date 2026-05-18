@@ -60,12 +60,13 @@ export class BomResolverController {
         success: true,
         data: result
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('BomResolverController.resolve error:', error);
+      const message = error instanceof Error ? error.message : 'Nieznany błąd';
       res.status(500).json({
         success: false,
         message: 'Błąd rozwiązywania BOM',
-        error: error.message
+        error: message
       });
     }
   }
