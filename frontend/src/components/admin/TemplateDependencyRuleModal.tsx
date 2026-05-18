@@ -10,6 +10,15 @@ import type {
   CreateRuleDto
 } from '../../services/bomTemplateDependencyRule.service';
 import type { BomSubsystemTemplateItem } from '../../services/bomSubsystemTemplate.service';
+import {
+  AGGREGATION_DESCRIPTIONS,
+  MATH_DESCRIPTIONS,
+  formatItemFullLabel,
+  detectCircularReference,
+  interpretCondition,
+  calculateStoragePreviewTable
+} from '../../utils/ruleFormulaGenerator';
+import { RuleFormulaPreview } from './RuleFormulaPreview';
 import '../../styles/grover-theme.css';
 
 interface TemplateDependencyRuleModalProps {
@@ -118,7 +127,7 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
     if (mathOperation === 'CALCULATE_STORAGE' && (storageBitrateMbps === '' || Number(storageBitrateMbps) <= 0)) {
       return 'Bitrate musi być wartością większą od 0';
     }
-    
+
     for (let i = 0; i < inputs.length; i++) {
       const input = inputs[i];
       if (input.inputType === 'ITEM' && !input.sourceItemId) {
@@ -128,7 +137,10 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
         return `Wejście ${i + 1}: Należy wybrać regułę źródłową`;
       }
     }
-    
+
+    const circularError = detectCircularReference(rule?.id, inputs, existingRules);
+    if (circularError) return circularError;
+
     return null;
   };
 
@@ -189,10 +201,6 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatItemLabel = (item: BomSubsystemTemplateItem) => {
-    return `[${item.sortOrder}]. ${item.materialName} (${item.groupName})`;
   };
 
   return (
@@ -331,6 +339,21 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
             </div>
           </div>
 
+          {/* RuleFormulaPreview Component */}
+          <RuleFormulaPreview
+            inputs={inputs}
+            aggregationType={aggregationType}
+            mathOperation={mathOperation}
+            mathOperand={mathOperand}
+            conditions={conditions}
+            targetItemId={targetItemId}
+            templateItems={templateItems}
+            existingRules={existingRules}
+            storageDaysParam={storageDaysParam}
+            storageBitrateMbps={storageBitrateMbps}
+            ruleId={rule?.id}
+          />
+
           {/* Section 2: Inputs */}
           <div
             style={{
@@ -402,7 +425,7 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
                           <option value="">-- Wybierz pozycję --</option>
                           {templateItems.map((item) => (
                             <option key={item.id} value={item.id}>
-                              {formatItemLabel(item)}
+                              {formatItemFullLabel(item)}
                             </option>
                           ))}
                         </select>
@@ -449,7 +472,12 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
                         htmlFor={`onlyIfSelected-${idx}`}
                         style={{ fontSize: '11px', marginLeft: '5px', color: 'var(--text-secondary)', cursor: 'pointer' }}
                       >
-                        Tylko jeśli wybrany
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                          Tylko jeśli wybrany
+                          <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', fontStyle: 'italic' }}>
+                            (pomiń gdy użytkownik odznaczył w BOM)
+                          </span>
+                        </span>
                       </label>
                     </div>
 
@@ -500,6 +528,12 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
                   <option value="SELECT_RECORDER">Wybierz rejestrator</option>
                   <option value="SELECT_DISKS">Dobierz dyski</option>
                 </select>
+                {aggregationType && AGGREGATION_DESCRIPTIONS[aggregationType] && (
+                  <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>{AGGREGATION_DESCRIPTIONS[aggregationType].icon}</span>
+                    <span>{AGGREGATION_DESCRIPTIONS[aggregationType].desc}</span>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -519,6 +553,15 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
                   <option value="ROUND_DIV">Dzielenie z zaokr.</option>
                   <option value="CALCULATE_STORAGE">Oblicz pojemność dysków</option>
                 </select>
+                {mathOperation && MATH_DESCRIPTIONS[mathOperation] && (
+                  <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>{MATH_DESCRIPTIONS[mathOperation].icon}</span>
+                    <span style={{ fontFamily: 'monospace', color: 'var(--primary-color)' }}>
+                      {MATH_DESCRIPTIONS[mathOperation].example}
+                    </span>
+                    <span style={{ color: 'var(--text-muted)' }}>— {MATH_DESCRIPTIONS[mathOperation].desc}</span>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -565,9 +608,64 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
                     Przepustowość na kamerę w Mbps (domyślnie: 4.0)
                   </small>
                 </div>
+
+                {/* Storage Preview Table */}
+                <div style={{ marginTop: '15px', gridColumn: '1 / -1' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                    📊 Podgląd wymaganej pojemności (TB)
+                  </div>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ background: 'var(--bg-primary)' }}>
+                          <th style={{ padding: '6px 10px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: 500 }}>Kamery</th>
+                          {[7, 14, 30, 60].map(d => (
+                            <th key={d} style={{ padding: '6px 10px', textAlign: 'right', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                              {d} dni
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {calculateStoragePreviewTable(Number(storageBitrateMbps) || 4).map(row => (
+                          <tr key={row.cameras} style={{ borderTop: '1px solid var(--border-color)' }}>
+                            <td style={{ padding: '5px 10px', color: 'var(--text-primary)', fontWeight: 500 }}>{row.cameras} 📹</td>
+                            <td style={{ padding: '5px 10px', textAlign: 'right', color: 'var(--text-secondary)' }}>{row.days7} TB</td>
+                            <td style={{ padding: '5px 10px', textAlign: 'right', color: 'var(--text-secondary)' }}>{row.days14} TB</td>
+                            <td style={{ padding: '5px 10px', textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>{row.days30} TB</td>
+                            <td style={{ padding: '5px 10px', textAlign: 'right', color: 'var(--text-secondary)' }}>{row.days60} TB</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             )}
           </div>
+
+          {/* Info panel for SELECT_RECORDER and SELECT_DISKS */}
+          {(aggregationType === 'SELECT_RECORDER' || aggregationType === 'SELECT_DISKS') && (
+            <div style={{
+              marginTop: '15px',
+              marginBottom: '20px',
+              padding: '12px 15px',
+              background: 'rgba(245,158,11,0.08)',
+              border: '1px solid rgba(245,158,11,0.35)',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '13px'
+            }}>
+              <strong style={{ color: '#f59e0b' }}>
+                {aggregationType === 'SELECT_RECORDER' ? '🖥️ Dobór rejestratora' : '💾 Dobór dysków'}
+                {' '}— obsługiwane przez BomResolverService
+              </strong>
+              <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                {aggregationType === 'SELECT_RECORDER'
+                  ? 'Ta reguła jest interpretowana przez BomResolverService podczas konfiguracji taska w Wizardzie. Użytkownik zobaczy panel wyboru rejestratora z rekomendacją automatyczną na podstawie ilości kamer.'
+                  : 'Ta reguła jest interpretowana przez BomResolverService. Dyski są dobierane automatycznie na podstawie wybranego rejestratora, ilości kamer i ilości dni retencji wybranych w Wizardzie.'}
+              </p>
+            </div>
+          )}
 
           {/* Section 4: Conditions */}
           <div
@@ -691,6 +789,20 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
                         🗑️
                       </button>
                     </div>
+
+                    {/* Condition Interpretation */}
+                    <div style={{ gridColumn: '1 / -1', marginTop: '6px' }}>
+                      <span style={{
+                        fontSize: '11px',
+                        fontStyle: 'italic',
+                        color: 'var(--text-secondary)',
+                        background: 'var(--bg-primary)',
+                        padding: '3px 8px',
+                        borderRadius: 'var(--radius-sm)'
+                      }}>
+                        💬 {interpretCondition(condition.comparisonOperator, condition.compareValue, condition.compareValueMax, condition.resultValue)}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -722,7 +834,7 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
                 <option value="">-- Wybierz pozycję docelową --</option>
                 {templateItems.map((item) => (
                   <option key={item.id} value={item.id}>
-                    {formatItemLabel(item)}
+                    {formatItemFullLabel(item)}
                   </option>
                 ))}
               </select>
