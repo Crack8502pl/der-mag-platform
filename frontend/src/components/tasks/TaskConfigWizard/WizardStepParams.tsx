@@ -273,40 +273,66 @@ interface RetentionSectionProps {
   onRetentionDaysChange: (days: number) => void;
 }
 
+const RETENTION_PRESETS = [7, 14, 21, 30, 60] as const;
+
 const RetentionSection: React.FC<RetentionSectionProps> = ({ retentionDays, onRetentionDaysChange }) => (
-  <div
-    style={{
-      padding: '15px',
-      borderRadius: '8px',
-      border: '1px solid var(--border-color)',
-      background: 'var(--card-bg)',
-      marginBottom: '16px',
-    }}
-  >
-    <h4
-      style={{
-        margin: '0 0 12px 0',
-        color: 'var(--text-primary)',
-        fontSize: '16px',
-        fontWeight: 600,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-      }}
-    >
+  <div style={{
+    padding: '15px',
+    borderRadius: '8px',
+    border: '1px solid var(--border-color)',
+    background: 'var(--card-bg)',
+    marginBottom: '16px',
+  }}>
+    <h4 style={{
+      margin: '0 0 12px 0',
+      color: 'var(--text-primary)',
+      fontSize: '16px',
+      fontWeight: 600,
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+    }}>
       <span style={{ fontSize: '20px' }}>💾</span>
       Parametry zapisu
     </h4>
-    <div className="form-group" style={{ marginBottom: 0 }}>
-      <label>Retencja [dni]</label>
-      <input
-        type="number"
-        value={retentionDays}
-        min={1}
-        max={365}
-        onChange={e => onRetentionDaysChange(Number(e.target.value))}
-      />
-      <small style={{ color: 'var(--text-secondary)', marginTop: '4px', display: 'block' }}>
+    <div>
+      <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+        Retencja nagrań
+      </label>
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+        {RETENTION_PRESETS.map(days => (
+          <button
+            key={days}
+            type="button"
+            onClick={() => onRetentionDaysChange(days)}
+            style={{
+              padding: '7px 14px',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: retentionDays === days ? 700 : 400,
+              border: retentionDays === days
+                ? '2px solid var(--primary-color)'
+                : '1px solid var(--border-color)',
+              background: retentionDays === days
+                ? 'rgba(var(--primary-rgb, 59,130,246), 0.12)'
+                : 'var(--bg-secondary)',
+              color: retentionDays === days
+                ? 'var(--primary-color)'
+                : 'var(--text-secondary)',
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >
+            {days} dni
+          </button>
+        ))}
+      </div>
+      {!RETENTION_PRESETS.includes(retentionDays as (typeof RETENTION_PRESETS)[number]) && (
+        <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+          Wartość niestandardowa: <strong>{retentionDays} dni</strong>
+        </div>
+      )}
+      <small style={{ display: 'block', marginTop: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>
         Ile dni nagrań ma przechowywać rejestrator
       </small>
     </div>
