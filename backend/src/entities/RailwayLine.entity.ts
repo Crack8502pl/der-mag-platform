@@ -22,7 +22,7 @@ export class RailwayLine {
   @Column({ type: 'decimal', precision: 8, scale: 3, nullable: true, name: 'km_to' })
   kmTo: number | null; // km końcowy
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   manager: string; // zarządca, domyślnie "PKP PLK S.A."
 
   @Column({ type: 'boolean', default: true })

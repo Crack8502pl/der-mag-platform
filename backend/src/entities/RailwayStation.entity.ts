@@ -38,7 +38,7 @@ export class RailwayStation {
   @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
   longitude: number | null;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   municipality: string | null; // miejscowość
 
   @Column({ type: 'boolean', default: true })
