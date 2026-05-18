@@ -31,7 +31,7 @@ export class WebhookConfig {
   @Column({ name: 'channel_name', type: 'varchar', length: 100, nullable: true })
   channelName: string | null;
 
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   active: boolean;
 
   @CreateDateColumn({ name: 'created_at' })

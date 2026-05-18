@@ -1,7 +1,7 @@
 // src/index.ts
 // Punkt wejścia aplikacji z obsługą HTTPS
-import 'dotenv/config';
 import 'reflect-metadata';
+import 'dotenv/config';
 import https from 'https';
 import http from 'http';
 import fs from 'fs';
