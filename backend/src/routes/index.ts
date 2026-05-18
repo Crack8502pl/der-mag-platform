@@ -41,6 +41,8 @@ import bomTemplateDependencyRuleRoutes from './bomTemplateDependencyRule.routes'
 // Recorder and Disk Specification routes
 import recorderSpecificationRoutes from './recorderSpecification.routes';
 import diskSpecificationRoutes from './diskSpecification.routes';
+// BOM resolver orchestration routes
+import bomResolverRoutes from './bomResolver.routes';
 // Symfonia MSSQL integration routes
 import symfoniaIntegrationRoutes from './symfoniaIntegration.routes';
 // Symfonia warehouse stock sync routes
@@ -124,6 +126,9 @@ router.use('/bom-template-dependency-rules', bomTemplateDependencyRuleRoutes);
 // Recorder and Disk Specification routes
 router.use('/recorder-specifications', recorderSpecificationRoutes);
 router.use('/disk-specifications', diskSpecificationRoutes);
+
+// BOM resolver orchestration routes
+router.use('/bom-resolver', bomResolverRoutes);
 
 // Symfonia MSSQL integration routes (admin only)
 router.use('/admin/symfonia-integration', symfoniaIntegrationRoutes);
