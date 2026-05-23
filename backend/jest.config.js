@@ -39,10 +39,10 @@ module.exports = {
   coverageReporters: ['text', 'text-summary', 'lcov', 'html'],
   coverageThreshold: {
     global: {
-      branches: 50,
-      functions: 40, // Tymczasowo 40 — Functions 44.18% (wiele helperów/utils trudnych do izolacji)
-      lines: 50,
-      statements: 50
+      branches: 70,
+      functions: 50, // Functions 44.5% — wykluczenie entity files wymaga osobnego zadania
+      lines: 62,
+      statements: 62
     }
   },
   globalSetup: '<rootDir>/tests/globalSetup.ts',
