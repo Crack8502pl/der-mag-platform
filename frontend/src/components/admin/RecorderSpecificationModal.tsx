@@ -10,7 +10,6 @@ import '../../styles/grover-theme.css';
 
 interface RecorderSpecificationModalProps {
   recorder?: RecorderSpecification;
-  warehouseItems: WarehouseStock[];
   onClose: () => void;
   onSuccess: () => void;
 }
