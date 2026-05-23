@@ -39,6 +39,14 @@ class EmailQueueService {
         enableReadyCheck: false,
       });
 
+      this.redisClient.on('error', (error: Error) => {
+        if (error.message.includes('ECONNRESET') || error.message.includes('Connection is closed')) {
+          console.warn(`⚠️  Redis connection error (may be expected during shutdown): ${error.message}`);
+          return;
+        }
+        console.error('❌ Redis client error:', error);
+      });
+
       // Tworzenie kolejki Bull z konfiguracją Redis
       this.queue = new Bull('email-queue', {
         redis: emailConfig.redis,
@@ -291,12 +299,20 @@ class EmailQueueService {
    */
   async close(): Promise<void> {
     if (this.queue) {
-      await this.queue.close();
+      try {
+        await this.queue.close();
+      } catch (error) {
+        console.warn('⚠️  Bull queue close error (non-fatal):', error);
+      }
       console.log('👋 EmailQueueService zamknięty');
     }
     
     if (this.redisClient) {
-      await this.redisClient.quit();
+      try {
+        await this.redisClient.quit();
+      } catch (error) {
+        console.warn('⚠️  Redis quit error (non-fatal, connection may already be closed):', error);
+      }
       console.log('👋 Redis client zamknięty');
     }
   }
