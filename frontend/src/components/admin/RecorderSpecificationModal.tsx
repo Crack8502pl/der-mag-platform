@@ -54,7 +54,7 @@ export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProp
   const extensionSearchRequestRef = useRef(0);
 
   // Delay prevents the dropdown from closing before onMouseDown fires on an item
-  const DROPDOWN_CLOSE_DELAY = 200;
+  const DROPDOWN_CLOSE_DELAY = 350;
 
   const searchWarehouseItems = async (
     term: string,
@@ -221,7 +221,12 @@ export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProp
                     setWarehouseStockId('');
                   }
                 }}
-                onFocus={() => setProductDropdownOpen(true)}
+                onFocus={() => {
+                  setProductDropdownOpen(true);
+                  if (productSearch === selectedProductLabel && selectedProductLabel) {
+                    setSelectedProductLabel('');
+                  }
+                }}
                 onBlur={() => setTimeout(() => setProductDropdownOpen(false), DROPDOWN_CLOSE_DELAY)}
                 autoComplete="off"
               />
@@ -341,7 +346,12 @@ export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProp
                       setExtensionWarehouseStockId('');
                     }
                   }}
-                  onFocus={() => setExtensionDropdownOpen(true)}
+                  onFocus={() => {
+                    setExtensionDropdownOpen(true);
+                    if (extensionSearch === selectedExtensionLabel && selectedExtensionLabel) {
+                      setSelectedExtensionLabel('');
+                    }
+                  }}
                   onBlur={() => setTimeout(() => setExtensionDropdownOpen(false), DROPDOWN_CLOSE_DELAY)}
                   autoComplete="off"
                 />
