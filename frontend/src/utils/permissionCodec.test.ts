@@ -29,6 +29,10 @@ describe('decodePermissionError', () => {
     expect(decodePermissionError(encoded)).toEqual(samplePayload);
   });
 
+  it('decodePermissionError("") zwraca null', () => {
+    expect(decodePermissionError('')).toBeNull();
+  });
+
   it('zwraca null dla nieprawidłowego stringa', () => {
     expect(decodePermissionError('INVALID')).toBeNull();
   });
@@ -38,7 +42,7 @@ describe('decodePermissionError', () => {
   });
 
   it('zwraca null dla nieprawidłowego base64 po prefiksie', () => {
-    expect(decodePermissionError('ERR-PERM-!!!notbase64!!!')).toBeNull();
+    expect(decodePermissionError('ERR-PERM-invalididbase64!!!')).toBeNull();
   });
 
   it('zwraca null dla prawidłowego base64 ale nieprawidłowego JSON', () => {
@@ -88,6 +92,20 @@ describe('decodePermissionError', () => {
       requestedAction: 'delete',
       timestamp: 9999999999999,
     };
+    const decoded = decodePermissionError(encodePermissionError(payload));
+    expect(decoded).toEqual(payload);
+  });
+
+  it('dekoduje payload z numerycznym userId i stringowym username', () => {
+    const payload: PermissionErrorPayload = {
+      userId: 123,
+      username: 'jan.kowalski',
+      roleName: 'user',
+      requestedModule: 'tasks',
+      requestedAction: 'read',
+      timestamp: 1700000000001,
+    };
+
     const decoded = decodePermissionError(encodePermissionError(payload));
     expect(decoded).toEqual(payload);
   });
