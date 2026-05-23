@@ -56,6 +56,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     target: TopologyNode;
   } | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [crossingConnections, setCrossingConnections] = useState<Set<string>>(new Set());
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const isExportingRef = useRef(false);
@@ -460,10 +461,10 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
         pdf.save(defaultFilename);
       }
     } catch (err) {
-      const isModuleLoadError = err instanceof TypeError &&
-        String((err as TypeError).message).includes('dynamically imported module');
+      const isModuleLoadError = err instanceof TypeError;
       if (isModuleLoadError) {
-        alert('Nie można załadować modułu PDF. Odśwież stronę i spróbuj ponownie.');
+        setErrorMsg('Nie można załadować modułu PDF. Odśwież stronę i spróbuj ponownie.');
+        setTimeout(() => setErrorMsg(null), 6000);
       }
       console.error('PDF export error:', err);
     } finally {
@@ -475,6 +476,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
   return (
     <div className="topology-step">
       {successMsg && <div className="alert alert-success">{successMsg}</div>}
+      {errorMsg && <div className="alert alert-error">{errorMsg}</div>}
 
       <TopologyToolbar
         onAutoLayout={handleAutoLayout}
