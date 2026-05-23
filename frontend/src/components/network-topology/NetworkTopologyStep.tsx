@@ -461,17 +461,23 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
         pdf.save(defaultFilename);
       }
     } catch (err) {
-      const isModuleLoadError = err instanceof TypeError;
-      if (isModuleLoadError) {
-        setErrorMsg('Nie można załadować modułu PDF. Odśwież stronę i spróbuj ponownie.');
-        setTimeout(() => setErrorMsg(null), 6000);
-      }
+      const msg = err instanceof Error ? err.message : '';
+      const isModuleLoadError = err instanceof TypeError && (
+        msg.includes('dynamically imported module') ||
+        msg.includes('Failed to fetch') ||
+        msg.includes('Importing a module')
+      );
+      const userMsg = isModuleLoadError
+        ? 'Nie można załadować modułu PDF. Odśwież stronę i spróbuj ponownie.'
+        : 'Błąd eksportu PDF. Spróbuj ponownie.';
+      setErrorMsg(userMsg);
+      setTimeout(() => setErrorMsg(null), 6000);
       console.error('PDF export error:', err);
     } finally {
       isExportingRef.current = false;
       setIsExportingPdf(false);
     }
-  }, [canvasRef, wizardData.contractId, subsystemIndex]);
+  }, [wizardData.contractId, subsystemIndex]);
 
   return (
     <div className="topology-step">
