@@ -228,6 +228,20 @@ To test the application:
 5. **Email**: Check if password change email is sent
 6. **Permissions**: Verify sidebar shows only accessible modules
 
+## 🛡️ Filtrowanie błędów rozszerzeń przeglądarki
+
+Frontend filtruje globalne błędy pochodzące z rozszerzeń przeglądarki (np. AdGuard, uBlock), aby nie były ponownie logowane jako błędy aplikacji.
+
+- Utility: `src/utils/isExtensionError.ts`
+- Globalne handlery: `src/main.tsx` (`error`, `unhandledrejection`)
+- React boundary: `src/components/common/ErrorBoundary.tsx`
+
+Filtrowane są m.in. źródła i komunikaty:
+- `chrome-extension://`, `moz-extension://`, `safari-extension://`
+- `document-start.js`
+- `Could not establish connection`
+- `Receiving end does not exist`
+
 ## 📦 Build
 
 ```bash

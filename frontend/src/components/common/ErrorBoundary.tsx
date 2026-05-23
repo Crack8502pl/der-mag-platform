@@ -2,6 +2,7 @@
 // React Error Boundary dla debugowania na mobile
 
 import React from 'react';
+import { isExtensionError } from '../../utils/isExtensionError';
 
 interface Props {
   children: React.ReactNode;
@@ -28,6 +29,9 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    const isExtension = isExtensionError(undefined, error.stack, error.message);
+    if (isExtension) return;
+
     console.error('🚨 React Error Boundary caught:', error, errorInfo);
     this.setState({ errorInfo });
     
