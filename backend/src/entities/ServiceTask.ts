@@ -102,6 +102,15 @@ export class ServiceTask {
   @Column({ type: 'int', name: 'created_by' })
   createdById: number;
 
+  @Column({ name: 'gps_latitude', type: 'decimal', precision: 10, scale: 7, nullable: true })
+  gpsLatitude: number | null;
+
+  @Column({ name: 'gps_longitude', type: 'decimal', precision: 10, scale: 7, nullable: true })
+  gpsLongitude: number | null;
+
+  @Column({ name: 'google_maps_url', type: 'varchar', length: 500, nullable: true })
+  googleMapsUrl: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

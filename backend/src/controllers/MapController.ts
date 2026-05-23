@@ -41,7 +41,6 @@ export class MapController {
         }
         serviceTasks = await stQb.getMany();
       } catch (_err) {
-        // ServiceTask GPS columns may not exist yet
         serviceTasks = [];
       }
 
@@ -79,9 +78,9 @@ export class MapController {
           status: st.status,
           priority: st.priority,
           isHighPriority: (st.priority || 0) >= 8,
-          gpsLatitude: Number((st as any).gpsLatitude),
-          gpsLongitude: Number((st as any).gpsLongitude),
-          googleMapsUrl: (st as any).googleMapsUrl,
+          gpsLatitude: Number(st.gpsLatitude),
+          gpsLongitude: Number(st.gpsLongitude),
+          googleMapsUrl: st.googleMapsUrl,
         })),
         ...assets.map(a => ({
           id: a.id,

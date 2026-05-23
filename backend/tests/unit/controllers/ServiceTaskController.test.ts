@@ -47,6 +47,32 @@ describe('ServiceTaskController', () => {
       );
     });
 
+    it('should pass GPS fields to the service when creating a task', async () => {
+      const mockTask = { id: 1, taskNumber: 'SRV-000001', title: 'Test' };
+      mockServiceTaskService.createTask = jest.fn().mockResolvedValue(mockTask);
+
+      req = createMockRequest({
+        user: { id: 1 },
+        body: {
+          title: 'Test Task',
+          variant: ServiceTaskVariant.GWARANCYJNY,
+          gpsLatitude: 50.1234567,
+          gpsLongitude: 19.1234567,
+          googleMapsUrl: 'https://maps.google.com/?q=50.1234567,19.1234567',
+        },
+      });
+
+      await controller.createTask(req as Request, res as Response);
+
+      expect(mockServiceTaskService.createTask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          gpsLatitude: 50.1234567,
+          gpsLongitude: 19.1234567,
+          googleMapsUrl: 'https://maps.google.com/?q=50.1234567,19.1234567',
+        })
+      );
+    });
+
     it('should return 401 when user is not authenticated', async () => {
       req = createMockRequest({ body: { title: 'Test', variant: ServiceTaskVariant.GWARANCYJNY } });
 
