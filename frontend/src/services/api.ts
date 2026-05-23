@@ -106,7 +106,7 @@ const isJsonRequest = (headers: Record<string, string> | undefined): boolean => 
  */
 export const getCsrfTokenFromCookie = (): string | null => {
   const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
+  return match ? match[1] : null;
 };
 
 // Request interceptor - add access token
