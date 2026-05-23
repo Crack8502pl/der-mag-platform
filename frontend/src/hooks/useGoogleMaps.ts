@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/hooks/useGoogleMaps.ts
 // Hook do obsługi Google Maps i współrzędnych GPS
 

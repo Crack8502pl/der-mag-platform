@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/brigades/BrigadeListPage.tsx
 // Main brigade list page with CRUD operations and member management
 

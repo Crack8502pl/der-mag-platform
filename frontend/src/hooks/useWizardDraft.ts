@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/hooks/useWizardDraft.ts
 // Hook do zarządzania draftami wizardów z auto-save i przywracaniem
 

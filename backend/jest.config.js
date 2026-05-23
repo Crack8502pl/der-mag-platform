@@ -10,6 +10,11 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
+  transformIgnorePatterns: ['node_modules/(?!(uuid)/)'],
+  transform: {
+    '^.+\\.tsx?$': 'ts-jest',
+    '^.+\\.js$': ['babel-jest', { plugins: ['@babel/plugin-transform-modules-commonjs'] }],
+  },
   testMatch: ['**/*.test.ts'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   coverageProvider: 'v8',

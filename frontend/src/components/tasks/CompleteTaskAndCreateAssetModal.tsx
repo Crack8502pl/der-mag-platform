@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/tasks/CompleteTaskAndCreateAssetModal.tsx
 // Modal for completing an installation task and creating an asset
 

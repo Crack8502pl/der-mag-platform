@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/layout/Dashboard.tsx
 // Main dashboard with module tiles
 

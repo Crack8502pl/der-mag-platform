@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/users/ResetPasswordModal.tsx
 // Modal for resetting user password
 

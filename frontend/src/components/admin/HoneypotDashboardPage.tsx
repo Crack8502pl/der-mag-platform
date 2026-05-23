@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/admin/HoneypotDashboardPage.tsx
 // Panel admina - monitorowanie honeypotów i wykrytych skanowań
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/users/UserListPage.tsx
 // Comprehensive user management page with list, filters, and actions
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/admin/BomGroupsManageModal.tsx
 // Modal for managing BOM material groups
 

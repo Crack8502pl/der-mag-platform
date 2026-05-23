@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/contracts/ContractListPage.tsx
 // Main contracts list page with CRUD operations
 

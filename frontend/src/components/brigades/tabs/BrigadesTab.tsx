@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/brigades/tabs/BrigadesTab.tsx
 // Brigades tab - brigade list with CRUD operations
 

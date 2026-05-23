@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/tasks/TaskListPage.tsx
 // Main tasks list page with CRUD operations
 

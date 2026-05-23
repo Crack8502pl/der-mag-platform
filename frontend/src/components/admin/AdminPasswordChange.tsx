@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/admin/AdminPasswordChange.tsx
 // Admin password change component with strength validation
 

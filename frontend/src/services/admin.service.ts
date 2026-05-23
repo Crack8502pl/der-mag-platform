@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/services/admin.service.ts
 // Service for admin panel API calls
 

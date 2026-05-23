@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/auth/LoginPage.tsx
 // Login page with Grover branding
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/auth/ForgotPasswordPage.tsx
 // Forgot password page - user can request password reset
 

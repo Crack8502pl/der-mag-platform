@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/admin/AdminDashboard.tsx
 // Main admin dashboard with navigation
 

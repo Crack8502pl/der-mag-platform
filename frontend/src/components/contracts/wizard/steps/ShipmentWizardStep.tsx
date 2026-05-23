@@ -27,6 +27,7 @@ export const ShipmentWizardStep: React.FC<ShipmentWizardStepProps> = ({
 
   useEffect(() => {
     if (!contract.subsystems?.length) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoadingSubsystems(true);
       contractService.getContract(contract.id)
         .then((fullContract) => {

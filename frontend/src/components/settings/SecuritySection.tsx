@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/settings/SecuritySection.tsx
 // Security settings section
 

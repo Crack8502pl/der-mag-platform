@@ -48,7 +48,13 @@ describe('DatabaseSeeder', () => {
       if (entity === Role || entity?.name === 'Role') return mockRoleRepository;
       if (entity === User || entity?.name === 'User') return mockUserRepository;
       if (entity === TaskType || entity?.name === 'TaskType') return mockTaskTypeRepository;
-      return {};
+      return {
+        count: jest.fn().mockResolvedValue(1),
+        create: jest.fn((d: any) => d),
+        save: jest.fn((d: any) => Promise.resolve(d)),
+        find: jest.fn().mockResolvedValue([]),
+        findOne: jest.fn().mockResolvedValue(null),
+      };
     });
   });
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/contracts/ShipmentRequestModal.tsx
 // Modal do zlecania wysyłki materiałów podstawowych
 

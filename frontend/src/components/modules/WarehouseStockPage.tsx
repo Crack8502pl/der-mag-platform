@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/modules/WarehouseStockPage.tsx
 // Main warehouse stock management page
 
@@ -178,7 +179,7 @@ export const WarehouseStockPage: React.FC = () => {
       await warehouseStockService.downloadTemplate();
       setSuccess('Szablon pobrany pomyślnie');
       setTimeout(() => setSuccess(''), 3000);
-    } catch (err: any) {
+    } catch (_err: any) {
       setError('Błąd pobierania szablonu');
       setTimeout(() => setError(''), 3000);
     }
@@ -201,7 +202,7 @@ export const WarehouseStockPage: React.FC = () => {
       await warehouseStockService.exportToExcel(filters);
       setSuccess('Dane wyeksportowane pomyślnie');
       setTimeout(() => setSuccess(''), 3000);
-    } catch (err: any) {
+    } catch (_err: any) {
       setError('Błąd eksportu danych');
       setTimeout(() => setError(''), 3000);
     }

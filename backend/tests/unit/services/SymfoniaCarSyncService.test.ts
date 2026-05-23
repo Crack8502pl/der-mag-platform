@@ -163,7 +163,7 @@ describe('SymfoniaCarSyncService', () => {
       expect(mockCarRepository.findOne).not.toHaveBeenCalled();
     });
 
-    it('should count parse errors and continue processing', async () => {
+    it('should silently skip entries with invalid format and continue processing', async () => {
       const symfoniaData = [
         { elementId: 100, title: 'Niepoprawny format', active: true },
         { elementId: 101, title: 'S00153 Samochód CB153PU', active: true },
@@ -177,10 +177,10 @@ describe('SymfoniaCarSyncService', () => {
 
       const result = await SymfoniaCarSyncService.syncCars();
 
-      expect(result.stats.errors).toBe(1);
+      expect(result.stats.errors).toBe(0);
+      expect(result.stats.skipped).toBe(1);
       expect(result.stats.created).toBe(1);
-      expect(result.errors).toHaveLength(1);
-      expect(result.errors[0].message).toContain('Niepoprawny format');
+      expect(result.errors).toHaveLength(0);
     });
 
     it('should update car fields when registration changes in Symfonia', async () => {

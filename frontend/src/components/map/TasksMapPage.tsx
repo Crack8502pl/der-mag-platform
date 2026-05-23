@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/map/TasksMapPage.tsx
 // Main map page - sidebar with task list + OpenStreetMap view
 

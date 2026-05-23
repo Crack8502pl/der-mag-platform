@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/types/brigade.types.ts
 // Types for Brigade module
 

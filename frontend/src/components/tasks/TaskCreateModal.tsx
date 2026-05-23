@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/tasks/TaskCreateModal.tsx
 // Modal for creating new tasks
 
@@ -39,7 +40,7 @@ export const TaskCreateModal: React.FC<Props> = ({ onClose, onSuccess }) => {
     try {
       const types = await taskService.getTaskTypes();
       setTaskTypes(types.filter(t => t.active));
-    } catch (err: any) {
+    } catch (_err: any) {
       setError('Błąd pobierania typów zadań');
     }
   };

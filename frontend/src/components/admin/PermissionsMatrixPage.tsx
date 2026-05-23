@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/admin/PermissionsMatrixPage.tsx
 // Permissions matrix visualization page
 

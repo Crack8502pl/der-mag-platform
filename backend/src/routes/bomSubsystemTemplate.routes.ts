@@ -5,8 +5,10 @@ import { Router } from 'express';
 import { BomSubsystemTemplateController } from '../controllers/BomSubsystemTemplateController';
 import { authenticate, authorize } from '../middleware/auth';
 import { uploadCSV } from '../middleware/upload';
+import multer from 'multer';
 
 const router = Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 // All routes require authentication
 router.use(authenticate);
@@ -28,6 +30,19 @@ router.get(
 router.get(
   '/csv-template',
   BomSubsystemTemplateController.getCsvTemplate
+);
+
+router.get(
+  '/export-all-json',
+  authorize('admin'),
+  BomSubsystemTemplateController.exportAllJson
+);
+
+router.post(
+  '/import-all-json',
+  authorize('admin'),
+  upload.single('file'),
+  BomSubsystemTemplateController.importAllJson
 );
 
 // Import template from CSV (must be before /:id)

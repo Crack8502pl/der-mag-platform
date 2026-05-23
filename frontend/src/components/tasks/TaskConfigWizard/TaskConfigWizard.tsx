@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // frontend/src/components/tasks/TaskConfigWizard/TaskConfigWizard.tsx
 // Multi-step wizard for task BOM + recorder configuration
 

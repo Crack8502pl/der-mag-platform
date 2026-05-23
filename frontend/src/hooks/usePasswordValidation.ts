@@ -19,7 +19,7 @@ export const usePasswordValidation = (password: string): PasswordValidationResul
       length: password.length >= 8 && password.length <= 12,
       uppercase: /[A-Z]/.test(password),
       number: /[0-9]/.test(password),
-      specialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+      specialChar: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password),
     };
 
     const isValid = Object.values(requirements).every(req => req);

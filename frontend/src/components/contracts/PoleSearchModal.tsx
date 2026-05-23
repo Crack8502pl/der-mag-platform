@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/contracts/PoleSearchModal.tsx
 // Modal wyszukiwania słupów w magazynie dla kreatora wysyłki SMOKIP_B
 

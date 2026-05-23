@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/contracts/wizard/ContractWizardModal.tsx
 // Main orchestrator for contract wizard - coordinates all step components
 

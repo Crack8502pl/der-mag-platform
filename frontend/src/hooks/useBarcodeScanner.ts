@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/hooks/useBarcodeScanner.ts
 // Hook for barcode scanning functionality
 

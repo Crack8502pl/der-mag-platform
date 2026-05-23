@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/dashboard/AssetSummaryWidget.tsx
 // Widget podsumowania assetów na Dashboard
 

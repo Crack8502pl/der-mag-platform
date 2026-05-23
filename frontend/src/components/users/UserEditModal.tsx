@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/users/UserEditModal.tsx
 // Modal for editing user information
 

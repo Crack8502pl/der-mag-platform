@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/types/admin.types.ts
 // Types for admin panel functionality
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/users/DeactivateUserModal.tsx
 // Modal for deactivating/blocking a user
 

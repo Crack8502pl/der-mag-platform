@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/modules/WarehouseStockImportModal.tsx
 // Modal for importing warehouse stock from CSV with duplicate detection and field selection
 
@@ -182,9 +183,9 @@ export const WarehouseStockImportModal: React.FC<Props> = ({ onClose, onSuccess 
       }
       
       // Initialize aggregated results
-      let allNewRecords: AnalyzedRow[] = [];
-      let allDuplicates: AnalyzedRow[] = [];
-      let allErrors: AnalyzedRow[] = [];
+      const allNewRecords: AnalyzedRow[] = [];
+      const allDuplicates: AnalyzedRow[] = [];
+      const allErrors: AnalyzedRow[] = [];
       
       // Process batches sequentially
       for (let i = 0; i < batches.length; i++) {
@@ -255,7 +256,7 @@ export const WarehouseStockImportModal: React.FC<Props> = ({ onClose, onSuccess 
       let totalUpdated = 0;
       let totalSkipped = 0;
       let totalFailed = 0;
-      let allErrors: Array<{ row: number; field?: string; error: string }> = [];
+      const allErrors: Array<{ row: number; field?: string; error: string }> = [];
       
       // Process batches sequentially
       for (let i = 0; i < batches.length; i++) {

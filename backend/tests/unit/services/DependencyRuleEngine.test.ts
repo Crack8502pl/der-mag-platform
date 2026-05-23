@@ -12,7 +12,7 @@ import { ComparisonOperator } from '../../../src/entities/BomTemplateDependencyR
 
 describe('DependencyRuleEngine', () => {
   describe('SUM aggregation', () => {
-    it('should sum multiple item quantities', () => {
+    it('should sum multiple item quantities', async () => {
       const rule: any = {
         id: 1,
         evaluationOrder: 0,
@@ -35,14 +35,14 @@ describe('DependencyRuleEngine', () => {
         [3, 6]
       ]);
 
-      const result = DependencyRuleEngine.evaluate([rule], itemQuantities);
+      const result = await DependencyRuleEngine.evaluate([rule], itemQuantities);
 
       expect(result.get(100)).toBe(10); // 3 + 1 + 6 = 10
     });
   });
 
   describe('FLOOR_DIV operation', () => {
-    it('should divide and floor the result', () => {
+    it('should divide and floor the result', async () => {
       const rule: any = {
         id: 2,
         evaluationOrder: 0,
@@ -59,14 +59,14 @@ describe('DependencyRuleEngine', () => {
 
       const itemQuantities = new Map<number, number>([[1, 10]]);
 
-      const result = DependencyRuleEngine.evaluate([rule], itemQuantities);
+      const result = await DependencyRuleEngine.evaluate([rule], itemQuantities);
 
       expect(result.get(101)).toBe(2); // Math.floor(10 / 4) = 2
     });
   });
 
   describe('MODULO operation', () => {
-    it('should calculate modulo', () => {
+    it('should calculate modulo', async () => {
       const rule: any = {
         id: 3,
         evaluationOrder: 0,
@@ -83,14 +83,14 @@ describe('DependencyRuleEngine', () => {
 
       const itemQuantities = new Map<number, number>([[1, 10]]);
 
-      const result = DependencyRuleEngine.evaluate([rule], itemQuantities);
+      const result = await DependencyRuleEngine.evaluate([rule], itemQuantities);
 
       expect(result.get(102)).toBe(2); // 10 % 4 = 2
     });
   });
 
   describe('ADD operation', () => {
-    it('should add operand to value', () => {
+    it('should add operand to value', async () => {
       const rule: any = {
         id: 4,
         evaluationOrder: 0,
@@ -107,14 +107,14 @@ describe('DependencyRuleEngine', () => {
 
       const itemQuantities = new Map<number, number>([[1, 10]]);
 
-      const result = DependencyRuleEngine.evaluate([rule], itemQuantities);
+      const result = await DependencyRuleEngine.evaluate([rule], itemQuantities);
 
       expect(result.get(103)).toBe(15); // 10 + 5 = 15
     });
   });
 
   describe('SUBTRACT operation', () => {
-    it('should subtract operand from value', () => {
+    it('should subtract operand from value', async () => {
       const rule: any = {
         id: 5,
         evaluationOrder: 0,
@@ -131,14 +131,14 @@ describe('DependencyRuleEngine', () => {
 
       const itemQuantities = new Map<number, number>([[1, 10]]);
 
-      const result = DependencyRuleEngine.evaluate([rule], itemQuantities);
+      const result = await DependencyRuleEngine.evaluate([rule], itemQuantities);
 
       expect(result.get(104)).toBe(7); // 10 - 3 = 7
     });
   });
 
   describe('MULTIPLY operation', () => {
-    it('should multiply value by operand', () => {
+    it('should multiply value by operand', async () => {
       const rule: any = {
         id: 6,
         evaluationOrder: 0,
@@ -155,14 +155,14 @@ describe('DependencyRuleEngine', () => {
 
       const itemQuantities = new Map<number, number>([[1, 10]]);
 
-      const result = DependencyRuleEngine.evaluate([rule], itemQuantities);
+      const result = await DependencyRuleEngine.evaluate([rule], itemQuantities);
 
       expect(result.get(105)).toBe(30); // 10 * 3 = 30
     });
   });
 
   describe('CEIL_DIV operation', () => {
-    it('should divide and ceil the result', () => {
+    it('should divide and ceil the result', async () => {
       const rule: any = {
         id: 7,
         evaluationOrder: 0,
@@ -179,14 +179,14 @@ describe('DependencyRuleEngine', () => {
 
       const itemQuantities = new Map<number, number>([[1, 10]]);
 
-      const result = DependencyRuleEngine.evaluate([rule], itemQuantities);
+      const result = await DependencyRuleEngine.evaluate([rule], itemQuantities);
 
       expect(result.get(106)).toBe(3); // Math.ceil(10 / 4) = 3
     });
   });
 
   describe('Conditional results with BETWEEN', () => {
-    it('should return correct result based on BETWEEN condition', () => {
+    it('should return correct result based on BETWEEN condition', async () => {
       const rule: any = {
         id: 8,
         evaluationOrder: 0,
@@ -229,7 +229,7 @@ describe('DependencyRuleEngine', () => {
         [1, 3],
         [2, 1]
       ]);
-      const result1 = DependencyRuleEngine.evaluate([rule], itemQuantities1);
+      const result1 = await DependencyRuleEngine.evaluate([rule], itemQuantities1);
       expect(result1.get(107)).toBe(1);
 
       // Test case 2: sum = 10 (6-10 range) -> result should be 3
@@ -237,7 +237,7 @@ describe('DependencyRuleEngine', () => {
         [1, 6],
         [2, 4]
       ]);
-      const result2 = DependencyRuleEngine.evaluate([rule], itemQuantities2);
+      const result2 = await DependencyRuleEngine.evaluate([rule], itemQuantities2);
       expect(result2.get(107)).toBe(3);
 
       // Test case 3: sum = 15 (>10) -> result should be 5
@@ -245,13 +245,13 @@ describe('DependencyRuleEngine', () => {
         [1, 10],
         [2, 5]
       ]);
-      const result3 = DependencyRuleEngine.evaluate([rule], itemQuantities3);
+      const result3 = await DependencyRuleEngine.evaluate([rule], itemQuantities3);
       expect(result3.get(107)).toBe(5);
     });
   });
 
   describe('Rule chaining', () => {
-    it('should use result from previous rule as input', () => {
+    it('should use result from previous rule as input', async () => {
       const rule1: any = {
         id: 9,
         evaluationOrder: 0,
@@ -282,7 +282,7 @@ describe('DependencyRuleEngine', () => {
 
       const itemQuantities = new Map<number, number>([[1, 10]]);
 
-      const result = DependencyRuleEngine.evaluate([rule1, rule2], itemQuantities);
+      const result = await DependencyRuleEngine.evaluate([rule1, rule2], itemQuantities);
 
       expect(result.get(108)).toBe(2); // Rule 1: floor(10/4) = 2
       expect(result.get(109)).toBe(3); // Rule 2: 2 + 1 = 3
@@ -290,7 +290,7 @@ describe('DependencyRuleEngine', () => {
   });
 
   describe('Empty inputs', () => {
-    it('should return 0 for empty inputs', () => {
+    it('should return 0 for empty inputs', async () => {
       const rule: any = {
         id: 11,
         evaluationOrder: 0,
@@ -305,14 +305,14 @@ describe('DependencyRuleEngine', () => {
 
       const itemQuantities = new Map<number, number>();
 
-      const result = DependencyRuleEngine.evaluate([rule], itemQuantities);
+      const result = await DependencyRuleEngine.evaluate([rule], itemQuantities);
 
       expect(result.get(110)).toBe(0);
     });
   });
 
   describe('No matching conditions', () => {
-    it('should return 0 when no conditions match', () => {
+    it('should return 0 when no conditions match', async () => {
       const rule: any = {
         id: 12,
         evaluationOrder: 0,
@@ -337,14 +337,14 @@ describe('DependencyRuleEngine', () => {
 
       const itemQuantities = new Map<number, number>([[1, 5]]);
 
-      const result = DependencyRuleEngine.evaluate([rule], itemQuantities);
+      const result = await DependencyRuleEngine.evaluate([rule], itemQuantities);
 
       expect(result.get(111)).toBe(0);
     });
   });
 
   describe('COUNT aggregation', () => {
-    it('should count number of inputs', () => {
+    it('should count number of inputs', async () => {
       const rule: any = {
         id: 13,
         evaluationOrder: 0,
@@ -367,14 +367,14 @@ describe('DependencyRuleEngine', () => {
         [3, 15]
       ]);
 
-      const result = DependencyRuleEngine.evaluate([rule], itemQuantities);
+      const result = await DependencyRuleEngine.evaluate([rule], itemQuantities);
 
       expect(result.get(112)).toBe(3);
     });
   });
 
   describe('MIN aggregation', () => {
-    it('should return minimum value', () => {
+    it('should return minimum value', async () => {
       const rule: any = {
         id: 14,
         evaluationOrder: 0,
@@ -397,14 +397,14 @@ describe('DependencyRuleEngine', () => {
         [3, 8]
       ]);
 
-      const result = DependencyRuleEngine.evaluate([rule], itemQuantities);
+      const result = await DependencyRuleEngine.evaluate([rule], itemQuantities);
 
       expect(result.get(113)).toBe(2);
     });
   });
 
   describe('MAX aggregation', () => {
-    it('should return maximum value', () => {
+    it('should return maximum value', async () => {
       const rule: any = {
         id: 15,
         evaluationOrder: 0,
@@ -427,14 +427,14 @@ describe('DependencyRuleEngine', () => {
         [3, 8]
       ]);
 
-      const result = DependencyRuleEngine.evaluate([rule], itemQuantities);
+      const result = await DependencyRuleEngine.evaluate([rule], itemQuantities);
 
       expect(result.get(114)).toBe(8);
     });
   });
 
   describe('PRODUCT aggregation', () => {
-    it('should multiply all values', () => {
+    it('should multiply all values', async () => {
       const rule: any = {
         id: 16,
         evaluationOrder: 0,
@@ -455,7 +455,7 @@ describe('DependencyRuleEngine', () => {
         [2, 4]
       ]);
 
-      const result = DependencyRuleEngine.evaluate([rule], itemQuantities);
+      const result = await DependencyRuleEngine.evaluate([rule], itemQuantities);
 
       expect(result.get(115)).toBe(12); // 3 * 4 = 12
     });

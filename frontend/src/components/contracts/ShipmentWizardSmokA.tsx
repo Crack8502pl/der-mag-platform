@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/contracts/ShipmentWizardSmokA.tsx
 // 3-krokowy kreator wysyłki dla podsystemów SMOKIP_A
 

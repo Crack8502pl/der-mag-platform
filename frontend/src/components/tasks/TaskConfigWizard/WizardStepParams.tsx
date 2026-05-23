@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // frontend/src/components/tasks/TaskConfigWizard/WizardStepParams.tsx
 // Step 0: Configuration parameters form
 

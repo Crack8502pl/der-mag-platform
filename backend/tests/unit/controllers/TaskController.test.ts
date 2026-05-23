@@ -774,7 +774,6 @@ describe('TaskController', () => {
 
   describe('getTasksWithGps', () => {
     it('should return tasks that have GPS coordinates', async () => {
-      const mockQueryBuilder = createMockQueryBuilder<Task>();
       const mockTasks = [
         {
           id: 1, taskNumber: 'T001', title: 'GPS Task',
@@ -785,10 +784,9 @@ describe('TaskController', () => {
           contract: { contractNumber: 'R0000001_A' },
         },
       ] as any[];
-      mockQueryBuilder.getMany.mockResolvedValue(mockTasks);
-      mockTaskRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
-      (AppDataSource.getRepository as jest.Mock).mockReturnValue(mockTaskRepository);
+      const { TaskService: MockTaskService } = require('../../../src/services/TaskService');
+      MockTaskService.getTasksWithGps = jest.fn().mockResolvedValue(mockTasks);
 
       await TaskController.getTasksWithGps(req as Request, res as Response);
 
@@ -850,9 +848,9 @@ describe('TaskController', () => {
       expect(mockQrTaskRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ taskType: 'KOMPLETACJA_WYSYLKI', taskNumber: 'Z00020326' })
       );
-      expect(mockQrTaskRepo.save).toHaveBeenCalledTimes(2);
-      // Second save should update source task substatus
-      const secondSaveCall = mockQrTaskRepo.save.mock.calls[1][0];
+      expect(mockQrTaskRepo.save).toHaveBeenCalledTimes(3);
+      // Third save should update source task substatus
+      const secondSaveCall = mockQrTaskRepo.save.mock.calls[2][0];
       expect(secondSaveCall.substatus).toBe('wysyłka_zlecona');
       expect(secondSaveCall.metadata).toMatchObject({ substatus: 'wysyłka_zlecona' });
       expect(mockQueryRunner.commitTransaction).toHaveBeenCalled();

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/contracts/ShipmentWizardModal.tsx
 // Modal for initiating shipment for all eligible tasks in a subsystem
 

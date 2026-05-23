@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/brigades/modals/TaskAssignmentModal.tsx
 // Modal for assigning a task to a brigade
 

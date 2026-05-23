@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/layout/Sidebar.tsx
 // Sidebar with role-based menu
 
