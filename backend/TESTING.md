@@ -265,13 +265,12 @@ Enforced thresholds in `jest.config.js`:
 | Metryka    | Próg enforced | Aktualnie |
 |------------|---------------|-----------|
 | Branches   | 70%           | ~76%      |
-| Functions  | 50%           | ~44%      |
-| Lines      | 62%           | ~62%      |
-| Statements | 62%           | ~62%      |
+| Functions  | 60%           | ~65%+     |
+| Lines      | 65%           | ~70%+     |
+| Statements | 65%           | ~70%+     |
 
-> **Uwaga:** Próg `functions` jest ustawiony na 50% ze względu na dużą liczbę encji TypeORM,
-> których konstruktory i akcesory nie są wywoływane w testach (repozytoria są mockowane).
-> Docelowo: podnieść do 70% po dodaniu testów encji lub wykluczeniu ich z coverage.
+> **Uwaga:** `src/entities/**` oraz `src/dto/**` są wykluczone z coverage, ponieważ zawierają
+> głównie deklaracje TypeORM/class-validator oparte na dekoratorach, bez logiki biznesowej.
 
 - **Target**: 80% or higher for critical paths
 - **Focus Areas**:
@@ -281,10 +280,12 @@ Enforced thresholds in `jest.config.js`:
 
 ### Excluded from Coverage
 
-- `src/index.ts` - Application entry point
-- `src/**/*.d.ts` - Type definition files
-- Generated files
-- Configuration files
+- `src/index.ts` — Application entry point
+- `src/**/*.d.ts` — Type definition files
+- `src/migrations/**` — Database migrations
+- `src/generated/**` — Generated files
+- `src/entities/**` — TypeORM entity declarations (decorators only, no business logic)
+- `src/dto/**` — class-validator DTO declarations (decorators only, no business logic)
 
 ## CI/CD Integration
 

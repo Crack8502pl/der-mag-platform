@@ -33,16 +33,18 @@ module.exports = {
     '!src/index.ts',
     '!src/**/*.d.ts',
     '!src/migrations/**',
-    '!src/generated/**'
+    '!src/generated/**',
+    '!src/entities/**', // TypeORM entity definitions — no business logic
+    '!src/dto/**', // class-validator DTO declarations — no business logic
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'text-summary', 'lcov', 'html'],
   coverageThreshold: {
     global: {
       branches: 70,
-      functions: 50, // Functions 44.5% — wykluczenie entity files wymaga osobnego zadania
-      lines: 62,
-      statements: 62
+      functions: 60,
+      lines: 65,
+      statements: 65
     }
   },
   globalSetup: '<rootDir>/tests/globalSetup.ts',
