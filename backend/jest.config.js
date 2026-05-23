@@ -40,7 +40,7 @@ module.exports = {
   coverageThreshold: {
     global: {
       branches: 70,
-      functions: 50, // Functions 44.5% — entity files wykluczyć wymaga osobnego zadania
+      functions: 50, // Functions 44.5% — wykluczenie entity files wymaga osobnego zadania
       lines: 62,
       statements: 62
     }
