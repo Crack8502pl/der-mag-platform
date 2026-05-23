@@ -1,7 +1,8 @@
 // src/dto/CreateServiceTaskDto.ts
 // DTO for creating service tasks
 
-import { IsString, IsNotEmpty, IsEnum, IsOptional, IsNumber, IsDateString, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsString, IsNotEmpty, IsEnum, IsOptional, IsNumber, IsDateString, Min, Max, MaxLength } from 'class-validator';
 import { ServiceTaskVariant } from '../entities/ServiceTask';
 
 export class CreateServiceTaskDto {
@@ -43,6 +44,25 @@ export class CreateServiceTaskDto {
   @IsOptional()
   priority?: number;
 
+  @IsNumber({}, { message: 'Szerokość geograficzna musi być liczbą' })
+  @IsOptional()
+  @Min(-90, { message: 'Szerokość geograficzna musi być >= -90' })
+  @Max(90, { message: 'Szerokość geograficzna musi być <= 90' })
+  @Type(() => Number)
+  gpsLatitude?: number | null;
+
+  @IsNumber({}, { message: 'Długość geograficzna musi być liczbą' })
+  @IsOptional()
+  @Min(-180, { message: 'Długość geograficzna musi być >= -180' })
+  @Max(180, { message: 'Długość geograficzna musi być <= 180' })
+  @Type(() => Number)
+  gpsLongitude?: number | null;
+
+  @IsString({ message: 'Link Google Maps musi być ciągiem znaków' })
+  @IsOptional()
+  @MaxLength(500, { message: 'Link Google Maps może mieć maksymalnie 500 znaków' })
+  googleMapsUrl?: string | null;
+
   @IsOptional()
   metadata?: Record<string, any>;
 }
@@ -81,6 +101,25 @@ export class UpdateServiceTaskDto {
   @Max(10, { message: 'Priorytet nie może być większy niż 10' })
   @IsOptional()
   priority?: number;
+
+  @IsNumber({}, { message: 'Szerokość geograficzna musi być liczbą' })
+  @IsOptional()
+  @Min(-90, { message: 'Szerokość geograficzna musi być >= -90' })
+  @Max(90, { message: 'Szerokość geograficzna musi być <= 90' })
+  @Type(() => Number)
+  gpsLatitude?: number | null;
+
+  @IsNumber({}, { message: 'Długość geograficzna musi być liczbą' })
+  @IsOptional()
+  @Min(-180, { message: 'Długość geograficzna musi być >= -180' })
+  @Max(180, { message: 'Długość geograficzna musi być <= 180' })
+  @Type(() => Number)
+  gpsLongitude?: number | null;
+
+  @IsString({ message: 'Link Google Maps musi być ciągiem znaków' })
+  @IsOptional()
+  @MaxLength(500, { message: 'Link Google Maps może mieć maksymalnie 500 znaków' })
+  googleMapsUrl?: string | null;
 
   @IsOptional()
   metadata?: Record<string, any>;

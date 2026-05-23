@@ -97,6 +97,7 @@ import { CreateNetworkTopologies20260430 } from '../migrations/20260430_create_n
 import { AddDeletedAtToNetworkTopologies20260430 } from '../migrations/20260430_add_deleted_at_to_network_topologies';
 import { CreateRailwayTables20260517 } from '../migrations/20260517_create_railway_tables';
 import { CreateWebhookConfigs20260517 } from '../migrations/20260517_create_webhook_configs';
+import { AddGpsToServiceTask1779574500000 } from '../migrations/1779574500000-AddGpsToServiceTask';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -223,6 +224,7 @@ export const AppDataSource = new DataSource({
     AddDeletedAtToNetworkTopologies20260430,
     CreateRailwayTables20260517,
     CreateWebhookConfigs20260517,
+    AddGpsToServiceTask1779574500000,
   ],
 });
 

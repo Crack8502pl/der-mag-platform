@@ -49,6 +49,9 @@ export class ServiceTaskService {
     plannedStartDate?: Date;
     plannedEndDate?: Date;
     priority?: number;
+    gpsLatitude?: number | null;
+    gpsLongitude?: number | null;
+    googleMapsUrl?: string | null;
     metadata?: Record<string, any>;
     createdById: number;
   }): Promise<ServiceTask> {
@@ -66,6 +69,9 @@ export class ServiceTaskService {
       plannedStartDate: data.plannedStartDate,
       plannedEndDate: data.plannedEndDate,
       priority: data.priority || 0,
+      gpsLatitude: data.gpsLatitude ?? null,
+      gpsLongitude: data.gpsLongitude ?? null,
+      googleMapsUrl: data.googleMapsUrl ?? null,
       metadata: data.metadata || {},
       createdById: data.createdById,
     });

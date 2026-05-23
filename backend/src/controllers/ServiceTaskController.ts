@@ -33,6 +33,9 @@ export class ServiceTaskController {
         plannedStartDate,
         plannedEndDate,
         priority,
+        gpsLatitude,
+        gpsLongitude,
+        googleMapsUrl,
         metadata,
       } = req.body;
 
@@ -54,6 +57,9 @@ export class ServiceTaskController {
         plannedStartDate: plannedStartDate ? new Date(plannedStartDate) : undefined,
         plannedEndDate: plannedEndDate ? new Date(plannedEndDate) : undefined,
         priority,
+        gpsLatitude,
+        gpsLongitude,
+        googleMapsUrl,
         metadata,
         createdById: userId,
       });

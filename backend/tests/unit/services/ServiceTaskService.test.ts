@@ -132,6 +132,33 @@ describe('ServiceTaskService', () => {
         expect.objectContaining({ priority: 0, metadata: {} })
       );
     });
+
+    it('should persist GPS fields when provided', async () => {
+      const mockQb = createMockQueryBuilder<ServiceTask>();
+      mockQb.getOne.mockResolvedValue(null);
+      mockTaskRepository.createQueryBuilder.mockReturnValue(mockQb);
+
+      const mockTask = { id: 1 } as unknown as ServiceTask;
+      mockTaskRepository.create.mockReturnValue(mockTask);
+      mockTaskRepository.save.mockResolvedValue(mockTask);
+
+      await service.createTask({
+        title: 'Task',
+        variant: ServiceTaskVariant.REKLAMACJA,
+        createdById: 2,
+        gpsLatitude: 50.1234567,
+        gpsLongitude: 19.1234567,
+        googleMapsUrl: 'https://maps.google.com/?q=50.1234567,19.1234567',
+      });
+
+      expect(mockTaskRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          gpsLatitude: 50.1234567,
+          gpsLongitude: 19.1234567,
+          googleMapsUrl: 'https://maps.google.com/?q=50.1234567,19.1234567',
+        })
+      );
+    });
   });
 
   describe('getTaskById', () => {
