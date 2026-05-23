@@ -131,27 +131,38 @@ process.on('uncaughtException', (error) => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', async () => {
-  serverLogger.info('👋 SIGTERM received, shutting down gracefully');
+let isShuttingDown = false;
+
+const gracefulShutdown = async (signal: 'SIGTERM' | 'SIGINT'): Promise<void> => {
+  if (isShuttingDown) {
+    serverLogger.info(`👋 ${signal} received, shutdown already in progress`);
+    return;
+  }
+
+  isShuttingDown = true;
+  serverLogger.info(`👋 ${signal} received, shutting down gracefully`);
   NotificationSchedulerService.stopAll();
   stopSymfoniaStockSyncJob();
   stopSymfoniaContractSyncJobs();
   stopSymfoniaCarSyncJob();
   stopWarehouseCleanupJob();
   stopCleanExpiredDraftsJob();
-  await EmailQueueService.close();
+
+  try {
+    await EmailQueueService.close();
+  } catch (error) {
+    serverLogger.warn('⚠️  EmailQueueService close error (non-fatal):', error);
+  }
+
   process.exit(0);
+};
+
+process.once('SIGTERM', () => {
+  void gracefulShutdown('SIGTERM');
 });
 
-process.on('SIGINT', async () => {
-  serverLogger.info('👋 SIGINT received, shutting down gracefully');
-  stopSymfoniaStockSyncJob();
-  stopSymfoniaContractSyncJobs();
-  stopSymfoniaCarSyncJob();
-  stopWarehouseCleanupJob();
-  stopCleanExpiredDraftsJob();
-  await EmailQueueService.close();
-  process.exit(0);
+process.once('SIGINT', () => {
+  void gracefulShutdown('SIGINT');
 });
 
 // Uruchom serwer

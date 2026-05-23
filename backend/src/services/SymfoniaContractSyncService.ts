@@ -73,9 +73,6 @@ type ProgressCallback = (progress: ContractSyncProgress) => void;
 
 const BATCH_SIZE = 50;
 
-// Track running state to prevent concurrent syncs
-let isContractSyncRunning = false;
-
 // Progress subscribers
 const progressSubscribers = new Set<ProgressCallback>();
 
@@ -137,6 +134,15 @@ function isCarEntry(shortcut: string): boolean {
 }
 
 export class SymfoniaContractSyncService {
+  private static isContractSyncRunning = false;
+  private static contractSyncStartedAt: Date | null = null;
+  private static readonly MAX_SYNC_RUN_DURATION_MS = 90 * 60 * 1000; // 90 minut
+
+  static resetSyncLock(): void {
+    SymfoniaContractSyncService.isContractSyncRunning = false;
+    SymfoniaContractSyncService.contractSyncStartedAt = null;
+  }
+
   /**
    * Subskrypcja na aktualizacje progressu synchronizacji
    */
@@ -154,10 +160,11 @@ export class SymfoniaContractSyncService {
    * READ-ONLY from MSSQL
    */
   static async fullSync(userId: number): Promise<ContractSyncResult> {
-    if (isContractSyncRunning) {
+    if (SymfoniaContractSyncService.isContractSyncRunning) {
       throw new Error('Synchronizacja kontraktów jest już uruchomiona');
     }
-    isContractSyncRunning = true;
+    SymfoniaContractSyncService.isContractSyncRunning = true;
+    SymfoniaContractSyncService.contractSyncStartedAt = new Date();
     const startedAt = new Date();
     const errors: ContractSyncError[] = [];
     let stats: ContractSyncResult['stats'] = { totalProcessed: 0, created: 0, updated: 0, skipped: 0, errors: 0 };
@@ -204,7 +211,7 @@ export class SymfoniaContractSyncService {
       await SymfoniaContractSyncService.logSync(result, userId, 'admin').catch(() => {});
       throw error;
     } finally {
-      isContractSyncRunning = false;
+      SymfoniaContractSyncService.resetSyncLock();
     }
   }
 
@@ -213,10 +220,11 @@ export class SymfoniaContractSyncService {
    * READ-ONLY from MSSQL
    */
   static async quickSync(): Promise<ContractSyncResult> {
-    if (isContractSyncRunning) {
+    if (SymfoniaContractSyncService.isContractSyncRunning) {
       throw new Error('Synchronizacja kontraktów jest już uruchomiona');
     }
-    isContractSyncRunning = true;
+    SymfoniaContractSyncService.isContractSyncRunning = true;
+    SymfoniaContractSyncService.contractSyncStartedAt = new Date();
     const startedAt = new Date();
     const errors: ContractSyncError[] = [];
     let stats: ContractSyncResult['stats'] = { totalProcessed: 0, created: 0, updated: 0, skipped: 0, errors: 0 };
@@ -260,7 +268,7 @@ export class SymfoniaContractSyncService {
       await SymfoniaContractSyncService.logSync(result, undefined, 'cron').catch(() => {});
       throw error;
     } finally {
-      isContractSyncRunning = false;
+      SymfoniaContractSyncService.resetSyncLock();
     }
   }
 
@@ -269,10 +277,23 @@ export class SymfoniaContractSyncService {
    * Uruchamiana automatycznie co 3 godziny
    */
   static async fullSyncFromCron(): Promise<ContractSyncResult> {
-    if (isContractSyncRunning) {
+    if (SymfoniaContractSyncService.isContractSyncRunning && SymfoniaContractSyncService.contractSyncStartedAt) {
+      const elapsed = Date.now() - SymfoniaContractSyncService.contractSyncStartedAt.getTime();
+      if (elapsed > SymfoniaContractSyncService.MAX_SYNC_RUN_DURATION_MS) {
+        console.warn(
+          `⚠️  [CRON] Resetuję blokadę synchronizacji kontraktów (przekroczono ${
+            SymfoniaContractSyncService.MAX_SYNC_RUN_DURATION_MS / 60000
+          } min)`
+        );
+        SymfoniaContractSyncService.resetSyncLock();
+      }
+    }
+
+    if (SymfoniaContractSyncService.isContractSyncRunning) {
       throw new Error('Synchronizacja kontraktów jest już uruchomiona');
     }
-    isContractSyncRunning = true;
+    SymfoniaContractSyncService.isContractSyncRunning = true;
+    SymfoniaContractSyncService.contractSyncStartedAt = new Date();
     const startedAt = new Date();
     const errors: ContractSyncError[] = [];
     let stats: ContractSyncResult['stats'] = { totalProcessed: 0, created: 0, updated: 0, skipped: 0, errors: 0 };
@@ -317,7 +338,7 @@ export class SymfoniaContractSyncService {
       await SymfoniaContractSyncService.logSync(result, undefined, 'cron').catch(() => {});
       throw error;
     } finally {
-      isContractSyncRunning = false;
+      SymfoniaContractSyncService.resetSyncLock();
     }
   }
 
@@ -700,7 +721,7 @@ export class SymfoniaContractSyncService {
       lastFullSync: lastFullRecord?.createdAt ?? null,
       lastQuickSync: lastQuickRecord?.createdAt ?? null,
       nextScheduledSync: nextSync,
-      isRunning: isContractSyncRunning,
+      isRunning: SymfoniaContractSyncService.isContractSyncRunning,
       cronEnabled: process.env.SYMFONIA_SYNC_ENABLED !== 'false',
     };
   }

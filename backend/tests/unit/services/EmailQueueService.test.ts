@@ -5,6 +5,30 @@ jest.mock('../../../src/config/database', () => ({
   AppDataSource: { getRepository: jest.fn() },
 }));
 
+const mockQueue = {
+  process: jest.fn(),
+  add: jest.fn().mockResolvedValue({ id: 'job-1' }),
+  on: jest.fn(),
+  empty: jest.fn().mockResolvedValue(undefined),
+  close: jest.fn().mockResolvedValue(undefined),
+  getWaitingCount: jest.fn().mockResolvedValue(0),
+  getActiveCount: jest.fn().mockResolvedValue(0),
+  getCompletedCount: jest.fn().mockResolvedValue(5),
+  getFailedCount: jest.fn().mockResolvedValue(1),
+  getDelayedCount: jest.fn().mockResolvedValue(0),
+  getFailed: jest.fn().mockResolvedValue([{ id: 'failed-1' }]),
+  getJob: jest.fn().mockResolvedValue({ retry: jest.fn().mockResolvedValue(undefined) }),
+};
+
+const mockRedisClient = {
+  zremrangebyscore: jest.fn().mockResolvedValue(0),
+  zcard: jest.fn().mockResolvedValue(0),
+  zadd: jest.fn().mockResolvedValue(0),
+  expire: jest.fn().mockResolvedValue(0),
+  quit: jest.fn().mockResolvedValue(undefined),
+  on: jest.fn(),
+};
+
 jest.mock('../../../src/config/email', () => ({
   isEmailConfigured: jest.fn().mockReturnValue(false),
   emailConfig: {
@@ -15,31 +39,11 @@ jest.mock('../../../src/config/email', () => ({
 }));
 
 jest.mock('bull', () => {
-  const mockQueue = {
-    process: jest.fn(),
-    add: jest.fn().mockResolvedValue({ id: 'job-1' }),
-    on: jest.fn(),
-    empty: jest.fn().mockResolvedValue(undefined),
-    close: jest.fn().mockResolvedValue(undefined),
-    getWaitingCount: jest.fn().mockResolvedValue(0),
-    getActiveCount: jest.fn().mockResolvedValue(0),
-    getCompletedCount: jest.fn().mockResolvedValue(5),
-    getFailedCount: jest.fn().mockResolvedValue(1),
-    getDelayedCount: jest.fn().mockResolvedValue(0),
-    getFailed: jest.fn().mockResolvedValue([{ id: 'failed-1' }]),
-    getJob: jest.fn().mockResolvedValue({ retry: jest.fn().mockResolvedValue(undefined) }),
-  };
   return jest.fn().mockImplementation(() => mockQueue);
 });
 
 jest.mock('ioredis', () => {
-  return jest.fn().mockImplementation(() => ({
-    zremrangebyscore: jest.fn().mockResolvedValue(0),
-    zcard: jest.fn().mockResolvedValue(0),
-    zadd: jest.fn().mockResolvedValue(0),
-    expire: jest.fn().mockResolvedValue(0),
-    quit: jest.fn().mockResolvedValue(undefined),
-  }));
+  return jest.fn().mockImplementation(() => mockRedisClient);
 });
 
 jest.mock('../../../src/services/EmailService', () => ({
@@ -115,6 +119,48 @@ describe('EmailQueueService', () => {
       const service = module.default;
 
       await expect(service.close()).resolves.toBeUndefined();
+    });
+  });
+
+  describe('when email is configured', () => {
+    it('should register redis error handler in initialize', async () => {
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const { isEmailConfigured } = require('../../../src/config/email');
+      (isEmailConfigured as jest.Mock).mockReturnValue(true);
+
+      const module = await import('../../../src/services/EmailQueueService');
+      const service = module.default;
+      await service.initialize();
+
+      expect(mockRedisClient.on).toHaveBeenCalledWith('error', expect.any(Function));
+
+      const onErrorHandler = (mockRedisClient.on as jest.Mock).mock.calls.find(([event]) => event === 'error')?.[1];
+      onErrorHandler(new Error('write ECONNRESET'));
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Redis connection error (may be expected during shutdown): write ECONNRESET')
+      );
+      warnSpy.mockRestore();
+    });
+
+    it('should not throw when queue.close and redis.quit fail during shutdown', async () => {
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const { isEmailConfigured } = require('../../../src/config/email');
+      (isEmailConfigured as jest.Mock).mockReturnValue(true);
+
+      const module = await import('../../../src/services/EmailQueueService');
+      const service = module.default;
+      await service.initialize();
+
+      (mockQueue.close as jest.Mock).mockRejectedValueOnce(new Error('queue close failed'));
+      (mockRedisClient.quit as jest.Mock).mockRejectedValueOnce(new Error('write ECONNRESET'));
+
+      await expect(service.close()).resolves.toBeUndefined();
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Bull queue close error (non-fatal):'), expect.any(Error));
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Redis quit error (non-fatal, connection may already be closed):'),
+        expect.any(Error)
+      );
+      warnSpy.mockRestore();
     });
   });
 });
