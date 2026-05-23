@@ -182,8 +182,10 @@ export function generateHumanReadableFormula(
   }
 
   // Add conditions note
-  const conditionsNote = rule.conditions.length > 0
-    ? ` (z ${rule.conditions.length} warunkami progowymi)`
+  const conditionsCount = rule.conditions.length;
+  const conditionsWord = conditionsCount === 1 ? 'warunkiem progowym' : 'warunkami progowymi';
+  const conditionsNote = conditionsCount > 0
+    ? ` (z ${conditionsCount} ${conditionsWord})`
     : '';
 
   // Add target

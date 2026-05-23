@@ -291,6 +291,6 @@ describe('ruleFormulaGenerator', () => {
 
     expect(noneFormula).toBe('suma("Kamera IP") → ilość pozycji "Dysk HDD"');
     expect(ceilDivFormula).toBe('⌈suma("Kamera IP") ÷ 8⌉ → ilość pozycji "Dysk HDD"');
-    expect(addWithConditionFormula).toBe('suma("Kamera IP") + 2 (z 1 warunkami progowymi) → ilość pozycji "Dysk HDD"');
+    expect(addWithConditionFormula).toBe('suma("Kamera IP") + 2 (z 1 warunkiem progowym) → ilość pozycji "Dysk HDD"');
   });
 });
