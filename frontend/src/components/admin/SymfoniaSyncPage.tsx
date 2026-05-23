@@ -101,7 +101,6 @@ const SyncSection: React.FC<SyncSectionProps> = ({
   useEffect(() => {
     loadStatus();
     loadHistory();
-   
   // Only run on mount; callbacks are stable via refs to avoid re-render polling loop
   }, []);
 

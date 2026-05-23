@@ -194,7 +194,6 @@ export const ExtendWizardModal: React.FC<ExtendWizardModalProps> = ({ contract, 
 
   // Load contract data on mount. loadContractData is stable (hook function reference never changes),
   // so it is safe to exclude it from deps to avoid re-running on every render.
-   
   useEffect(() => {
     if (!statusError) {
       loadContractData(setLoading, setError);
