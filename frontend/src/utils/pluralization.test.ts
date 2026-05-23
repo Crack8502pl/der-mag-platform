@@ -74,7 +74,7 @@ describe('pluralizeTemplates', () => {
     expect(pluralizeTemplates(3)).toBe('szablony');
   });
 
-  it('pluralizeTemplates(5) → "szablonów"', () => {
-    expect(pluralizeTemplates(5)).toBe('szablonów');
+  it('pluralizeTemplates(10) → "szablonów"', () => {
+    expect(pluralizeTemplates(10)).toBe('szablonów');
   });
 });

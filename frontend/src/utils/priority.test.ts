@@ -46,8 +46,8 @@ describe('getPriorityDisplay', () => {
     expect(getPriorityDisplay(10)).toBe('💣 Natychmiastowy');
   });
 
-  it('nieznana wartość numeryczna → "⚖️ {n}"', () => {
-    expect(getPriorityDisplay(42)).toBe('⚖️ 42');
+  it('liczba spoza zakresu (15) → "⚖️ 15"', () => {
+    expect(getPriorityDisplay(15)).toBe('⚖️ 15');
   });
 
   it('priority undefined → "⚖️ Normalny"', () => {
