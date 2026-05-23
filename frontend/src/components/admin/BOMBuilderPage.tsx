@@ -2080,7 +2080,6 @@ const AddTemplateItemModal: React.FC<{
 // ============================================================
 const RecordersTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete: boolean }> = ({ canCreate, canUpdate, canDelete }) => {
   const [recorders, setRecorders] = useState<RecorderSpecification[]>([]);
-  const [warehouseItems, setWarehouseItems] = useState<WarehouseStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingRecorder, setEditingRecorder] = useState<RecorderSpecification | undefined>(undefined);
@@ -2088,12 +2087,8 @@ const RecordersTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
   const loadData = async () => {
     setLoading(true);
     try {
-      const [recs, ws] = await Promise.all([
-        recorderSpecificationService.getAll(),
-        warehouseStockService.getAll({}, 1, 500)
-      ]);
+      const recs = await recorderSpecificationService.getAll();
       setRecorders(recs);
-      setWarehouseItems(ws.data || []);
     } catch (err) {
       console.error('Error loading recorder specifications:', err);
     } finally {
@@ -2188,7 +2183,6 @@ const RecordersTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
       {showModal && (
         <RecorderSpecificationModal
           recorder={editingRecorder}
-          warehouseItems={warehouseItems}
           onClose={() => setShowModal(false)}
           onSuccess={() => { setShowModal(false); loadData(); }}
         />
