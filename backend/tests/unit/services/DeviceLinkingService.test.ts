@@ -18,6 +18,7 @@ const makeDevice = (overrides: Partial<Device> = {}): Device => ({
   serialNumber: 'SN001',
   deviceType: 'sensor',
   deviceModel: null as any,
+  catalogNumber: null,
   manufacturer: null as any,
   task: null as any,
   taskId: null as any,

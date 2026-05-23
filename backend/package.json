@@ -97,6 +97,8 @@
     "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
+    "@babel/plugin-transform-modules-commonjs": "^7.28.6",
+    "@dotenvx/dotenvx": "^1.34.0",
     "@types/bcrypt": "^5.0.2",
     "@types/bull": "^4.10.4",
     "@types/cookie-parser": "^1.4.10",
@@ -115,7 +117,6 @@
     "supertest": "^6.3.4",
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
-    "tsx": "^4.7.0",
-    "@dotenvx/dotenvx": "^1.34.0"
+    "tsx": "^4.7.0"
   }
 }

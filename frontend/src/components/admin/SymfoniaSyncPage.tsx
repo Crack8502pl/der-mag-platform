@@ -100,7 +100,7 @@ const SyncSection: React.FC<SyncSectionProps> = ({
   useEffect(() => {
     loadStatus();
     loadHistory();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   // Only run on mount; callbacks are stable via refs to avoid re-render polling loop
   }, []);
 
