@@ -56,8 +56,10 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     target: TopologyNode;
   } | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [crossingConnections, setCrossingConnections] = useState<Set<string>>(new Set());
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const isExportingRef = useRef(false);
   const dragRef = useRef<DragState | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -398,7 +400,8 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
   // Export topology canvas to PDF (A3 horizontal) and save via backend.
   // Scale is device-pixel-ratio-based (2× devicePixelRatio) for high quality output.
   const handleExportPdf = useCallback(async () => {
-    if (!canvasRef.current || isExportingPdf) return;
+    if (!canvasRef.current || isExportingRef.current) return;
+    isExportingRef.current = true;
     setIsExportingPdf(true);
     try {
       const [html2canvasModule, jsPDFModule] = await Promise.all([
@@ -458,15 +461,28 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
         pdf.save(defaultFilename);
       }
     } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      const isModuleLoadError = err instanceof TypeError && (
+        msg.includes('dynamically imported module') ||
+        msg.includes('Failed to fetch') ||
+        msg.includes('Importing a module')
+      );
+      const userMsg = isModuleLoadError
+        ? 'Nie można załadować modułu PDF. Odśwież stronę i spróbuj ponownie.'
+        : 'Błąd eksportu PDF. Spróbuj ponownie.';
+      setErrorMsg(userMsg);
+      setTimeout(() => setErrorMsg(null), 6000);
       console.error('PDF export error:', err);
     } finally {
+      isExportingRef.current = false;
       setIsExportingPdf(false);
     }
-  }, [canvasRef, isExportingPdf, wizardData.contractId, subsystemIndex]);
+  }, [wizardData.contractId, subsystemIndex]);
 
   return (
     <div className="topology-step">
       {successMsg && <div className="alert alert-success">{successMsg}</div>}
+      {errorMsg && <div className="alert alert-error">{errorMsg}</div>}
 
       <TopologyToolbar
         onAutoLayout={handleAutoLayout}
