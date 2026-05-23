@@ -97,6 +97,15 @@ export const DiskSpecificationModal: React.FC<DiskSpecificationModalProps> = ({
 
   const fieldStyle: React.CSSProperties = { marginBottom: '16px' };
 
+  // Filtruj tylko dyski: nazwa zawiera "dysk" (ale nie jest dokładnie "dyski")
+  // oraz numer katalogowy pasuje do wzorca 1xxxx (5 cyfr, zaczyna od 1)
+  const diskWarehouseItems = warehouseItems.filter(item => {
+    const nameLower = item.materialName.toLowerCase();
+    const nameHasDysk = nameLower.includes('dysk') && nameLower !== 'dyski';
+    const catalogMatchesPattern = /^1\d{4}$/.test(item.catalogNumber);
+    return nameHasDysk && catalogMatchesPattern;
+  });
+
   return (
     <div
       style={{
@@ -132,7 +141,7 @@ export const DiskSpecificationModal: React.FC<DiskSpecificationModalProps> = ({
               required
             >
               <option value="">-- Wybierz produkt --</option>
-              {warehouseItems.map(item => (
+              {diskWarehouseItems.map(item => (
                 <option key={item.id} value={item.id}>
                   [{item.catalogNumber}] {item.materialName}
                 </option>

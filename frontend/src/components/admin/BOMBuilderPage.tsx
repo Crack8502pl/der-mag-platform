@@ -2208,7 +2208,7 @@ const DisksTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete: bo
       const [d, recs, ws] = await Promise.all([
         diskSpecificationService.getAll(),
         recorderSpecificationService.getAll(),
-        warehouseStockService.getAll({}, 1, 500)
+        warehouseStockService.getAll({ search: 'dysk' }, 1, 200)
       ]);
       setDisks(d);
       setRecorders(recs);
