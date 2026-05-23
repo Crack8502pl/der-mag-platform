@@ -302,6 +302,71 @@ export class BomSubsystemTemplateController {
     res.send(csvContent);
   }
 
+  static async exportAllJson(req: Request, res: Response): Promise<void> {
+    try {
+      const data = await BomSubsystemTemplateService.exportAllToJson();
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="bom-config-export-${new Date().toISOString().split('T')[0]}.json"`
+      );
+      res.send(JSON.stringify(data, null, 2));
+    } catch (error: any) {
+      console.error('Error exporting full BOM JSON:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Błąd eksportu pełnej konfiguracji BOM',
+        error: error.message
+      });
+    }
+  }
+
+  static async importAllJson(req: Request, res: Response): Promise<void> {
+    try {
+      const requestedMode = (req.body.mode || req.query.mode || 'SKIP') as string;
+      const mode = ['SKIP', 'OVERWRITE', 'MERGE'].includes(requestedMode)
+        ? (requestedMode as 'SKIP' | 'OVERWRITE' | 'MERGE')
+        : 'SKIP';
+      const jsonContentFromBody = typeof req.body.jsonContent === 'string' ? req.body.jsonContent : null;
+      const jsonContentFromFile = req.file ? req.file.buffer.toString('utf-8') : null;
+      const rawJsonContent = jsonContentFromBody || jsonContentFromFile;
+
+      if (!rawJsonContent) {
+        res.status(400).json({
+          success: false,
+          message: 'Brak danych JSON do importu'
+        });
+        return;
+      }
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(rawJsonContent);
+      } catch {
+        res.status(400).json({
+          success: false,
+          message: 'Nieprawidłowy format JSON'
+        });
+        return;
+      }
+
+      const stats = await BomSubsystemTemplateService.importAllFromJson(parsed as any, { mode });
+
+      res.json({
+        success: true,
+        message: 'Import konfiguracji BOM zakończony',
+        data: stats
+      });
+    } catch (error: any) {
+      console.error('Error importing full BOM JSON:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Błąd importu pełnej konfiguracji BOM',
+        error: error.message
+      });
+    }
+  }
+
   /**
    * Apply template to a task
    * POST /api/bom-subsystem-templates/:id/apply/:taskId

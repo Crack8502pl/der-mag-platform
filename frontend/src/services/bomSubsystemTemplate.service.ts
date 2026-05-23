@@ -62,6 +62,15 @@ export interface TemplateFilters {
   isActive?: boolean;
 }
 
+export interface ImportAllResult {
+  templatesImported: number;
+  rulesImported: number;
+  recordersImported: number;
+  disksImported: number;
+  skipped: number;
+  errors: string[];
+}
+
 const bomSubsystemTemplateService = {
   /**
    * Get all templates with optional filters
@@ -202,6 +211,28 @@ const bomSubsystemTemplateService = {
     link.click();
     link.remove();
     setTimeout(() => window.URL.revokeObjectURL(url), 100);
+  },
+
+  async exportAllJson(): Promise<void> {
+    const response = await api.get('/bom-subsystem-templates/export-all-json', {
+      responseType: 'blob'
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `bom-config-export-${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => window.URL.revokeObjectURL(url), 100);
+  },
+
+  async importAllJson(
+    jsonContent: string,
+    mode: 'SKIP' | 'OVERWRITE' | 'MERGE'
+  ): Promise<ImportAllResult> {
+    const response = await api.post('/bom-subsystem-templates/import-all-json', { jsonContent, mode });
+    return response.data.data;
   }
 };
 

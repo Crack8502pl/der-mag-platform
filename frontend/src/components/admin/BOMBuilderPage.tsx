@@ -23,6 +23,7 @@ import type { RecorderSpecification } from '../../services/recorderSpecification
 import type { DiskSpecification } from '../../services/diskSpecification.service';
 import { RecorderSpecificationModal } from './RecorderSpecificationModal';
 import { DiskSpecificationModal } from './DiskSpecificationModal';
+import BomImportAllModal from './BomImportAllModal';
 import { RuleFormulaPreview } from './RuleFormulaPreview';
 import { RulePipelineView } from './RulePipelineView';
 import {
@@ -635,6 +636,7 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
   const [importTaskVariant, setImportTaskVariant] = useState('');
   const [importDescription, setImportDescription] = useState('');
   const [importing, setImporting] = useState(false);
+  const [showImportAllModal, setShowImportAllModal] = useState(false);
 
   const subsystemTypes = subsystemStructure.map(s => s.type);
 
@@ -679,6 +681,19 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
       alert('Błąd podczas importu szablonu: ' + (err.response?.data?.message || err.message));
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handleExportAllJson = async () => {
+    try {
+      await bomSubsystemTemplateService.exportAllJson();
+      const successMsg = document.createElement('div');
+      successMsg.textContent = '✅ Wyeksportowano pełną konfigurację BOM';
+      successMsg.style.cssText = 'position:fixed;top:20px;right:20px;background:var(--success);color:white;padding:12px 20px;border-radius:8px;z-index:9999;';
+      document.body.appendChild(successMsg);
+      setTimeout(() => successMsg.remove(), 3000);
+    } catch (err: any) {
+      alert('Błąd podczas eksportu całości JSON: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -728,6 +743,22 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
       <>
       {/* Toolbar */}
       <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap' }}>
+        <button
+          className="btn btn-secondary"
+          onClick={handleExportAllJson}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
+          📤 Eksportuj wszystko (JSON)
+        </button>
+        {canCreate && (
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowImportAllModal(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            📥 Importuj wszystko (JSON)
+          </button>
+        )}
         <button
           className="btn btn-secondary"
           onClick={handleGetCsvTemplate}
@@ -1664,6 +1695,17 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
             </div>
           </div>
         </div>
+      )}
+
+      {showImportAllModal && (
+        <BomImportAllModal
+          onClose={() => setShowImportAllModal(false)}
+          onSuccess={() => {
+            if (selectedSubsystem) {
+              void handleSelectSubsystem(selectedSubsystem.type, selectedSubsystem.variant || '_GENERAL');
+            }
+          }}
+        />
       )}
       </>
       )}
