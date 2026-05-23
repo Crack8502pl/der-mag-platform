@@ -53,8 +53,9 @@ export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProp
   const productSearchRequestRef = useRef(0);
   const extensionSearchRequestRef = useRef(0);
 
+  const SEARCH_DEBOUNCE_MS = 300;
   // Delay prevents the dropdown from closing before onMouseDown fires on an item
-  const DROPDOWN_CLOSE_DELAY = 350;
+  const DROPDOWN_CLOSE_DELAY = SEARCH_DEBOUNCE_MS + 50;
 
   const searchWarehouseItems = async (
     term: string,
@@ -78,6 +79,16 @@ export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProp
     }
   };
 
+  const resetLabelIfUnchanged = (
+    search: string,
+    label: string,
+    setLabel: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    if (search === label && label) {
+      setLabel('');
+    }
+  };
+
   useEffect(() => {
     if (!productDropdownOpen) return;
 
@@ -89,7 +100,7 @@ export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProp
 
     const timeout = setTimeout(() => {
       void searchWarehouseItems(term, productSearchRequestRef, setProductSearchResults, 'Błąd wyszukiwania produktu:');
-    }, 300);
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => clearTimeout(timeout);
   }, [productDropdownOpen, productSearch, selectedProductLabel]);
@@ -105,7 +116,7 @@ export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProp
 
     const timeout = setTimeout(() => {
       void searchWarehouseItems(term, extensionSearchRequestRef, setExtensionSearchResults, 'Błąd wyszukiwania rozszerzenia:');
-    }, 300);
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => clearTimeout(timeout);
   }, [extensionDropdownOpen, extensionSearch, selectedExtensionLabel]);
@@ -223,9 +234,7 @@ export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProp
                 }}
                 onFocus={() => {
                   setProductDropdownOpen(true);
-                  if (productSearch === selectedProductLabel && selectedProductLabel) {
-                    setSelectedProductLabel('');
-                  }
+                  resetLabelIfUnchanged(productSearch, selectedProductLabel, setSelectedProductLabel);
                 }}
                 onBlur={() => setTimeout(() => setProductDropdownOpen(false), DROPDOWN_CLOSE_DELAY)}
                 autoComplete="off"
@@ -348,9 +357,7 @@ export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProp
                   }}
                   onFocus={() => {
                     setExtensionDropdownOpen(true);
-                    if (extensionSearch === selectedExtensionLabel && selectedExtensionLabel) {
-                      setSelectedExtensionLabel('');
-                    }
+                    resetLabelIfUnchanged(extensionSearch, selectedExtensionLabel, setSelectedExtensionLabel);
                   }}
                   onBlur={() => setTimeout(() => setExtensionDropdownOpen(false), DROPDOWN_CLOSE_DELAY)}
                   autoComplete="off"
