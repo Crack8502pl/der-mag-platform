@@ -219,6 +219,44 @@ function MyComponent() {
 
 ## 🧪 Testing
 
+### Testy jednostkowe (Vitest)
+
+```bash
+# Uruchom wszystkie testy jednokrotnie
+npm test
+
+# Tryb watch (testy uruchamiane przy każdej zmianie)
+npm run test:watch
+
+# Testy z raportem pokrycia
+npm run test:coverage
+```
+
+Po uruchomieniu `npm run test:coverage` raport HTML dostępny jest pod:
+```
+frontend/coverage/index.html
+```
+
+#### Docelowe progi pokrycia (70-80%)
+
+| Metryka    | Próg |
+|------------|------|
+| Statements | 70%  |
+| Branches   | 70%  |
+| Functions  | 70%  |
+| Lines      | 70%  |
+
+#### Pliki wykluczone z pokrycia
+
+- `src/main.tsx` — punkt wejścia aplikacji
+- `src/**/*.d.ts` — deklaracje typów TypeScript
+- `src/types/**` — typy i interfejsy
+- `src/assets/**` — zasoby statyczne
+- `src/styles/**` — pliki CSS/stylów
+- `src/test/**` — pliki konfiguracji testów
+
+### Testy manualne / integracyjne
+
 To test the application:
 
 1. **Backend Setup**: Ensure backend is running with the database migration applied

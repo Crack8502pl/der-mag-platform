@@ -260,7 +260,19 @@ After running `npm run test:coverage`, coverage reports are available in:
 
 ### Coverage Goals
 
-- **Minimum**: 70% overall coverage
+Enforced thresholds in `jest.config.js`:
+
+| Metryka    | Próg enforced | Aktualnie |
+|------------|---------------|-----------|
+| Branches   | 70%           | ~76%      |
+| Functions  | 50%           | ~44%      |
+| Lines      | 62%           | ~62%      |
+| Statements | 62%           | ~62%      |
+
+> **Uwaga:** Próg `functions` jest ustawiony na 50% ze względu na dużą liczbę encji TypeORM,
+> których konstruktory i akcesory nie są wywoływane w testach (repozytoria są mockowane).
+> Docelowo: podnieść do 70% po dodaniu testów encji lub wykluczeniu ich z coverage.
+
 - **Target**: 80% or higher for critical paths
 - **Focus Areas**:
   - Service layer: High coverage (80%+)
