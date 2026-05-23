@@ -212,7 +212,7 @@ describe('AuthController', () => {
   });
 
   describe('POST /api/auth/refresh', () => {
-    it('should refresh tokens with valid cookie and CSRF token', async () => {
+    it('should refresh tokens with valid refresh token cookie (CSRF validated by middleware)', async () => {
       // Mock uuid to return different values for each call
       const { v4: uuidv4 } = require('uuid');
       (uuidv4 as jest.Mock).mockReturnValueOnce('new-uuid-5678');
@@ -286,42 +286,6 @@ describe('AuthController', () => {
         data: {
           accessToken: 'new-access-token',
         },
-      });
-    });
-
-    it('should reject refresh without CSRF token', async () => {
-      req.cookies = {
-        refreshToken: 'old-refresh-token',
-        'csrf-token': 'csrf-token-123',
-      };
-      req.headers = {}; // No CSRF token in header
-
-      await AuthController.refresh(req as Request, res as Response);
-
-      expect(res.status).toHaveBeenCalledWith(403);
-      expect(res.json).toHaveBeenCalledWith({
-        success: false,
-        message: 'Invalid CSRF token',
-        code: 'CSRF_TOKEN_INVALID',
-      });
-    });
-
-    it('should reject refresh with mismatched CSRF token', async () => {
-      req.cookies = {
-        refreshToken: 'old-refresh-token',
-        'csrf-token': 'csrf-token-123',
-      };
-      req.headers = {
-        'x-csrf-token': 'csrf-token-456', // Different from cookie
-      };
-
-      await AuthController.refresh(req as Request, res as Response);
-
-      expect(res.status).toHaveBeenCalledWith(403);
-      expect(res.json).toHaveBeenCalledWith({
-        success: false,
-        message: 'Invalid CSRF token',
-        code: 'CSRF_TOKEN_INVALID',
       });
     });
 

@@ -1,7 +1,7 @@
 // src/services/auth.service.ts
 // Authentication service
 
-import api from './api';
+import api, { getCsrfTokenFromCookie } from './api';
 import type {
   LoginRequest,
   LoginResponse,
@@ -116,8 +116,7 @@ class AuthService {
    * Get CSRF token from cookie
    */
   getCsrfTokenFromCookie(): string | null {
-    const match = document.cookie.match(/csrf-token=([^;]+)/);
-    return match ? match[1] : null;
+    return getCsrfTokenFromCookie();
   }
 
   /**

@@ -2,7 +2,7 @@
 // Konfiguracja aplikacji Express
 
 import 'reflect-metadata';
-import express, { Application } from 'express';
+import express, { Application, NextFunction, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -13,6 +13,7 @@ import fs from 'fs';
 import routes from './routes';
 import webhookRoutes from './routes/webhook.routes';
 import { honeypotMiddleware } from './middleware/honeypot';
+import { validateCsrfToken } from './middleware/csrf';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { noCacheHeaders } from './middleware/noCacheHeaders';
 import { RATE_LIMIT } from './config/constants';
@@ -133,6 +134,31 @@ app.options('*', cors());
 
 // Cookie parser middleware
 app.use(cookieParser());
+
+// CSRF protection for all state-mutating /api requests
+app.use('/api/', (req: Request, res: Response, next: NextFunction) => {
+  // Safe methods do not require CSRF validation
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    return next();
+  }
+
+  // Bootstrap login endpoint (CSRF cookie may not exist yet)
+  if (req.path === '/auth/login' || req.path === '/auth/login/') {
+    return next();
+  }
+
+  // Public endpoint without authenticated session cookie
+  if (req.path === '/auth/forgot-password' || req.path === '/auth/forgot-password/') {
+    return next();
+  }
+
+  // External systems calling webhooks do not have browser CSRF cookie
+  if (req.path.startsWith('/integrations/webhooks')) {
+    return next();
+  }
+
+  return validateCsrfToken(req, res, next);
+});
 
 // Rate limiting dla endpointów auth (bardziej permisywny)
 const authLimiter = rateLimit({
