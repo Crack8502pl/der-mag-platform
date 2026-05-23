@@ -97,8 +97,8 @@ export const DiskSpecificationModal: React.FC<DiskSpecificationModalProps> = ({
 
   const fieldStyle: React.CSSProperties = { marginBottom: '16px' };
 
-  // Filtruj tylko dyski: nazwa zawiera "dysk" (ale nie jest dokładnie "dyski")
-  // oraz numer katalogowy pasuje do wzorca 1xxxx (5 cyfr, zaczyna od 1)
+  // Filter only disks: name contains "dysk" (but is not exactly "dyski")
+  // and catalog number matches the 1xxxx pattern (5 digits, starts with 1)
   const diskWarehouseItems = warehouseItems.filter(item => {
     const nameLower = item.materialName.toLowerCase();
     const nameHasDysk = nameLower.includes('dysk') && nameLower !== 'dyski';
