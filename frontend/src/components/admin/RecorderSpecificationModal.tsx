@@ -1,8 +1,9 @@
 // src/components/admin/RecorderSpecificationModal.tsx
 // Modal for creating/editing recorder specifications
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import recorderSpecificationService from '../../services/recorderSpecification.service';
+import { warehouseStockService } from '../../services/warehouseStock.service';
 import type { RecorderSpecification, CreateRecorderSpecificationDto } from '../../services/recorderSpecification.service';
 import type { WarehouseStock } from '../../types/warehouseStock.types';
 import '../../styles/grover-theme.css';
@@ -14,12 +15,13 @@ interface RecorderSpecificationModalProps {
   onSuccess: () => void;
 }
 
-export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProps> = ({
-  recorder,
-  warehouseItems,
-  onClose,
-  onSuccess
-}) => {
+type WarehouseItemLabelSource = Pick<WarehouseStock, 'catalogNumber' | 'materialName'> | null | undefined;
+
+const formatWarehouseItemLabel = (item?: WarehouseItemLabelSource) =>
+  item ? `[${item.catalogNumber}] ${item.materialName}` : '';
+
+export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProps> = (props) => {
+  const { recorder, onClose, onSuccess } = props;
   const isEdit = !!recorder;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -40,32 +42,74 @@ export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProp
   const [isActive, setIsActive] = useState(recorder?.isActive ?? true);
   const [notes, setNotes] = useState(recorder?.notes || '');
 
-  const [productSearch, setProductSearch] = useState(
-    recorder?.warehouseStock
-      ? `[${recorder.warehouseStock.catalogNumber}] ${recorder.warehouseStock.materialName}`
-      : ''
-  );
+  const [productSearch, setProductSearch] = useState(formatWarehouseItemLabel(recorder?.warehouseStock));
+  const [productSearchResults, setProductSearchResults] = useState<WarehouseStock[]>([]);
+  const [selectedProductLabel, setSelectedProductLabel] = useState(formatWarehouseItemLabel(recorder?.warehouseStock));
   const [productDropdownOpen, setProductDropdownOpen] = useState(false);
 
-  const [extensionSearch, setExtensionSearch] = useState(
-    recorder?.extensionWarehouseStock
-      ? `[${recorder.extensionWarehouseStock.catalogNumber}] ${recorder.extensionWarehouseStock.materialName}`
-      : ''
-  );
+  const [extensionSearch, setExtensionSearch] = useState(formatWarehouseItemLabel(recorder?.extensionWarehouseStock));
+  const [extensionSearchResults, setExtensionSearchResults] = useState<WarehouseStock[]>([]);
+  const [selectedExtensionLabel, setSelectedExtensionLabel] = useState(formatWarehouseItemLabel(recorder?.extensionWarehouseStock));
   const [extensionDropdownOpen, setExtensionDropdownOpen] = useState(false);
-
-  const filteredWarehouseItems = warehouseItems.filter(item =>
-    item.materialName.toLowerCase().includes(productSearch.toLowerCase()) ||
-    item.catalogNumber.toLowerCase().includes(productSearch.toLowerCase())
-  );
-
-  const filteredExtensionItems = warehouseItems.filter(item =>
-    item.materialName.toLowerCase().includes(extensionSearch.toLowerCase()) ||
-    item.catalogNumber.toLowerCase().includes(extensionSearch.toLowerCase())
-  );
+  const productSearchRequestRef = useRef(0);
+  const extensionSearchRequestRef = useRef(0);
 
   // Delay prevents the dropdown from closing before onMouseDown fires on an item
   const DROPDOWN_CLOSE_DELAY = 200;
+
+  const searchWarehouseItems = async (
+    term: string,
+    requestRef: React.MutableRefObject<number>,
+    setResults: React.Dispatch<React.SetStateAction<WarehouseStock[]>>,
+    errorContext: string
+  ) => {
+    const requestId = ++requestRef.current;
+
+    try {
+      const response = await warehouseStockService.getAll({ search: term }, 1, 50);
+
+      if (requestRef.current === requestId) {
+        setResults(response.data || []);
+      }
+    } catch (err) {
+      if (requestRef.current === requestId) {
+        setResults([]);
+      }
+      console.error(errorContext, err);
+    }
+  };
+
+  useEffect(() => {
+    if (!productDropdownOpen) return;
+
+    const term = productSearch.trim();
+    if (!term || term === selectedProductLabel) {
+      setProductSearchResults([]);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      void searchWarehouseItems(term, productSearchRequestRef, setProductSearchResults, 'Błąd wyszukiwania produktu:');
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [productDropdownOpen, productSearch, selectedProductLabel]);
+
+  useEffect(() => {
+    if (!extensionDropdownOpen) return;
+
+    const term = extensionSearch.trim();
+    if (!term || term === selectedExtensionLabel) {
+      setExtensionSearchResults([]);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      void searchWarehouseItems(term, extensionSearchRequestRef, setExtensionSearchResults, 'Błąd wyszukiwania rozszerzenia:');
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [extensionDropdownOpen, extensionSearch, selectedExtensionLabel]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,22 +211,29 @@ export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProp
                 placeholder="Wyszukaj po nazwie lub numerze katalogowym..."
                 value={productSearch}
                 onChange={e => {
-                  setProductSearch(e.target.value);
+                  const value = e.target.value;
+                  setProductSearch(value);
                   setProductDropdownOpen(true);
-                  if (!e.target.value) setWarehouseStockId('');
+                  if (!value) {
+                    setWarehouseStockId('');
+                    setSelectedProductLabel('');
+                    setProductSearchResults([]);
+                  } else if (value !== selectedProductLabel) {
+                    setWarehouseStockId('');
+                  }
                 }}
                 onFocus={() => setProductDropdownOpen(true)}
                 onBlur={() => setTimeout(() => setProductDropdownOpen(false), DROPDOWN_CLOSE_DELAY)}
                 autoComplete="off"
               />
-              {productDropdownOpen && filteredWarehouseItems.length > 0 && (
+              {productDropdownOpen && productSearchResults.length > 0 && (
                 <div style={{
                   position: 'absolute', top: '100%', left: 0, right: 0,
                   background: 'var(--bg-card)', border: '1px solid var(--border-color)',
                   borderRadius: 'var(--radius-md)', marginTop: '4px',
                   maxHeight: '220px', overflowY: 'auto', zIndex: 1001
                 }}>
-                  {filteredWarehouseItems.map(item => (
+                  {productSearchResults.map(item => (
                     <div
                       key={item.id}
                       style={{
@@ -191,8 +242,11 @@ export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProp
                         background: item.id === warehouseStockId ? 'var(--bg-hover)' : 'transparent'
                       }}
                       onMouseDown={() => {
+                        const label = formatWarehouseItemLabel(item);
                         setWarehouseStockId(item.id);
-                        setProductSearch(`[${item.catalogNumber}] ${item.materialName}`);
+                        setProductSearch(label);
+                        setSelectedProductLabel(label);
+                        setProductSearchResults([]);
                         setProductDropdownOpen(false);
                       }}
                     >
@@ -277,22 +331,29 @@ export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProp
                   placeholder="Wyszukaj po nazwie lub numerze katalogowym..."
                   value={extensionSearch}
                   onChange={e => {
-                    setExtensionSearch(e.target.value);
+                    const value = e.target.value;
+                    setExtensionSearch(value);
                     setExtensionDropdownOpen(true);
-                    if (!e.target.value) setExtensionWarehouseStockId('');
+                    if (!value) {
+                      setExtensionWarehouseStockId('');
+                      setSelectedExtensionLabel('');
+                      setExtensionSearchResults([]);
+                    } else if (value !== selectedExtensionLabel) {
+                      setExtensionWarehouseStockId('');
+                    }
                   }}
                   onFocus={() => setExtensionDropdownOpen(true)}
                   onBlur={() => setTimeout(() => setExtensionDropdownOpen(false), DROPDOWN_CLOSE_DELAY)}
                   autoComplete="off"
                 />
-                {extensionDropdownOpen && filteredExtensionItems.length > 0 && (
+                {extensionDropdownOpen && extensionSearchResults.length > 0 && (
                   <div style={{
                     position: 'absolute', top: '100%', left: 0, right: 0,
                     background: 'var(--bg-card)', border: '1px solid var(--border-color)',
                     borderRadius: 'var(--radius-md)', marginTop: '4px',
                     maxHeight: '220px', overflowY: 'auto', zIndex: 1001
                   }}>
-                    {filteredExtensionItems.map(item => (
+                    {extensionSearchResults.map(item => (
                       <div
                         key={item.id}
                         style={{
@@ -301,8 +362,11 @@ export const RecorderSpecificationModal: React.FC<RecorderSpecificationModalProp
                           background: item.id === extensionWarehouseStockId ? 'var(--bg-hover)' : 'transparent'
                         }}
                         onMouseDown={() => {
+                          const label = formatWarehouseItemLabel(item);
                           setExtensionWarehouseStockId(item.id);
-                          setExtensionSearch(`[${item.catalogNumber}] ${item.materialName}`);
+                          setExtensionSearch(label);
+                          setSelectedExtensionLabel(label);
+                          setExtensionSearchResults([]);
                           setExtensionDropdownOpen(false);
                         }}
                       >
