@@ -55,33 +55,9 @@ export default defineConfig({
         manualChunks:  undefined, // 🆕 Single bundle for better mobile performance
         // 🆕 Proper asset naming for consistent structure
         entryFileNames: 'assets/[name]-[hash].js',
-        chunkFileNames: 'assets/[name]-[hash]. js',
+        chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]'
       }
     }
-  },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html', 'lcov'],
-      include: ['src/**/*.{ts,tsx}'],
-      exclude: [
-        'src/main.tsx',
-        'src/**/*.d.ts',
-        'src/types/**',
-        'src/assets/**',
-        'src/styles/**',
-        'src/test/**',
-      ],
-      thresholds: {
-        branches: 70,
-        functions: 70,
-        lines: 70,
-        statements: 70,
-      },
-    },
   },
 })

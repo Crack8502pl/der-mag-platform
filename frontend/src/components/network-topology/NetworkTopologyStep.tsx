@@ -58,6 +58,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [crossingConnections, setCrossingConnections] = useState<Set<string>>(new Set());
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const isExportingRef = useRef(false);
   const dragRef = useRef<DragState | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -398,7 +399,8 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
   // Export topology canvas to PDF (A3 horizontal) and save via backend.
   // Scale is device-pixel-ratio-based (2× devicePixelRatio) for high quality output.
   const handleExportPdf = useCallback(async () => {
-    if (!canvasRef.current || isExportingPdf) return;
+    if (!canvasRef.current || isExportingRef.current) return;
+    isExportingRef.current = true;
     setIsExportingPdf(true);
     try {
       const [html2canvasModule, jsPDFModule] = await Promise.all([
@@ -458,11 +460,17 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
         pdf.save(defaultFilename);
       }
     } catch (err) {
+      const isModuleLoadError = err instanceof TypeError &&
+        String((err as TypeError).message).includes('dynamically imported module');
+      if (isModuleLoadError) {
+        alert('Nie można załadować modułu PDF. Odśwież stronę i spróbuj ponownie.');
+      }
       console.error('PDF export error:', err);
     } finally {
+      isExportingRef.current = false;
       setIsExportingPdf(false);
     }
-  }, [canvasRef, isExportingPdf, wizardData.contractId, subsystemIndex]);
+  }, [canvasRef, wizardData.contractId, subsystemIndex]);
 
   return (
     <div className="topology-step">
