@@ -1,6 +1,8 @@
 import { SymfoniaContractSyncService } from '../../../src/services/SymfoniaContractSyncService';
 
 describe('SymfoniaContractSyncService - cron lock handling', () => {
+  const STALE_LOCK_TIME_MS = 91 * 60 * 1000;
+
   beforeEach(() => {
     jest.restoreAllMocks();
     SymfoniaContractSyncService.resetSyncLock();
@@ -11,7 +13,7 @@ describe('SymfoniaContractSyncService - cron lock handling', () => {
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     service.isContractSyncRunning = true;
-    service.contractSyncStartedAt = new Date(Date.now() - (91 * 60 * 1000));
+    service.contractSyncStartedAt = new Date(Date.now() - STALE_LOCK_TIME_MS);
 
     jest.spyOn(service, 'fetchSymfoniaContractData').mockResolvedValue([]);
     jest.spyOn(service, 'upsertContracts').mockResolvedValue({ created: 0, updated: 0, skipped: 0, errors: 0 });
@@ -20,7 +22,9 @@ describe('SymfoniaContractSyncService - cron lock handling', () => {
     const result = await SymfoniaContractSyncService.fullSyncFromCron();
 
     expect(result.success).toBe(true);
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Resetuję blokadę synchronizacji kontraktów'));
+    expect(warnSpy).toHaveBeenCalledWith(
+      '⚠️  [CRON] Resetuję blokadę synchronizacji kontraktów (przekroczono 90 min)'
+    );
     expect(service.isContractSyncRunning).toBe(false);
     expect(service.contractSyncStartedAt).toBeNull();
   });
