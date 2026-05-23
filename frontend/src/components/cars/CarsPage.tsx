@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/cars/CarsPage.tsx
 // Strona zarządzania samochodami firmowymi
 

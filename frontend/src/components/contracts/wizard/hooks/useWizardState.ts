@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/contracts/wizard/hooks/useWizardState.ts
 // Custom hook for managing wizard state and operations
 

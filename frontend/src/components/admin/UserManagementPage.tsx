@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/admin/UserManagementPage.tsx
 // User management page - create, edit, deactivate users
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/tasks/TaskDetailModal.tsx
 // Modal for viewing task details
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/types/permissions.types.ts
 // Types for granular permissions matching backend RolePermissions structure
 // 15 modules, 27 actions

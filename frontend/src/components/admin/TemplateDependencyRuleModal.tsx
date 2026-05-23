@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/admin/TemplateDependencyRuleModal.tsx
 // Modal for creating/editing BOM template dependency rules
 

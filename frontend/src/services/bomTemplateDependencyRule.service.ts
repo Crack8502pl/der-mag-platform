@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/services/bomTemplateDependencyRule.service.ts
 // API client for BOM template dependency rule operations
 
@@ -69,7 +70,7 @@ export interface CreateRuleDto {
   conditions?: Omit<BomTemplateDependencyRuleCondition, 'id' | 'ruleId'>[];
 }
 
-export interface UpdateRuleDto extends Partial<CreateRuleDto> {}
+export type UpdateRuleDto = Partial<CreateRuleDto>;
 
 export const bomTemplateDependencyRuleService = {
   /**

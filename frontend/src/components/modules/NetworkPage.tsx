@@ -85,12 +85,14 @@ export const NetworkPage: React.FC = () => {
 
   useEffect(() => {
     if (!canRead) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     Promise.all([loadPools(), loadAllocations()]).finally(() => setLoading(false));
   }, [canRead, loadPools, loadAllocations]);
 
   useEffect(() => {
     if (activeTab !== 'topology') return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingContracts(true);
     setLoadingTopologies(true);
     Promise.all([

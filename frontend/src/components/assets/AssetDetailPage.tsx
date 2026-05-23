@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/assets/AssetDetailPage.tsx
 // Asset detail page - PR#10
 

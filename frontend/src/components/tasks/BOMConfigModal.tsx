@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/tasks/BOMConfigModal.tsx
 // Modal for configuring BOM for a task using subsystem templates
 

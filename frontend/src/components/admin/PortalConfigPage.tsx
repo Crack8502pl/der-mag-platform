@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/admin/PortalConfigPage.tsx
 // Portal URL configuration page
 

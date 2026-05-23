@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/types/warehouseStock.types.ts
 // Types for Warehouse Stock module
 

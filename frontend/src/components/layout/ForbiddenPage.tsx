@@ -30,6 +30,7 @@ export const ForbiddenPage: React.FC = () => {
           roleName: typeof user.role === 'string' ? user.role : '',
           requestedModule,
           requestedAction,
+          // eslint-disable-next-line react-hooks/purity
           timestamp: Date.now(),
         })
       : null;

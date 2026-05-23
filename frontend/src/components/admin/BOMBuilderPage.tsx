@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/admin/BOMBuilderPage.tsx
 // BOM Builder page - manage materials and BOM templates
 

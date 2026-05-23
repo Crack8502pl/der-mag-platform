@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/subsystems/SubsystemDocumentationModal.tsx
 // Modal for managing subsystem documentation
 

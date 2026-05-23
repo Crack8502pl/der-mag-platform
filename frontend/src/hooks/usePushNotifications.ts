@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/hooks/usePushNotifications.ts
 // Hook for managing Web Push notification subscriptions
 

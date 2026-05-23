@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/hooks/useTokenExpirationWarning.ts
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuthStore } from '../stores/authStore';

@@ -28,6 +28,7 @@ export const TopologyHistoryModal: React.FC<TopologyHistoryModalProps> = ({
 
   useEffect(() => {
     let mounted = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     networkTopologyService
       .getHistory(contractId, subsystemIndex)

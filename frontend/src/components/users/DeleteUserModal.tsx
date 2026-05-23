@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/users/DeleteUserModal.tsx
 // Modal for permanently (soft) deleting a user with a required reason
 

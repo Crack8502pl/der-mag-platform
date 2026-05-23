@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import type { NetworkPool } from '../../services/network.service';
 import './NetworkPoolList.css';

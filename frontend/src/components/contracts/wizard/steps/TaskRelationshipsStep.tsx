@@ -162,6 +162,7 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
   // Auto-unlock edit mode when there are new child tasks to assign to the hierarchy
   useEffect(() => {
     if (hasNewSMOKIPTasks) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsEditingExisting(true);
     }
   }, [hasNewSMOKIPTasks]);

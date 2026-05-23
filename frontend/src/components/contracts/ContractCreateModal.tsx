@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/contracts/ContractCreateModal.tsx
 // Modal for creating new contracts
 

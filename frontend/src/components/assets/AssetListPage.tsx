@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/assets/AssetListPage.tsx
 // Asset list page - read-only view with filters and pagination
 

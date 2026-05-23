@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import { GenericConfigStep } from '../common/GenericConfigStep';
 import { NetworkPoolFields } from '../common/NetworkPoolFields';

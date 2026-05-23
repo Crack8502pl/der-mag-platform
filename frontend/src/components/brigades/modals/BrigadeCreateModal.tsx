@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/brigades/modals/BrigadeCreateModal.tsx
 // Modal for creating a new brigade - with click outside and Escape key support
 

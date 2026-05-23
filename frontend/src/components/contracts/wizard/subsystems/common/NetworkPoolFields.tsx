@@ -13,6 +13,7 @@ interface NetworkPoolFieldsProps {
 }
 
 /** Convert CIDR prefix to dotted subnet mask */
+// eslint-disable-next-line react-refresh/only-export-components
 export const prefixToSubnetMask = (prefix: number): string => {
   if (prefix < 0 || prefix > 32) return '';
   const bits = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
@@ -28,6 +29,7 @@ export const prefixToSubnetMask = (prefix: number): string => {
  * /32: returns the single host address itself (gateway is the host itself).
  * /31: returns the lower address per RFC 3021.
  * Otherwise: returns network address + 1 (first usable host). */
+// eslint-disable-next-line react-refresh/only-export-components
 export const calculateFirstIP = (ip: string, prefix: number): string => {
   const parts = ip.split('.').map(Number);
   if (parts.length !== 4 || parts.some(p => isNaN(p) || p < 0 || p > 255)) return '';

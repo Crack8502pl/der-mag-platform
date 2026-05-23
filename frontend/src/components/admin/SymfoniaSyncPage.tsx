@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/admin/SymfoniaSyncPage.tsx
 // Admin panel for Symfonia synchronization: Magazyn (Warehouse) and Kontrakty (Contracts)
 

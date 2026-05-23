@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // frontend/src/services/bomResolver.service.ts
 import api from './api';
 

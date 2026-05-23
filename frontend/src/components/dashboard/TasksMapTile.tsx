@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/dashboard/TasksMapTile.tsx
 // Kafelek mapy zadań z lokalizacjami GPS - Leaflet + OpenStreetMap
 

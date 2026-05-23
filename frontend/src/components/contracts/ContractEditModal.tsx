@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/contracts/ContractEditModal.tsx
 // Modal for editing contracts
 

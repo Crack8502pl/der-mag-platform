@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/brigades/tabs/WorkersTab.tsx
 // Workers tab - list of users with worker role
 

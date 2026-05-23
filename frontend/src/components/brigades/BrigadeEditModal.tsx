@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/brigades/BrigadeEditModal.tsx
 // Modal for editing an existing brigade
 

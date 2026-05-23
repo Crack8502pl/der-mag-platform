@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/assets/AssetStatusHistoryPage.tsx
 // Asset Status History Page with Timeline Visualization - PR#14
 

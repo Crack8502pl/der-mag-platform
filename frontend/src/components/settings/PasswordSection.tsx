@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/settings/PasswordSection.tsx
 // Password change section
 

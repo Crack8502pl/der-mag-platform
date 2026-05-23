@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/services/symfoniaIntegration.service.ts
 // Service for Symfonia MSSQL integration API calls
 

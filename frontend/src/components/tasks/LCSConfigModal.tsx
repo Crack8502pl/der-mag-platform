@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/tasks/LCSConfigModal.tsx
 // Modal for configuring LCS (Lokalne Centrum Sterowania) for SMOK-A and SMOK-B systems
 

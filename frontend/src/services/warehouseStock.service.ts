@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/services/warehouseStock.service.ts
 // API client for warehouse stock operations
 

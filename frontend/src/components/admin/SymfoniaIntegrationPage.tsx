@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/admin/SymfoniaIntegrationPage.tsx
 // Admin page for Symfonia MSSQL database exploration
 
@@ -105,7 +106,7 @@ export const SymfoniaIntegrationPage: React.FC = () => {
     try {
       const result = await symfoniaService.testConnection();
       setStatus(result);
-    } catch (err) {
+    } catch (_err) {
       setStatusError('Błąd podczas testowania połączenia');
     } finally {
       setStatusLoading(false);
@@ -118,7 +119,7 @@ export const SymfoniaIntegrationPage: React.FC = () => {
     try {
       const data = await symfoniaService.getTables();
       setTables(data);
-    } catch (err) {
+    } catch (_err) {
       setTablesError('Błąd podczas pobierania tabel');
     } finally {
       setTablesLoading(false);
@@ -131,7 +132,7 @@ export const SymfoniaIntegrationPage: React.FC = () => {
     try {
       const data = await symfoniaService.getForeignKeys();
       setForeignKeys(data);
-    } catch (err) {
+    } catch (_err) {
       setFkError('Błąd podczas pobierania relacji');
     } finally {
       setFkLoading(false);
@@ -144,7 +145,7 @@ export const SymfoniaIntegrationPage: React.FC = () => {
     try {
       const data = await symfoniaService.getViews();
       setViews(data);
-    } catch (err) {
+    } catch (_err) {
       setViewsError('Błąd podczas pobierania widoków');
     } finally {
       setViewsLoading(false);
@@ -180,7 +181,7 @@ export const SymfoniaIntegrationPage: React.FC = () => {
     setExportError('');
     try {
       await symfoniaService.exportSchema();
-    } catch (err) {
+    } catch (_err) {
       setExportError('Błąd podczas eksportu');
     } finally {
       setExportLoading(false);

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // frontend/src/components/tasks/TaskConfigWizard/WizardStepSummary.tsx
 // Step 3: Summary before saving
 

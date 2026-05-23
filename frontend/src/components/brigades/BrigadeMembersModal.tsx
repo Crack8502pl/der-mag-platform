@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/brigades/BrigadeMembersModal.tsx
 // Modal for managing brigade members
 

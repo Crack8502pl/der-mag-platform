@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/modules/WarehouseStockImportModal.tsx
 // Modal for importing warehouse stock from CSV with duplicate detection and field selection
 

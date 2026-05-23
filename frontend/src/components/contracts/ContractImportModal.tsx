@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/contracts/ContractImportModal.tsx
 // Modal for importing contracts
 

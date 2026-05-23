@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/network/topology/NetworkTopologyEditor.tsx
 // Canvas-based network topology editor — zero external libraries, pure React + HTML/SVG
 

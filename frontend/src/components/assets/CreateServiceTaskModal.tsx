@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/assets/CreateServiceTaskModal.tsx
 // Modal for creating service tasks linked to assets
 

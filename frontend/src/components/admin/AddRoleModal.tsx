@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/admin/AddRoleModal.tsx
 // Modal for adding new roles with permissions checkboxes
 

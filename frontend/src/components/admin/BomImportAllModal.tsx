@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import bomSubsystemTemplateService from '../../services/bomSubsystemTemplate.service';
 import type { ImportAllResult } from '../../services/bomSubsystemTemplate.service';

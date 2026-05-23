@@ -58,7 +58,7 @@ export const RuleFormulaPreview: React.FC<RuleFormulaPreviewProps> = ({
         templateItems,
         existingRules
       );
-    } catch (error) {
+    } catch (_error) {
       return 'Błąd generowania formuły';
     }
   }, [aggregationType, mathOperation, mathOperand, inputs, conditions, targetItemId, templateItems, existingRules, storageDaysParam, storageBitrateMbps]);

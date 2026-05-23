@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/tasks/TaskEditModal.tsx
 // Modal for editing existing tasks
 
@@ -74,7 +75,7 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
     try {
       const types = await taskService.getTaskTypes();
       setTaskTypes(types.filter(t => t.active));
-    } catch (err: any) {
+    } catch (_err: any) {
       setError('Błąd pobierania typów zadań');
     }
   };

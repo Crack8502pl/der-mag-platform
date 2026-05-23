@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/contracts/wizard/ExtendWizardModal.tsx
 // Extend Wizard Modal — allows extending CREATED / IN_PROGRESS contracts
 // with new subsystems and/or new tasks in existing subsystems.

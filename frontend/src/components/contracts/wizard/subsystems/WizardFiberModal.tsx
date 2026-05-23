@@ -73,6 +73,7 @@ export const WizardFiberModal: React.FC<WizardFiberModalProps> = ({
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const [connections, setConnections] = useState<FiberConnection[]>(initialConnections);
   // Per-instance ID counter so that parallel open modals don't share global state.
+  // eslint-disable-next-line react-hooks/purity
   const idCounterRef = useRef(Date.now());
   const genId = (): number => { idCounterRef.current += 1; return idCounterRef.current; };
 

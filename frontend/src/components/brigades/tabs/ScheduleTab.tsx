@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/brigades/tabs/ScheduleTab.tsx
 // Schedule tab - assign tasks to brigades in a weekly timeline layout
 

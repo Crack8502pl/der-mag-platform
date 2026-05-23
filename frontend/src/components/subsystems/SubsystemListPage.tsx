@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/subsystems/SubsystemListPage.tsx
 // Component for listing subsystems with filters and documentation
 

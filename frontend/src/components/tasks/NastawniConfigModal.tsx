@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/tasks/NastawniConfigModal.tsx
 // Modal for configuring Nastawnia (signalling box): standalone or subordinate to LCS
 

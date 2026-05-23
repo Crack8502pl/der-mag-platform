@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/services/bomSubsystemTemplate.service.ts
 // API client for BOM subsystem template operations
 

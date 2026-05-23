@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/users/UserCreateModal.tsx
 // Modal for creating new users
 

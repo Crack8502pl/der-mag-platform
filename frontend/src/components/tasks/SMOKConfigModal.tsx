@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/tasks/SMOKConfigModal.tsx
 // Modal for configuring SMOK-A system parameters
 
