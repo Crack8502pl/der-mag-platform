@@ -403,6 +403,10 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     if (!canvasRef.current || isExportingRef.current) return;
     isExportingRef.current = true;
     setIsExportingPdf(true);
+    // Włącz tryb dokumentacyjny (białe tło, konturowy styl)
+    canvasRef.current.classList.add('topology-canvas--print');
+    // Poczekaj na zastosowanie CSS
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
     try {
       const [html2canvasModule, jsPDFModule] = await Promise.all([
         import('html2canvas'),
@@ -418,7 +422,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
       const canvas = await html2canvas(canvasRef.current, {
         scale: window.devicePixelRatio * 2,
         useCORS: true,
-        backgroundColor: '#1a1a2e',
+        backgroundColor: '#ffffff',
         width: canvasRef.current.scrollWidth,
         height: canvasRef.current.scrollHeight,
       });
@@ -429,8 +433,27 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
         format: 'a3',
       });
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      pdf.addImage(imgData, 'JPEG', 0, 0, A3_W_MM, A3_H_MM, undefined, 'FAST');
+      const MARGIN_MM = 10;
+      const availW = A3_W_MM - 2 * MARGIN_MM;
+      const availH = A3_H_MM - 2 * MARGIN_MM;
+
+      const canvasAspect = canvas.width / canvas.height;
+      const pageAspect = availW / availH;
+
+      let imgW: number, imgH: number;
+      if (canvasAspect > pageAspect) {
+        imgW = availW;
+        imgH = availW / canvasAspect;
+      } else {
+        imgH = availH;
+        imgW = availH * canvasAspect;
+      }
+
+      const offsetX = MARGIN_MM + (availW - imgW) / 2;
+      const offsetY = MARGIN_MM + (availH - imgH) / 2;
+
+      const imgData = canvas.toDataURL('image/png');
+      pdf.addImage(imgData, 'PNG', offsetX, offsetY, imgW, imgH, undefined, 'FAST');
 
       const contractId = wizardData.contractId;
       const defaultFilename = `topology_${subsystemIndex}_${Date.now()}.pdf`;
@@ -474,6 +497,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
       setTimeout(() => setErrorMsg(null), 6000);
       console.error('PDF export error:', err);
     } finally {
+      canvasRef.current?.classList.remove('topology-canvas--print');
       isExportingRef.current = false;
       setIsExportingPdf(false);
     }
@@ -565,28 +589,6 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
 
             {/* SVG overlay for connection lines */}
             <svg className="topology-connections-svg">
-              <defs>
-                <marker
-                  id="step-arrow-fiber"
-                  markerWidth="8"
-                  markerHeight="6"
-                  refX="7"
-                  refY="3"
-                  orient="auto"
-                >
-                  <polygon points="0 0, 8 3, 0 6" fill="#FF8C00" />
-                </marker>
-                <marker
-                  id="step-arrow-lan"
-                  markerWidth="8"
-                  markerHeight="6"
-                  refX="7"
-                  refY="3"
-                  orient="auto"
-                >
-                  <polygon points="0 0, 8 3, 0 6" fill="#1E90FF" />
-                </marker>
-              </defs>
               {connections.map(conn => {
                 const src = nodes.find(n => n.id === conn.source);
                 const tgt = nodes.find(n => n.id === conn.target);
@@ -621,7 +623,6 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
                       y2={y2}
                       className={`topology-conn topology-conn--${tech}${isSelected ? ' topology-conn--selected' : ''}${isCrossing ? ' topology-conn--crossing' : ''}`}
                       style={{ pointerEvents: 'none' }}
-                      markerEnd={`url(#step-arrow-${tech})`}
                     />
                   </g>
                 );
