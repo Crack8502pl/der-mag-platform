@@ -133,7 +133,7 @@ const BomImportAllModal: React.FC<BomImportAllModalProps> = ({ onClose, onSucces
             {result.errors.length > 0 && (
               <ul style={{ margin: '10px 0 0', paddingLeft: '18px', color: '#ef4444', fontSize: '12px' }}>
                 {result.errors.map((item, index) => (
-                  <li key={`${item}-${index}`}>{item}</li>
+                  <li key={index}>{item}</li>
                 ))}
               </ul>
             )}

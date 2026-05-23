@@ -110,7 +110,8 @@ export class RecorderSpecificationService {
         }
 
         const existing = await recorderRepo.findOne({ where: { modelName: recorderData.modelName } });
-        const normalizedNotes = recorderData.notes?.trim() ? recorderData.notes.trim() : null;
+        const trimmedNotes = recorderData.notes?.trim();
+        const normalizedNotes = trimmedNotes ? trimmedNotes : null;
 
         if (existing) {
           if (mode === 'SKIP') {

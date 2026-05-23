@@ -1,6 +1,6 @@
 import { EntityManager } from 'typeorm';
 import { AppDataSource } from '../config/database';
-import { DiskSpecification } from '../entities/DiskSpecification';
+import { DiskSpecification, DiskType } from '../entities/DiskSpecification';
 import { WarehouseStock } from '../entities/WarehouseStock';
 import { RecorderSpecification } from '../entities/RecorderSpecification';
 import { ImportMode } from './RecorderSpecificationService';
@@ -26,6 +26,12 @@ export interface DiskImportOptions {
 }
 
 export class DiskSpecificationService {
+  private static toDiskType(value: string): DiskType {
+    return (Object.values(DiskType) as string[]).includes(value)
+      ? (value as DiskType)
+      : DiskType.HDD_SURVEILLANCE;
+  }
+
   static async exportToJsonArray(manager?: EntityManager): Promise<DiskExportJson[]> {
     const entityManager = manager ?? AppDataSource.manager;
     const diskRepo = entityManager.getRepository(DiskSpecification);
@@ -116,7 +122,7 @@ export class DiskSpecificationService {
             continue;
           }
 
-          existing.diskType = diskData.diskType as any;
+          existing.diskType = this.toDiskType(diskData.diskType);
           existing.priority = diskData.priority ?? 10;
           existing.isActive = diskData.isActive !== false;
           existing.compatibleRecorderIds = compatibleRecorderIds;
@@ -128,7 +134,7 @@ export class DiskSpecificationService {
         const created = diskRepo.create({
           warehouseStockId: warehouseStock.id,
           capacityTb: Number(diskData.capacityTb),
-          diskType: diskData.diskType as any,
+          diskType: this.toDiskType(diskData.diskType),
           priority: diskData.priority ?? 10,
           isActive: diskData.isActive !== false,
           compatibleRecorderIds

@@ -4,9 +4,16 @@
 import { AppDataSource } from '../config/database';
 import { BomSubsystemTemplate, SubsystemType } from '../entities/BomSubsystemTemplate';
 import { BomSubsystemTemplateItem, QuantitySource } from '../entities/BomSubsystemTemplateItem';
-import { BomTemplateDependencyRule } from '../entities/BomTemplateDependencyRule';
+import {
+  AggregationType,
+  BomTemplateDependencyRule,
+  MathOperation
+} from '../entities/BomTemplateDependencyRule';
 import { BomTemplateDependencyRuleInput, InputType } from '../entities/BomTemplateDependencyRuleInput';
-import { BomTemplateDependencyRuleCondition } from '../entities/BomTemplateDependencyRuleCondition';
+import {
+  BomTemplateDependencyRuleCondition,
+  ComparisonOperator
+} from '../entities/BomTemplateDependencyRuleCondition';
 import { TaskMaterial } from '../entities/TaskMaterial';
 import { Task } from '../entities/Task';
 import { BomGroup } from '../entities/BomGroup';
@@ -1002,10 +1009,17 @@ export class BomSubsystemTemplateService {
     }
 
     const latestItems = mode === 'OVERWRITE' ? [] : existingItems;
+    const existingItemByStableKey = new Map<string, BomSubsystemTemplateItem>();
+    latestItems.forEach((existingItem) => {
+      existingItemByStableKey.set(
+        this.getItemStableKey(existingItem.catalogNumber, existingItem.materialName),
+        existingItem
+      );
+    });
 
     for (const itemData of templateData.items ?? []) {
       const itemKey = this.getItemStableKey(itemData.catalogNumber, itemData.materialName);
-      let item = latestItems.find((existingItem) => this.getItemStableKey(existingItem.catalogNumber, existingItem.materialName) === itemKey);
+      let item = existingItemByStableKey.get(itemKey);
 
       if (!item) {
         item = itemRepository.create({
@@ -1029,6 +1043,7 @@ export class BomSubsystemTemplateService {
 
       const savedItem = await itemRepository.save(item);
       itemIdByStableKey.set(itemKey, savedItem.id);
+      existingItemByStableKey.set(itemKey, savedItem);
     }
 
     const templateRules = await ruleRepository.find({
@@ -1036,8 +1051,11 @@ export class BomSubsystemTemplateService {
       relations: ['inputs', 'conditions']
     });
     const ruleIdByStableKey = new Map<string, number>();
+    const existingRuleByStableKey = new Map<string, BomTemplateDependencyRule>();
     templateRules.forEach((rule) => {
-      ruleIdByStableKey.set(this.getRuleStableKey(rule.ruleCode, rule.ruleName), rule.id);
+      const ruleKey = this.getRuleStableKey(rule.ruleCode, rule.ruleName);
+      ruleIdByStableKey.set(ruleKey, rule.id);
+      existingRuleByStableKey.set(ruleKey, rule);
     });
 
     const savedRules: Array<{ ruleId: number; data: BomTemplateRuleJson }> = [];
@@ -1051,7 +1069,7 @@ export class BomSubsystemTemplateService {
       }
 
       const stableRuleKey = this.getRuleStableKey(ruleData.ruleCode, ruleData.ruleName);
-      let rule = templateRules.find((existingRule) => this.getRuleStableKey(existingRule.ruleCode, existingRule.ruleName) === stableRuleKey);
+      let rule = existingRuleByStableKey.get(stableRuleKey);
       if (!rule) {
         rule = ruleRepository.create({ templateId: template.id });
       }
@@ -1060,8 +1078,8 @@ export class BomSubsystemTemplateService {
       rule.ruleCode = ruleData.ruleCode ?? null;
       rule.description = ruleData.description ?? null;
       rule.evaluationOrder = ruleData.evaluationOrder ?? 0;
-      rule.aggregationType = ruleData.aggregationType as any;
-      rule.mathOperation = ruleData.mathOperation as any;
+      rule.aggregationType = this.toAggregationType(ruleData.aggregationType, result.errors, ruleData);
+      rule.mathOperation = this.toMathOperation(ruleData.mathOperation, result.errors, ruleData);
       rule.mathOperand = ruleData.mathOperand;
       rule.targetItemId = targetItemId;
       rule.isActive = ruleData.isActive !== false;
@@ -1072,6 +1090,7 @@ export class BomSubsystemTemplateService {
 
       const savedRule = await ruleRepository.save(rule);
       ruleIdByStableKey.set(stableRuleKey, savedRule.id);
+      existingRuleByStableKey.set(stableRuleKey, savedRule);
       savedRules.push({ ruleId: savedRule.id, data: ruleData });
       result.rulesImported += 1;
     }
@@ -1119,7 +1138,11 @@ export class BomSubsystemTemplateService {
         ruleConditionRepository.create({
           ruleId,
           conditionOrder: conditionData.conditionOrder ?? 0,
-          comparisonOperator: conditionData.comparisonOperator as any,
+          comparisonOperator: this.toComparisonOperator(
+            conditionData.comparisonOperator,
+            result.errors,
+            ruleData
+          ),
           compareValue: Number(conditionData.compareValue ?? 0),
           compareValueMax: conditionData.compareValueMax !== null ? Number(conditionData.compareValueMax) : null,
           resultValue: Number(conditionData.resultValue ?? 0),
@@ -1137,11 +1160,19 @@ export class BomSubsystemTemplateService {
   }
 
   private static getItemStableKey(catalogNumber?: string | null, materialName?: string | null): string {
-    return (catalogNumber?.trim() || materialName?.trim() || '').toLowerCase();
+    const stableKey = (catalogNumber?.trim() || materialName?.trim() || '').toLowerCase();
+    if (!stableKey) {
+      throw new Error('Brak stabilnego klucza pozycji BOM (catalogNumber/materialName)');
+    }
+    return stableKey;
   }
 
   private static getRuleStableKey(ruleCode?: string | null, ruleName?: string | null): string {
-    return (ruleCode?.trim() || ruleName?.trim() || '').toLowerCase();
+    const stableKey = (ruleCode?.trim() || ruleName?.trim() || '').toLowerCase();
+    if (!stableKey) {
+      throw new Error('Brak stabilnego klucza reguły (ruleCode/ruleName)');
+    }
+    return stableKey;
   }
 
   private static resolveItemRef(
@@ -1160,6 +1191,48 @@ export class BomSubsystemTemplateService {
     if (!ref) return null;
     const key = this.getRuleStableKey(ref.ruleCode, ref.ruleName);
     return ruleIdByStableKey.get(key) ?? null;
+  }
+
+  private static toAggregationType(
+    value: string,
+    errors: string[],
+    ruleData: BomTemplateRuleJson
+  ): AggregationType {
+    if ((Object.values(AggregationType) as string[]).includes(value)) {
+      return value as AggregationType;
+    }
+    errors.push(
+      `Reguła ${ruleData.ruleCode || ruleData.ruleName}: nieznany aggregationType (${value}), ustawiono SUM`
+    );
+    return AggregationType.SUM;
+  }
+
+  private static toMathOperation(
+    value: string,
+    errors: string[],
+    ruleData: BomTemplateRuleJson
+  ): MathOperation {
+    if ((Object.values(MathOperation) as string[]).includes(value)) {
+      return value as MathOperation;
+    }
+    errors.push(
+      `Reguła ${ruleData.ruleCode || ruleData.ruleName}: nieznany mathOperation (${value}), ustawiono NONE`
+    );
+    return MathOperation.NONE;
+  }
+
+  private static toComparisonOperator(
+    value: string,
+    errors: string[],
+    ruleData: BomTemplateRuleJson
+  ): ComparisonOperator {
+    if ((Object.values(ComparisonOperator) as string[]).includes(value)) {
+      return value as ComparisonOperator;
+    }
+    errors.push(
+      `Reguła ${ruleData.ruleCode || ruleData.ruleName}: nieznany comparisonOperator (${value}), ustawiono ==`
+    );
+    return ComparisonOperator.EQ;
   }
 
   /**
