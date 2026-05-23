@@ -15,6 +15,10 @@ export const generateCsrfToken = (): string => {
  * CSRF validation middleware
  * Compares the CSRF token from request header with the one in cookie
  * Uses Double Submit Cookie pattern for CSRF protection
+ *
+ * Applied globally to all state-mutating requests (POST/PUT/DELETE/PATCH) to /api/
+ * Exceptions: GET/HEAD/OPTIONS, /api/auth/login (no cookie on first login),
+ * /api/auth/forgot-password (public endpoint), /api/integrations/webhooks (external)
  */
 export const validateCsrfToken = (req: Request, res: Response, next: NextFunction): void => {
   const csrfTokenFromHeader = req.headers['x-csrf-token'] as string;

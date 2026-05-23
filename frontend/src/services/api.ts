@@ -101,6 +101,14 @@ const isJsonRequest = (headers: Record<string, string> | undefined): boolean => 
   return ct.includes('application/json');
 };
 
+/**
+ * Get CSRF token from cookie
+ */
+export const getCsrfTokenFromCookie = (): string | null => {
+  const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
 // Request interceptor - add access token
 api.interceptors.request.use(
   async (config) => {
@@ -143,6 +151,14 @@ api.interceptors.request.use(
         });
       }
       lastAuthMeRequest = now;
+    }
+
+    const method = (config.method || 'get').toLowerCase();
+    if (!['get', 'head', 'options'].includes(method)) {
+      const csrfToken = getCsrfTokenFromCookie();
+      if (csrfToken) {
+        config.headers['X-CSRF-Token'] = csrfToken;
+      }
     }
     
     // Get access token from Zustand store instead of localStorage

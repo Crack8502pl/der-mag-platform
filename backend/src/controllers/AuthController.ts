@@ -223,19 +223,6 @@ export class AuthController {
         return;
       }
 
-      // Validate CSRF token
-      const csrfTokenFromHeader = req.headers['x-csrf-token'] as string;
-      const csrfTokenFromCookie = req.cookies['csrf-token'];
-
-      if (!csrfTokenFromCookie || !csrfTokenFromHeader || csrfTokenFromHeader !== csrfTokenFromCookie) {
-        res.status(403).json({
-          success: false,
-          message: 'Invalid CSRF token',
-          code: 'CSRF_TOKEN_INVALID'
-        });
-        return;
-      }
-
       try {
         // Verify the refresh token
         const decoded = verifyRefreshToken(refreshToken);
