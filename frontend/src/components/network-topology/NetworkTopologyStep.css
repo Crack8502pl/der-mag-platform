@@ -58,3 +58,54 @@
   border-radius: 0;
   border: none;
 }
+
+/* ─── Tryb dokumentacyjny (eksport PDF) ──────────────────────── */
+.topology-canvas--print {
+  background: #ffffff !important;
+}
+
+/* Węzły: białe tło, czarny kontur, brak wypełnienia */
+.topology-canvas--print .topology-node {
+  background: #ffffff !important;
+  border: 1.5px solid #000000 !important;
+  color: #000000 !important;
+  box-shadow: none !important;
+}
+
+/* Etykiety węzłów — czarny tekst */
+.topology-canvas--print .topology-node-label,
+.topology-canvas--print .topology-node-type,
+.topology-canvas--print .topology-node-title {
+  color: #000000 !important;
+  text-shadow: none !important;
+}
+
+/* Ikony kolorowe — ukryj, zostaw tylko tekst */
+.topology-canvas--print .topology-node-icon {
+  display: none !important;
+}
+
+/* Połączenia — cienka czarna linia */
+.topology-canvas--print .topology-conn {
+  stroke: #000000 !important;
+  stroke-width: 1.5 !important;
+}
+
+/* Odróżnienie FIBER / LAN przez styl linii zamiast koloru */
+.topology-canvas--print .topology-conn--fiber {
+  stroke-dasharray: none !important;
+}
+.topology-canvas--print .topology-conn--lan {
+  stroke-dasharray: 6 3 !important;
+}
+
+/* Krzyżowania — zaznacz tylko grubszą linią, nie czerwonym kolorem */
+.topology-canvas--print .topology-conn--crossing {
+  stroke: #000000 !important;
+  stroke-width: 2.5 !important;
+}
+
+/* Ukryj elementy UI zbędne w PDF */
+.topology-canvas--print .topology-empty-state {
+  display: none !important;
+}
