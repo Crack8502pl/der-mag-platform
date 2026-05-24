@@ -37,6 +37,28 @@ interface DragState {
 
 const NODE_WIDTH = 140;
 
+function getTaskNodeTypeLabel(taskType: string): string {
+  switch (taskType) {
+    case 'PRZEJAZD_KAT_A':
+    case 'PRZEJAZD_KAT_B':
+    case 'PRZEJAZD_KAT_C':
+      return 'Przejazd';
+    case 'PRZEJAZD_KAT_E':
+    case 'PRZEJAZD_KAT_F':
+      return 'Przejście';
+    case 'SKP':
+      return 'SKP';
+    case 'NASTAWNIA':
+      return 'Nastawnia';
+    case 'LCS':
+      return 'LCS';
+    case 'CUID':
+      return 'CUID';
+    default:
+      return taskType;
+  }
+}
+
 export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
   wizardData,
   onUpdate,
@@ -103,6 +125,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
         data: {
           taskId: task.id,
           km: normalized.kilometrazNumeric,
+          nodeTypeLabel: getTaskNodeTypeLabel(task.taskType),
         },
       };
     });
@@ -296,7 +319,11 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
           x: 50 + (nodes.length % 4) * 170,
           y: 50 + Math.floor(nodes.length / 4) * 110,
         },
-        data: { km: result.km, isActive: result.isActive },
+        data: {
+          km: result.km,
+          isActive: result.isActive,
+          nodeTypeLabel: result.label,
+        },
       };
       setNodes(prev => [...prev, newNode]);
       setIsDirty(true);
@@ -350,6 +377,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
           data: {
             taskId: taskDetail.id,
             km: normalized.kilometrazNumeric,
+            nodeTypeLabel: getTaskNodeTypeLabel(taskDetail.taskType),
           },
         };
 

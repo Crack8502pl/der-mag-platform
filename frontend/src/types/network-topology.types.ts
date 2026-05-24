@@ -15,6 +15,7 @@ export interface TopologyNode {
     km?: number;
     technology?: ConnectionTechnology;
     icon?: string;
+    nodeTypeLabel?: string;
     [key: string]: unknown;
   };
 }
