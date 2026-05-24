@@ -36,6 +36,10 @@ interface DragState {
 }
 
 const NODE_WIDTH = 140;
+const NODE_HEIGHT_EST = 80;       // estimated node height for bounding box
+const PDF_PADDING = 40;           // padding around all nodes in PDF canvas
+const DEFAULT_CANVAS_WIDTH = 800; // fallback canvas width when no nodes exist
+const DEFAULT_CANVAS_HEIGHT = 600; // fallback canvas height when no nodes exist
 
 function getTaskNodeTypeLabel(taskType: string): string {
   switch (taskType) {
@@ -431,10 +435,44 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     if (!canvasRef.current || isExportingRef.current) return;
     isExportingRef.current = true;
     setIsExportingPdf(true);
-    // Włącz tryb dokumentacyjny (białe tło, konturowy styl)
-    canvasRef.current.classList.add('topology-canvas--print');
-    // Poczekaj na zastosowanie CSS
-    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+
+    const waitForFrame = (): Promise<void> =>
+      new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+
+    // ── Step 1: Compute bounding box from node state (independent of viewport) ──
+    let bbW = DEFAULT_CANVAS_WIDTH;
+    let bbH = DEFAULT_CANVAS_HEIGHT;
+    if (nodes.length > 0) {
+      const { maxX, maxY } = nodes.reduce(
+        (acc, n) => ({
+          maxX: Math.max(acc.maxX, n.position.x + NODE_WIDTH),
+          maxY: Math.max(acc.maxY, n.position.y + NODE_HEIGHT_EST),
+        }),
+        { maxX: 0, maxY: 0 }
+      );
+      bbW = maxX + PDF_PADDING;
+      bbH = maxY + PDF_PADDING;
+    }
+
+    // ── Step 2: Temporarily expand canvas to bounding box size ──
+    const el = canvasRef.current;
+    const prevWidth  = el.style.width;
+    const prevHeight = el.style.height;
+    const prevMinH   = el.style.minHeight;
+    const prevOverflow = el.style.overflow;
+
+    el.style.width    = `${bbW}px`;
+    el.style.height   = `${bbH}px`;
+    el.style.minHeight = `${bbH}px`;
+    el.style.overflow  = 'visible';
+
+    // Wait one frame for layout to settle
+    await waitForFrame();
+
+    // Enable print mode (white background, black outlines)
+    el.classList.add('topology-canvas--print');
+    await waitForFrame();
+
     try {
       const [html2canvasModule, jsPDFModule] = await Promise.all([
         import('html2canvas'),
@@ -446,27 +484,21 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
       // A3 horizontal: 420 × 297 mm
       const A3_W_MM = 420;
       const A3_H_MM = 297;
+      const MARGIN_MM = 10;
+      const availW = A3_W_MM - 2 * MARGIN_MM; // 400 mm
+      const availH = A3_H_MM - 2 * MARGIN_MM; // 277 mm
 
-      const canvas = await html2canvas(canvasRef.current, {
+      const canvas = await html2canvas(el, {
         scale: window.devicePixelRatio * 2,
         useCORS: true,
         backgroundColor: '#ffffff',
-        width: canvasRef.current.scrollWidth,
-        height: canvasRef.current.scrollHeight,
+        width: bbW,
+        height: bbH,
       });
 
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a3',
-      });
-
-      const MARGIN_MM = 10;
-      const availW = A3_W_MM - 2 * MARGIN_MM;
-      const availH = A3_H_MM - 2 * MARGIN_MM;
-
+      // ── Step 3: Letterbox — fit canvas into A3 with correct aspect ratio ──
       const canvasAspect = canvas.width / canvas.height;
-      const pageAspect = availW / availH;
+      const pageAspect   = availW / availH;
 
       let imgW: number, imgH: number;
       if (canvasAspect > pageAspect) {
@@ -479,6 +511,12 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
 
       const offsetX = MARGIN_MM + (availW - imgW) / 2;
       const offsetY = MARGIN_MM + (availH - imgH) / 2;
+
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a3',
+      });
 
       const imgData = canvas.toDataURL('image/png');
       pdf.addImage(imgData, 'PNG', offsetX, offsetY, imgW, imgH, undefined, 'FAST');
@@ -525,11 +563,16 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
       setTimeout(() => setErrorMsg(null), 6000);
       console.error('PDF export error:', err);
     } finally {
-      canvasRef.current?.classList.remove('topology-canvas--print');
+      // ── Step 4: Always restore original styles ──
+      el.style.width     = prevWidth;
+      el.style.height    = prevHeight;
+      el.style.minHeight = prevMinH;
+      el.style.overflow  = prevOverflow;
+      el.classList.remove('topology-canvas--print');
       isExportingRef.current = false;
       setIsExportingPdf(false);
     }
-  }, [wizardData.contractId, subsystemIndex]);
+  }, [nodes, wizardData.contractId, subsystemIndex]);
 
   return (
     <div className="topology-step">
