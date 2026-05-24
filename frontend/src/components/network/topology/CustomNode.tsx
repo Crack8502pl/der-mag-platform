@@ -6,6 +6,13 @@ import type { TopologyNode } from '../../../types/network-topology.types';
 import { NODE_ICONS, NODE_TYPE_LABELS } from '../../../types/network-topology.types';
 import './CustomNode.css';
 
+function formatKmDisplay(km: number): string {
+  const thousandths = Math.round(km * 1000);
+  const intPart = Math.floor(thousandths / 1000);
+  const dec = Math.abs(thousandths % 1000);
+  return `${intPart},${String(dec).padStart(3, '0')}`;
+}
+
 export interface CustomNodeProps {
   node: TopologyNode;
   isSelected?: boolean;
@@ -45,10 +52,12 @@ export const CustomNode: React.FC<CustomNodeProps> = ({
       <div className="topology-node-icon" aria-hidden="true">
         {NODE_ICONS[node.type]}
       </div>
-      <div className="topology-node-type">{NODE_TYPE_LABELS[node.type]}</div>
+      <div className="topology-node-type">
+        {node.data.nodeTypeLabel != null ? String(node.data.nodeTypeLabel) : NODE_TYPE_LABELS[node.type]}
+      </div>
       <div className="topology-node-label">{node.label}</div>
       {node.data.km !== undefined && (
-        <div className="topology-node-km">km {node.data.km}</div>
+        <div className="topology-node-km">km {formatKmDisplay(Number(node.data.km))}</div>
       )}
     </div>
   );
