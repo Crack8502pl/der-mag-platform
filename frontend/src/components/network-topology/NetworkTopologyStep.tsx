@@ -36,8 +36,10 @@ interface DragState {
 }
 
 const NODE_WIDTH = 140;
-const NODE_HEIGHT_EST = 80;  // estimated node height for bounding box
-const PDF_PADDING = 40;      // padding around all nodes in PDF canvas
+const NODE_HEIGHT_EST = 80;       // estimated node height for bounding box
+const PDF_PADDING = 40;           // padding around all nodes in PDF canvas
+const DEFAULT_CANVAS_WIDTH = 800; // fallback canvas width when no nodes exist
+const DEFAULT_CANVAS_HEIGHT = 600; // fallback canvas height when no nodes exist
 
 function getTaskNodeTypeLabel(taskType: string): string {
   switch (taskType) {
@@ -434,12 +436,20 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     isExportingRef.current = true;
     setIsExportingPdf(true);
 
+    const waitForFrame = (): Promise<void> =>
+      new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+
     // ── Step 1: Compute bounding box from node state (independent of viewport) ──
-    let bbW = 800;
-    let bbH = 600;
+    let bbW = DEFAULT_CANVAS_WIDTH;
+    let bbH = DEFAULT_CANVAS_HEIGHT;
     if (nodes.length > 0) {
-      const maxX = Math.max(...nodes.map(n => n.position.x + NODE_WIDTH));
-      const maxY = Math.max(...nodes.map(n => n.position.y + NODE_HEIGHT_EST));
+      const { maxX, maxY } = nodes.reduce(
+        (acc, n) => ({
+          maxX: Math.max(acc.maxX, n.position.x + NODE_WIDTH),
+          maxY: Math.max(acc.maxY, n.position.y + NODE_HEIGHT_EST),
+        }),
+        { maxX: 0, maxY: 0 }
+      );
       bbW = maxX + PDF_PADDING;
       bbH = maxY + PDF_PADDING;
     }
@@ -457,11 +467,11 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     el.style.overflow  = 'visible';
 
     // Wait one frame for layout to settle
-    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    await waitForFrame();
 
     // Enable print mode (white background, black outlines)
     el.classList.add('topology-canvas--print');
-    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    await waitForFrame();
 
     try {
       const [html2canvasModule, jsPDFModule] = await Promise.all([
