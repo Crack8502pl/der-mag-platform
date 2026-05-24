@@ -7,10 +7,11 @@ import { NODE_ICONS, NODE_TYPE_LABELS } from '../../../types/network-topology.ty
 import './CustomNode.css';
 
 function formatKmDisplay(km: number): string {
-  const thousandths = Math.round(km * 1000);
+  const sign = km < 0 ? '-' : '';
+  const thousandths = Math.round(Math.abs(km) * 1000);
   const intPart = Math.floor(thousandths / 1000);
-  const dec = Math.abs(thousandths % 1000);
-  return `${intPart},${String(dec).padStart(3, '0')}`;
+  const dec = thousandths % 1000;
+  return `${sign}${intPart},${String(dec).padStart(3, '0')}`;
 }
 
 export interface CustomNodeProps {
@@ -53,11 +54,11 @@ export const CustomNode: React.FC<CustomNodeProps> = ({
         {NODE_ICONS[node.type]}
       </div>
       <div className="topology-node-type">
-        {node.data.nodeTypeLabel != null ? String(node.data.nodeTypeLabel) : NODE_TYPE_LABELS[node.type]}
+        {node.data.nodeTypeLabel != null ? node.data.nodeTypeLabel : NODE_TYPE_LABELS[node.type]}
       </div>
       <div className="topology-node-label">{node.label}</div>
       {node.data.km !== undefined && (
-        <div className="topology-node-km">km {formatKmDisplay(Number(node.data.km))}</div>
+        <div className="topology-node-km">km {formatKmDisplay(node.data.km)}</div>
       )}
     </div>
   );
