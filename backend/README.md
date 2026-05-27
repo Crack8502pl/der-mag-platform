@@ -207,6 +207,17 @@ npm run dev
 
 Serwer uruchomi się na `http://localhost:3000`
 
+> **Uwaga:** Skrypt `dev` używa `tsx` (esbuild-based transpiler) zamiast `ts-node`, co redukuje zużycie pamięci heap o ~60–70%. Domyślnie przydziela 2 GB heap (`NODE_OPTIONS='--max-old-space-size=2048'`). Jeśli pracujesz na maszynie z ograniczoną pamięcią lub napotykasz błąd `JavaScript heap out of memory`, użyj skryptu `dev:debug` z 4 GB heap:
+
+```bash
+npm run dev:debug
+```
+
+| Skrypt | Heap | Zastosowanie |
+|---|---|---|
+| `npm run dev` | 2 GB | Standardowe środowisko deweloperskie |
+| `npm run dev:debug` | 4 GB | Fallback przy dużym zużyciu pamięci / debugowanie |
+
 ### Produkcja
 
 ```bash

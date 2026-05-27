@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",
-    "dev": "dotenvx run -- node --watch -r ts-node/register src/index.ts",
+    "dev": "NODE_OPTIONS='--max-old-space-size=2048' dotenvx run -- tsx watch src/index.ts",
+    "dev:debug": "NODE_OPTIONS='--max-old-space-size=4096' dotenvx run -- tsx watch src/index.ts",
     "build": "tsc && cp -r public dist/ && cp -r scripts dist/",
     "typecheck": "tsc --noEmit",
     "test": "jest",

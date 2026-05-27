@@ -28,8 +28,9 @@ export const startSymfoniaContractSyncJobs = (): void => {
     }
   });
 
-  // Szybka synchronizacja co 1 godzinę (aktualizacja kierowników)
-  const quickSyncCron = process.env.SYMFONIA_CONTRACTS_QUICK_SYNC_CRON || '0 * * * *';
+  // Szybka synchronizacja co 1 godzinę z offsetem 30 minut (aktualizacja kierowników)
+  // Offset 30 minut zapobiega kolizji z fullSync uruchamianym o pełnej godzinie (0 */3 * * *)
+  const quickSyncCron = process.env.SYMFONIA_CONTRACTS_QUICK_SYNC_CRON || '30 * * * *';
 
   quickSyncTask = cron.schedule(quickSyncCron, async () => {
     console.log('⚡ [CRON] Rozpoczynam szybką synchronizację kierowników kontraktów...');
@@ -37,7 +38,12 @@ export const startSymfoniaContractSyncJobs = (): void => {
       const result = await SymfoniaContractSyncService.quickSync();
       console.log(`✅ [CRON] Szybka synchronizacja kierowników: ${result.stats.updated} zaktualizowanych`);
     } catch (error) {
-      console.error('❌ [CRON] Błąd szybkiej synchronizacji kontraktów:', error);
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg === 'Synchronizacja kontraktów jest już uruchomiona') {
+        console.warn('⚠️  [CRON] Pominięto szybką synchronizację – synchronizacja jest już aktywna');
+      } else {
+        console.error('❌ [CRON] Błąd szybkiej synchronizacji kontraktów:', error);
+      }
     }
   });
 
