@@ -21,7 +21,9 @@ interface RegisteredJob {
 
 /**
  * Validates a basic 5-field cron expression.
- * Does not validate value ranges exhaustively — just ensures 5 whitespace-separated fields.
+ * Only checks that 5 whitespace-separated fields are present — does not validate
+ * individual field ranges (e.g., 0-59 for minutes). Invalid field values will be
+ * caught by node-cron when the expression is scheduled.
  */
 export function isValidCronExpression(expression: string): boolean {
   if (!expression || typeof expression !== 'string') return false;

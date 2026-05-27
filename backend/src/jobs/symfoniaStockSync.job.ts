@@ -6,6 +6,8 @@ import * as cron from 'node-cron';
 import { SymfoniaSyncService } from '../services/SymfoniaSyncService';
 import { CronConfigService } from '../services/CronConfigService';
 
+const DEFAULT_CRON = '0 * * * *';
+
 let syncTask: cron.ScheduledTask | null = null;
 
 const stockSyncRunner = async (): Promise<void> => {
@@ -21,11 +23,11 @@ const stockSyncRunner = async (): Promise<void> => {
 export const startSymfoniaStockSyncJob = (): void => {
   if (process.env.SYMFONIA_SYNC_ENABLED === 'false') {
     console.log('⏸️  CRON Job: Synchronizacja Symfonia wyłączona (SYMFONIA_SYNC_ENABLED=false)');
-    CronConfigService.update('stock_sync', CronConfigService.getById('stock_sync')?.cronExpression || '0 * * * *', false);
+    CronConfigService.update('stock_sync', CronConfigService.getById('stock_sync')?.cronExpression || DEFAULT_CRON, false);
     return;
   }
 
-  const cronExpression = CronConfigService.getById('stock_sync')?.cronExpression || process.env.SYMFONIA_SYNC_CRON_EXPRESSION || '0 * * * *';
+  const cronExpression = CronConfigService.getById('stock_sync')?.cronExpression || process.env.SYMFONIA_SYNC_CRON_EXPRESSION || DEFAULT_CRON;
 
   syncTask = cron.schedule(cronExpression, stockSyncRunner);
 

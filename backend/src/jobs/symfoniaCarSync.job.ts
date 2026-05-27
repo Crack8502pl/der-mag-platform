@@ -5,6 +5,8 @@ import * as cron from 'node-cron';
 import { SymfoniaCarSyncService } from '../services/SymfoniaCarSyncService';
 import { CronConfigService } from '../services/CronConfigService';
 
+const DEFAULT_CRON = '0 */12 * * *';
+
 let syncTask: cron.ScheduledTask | null = null;
 
 const carSyncRunner = async (): Promise<void> => {
@@ -23,12 +25,12 @@ const carSyncRunner = async (): Promise<void> => {
 export const startSymfoniaCarSyncJob = (): void => {
   if (process.env.SYMFONIA_SYNC_ENABLED === 'false') {
     console.log('⏸️  CRON Job: Synchronizacja samochodów wyłączona (SYMFONIA_SYNC_ENABLED=false)');
-    CronConfigService.update('cars_sync', CronConfigService.getById('cars_sync')?.cronExpression || '0 */12 * * *', false);
+    CronConfigService.update('cars_sync', CronConfigService.getById('cars_sync')?.cronExpression || DEFAULT_CRON, false);
     return;
   }
 
   // Co 12 godzin: 0:00 i 12:00
-  const cronExpression = CronConfigService.getById('cars_sync')?.cronExpression || process.env.SYMFONIA_CARS_SYNC_CRON || '0 */12 * * *';
+  const cronExpression = CronConfigService.getById('cars_sync')?.cronExpression || process.env.SYMFONIA_CARS_SYNC_CRON || DEFAULT_CRON;
 
   syncTask = cron.schedule(cronExpression, carSyncRunner);
 
