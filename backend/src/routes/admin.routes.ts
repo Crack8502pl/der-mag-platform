@@ -10,6 +10,7 @@ import { UserController } from '../controllers/UserController';
 import { RoleController } from '../controllers/RoleController';
 import { AdminController } from '../controllers/AdminController';
 import { CompletionController } from '../controllers/CompletionController';
+import cronConfigRouter from './cronConfig.routes';
 
 const router = Router();
 
@@ -82,5 +83,8 @@ router.delete('/roles/:id', authenticate, requirePermission('users', 'delete'), 
 
 // Seed database (force reseed)
 router.post('/seed-database', AdminController.seedDatabase);
+
+// CRON schedule management
+router.use('/cron', cronConfigRouter);
 
 export default router;

@@ -6,6 +6,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import symfoniaSyncService, { type SyncResult, type SyncStatus, type SyncHistory, type SyncProgress } from '../../services/symfoniaSync.service';
 import { ModuleIcon } from '../common/ModuleIcon';
+import { CronSchedulerPanel } from './CronSchedulerPanel';
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return '—';
@@ -362,7 +363,7 @@ const SyncSection: React.FC<SyncSectionProps> = ({
   );
 };
 
-type TabId = 'warehouse' | 'contracts' | 'cars';
+type TabId = 'warehouse' | 'contracts' | 'cars' | 'cron';
 
 const CarsSyncSection: React.FC = () => {
   const [status, setStatus] = useState<SyncStatus | null>(null);
@@ -636,6 +637,9 @@ export const SymfoniaSyncPage: React.FC = () => {
         <button style={tabStyle('cars')} onClick={() => setActiveTab('cars')}>
           🚗 Samochody
         </button>
+        <button style={tabStyle('cron')} onClick={() => setActiveTab('cron')}>
+          ⏰ Harmonogramy CRON
+        </button>
       </div>
 
       {/* Warehouse tab */}
@@ -679,6 +683,11 @@ export const SymfoniaSyncPage: React.FC = () => {
       {/* Cars tab */}
       {activeTab === 'cars' && (
         <CarsSyncSection />
+      )}
+
+      {/* CRON Schedules tab */}
+      {activeTab === 'cron' && (
+        <CronSchedulerPanel />
       )}
     </div>
   );
