@@ -220,6 +220,18 @@ export class SymfoniaContractSyncService {
    * READ-ONLY from MSSQL
    */
   static async quickSync(): Promise<ContractSyncResult> {
+    if (SymfoniaContractSyncService.isContractSyncRunning && SymfoniaContractSyncService.contractSyncStartedAt) {
+      const elapsed = Date.now() - SymfoniaContractSyncService.contractSyncStartedAt.getTime();
+      if (elapsed > SymfoniaContractSyncService.MAX_SYNC_RUN_DURATION_MS) {
+        console.warn(
+          `⚠️  [CRON] Resetuję blokadę synchronizacji kontraktów (przekroczono ${
+            SymfoniaContractSyncService.MAX_SYNC_RUN_DURATION_MS / 60000
+          } min)`
+        );
+        SymfoniaContractSyncService.resetSyncLock();
+      }
+    }
+
     if (SymfoniaContractSyncService.isContractSyncRunning) {
       throw new Error('Synchronizacja kontraktów jest już uruchomiona');
     }
