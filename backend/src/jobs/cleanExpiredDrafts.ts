@@ -5,6 +5,7 @@ import * as cron from 'node-cron';
 import { AppDataSource } from '../config/database';
 import { WizardDraft } from '../entities/WizardDraft';
 import { LessThan } from 'typeorm';
+import { CronConfigService } from '../services/CronConfigService';
 
 let cleanDraftsTask: cron.ScheduledTask | null = null;
 
@@ -24,12 +25,15 @@ export async function cleanExpiredDrafts(): Promise<void> {
 }
 
 export const scheduleCleanExpiredDrafts = (): void => {
-  // Uruchamiaj co godzinę
-  cleanDraftsTask = cron.schedule('0 * * * *', async () => {
+  const cronExpression = CronConfigService.getById('clean_drafts')?.cronExpression || '0 * * * *';
+
+  cleanDraftsTask = cron.schedule(cronExpression, async () => {
     await cleanExpiredDrafts();
   });
 
-  console.log('📅 [CRON] Zaplanowano czyszczenie wygasłych draftów wizardów (co godzinę)');
+  CronConfigService.registerJob('clean_drafts', cleanExpiredDrafts, cleanDraftsTask);
+
+  console.log(`📅 [CRON] Zaplanowano czyszczenie wygasłych draftów wizardów (${cronExpression})`);
 };
 
 export const stopCleanExpiredDraftsJob = (): void => {

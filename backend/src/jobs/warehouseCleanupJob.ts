@@ -3,25 +3,31 @@
 
 import * as cron from 'node-cron';
 import { WarehouseCleanupService } from '../services/WarehouseCleanupService';
+import { CronConfigService } from '../services/CronConfigService';
 
 let cleanupTask: cron.ScheduledTask | null = null;
 
-export const scheduleWarehouseCleanup = (): void => {
-  // Uruchamiaj codziennie o 3:00 w nocy (format: minuta godzina dzień miesiąc dzień_tygodnia)
-  cleanupTask = cron.schedule('0 3 * * *', async () => {
-    console.log('🧹 [CRON] Uruchamiam automatyczne czyszczenie magazynu...');
-    try {
-      const result = await WarehouseCleanupService.deactivateZeroStockItems();
-      console.log(`✅ [CRON] Dezaktywowano ${result.deactivated} z ${result.processed} towarów`);
-      if (result.errors.length > 0) {
-        console.warn('⚠️ [CRON] Błędy:', result.errors);
-      }
-    } catch (error) {
-      console.error('❌ [CRON] Błąd czyszczenia magazynu:', error);
+const warehouseCleanupRunner = async (): Promise<void> => {
+  console.log('🧹 [CRON] Uruchamiam automatyczne czyszczenie magazynu...');
+  try {
+    const result = await WarehouseCleanupService.deactivateZeroStockItems();
+    console.log(`✅ [CRON] Dezaktywowano ${result.deactivated} z ${result.processed} towarów`);
+    if (result.errors.length > 0) {
+      console.warn('⚠️ [CRON] Błędy:', result.errors);
     }
-  });
+  } catch (error) {
+    console.error('❌ [CRON] Błąd czyszczenia magazynu:', error);
+  }
+};
 
-  console.log('📅 [CRON] Zaplanowano automatyczne czyszczenie magazynu (codziennie o 3:00)');
+export const scheduleWarehouseCleanup = (): void => {
+  const cronExpression = CronConfigService.getById('warehouse_cleanup')?.cronExpression || '0 3 * * *';
+
+  cleanupTask = cron.schedule(cronExpression, warehouseCleanupRunner);
+
+  CronConfigService.registerJob('warehouse_cleanup', warehouseCleanupRunner, cleanupTask);
+
+  console.log(`📅 [CRON] Zaplanowano automatyczne czyszczenie magazynu (${cronExpression})`);
 };
 
 export const stopWarehouseCleanupJob = (): void => {
