@@ -1,3 +1,10 @@
+## 2026-05-29
+
+- backend: naprawiono krytyczny błąd dziennego raportu zarządu — `NotificationSchedulerService.getTaskStats()` używa teraz `task.plannedEndDate` zamiast nieistniejącego `task.dueDate`.
+- backend: naprawiono aktualizację `substatus` dla auto-zadania `KOMPLETACJA_SZAF` w `ContractController` (w ścieżkach tworzenia i rozszerzania kontraktu) przez wzorzec `findOne + save` zamiast `repository.update(...)`.
+- backend: poprawiono obsługę błędu brakujących kolumn GPS w `MapController` — dodano ostrzeżenie z instrukcją uruchomienia migracji `AddGpsToServiceTask` oraz komentarz w kodzie.
+- testy: dodano testy jednostkowe dla `NotificationSchedulerService.getTaskStats` oraz scenariuszy aktualizacji `substatus` w `ContractController`.
+
 Znalazłem problem! 🎯 Mechanizm draftu zapisuje dane poprawnie, ale przy przywracaniu danych krok relationships używa typów WizardTaskRelationships, które mają klucze oparte na taskWizardId (lub fallback na {subsystemIndex}-{taskDetailIndex}), ale przywracanie prawdopodobnie nie synchronizuje struktury danych z aktualnymi taskWizardId z taskDetails.
 🔍 Analiza problemu
 

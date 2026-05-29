@@ -404,7 +404,7 @@ export class NotificationSchedulerService {
     });
     const overdue = await this.taskRepository
       .createQueryBuilder('task')
-      .where('task.dueDate < :now', { now: new Date() })
+      .where('task.plannedEndDate < :now', { now: new Date() })
       .andWhere('task.status NOT IN (:...statuses)', { 
         statuses: ['completed', 'cancelled'] 
       })
