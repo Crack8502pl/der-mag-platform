@@ -105,8 +105,6 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
   pointer-events: none;
 }
 
@@ -129,13 +127,13 @@
 }
 
 .topology-conn-label {
-  fill: var(--text-secondary);
+  fill: var(--text-secondary, #aaa);
   font-size: 10px;
   pointer-events: none;
   user-select: none;
 }
 .topology-canvas--print .topology-conn-label {
-  fill: #333333;
+  fill: #444;
 }
 
 .topology-conn--selected {

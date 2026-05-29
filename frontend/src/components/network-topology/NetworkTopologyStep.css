@@ -24,7 +24,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: auto;
 }
 
 /* Stats bar */
@@ -61,7 +61,7 @@
 
 .topology-step-canvas-area .topology-canvas {
   flex: unset;
-  min-width: 100%;
+  min-width: 800px;
   min-height: 500px;
   border-radius: 0;
   border: none;
