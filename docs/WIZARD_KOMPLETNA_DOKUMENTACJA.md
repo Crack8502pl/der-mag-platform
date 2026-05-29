@@ -360,6 +360,11 @@ Funkcje:
     Konfiguracja per zadanie (nie globalna)
     Filtrowanie zadań - wyświetlane tylko zadania typu: SMOKIP_A, SMOKIP_B, LCS, NASTAWNIA, SKP
 
+#### Zmiany (v2)
+- **Tabela „Podsumowanie"**: pojawia się od razu po wyborze typu szafy, nawet bez skonfigurowanych słupów. Wyświetla „Brak słupów" gdy poles nie ustawione.
+- **LCS / NASTAWNIA**: sekcja słupów jest ukryta (słupy nie dotyczą tych typów zadań). Zapisane `poles` są czyszczone automatycznie.
+- **Collapse kart**: każda karta zadania (`per-task-card`) może być zwinięta/rozwinięta klikając nagłówek (▶/▼). Stan collapse jest lokalny — resetuje się przy przejściu między krokami.
+
 Pola per zadanie:
 Sekcja: Typ szafy
 Pole	Typ	Wymagane	Opcje	Opis
