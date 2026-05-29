@@ -6,6 +6,7 @@ import { AppDataSource } from '../config/database';
 import { Task } from '../entities/Task';
 import { ServiceTask } from '../entities/ServiceTask';
 import { Asset } from '../entities/Asset';
+import { serverLogger } from '../utils/logger';
 
 export class MapController {
   static async getMarkers(req: Request, res: Response): Promise<void> {
@@ -40,7 +41,12 @@ export class MapController {
             .innerJoin('brigade_members', 'bm', 'bm.brigadeId = b.id AND bm.userId = :userId AND bm.active = true', { userId });
         }
         serviceTasks = await stQb.getMany();
-      } catch (_err) {
+      } catch (err) {
+        // If this warning appears, DB migration AddGpsToServiceTask must be applied.
+        serverLogger.warn(
+          'ServiceTask GPS columns not found — run pending migrations (AddGpsToServiceTask). Falling back to empty service tasks.',
+          { error: err instanceof Error ? err.message : String(err) }
+        );
         serviceTasks = [];
       }
 

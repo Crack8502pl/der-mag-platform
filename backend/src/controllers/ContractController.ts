@@ -728,10 +728,13 @@ export class ContractController {
 
                       // Ustaw substatus na zadaniu źródłowym (analogicznie do 'wysyłka_zlecona' w kreatorze wysyłki)
                       const subsystemTaskRepo = AppDataSource.getRepository(SubsystemTask);
-                      await subsystemTaskRepo.update(
-                        { taskNumber: subsystemTask.taskNumber },
-                        { substatus: 'szafa_wygenerowana' }
-                      );
+                      const stToUpdate = await subsystemTaskRepo.findOne({
+                        where: { taskNumber: subsystemTask.taskNumber }
+                      });
+                      if (stToUpdate) {
+                        stToUpdate.substatus = 'szafa_wygenerowana';
+                        await subsystemTaskRepo.save(stToUpdate);
+                      }
                     } catch (cabinetError) {
                       serverLogger.error(
                         `❌ Błąd tworzenia automatycznego zadania KOMPLETACJA_SZAF dla ${subsystemTask.taskNumber}:`,
@@ -1050,10 +1053,13 @@ export class ContractController {
                       createdTasks.push(cabinetSubsystemTask);
                       createdMainTasks.push(cabinetMainTask);
                       const subsystemTaskRepo = AppDataSource.getRepository(SubsystemTask);
-                      await subsystemTaskRepo.update(
-                        { taskNumber: subsystemTask.taskNumber },
-                        { substatus: 'szafa_wygenerowana' }
-                      );
+                      const stToUpdate = await subsystemTaskRepo.findOne({
+                        where: { taskNumber: subsystemTask.taskNumber }
+                      });
+                      if (stToUpdate) {
+                        stToUpdate.substatus = 'szafa_wygenerowana';
+                        await subsystemTaskRepo.save(stToUpdate);
+                      }
                     } catch (cabinetError) {
                       serverLogger.error(
                         `❌ Błąd tworzenia automatycznego zadania KOMPLETACJA_SZAF dla ${subsystemTask.taskNumber}:`,
