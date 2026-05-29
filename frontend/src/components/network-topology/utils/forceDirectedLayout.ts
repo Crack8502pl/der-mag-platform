@@ -1,10 +1,12 @@
 import type { TopologyNode, TopologyConnection } from '../../../types/network-topology.types';
 import { doLinesIntersect, type Point } from './lineIntersection';
 
-const CANVAS_WIDTH = 1200;
 const CANVAS_HEIGHT = 800;
 const NODE_WIDTH = 140;
 const NODE_HEIGHT = 60;
+const CANVAS_BOUNDARY = 8;
+const RIGHT_OPEN_BOUNDARY = 99999;
+const MIN_GAP = 12;
 
 // Parametry algorytmu force-directed
 const SPRING_LENGTH = 200;
@@ -169,18 +171,39 @@ export function optimizeLayout(
 
       node.position.x += node.vx;
       node.position.y += node.vy;
+      totalEnergy += node.vx * node.vx + node.vy * node.vy;
+    });
 
-      const margin = 50;
+    // Hard overlap resolution: push apart if too close
+    for (let i = 0; i < forceNodes.length; i++) {
+      for (let j = i + 1; j < forceNodes.length; j++) {
+        const n1 = forceNodes[i];
+        const n2 = forceNodes[j];
+        const overlapX = (NODE_WIDTH + MIN_GAP) - Math.abs(n2.position.x - n1.position.x);
+        const overlapY = (NODE_HEIGHT + MIN_GAP) - Math.abs(n2.position.y - n1.position.y);
+        if (overlapX > 0 && overlapY > 0) {
+          const pushX = overlapX / 2 + 1;
+          const pushY = overlapY / 2 + 1;
+          if (Math.abs(n2.position.x - n1.position.x) < Math.abs(n2.position.y - n1.position.y)) {
+            n1.position.x -= pushX;
+            n2.position.x += pushX;
+          } else {
+            n1.position.y -= pushY;
+            n2.position.y += pushY;
+          }
+        }
+      }
+    }
+
+    forceNodes.forEach(node => {
       node.position.x = Math.max(
-        margin,
-        Math.min(CANVAS_WIDTH - NODE_WIDTH - margin, node.position.x)
+        CANVAS_BOUNDARY,
+        Math.min(RIGHT_OPEN_BOUNDARY, node.position.x)
       );
       node.position.y = Math.max(
-        margin,
-        Math.min(CANVAS_HEIGHT - NODE_HEIGHT - margin, node.position.y)
+        CANVAS_BOUNDARY,
+        Math.min(CANVAS_HEIGHT - NODE_HEIGHT - CANVAS_BOUNDARY, node.position.y)
       );
-
-      totalEnergy += node.vx * node.vx + node.vy * node.vy;
     });
 
     if (totalEnergy < MIN_ENERGY) {

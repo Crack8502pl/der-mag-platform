@@ -52,11 +52,32 @@
 }
 
 /* Canvas — override min-height to fill flex container */
-.topology-step-canvas-area .topology-canvas {
+.topology-canvas-viewport {
   flex: 1;
+  overflow: auto;
   min-height: 0;
+  position: relative;
+}
+
+.topology-step-canvas-area .topology-canvas {
+  flex: unset;
+  min-width: 100%;
+  min-height: 500px;
   border-radius: 0;
   border: none;
+}
+
+.topology-zoom-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 36px;
+  text-align: center;
+  user-select: none;
+}
+
+.topology-too-close-badge {
+  color: var(--warning, #ff9800);
+  font-weight: 600;
 }
 
 /* ─── Tryb dokumentacyjny (eksport PDF) ──────────────────────── */

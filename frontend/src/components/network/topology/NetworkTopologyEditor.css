@@ -118,10 +118,24 @@
 
 .topology-conn--fiber {
   stroke: var(--primary-color);
+  stroke-width: 2.5;
+  stroke-dasharray: none;
 }
 
 .topology-conn--lan {
   stroke: #3b82f6;
+  stroke-width: 2;
+  stroke-dasharray: 10 5;
+}
+
+.topology-conn-label {
+  fill: var(--text-secondary);
+  font-size: 10px;
+  pointer-events: none;
+  user-select: none;
+}
+.topology-canvas--print .topology-conn-label {
+  fill: #333333;
 }
 
 .topology-conn--selected {
