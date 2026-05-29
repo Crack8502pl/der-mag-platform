@@ -6,6 +6,22 @@ export const CANVAS_BOUNDARY = 8;
 export const NODE_COLLISION_GAP = 12;
 export const MIN_READABLE_DIST_PX = 80;
 
+export function calculateCanvasSize(
+  nodes: TopologyNode[],
+  padding: number,
+  defaultWidth: number,
+  defaultHeight: number,
+): { width: number; height: number } {
+  if (nodes.length === 0) {
+    return { width: defaultWidth, height: defaultHeight };
+  }
+
+  return {
+    width: nodes.reduce((m, n) => Math.max(m, n.position.x + NODE_WIDTH), 0) + padding,
+    height: nodes.reduce((m, n) => Math.max(m, n.position.y + NODE_HEIGHT_EST), 0) + padding,
+  };
+}
+
 export function clampNodePosition(
   x: number,
   y: number,
@@ -73,10 +89,12 @@ export function calculateFitZoom(
 ): number {
   if (nodes.length === 0) return 1.0;
 
-  const maxX =
-    nodes.reduce((m, n) => Math.max(m, n.position.x + NODE_WIDTH), 0) + CANVAS_BOUNDARY * 2;
-  const maxY =
-    nodes.reduce((m, n) => Math.max(m, n.position.y + NODE_HEIGHT_EST), 0) + CANVAS_BOUNDARY * 2;
+  const { width: maxX, height: maxY } = calculateCanvasSize(
+    nodes,
+    CANVAS_BOUNDARY * 2,
+    0,
+    0,
+  );
 
   const fitZoom = Math.min(containerW / maxX, containerH / maxY, zoomMax);
   return Math.max(zoomMin, Math.round(fitZoom * 10) / 10);

@@ -4,6 +4,7 @@ import {
   NODE_COLLISION_GAP,
   NODE_HEIGHT_EST,
   NODE_WIDTH,
+  calculateCanvasSize,
   calculateFitZoom,
   clampNodePosition,
   countTooClosePairs,
@@ -78,6 +79,14 @@ describe('canvasConstraints', () => {
   it('calculates fit-view zoom from topology bounds and container size', () => {
     const nodes = [makeNode('a', 900, 500)];
     expect(calculateFitZoom(nodes, 528, 298, 0.25, 2.0)).toBe(0.5);
+  });
+
+  it('calculates canvas size from node bounding box', () => {
+    const nodes = [makeNode('a', 900, 500)];
+    expect(calculateCanvasSize(nodes, 40, 800, 600)).toEqual({
+      width: 900 + NODE_WIDTH + 40,
+      height: 500 + NODE_HEIGHT_EST + 40,
+    });
   });
 
   it('counts too-close node pairs below 80px distance', () => {

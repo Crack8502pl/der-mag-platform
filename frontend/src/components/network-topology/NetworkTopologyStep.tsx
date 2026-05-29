@@ -19,8 +19,8 @@ import { findCrossingConnections } from './utils/lineIntersection';
 import { getConnectionEndpoints } from './utils/edgeRouting';
 import { buildPdfHorizontalSplitPlan, CONTINUATION_TAB_MM } from './utils/pdfExport';
 import {
+  calculateCanvasSize,
   NODE_COLLISION_GAP,
-  NODE_HEIGHT_EST,
   NODE_WIDTH,
   clampNodePosition,
   countTooClosePairs,
@@ -28,6 +28,7 @@ import {
   hasCollision,
   calculateFitZoom,
 } from './utils/canvasConstraints';
+import { buildConnectionLabelGeometry } from './utils/connectionRendering';
 import { CustomNode } from '../network/topology/CustomNode';
 import '../../components/network/topology/NetworkTopologyEditor.css';
 import './NetworkTopologyStep.css';
@@ -52,6 +53,7 @@ const DEFAULT_CANVAS_HEIGHT = 600; // fallback canvas height when no nodes exist
 const ZOOM_MIN = 0.25;
 const ZOOM_MAX = 2.0;
 const ZOOM_STEP = 0.1;
+const LABEL_VERTICAL_OFFSET = -5;
 
 function getTaskNodeTypeLabel(taskType: string): string {
   switch (taskType) {
@@ -104,6 +106,12 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
   const nodesRef = useRef<TopologyNode[]>([]);
   const viewportRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const { width: svgWidth, height: svgHeight } = calculateCanvasSize(
+    nodes,
+    PDF_PADDING,
+    DEFAULT_CANVAS_WIDTH,
+    DEFAULT_CANVAS_HEIGHT,
+  );
 
   const handleFitView = useCallback((nodesToFit: TopologyNode[] = nodes) => {
     if (nodesToFit.length === 0) {
@@ -124,6 +132,32 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     viewport.scrollLeft = 0;
     viewport.scrollTop = 0;
   }, [nodes]);
+
+  const scheduleInitialFit = useCallback((nodesToFit: TopologyNode[]) => {
+    if (nodesToFit.length === 0) return;
+
+    requestAnimationFrame(() => {
+      // Wait two frames so CSS layout/scroll containers have settled before reading viewport size.
+      requestAnimationFrame(() => {
+        const viewport = viewportRef.current ?? canvasRef.current?.parentElement;
+        if (!viewport) return;
+
+        const fitZoom = calculateFitZoom(
+          nodesToFit,
+          viewport.clientWidth || DEFAULT_CANVAS_WIDTH,
+          viewport.clientHeight || DEFAULT_CANVAS_HEIGHT,
+          ZOOM_MIN,
+          1.0,
+        );
+
+        setZoom(fitZoom);
+        if (viewport instanceof HTMLElement) {
+          viewport.scrollLeft = 0;
+          viewport.scrollTop = 0;
+        }
+      });
+    });
+  }, []);
 
   /** Returns the topology storage key for the current subsystem.
    * Existing subsystems in ExtendWizard carry a subsystemId – use a stable string key
@@ -165,7 +199,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     if (existing && existing.nodes.length > 0) {
       setNodes(existing.nodes);
       setConnections(existing.connections);
-      requestAnimationFrame(() => handleFitView(existing.nodes));
+      scheduleInitialFit(existing.nodes);
       return;
     }
 
@@ -191,9 +225,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
       };
     });
     setNodes(initialNodes);
-    if (initialNodes.length > 0) {
-      requestAnimationFrame(() => handleFitView(initialNodes));
-    }
+    scheduleInitialFit(initialNodes);
     // Intentionally runs only on mount: we read initial wizard state once and let
     // the component own its local state from that point on. Re-running on every
     // wizardData change would reset in-progress edits the user hasn't saved yet.
@@ -537,19 +569,12 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     await waitForFrame();
 
     // ── Step 1: Compute bounding box from node state (independent of viewport) ──
-    let bbW = DEFAULT_CANVAS_WIDTH;
-    let bbH = DEFAULT_CANVAS_HEIGHT;
-    if (nodes.length > 0) {
-      const { maxX, maxY } = nodes.reduce(
-        (acc, n) => ({
-          maxX: Math.max(acc.maxX, n.position.x + NODE_WIDTH),
-          maxY: Math.max(acc.maxY, n.position.y + NODE_HEIGHT_EST),
-        }),
-        { maxX: 0, maxY: 0 }
-      );
-      bbW = maxX + PDF_PADDING;
-      bbH = maxY + PDF_PADDING;
-    }
+    const { width: bbW, height: bbH } = calculateCanvasSize(
+      nodes,
+      PDF_PADDING,
+      DEFAULT_CANVAS_WIDTH,
+      DEFAULT_CANVAS_HEIGHT,
+    );
 
     // ── Step 2: Temporarily expand canvas to bounding box size ──
     const el = canvasRef.current;
@@ -830,7 +855,12 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
             <div
               ref={canvasRef}
               className={`topology-canvas${connectingMode ? ' topology-canvas--connecting' : ''}`}
-              style={{ transform: `scale(${zoom})`, transformOrigin: '0 0' }}
+              style={{
+                transform: `scale(${zoom})`,
+                transformOrigin: '0 0',
+                minWidth: svgWidth,
+                minHeight: svgHeight,
+              }}
               onClick={() => {
                 setSelectedId(null);
                 if (connectingMode) setConnectingSource(null);
@@ -846,7 +876,12 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
               )}
 
               {/* SVG overlay for connection lines */}
-              <svg className="topology-connections-svg">
+              <svg
+                className="topology-connections-svg"
+                width={svgWidth}
+                height={svgHeight}
+                style={{ width: svgWidth, height: svgHeight }}
+              >
                 {connections.map(conn => {
                   const src = nodes.find(n => n.id === conn.source);
                   const tgt = nodes.find(n => n.id === conn.target);
@@ -859,6 +894,14 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
                   const isSelected = conn.id === selectedId;
                   const isCrossing = crossingConnections.has(conn.id);
                   const tech = (conn.technology ?? 'fiber').toLowerCase();
+                  const labelGeometry = buildConnectionLabelGeometry(
+                    x1,
+                    y1,
+                    x2,
+                    y2,
+                    conn.technology,
+                    conn.label,
+                  );
                   return (
                     <g key={conn.id}>
                       <line
@@ -882,15 +925,18 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
                         className={`topology-conn topology-conn--${tech}${isSelected ? ' topology-conn--selected' : ''}${isCrossing ? ' topology-conn--crossing' : ''}`}
                         style={{ pointerEvents: 'none' }}
                       />
-                      <text
-                        x={(x1 + x2) / 2}
-                        y={(y1 + y2) / 2 - 6}
-                        className="topology-conn-label"
-                        textAnchor="middle"
-                        fontSize="10"
-                      >
-                        {conn.technology?.toUpperCase()}{conn.label ? ` ${conn.label}` : ''}
-                      </text>
+                      {labelGeometry && (
+                        <text
+                          x={labelGeometry.cx}
+                          y={labelGeometry.cy}
+                          className="topology-conn-label"
+                          textAnchor="middle"
+                          dominantBaseline="auto"
+                          transform={`rotate(${labelGeometry.readableAngle.toFixed(1)}, ${labelGeometry.cx}, ${labelGeometry.cy}) translate(0, ${LABEL_VERTICAL_OFFSET})`}
+                        >
+                          {labelGeometry.connLabelText}
+                        </text>
+                      )}
                     </g>
                   );
                 })}

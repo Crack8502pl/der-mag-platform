@@ -2306,6 +2306,8 @@ Kolejność priorytetu dla `id`:
 | Stopka | `Strona X / N`, wyśrodkowana, 8 pt |
 | Skala html2canvas | `devicePixelRatio × 2` |
 
+> **SVG overlay:** szerokość i wysokość SVG ustawiana dynamicznie z bounding box węzłów (nie `100%`). Zapewnia poprawne renderowanie linii przy zoom i scrollowaniu poziomym.
+
 ### 20.2 Flow frontend → backend → download
 
 ```
