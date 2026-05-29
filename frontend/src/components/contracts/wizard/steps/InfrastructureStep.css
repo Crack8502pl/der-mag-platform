@@ -158,3 +158,51 @@
   flex: 1;
 }
 
+/* Collapse per-task-card */
+.infrastructure-step .per-task-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+  margin-bottom: 0;
+}
+
+.infrastructure-step .per-task-card-header:hover {
+  opacity: 0.85;
+}
+
+/* Override the existing h4 margin when collapsed */
+.infrastructure-step .per-task-card-header + * {
+  margin-top: 12px;
+}
+
+.infrastructure-step .per-task-card-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary, #555);
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.infrastructure-step .per-task-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary, #222);
+}
+
+/* Poles hidden notice for LCS/NASTAWNIA */
+.infrastructure-step .infra-poles-hidden-notice {
+  font-size: 0.85rem;
+  color: var(--text-muted, #888);
+  font-style: italic;
+  padding: 4px 0 12px 0;
+}
