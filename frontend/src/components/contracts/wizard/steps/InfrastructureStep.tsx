@@ -243,7 +243,7 @@ export const PolesOverviewTable: React.FC<{
             <tr key={i}>
               <td style={tableCellStyle}>{r.taskName}</td>
               <td style={tableCellStyle}>{r.cabinetType}</td>
-              <td style={tableCellStyle}>{r.poleType === '—' ? 'Brak słupów' : r.poleType}</td>
+              <td style={tableCellStyle}>{r.isNoPolesRow ? 'Brak słupów' : r.poleType}</td>
               <td style={tableCellStyle}>{r.quantity}</td>
               <td style={tableCellStyle}>{r.productInfo}</td>
             </tr>
