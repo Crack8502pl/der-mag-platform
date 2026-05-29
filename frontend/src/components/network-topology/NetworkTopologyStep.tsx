@@ -18,6 +18,16 @@ import { optimizeLayout } from './utils/forceDirectedLayout';
 import { findCrossingConnections } from './utils/lineIntersection';
 import { getConnectionEndpoints } from './utils/edgeRouting';
 import { buildPdfHorizontalSplitPlan, CONTINUATION_TAB_MM } from './utils/pdfExport';
+import {
+  NODE_COLLISION_GAP,
+  NODE_HEIGHT_EST,
+  NODE_WIDTH,
+  clampNodePosition,
+  countTooClosePairs,
+  findFreePosition,
+  hasCollision,
+  calculateFitZoom,
+} from './utils/canvasConstraints';
 import { CustomNode } from '../network/topology/CustomNode';
 import '../../components/network/topology/NetworkTopologyEditor.css';
 import './NetworkTopologyStep.css';
@@ -36,11 +46,12 @@ interface DragState {
   nodeStartY: number;
 }
 
-const NODE_WIDTH = 140;
-const NODE_HEIGHT_EST = 80;       // estimated node height for bounding box
 const PDF_PADDING = 40;           // padding around all nodes in PDF canvas
 const DEFAULT_CANVAS_WIDTH = 800; // fallback canvas width when no nodes exist
 const DEFAULT_CANVAS_HEIGHT = 600; // fallback canvas height when no nodes exist
+const ZOOM_MIN = 0.25;
+const ZOOM_MAX = 2.0;
+const ZOOM_STEP = 0.1;
 
 function getTaskNodeTypeLabel(taskType: string): string {
   switch (taskType) {
@@ -85,10 +96,34 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [crossingConnections, setCrossingConnections] = useState<Set<string>>(new Set());
+  const [tooCloseCount, setTooCloseCount] = useState(0);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [zoom, setZoom] = useState(1.0);
   const isExportingRef = useRef(false);
   const dragRef = useRef<DragState | null>(null);
+  const nodesRef = useRef<TopologyNode[]>([]);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+
+  const handleFitView = useCallback((nodesToFit: TopologyNode[] = nodes) => {
+    if (nodesToFit.length === 0) {
+      setZoom(1.0);
+      return;
+    }
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const fitZoom = calculateFitZoom(
+      nodesToFit,
+      viewport.clientWidth,
+      viewport.clientHeight,
+      ZOOM_MIN,
+      ZOOM_MAX
+    );
+    setZoom(fitZoom);
+    viewport.scrollLeft = 0;
+    viewport.scrollTop = 0;
+  }, [nodes]);
 
   /** Returns the topology storage key for the current subsystem.
    * Existing subsystems in ExtendWizard carry a subsystemId – use a stable string key
@@ -101,6 +136,26 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
       : subsystemIndex;
   }, [subsystemIndex, wizardData.subsystems]);
 
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const handler = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setZoom(prev => {
+        const delta = e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP;
+        return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round((prev + delta) * 10) / 10));
+      });
+    };
+    viewport.addEventListener('wheel', handler, { passive: false });
+    return () => viewport.removeEventListener('wheel', handler);
+  }, []);
+
   // Initialize nodes from wizardData on mount
   useEffect(() => {
     const topologyKey = getTopologyKey();
@@ -110,6 +165,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     if (existing && existing.nodes.length > 0) {
       setNodes(existing.nodes);
       setConnections(existing.connections);
+      requestAnimationFrame(() => handleFitView(existing.nodes));
       return;
     }
 
@@ -135,6 +191,9 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
       };
     });
     setNodes(initialNodes);
+    if (initialNodes.length > 0) {
+      requestAnimationFrame(() => handleFitView(initialNodes));
+    }
     // Intentionally runs only on mount: we read initial wizard state once and let
     // the component own its local state from that point on. Re-running on every
     // wizardData change would reset in-progress edits the user hasn't saved yet.
@@ -159,14 +218,16 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     const laid = autoLayoutNodes(nodes);
     setNodes(laid);
     setIsDirty(true);
-  }, [nodes]);
+    requestAnimationFrame(() => handleFitView(laid));
+  }, [nodes, handleFitView]);
 
   // Force-directed layout: reduces crossings and spreads nodes evenly
   const handleOptimizeLayout = useCallback(() => {
     const optimized = optimizeLayout(nodes, connections);
     setNodes(optimized);
     setIsDirty(true);
-  }, [nodes, connections]);
+    requestAnimationFrame(() => handleFitView(optimized));
+  }, [nodes, connections, handleFitView]);
 
   // Detect crossing connections whenever nodes or connections change
   useEffect(() => {
@@ -194,6 +255,10 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     });
     setCrossingConnections(crossingIds);
   }, [nodes, connections]);
+
+  useEffect(() => {
+    setTooCloseCount(countTooClosePairs(nodes));
+  }, [nodes]);
 
   // Delete selected node or connection
   const handleDeleteSelected = useCallback(() => {
@@ -231,16 +296,29 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
       const onMouseMove = (me: MouseEvent) => {
         const drag = dragRef.current;
         if (!drag) return;
-        const dx = me.clientX - drag.startMouseX;
-        const dy = me.clientY - drag.startMouseY;
+        const dx = (me.clientX - drag.startMouseX) / zoom;
+        const dy = (me.clientY - drag.startMouseY) / zoom;
+        const canvasEl = canvasRef.current;
+        const canvasHeight = canvasEl
+          ? Math.max(DEFAULT_CANVAS_HEIGHT, canvasEl.clientHeight)
+          : DEFAULT_CANVAS_HEIGHT;
+        const { x: clampedX, y: clampedY } = clampNodePosition(
+          drag.nodeStartX + dx,
+          drag.nodeStartY + dy,
+          canvasHeight
+        );
+        const nodesSnapshot = nodesRef.current;
+        if (hasCollision(clampedX, clampedY, drag.nodeId, nodesSnapshot, NODE_COLLISION_GAP)) {
+          return;
+        }
         setNodes(prev =>
           prev.map(n =>
             n.id === drag.nodeId
               ? {
                   ...n,
                   position: {
-                    x: Math.max(0, drag.nodeStartX + dx),
-                    y: Math.max(0, drag.nodeStartY + dy),
+                    x: clampedX,
+                    y: clampedY,
                   },
                 }
               : n
@@ -260,7 +338,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
       document.addEventListener('mousemove', onMouseMove);
       document.addEventListener('mouseup', onMouseUp);
     },
-    [connectingMode, nodes]
+    [connectingMode, nodes, zoom]
   );
 
   // Node click: select or initiate connection
@@ -320,10 +398,12 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
         id: crypto.randomUUID(),
         type: 'auxiliary',
         label: result.label,
-        position: {
-          x: 50 + (nodes.length % 4) * 170,
-          y: 50 + Math.floor(nodes.length / 4) * 110,
-        },
+        position: findFreePosition(
+          50 + (nodes.length % 4) * 170,
+          50 + Math.floor(nodes.length / 4) * 110,
+          nodes,
+          ''
+        ),
         data: {
           km: result.km,
           isActive: result.isActive,
@@ -334,7 +414,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
       setIsDirty(true);
       setShowAuxiliaryModal(false);
     },
-    [nodes.length]
+    [nodes]
   );
 
   // Canvas drag-over: allow drop
@@ -357,8 +437,8 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
         const canvasRect = canvasRef.current?.getBoundingClientRect();
         if (!canvasRect) return;
 
-        const dropX = e.clientX - canvasRect.left;
-        const dropY = e.clientY - canvasRect.top;
+        const dropX = (e.clientX - canvasRect.left) / zoom;
+        const dropY = (e.clientY - canvasRect.top) / zoom;
 
         const taskDetail = wizardData.subsystems[subsystemIndex]?.taskDetails?.[data.taskId];
         if (!taskDetail) return;
@@ -371,14 +451,12 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
           return;
         }
 
+        const freePos = findFreePosition(dropX - NODE_WIDTH / 2, dropY - 30, nodes, normalized.id);
         const newNode: TopologyNode = {
           id: normalized.id,
           type: 'task' as const,
           label: normalized.label,
-          position: {
-            x: Math.max(0, dropX - NODE_WIDTH / 2),
-            y: Math.max(0, dropY - 30),
-          },
+          position: { x: freePos.x, y: freePos.y },
           data: {
             taskId: taskDetail.id,
             km: normalized.kilometrazNumeric,
@@ -392,7 +470,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
         console.error('Drop error:', error);
       }
     },
-    [nodes, wizardData, subsystemIndex]
+    [nodes, wizardData, subsystemIndex, zoom]
   );
 
   // Add an external node directly
@@ -402,15 +480,29 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
       id: crypto.randomUUID(),
       type: 'external',
       label: `Zewnętrzny ${externalCount + 1}`,
-      position: {
-        x: 50 + (nodes.length % 4) * 170,
-        y: 50 + Math.floor(nodes.length / 4) * 110,
-      },
+      position: findFreePosition(
+        50 + (nodes.length % 4) * 170,
+        50 + Math.floor(nodes.length / 4) * 110,
+        nodes,
+        ''
+      ),
       data: {},
     };
     setNodes(prev => [...prev, newNode]);
     setIsDirty(true);
   }, [nodes]);
+
+  const handleZoomOut = useCallback(() => {
+    setZoom(prev => Math.max(ZOOM_MIN, Math.round((prev - ZOOM_STEP) * 10) / 10));
+  }, []);
+
+  const handleZoomIn = useCallback(() => {
+    setZoom(prev => Math.min(ZOOM_MAX, Math.round((prev + ZOOM_STEP) * 10) / 10));
+  }, []);
+
+  const handleZoomReset = useCallback(() => {
+    setZoom(1.0);
+  }, []);
 
   // Sidebar tasks derived from subsystem taskDetails
   const sidebarTasks = (wizardData.subsystems[subsystemIndex]?.taskDetails ?? []).map(
@@ -436,9 +528,13 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     if (!canvasRef.current || isExportingRef.current) return;
     isExportingRef.current = true;
     setIsExportingPdf(true);
+    const prevZoom = zoom;
+    setZoom(1.0);
 
     const waitForFrame = (): Promise<void> =>
       new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    await waitForFrame();
+    await waitForFrame();
 
     // ── Step 1: Compute bounding box from node state (independent of viewport) ──
     let bbW = DEFAULT_CANVAS_WIDTH;
@@ -649,10 +745,11 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
       el.style.minHeight = prevMinH;
       el.style.overflow  = prevOverflow;
       el.classList.remove('topology-canvas--print');
+      setZoom(prevZoom);
       isExportingRef.current = false;
       setIsExportingPdf(false);
     }
-  }, [nodes, wizardData.contractId, subsystemIndex]);
+  }, [nodes, wizardData.contractId, subsystemIndex, zoom]);
 
   return (
     <div className="topology-step">
@@ -664,6 +761,11 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
         onOptimizeLayout={handleOptimizeLayout}
         onSave={handleSave}
         onExportPDF={handleExportPdf}
+        zoom={zoom}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onZoomReset={handleZoomReset}
+        onFitView={() => handleFitView()}
         isExportingPdf={isExportingPdf}
         isDirty={isDirty}
         crossingCount={Math.floor(crossingConnections.size / 2)}
@@ -682,6 +784,9 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
             <span>Węzły: {nodes.length}</span>
             <span>Połączenia: {connections.length}</span>
             {totalDistance > 0 && <span>Dystans: {totalDistance.toFixed(2)} km</span>}
+            {tooCloseCount > 0 && (
+              <span className="topology-too-close-badge">⚠️ {tooCloseCount} par węzłów zbyt blisko</span>
+            )}
             {isDirty && <span className="topology-dirty-badge">● niezapisane</span>}
           </div>
 
@@ -721,80 +826,92 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
           </div>
 
           {/* Canvas */}
-          <div
-            ref={canvasRef}
-            className={`topology-canvas${connectingMode ? ' topology-canvas--connecting' : ''}`}
-            onClick={() => {
-              setSelectedId(null);
-              if (connectingMode) setConnectingSource(null);
-            }}
-            onDragOver={handleCanvasDragOver}
-            onDrop={handleCanvasDrop}
-          >
-            {nodes.length === 0 && (
-              <div className="topology-empty-state">
-                <div className="topology-empty-icon">🌐</div>
-                <p>Brak węzłów. Przeciągnij zadania z panelu bocznego lub dodaj nowe.</p>
-              </div>
-            )}
+          <div className="topology-canvas-viewport" ref={viewportRef}>
+            <div
+              ref={canvasRef}
+              className={`topology-canvas${connectingMode ? ' topology-canvas--connecting' : ''}`}
+              style={{ transform: `scale(${zoom})`, transformOrigin: '0 0' }}
+              onClick={() => {
+                setSelectedId(null);
+                if (connectingMode) setConnectingSource(null);
+              }}
+              onDragOver={handleCanvasDragOver}
+              onDrop={handleCanvasDrop}
+            >
+              {nodes.length === 0 && (
+                <div className="topology-empty-state">
+                  <div className="topology-empty-icon">🌐</div>
+                  <p>Brak węzłów. Przeciągnij zadania z panelu bocznego lub dodaj nowe.</p>
+                </div>
+              )}
 
-            {/* SVG overlay for connection lines */}
-            <svg className="topology-connections-svg">
-              {connections.map(conn => {
-                const src = nodes.find(n => n.id === conn.source);
-                const tgt = nodes.find(n => n.id === conn.target);
-                if (!src || !tgt) return null;
-                const { sourcePoint, targetPoint } = getConnectionEndpoints(src, tgt);
-                const x1 = sourcePoint.x;
-                const y1 = sourcePoint.y;
-                const x2 = targetPoint.x;
-                const y2 = targetPoint.y;
-                const isSelected = conn.id === selectedId;
-                const isCrossing = crossingConnections.has(conn.id);
-                const tech = (conn.technology ?? 'fiber').toLowerCase();
-                return (
-                  <g key={conn.id}>
-                    <line
-                      x1={x1}
-                      y1={y1}
-                      x2={x2}
-                      y2={y2}
-                      stroke="transparent"
-                      strokeWidth="16"
-                      style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
-                      onClick={e => {
-                        e.stopPropagation();
-                        setSelectedId(p => (p === conn.id ? null : conn.id));
-                      }}
-                    />
-                    <line
-                      x1={x1}
-                      y1={y1}
-                      x2={x2}
-                      y2={y2}
-                      className={`topology-conn topology-conn--${tech}${isSelected ? ' topology-conn--selected' : ''}${isCrossing ? ' topology-conn--crossing' : ''}`}
-                      style={{ pointerEvents: 'none' }}
-                    />
-                  </g>
-                );
-              })}
-            </svg>
+              {/* SVG overlay for connection lines */}
+              <svg className="topology-connections-svg">
+                {connections.map(conn => {
+                  const src = nodes.find(n => n.id === conn.source);
+                  const tgt = nodes.find(n => n.id === conn.target);
+                  if (!src || !tgt) return null;
+                  const { sourcePoint, targetPoint } = getConnectionEndpoints(src, tgt);
+                  const x1 = sourcePoint.x;
+                  const y1 = sourcePoint.y;
+                  const x2 = targetPoint.x;
+                  const y2 = targetPoint.y;
+                  const isSelected = conn.id === selectedId;
+                  const isCrossing = crossingConnections.has(conn.id);
+                  const tech = (conn.technology ?? 'fiber').toLowerCase();
+                  return (
+                    <g key={conn.id}>
+                      <line
+                        x1={x1}
+                        y1={y1}
+                        x2={x2}
+                        y2={y2}
+                        stroke="transparent"
+                        strokeWidth="16"
+                        style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+                        onClick={e => {
+                          e.stopPropagation();
+                          setSelectedId(p => (p === conn.id ? null : conn.id));
+                        }}
+                      />
+                      <line
+                        x1={x1}
+                        y1={y1}
+                        x2={x2}
+                        y2={y2}
+                        className={`topology-conn topology-conn--${tech}${isSelected ? ' topology-conn--selected' : ''}${isCrossing ? ' topology-conn--crossing' : ''}`}
+                        style={{ pointerEvents: 'none' }}
+                      />
+                      <text
+                        x={(x1 + x2) / 2}
+                        y={(y1 + y2) / 2 - 6}
+                        className="topology-conn-label"
+                        textAnchor="middle"
+                        fontSize="10"
+                      >
+                        {conn.technology?.toUpperCase()}{conn.label ? ` ${conn.label}` : ''}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
 
-            {/* Nodes */}
-            {nodes.map(node => (
-              <CustomNode
-                key={node.id}
-                node={node}
-                isSelected={node.id === selectedId}
-                isConnectingSource={connectingSource === node.id}
-                isConnectingTargetHint={
-                  connectingMode && !!connectingSource && connectingSource !== node.id
-                }
-                style={{ left: node.position.x, top: node.position.y, width: NODE_WIDTH }}
-                onMouseDown={e => handleNodeMouseDown(e, node.id)}
-                onClick={e => handleNodeClick(e, node.id)}
-              />
-            ))}
+              {/* Nodes */}
+              {nodes.map(node => (
+                <CustomNode
+                  key={node.id}
+                  node={node}
+                  isSelected={node.id === selectedId}
+                  isConnectingSource={connectingSource === node.id}
+                  isConnectingTargetHint={
+                    connectingMode && !!connectingSource && connectingSource !== node.id
+                  }
+                  style={{ left: node.position.x, top: node.position.y, width: NODE_WIDTH }}
+                  onMouseDown={e => handleNodeMouseDown(e, node.id)}
+                  onClick={e => handleNodeClick(e, node.id)}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>

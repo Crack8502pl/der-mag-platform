@@ -1,10 +1,10 @@
 import type { TopologyNode } from '../../../types/network-topology.types';
 
 const COLUMNS = 4;
-const SPACING_X = 200;
-const SPACING_Y = 150;
-const START_X = 50;
-const START_Y = 50;
+const SPACING_X = 210;
+const SPACING_Y = 170;
+const START_X = 8;
+const START_Y = 8;
 
 // Automatycznie rozmieszcza węzły w siatce (grid)
 export function autoLayoutNodes(nodes: TopologyNode[]): TopologyNode[] {

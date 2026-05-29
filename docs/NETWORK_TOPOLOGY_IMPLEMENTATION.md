@@ -2362,6 +2362,38 @@ uploads/
 Oba pakiety są **importowane dynamicznie** (`import(...)`) — nie trafiają do głównego
 bundle aplikacji, lecz są ładowane tylko gdy użytkownik kliknie "📄 PDF".
 
+## 21. Canvas — interakcja i ograniczenia
+
+### 21.1 Granice canvasa
+| Krawędź | Ograniczenie |
+|---|---|
+| Lewa | 8 px (stała) |
+| Górna | 8 px (stała) |
+| Dolna | clientHeight − NODE_HEIGHT − 8 px |
+| Prawa | brak — canvas scrolluje poziomo |
+
+### 21.2 Zoom
+- Zakres: 25% – 200%, krok 10%
+- Ctrl+Scroll na viewporcie
+- Przyciski: 🔍− 🔍+ 1:1 ⊡ Fit
+- Reset do 1.0 przed eksportem PDF
+
+### 21.3 Auto-fit
+Wywoływany po: mount z węzłami, Auto-układ, Optymalizuj, przycisk Fit.
+NIE wywoływany podczas drag.
+
+### 21.4 Kolizje
+- Minimalny odstęp: 12 px
+- Drag: hard stop przy nachodzeniu
+- Drop/add: spiral search wolnej pozycji (max 10 okręgów)
+- forceDirectedLayout: hard overlap resolution po każdej iteracji
+
+### 21.5 Style połączeń
+| Technologia | Linia | Grubość |
+|---|---|---|
+| FIBER | solidna | 2.5 px |
+| LAN | przerywana (10 5) | 2 px |
+Etykieta technologii + dystans wyświetlana przy środku linii.
 
 ---
 

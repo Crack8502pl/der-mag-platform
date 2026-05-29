@@ -14,6 +14,11 @@ interface TopologyToolbarProps {
   isExportingPdf?: boolean;
   version?: number;
   crossingCount?: number;
+  zoom?: number;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onZoomReset?: () => void;
+  onFitView?: () => void;
 }
 
 export const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
@@ -26,6 +31,11 @@ export const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
   isExportingPdf = false,
   version,
   crossingCount = 0,
+  zoom,
+  onZoomIn,
+  onZoomOut,
+  onZoomReset,
+  onFitView,
 }) => {
   const saveLabel = isSaving
     ? '⏳ Zapisywanie...'
@@ -68,6 +78,28 @@ export const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
       )}
 
       <div className="topology-toolbar-spacer" />
+
+      {onZoomOut && (
+        <button className="btn btn-secondary btn-sm" onClick={onZoomOut} title="Oddal (Ctrl+Scroll)">
+          🔍−
+        </button>
+      )}
+      {zoom !== undefined && <span className="topology-zoom-label">{Math.round(zoom * 100)}%</span>}
+      {onZoomIn && (
+        <button className="btn btn-secondary btn-sm" onClick={onZoomIn} title="Przybliż (Ctrl+Scroll)">
+          🔍+
+        </button>
+      )}
+      {onZoomReset && (
+        <button className="btn btn-secondary btn-sm" onClick={onZoomReset} title="Resetuj zoom (100%)">
+          1:1
+        </button>
+      )}
+      {onFitView && (
+        <button className="btn btn-secondary btn-sm" onClick={onFitView} title="Dopasuj widok do wszystkich węzłów">
+          ⊡ Fit
+        </button>
+      )}
 
       <button
         className="btn btn-primary btn-sm"
