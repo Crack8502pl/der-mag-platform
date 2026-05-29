@@ -3,13 +3,15 @@
 // Login page with Grover branding
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { getSafeRedirectPath } from '../../utils/authRedirect';
 import { PasswordInput } from '../common/PasswordInput';
 import './LoginPage.css';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
@@ -17,6 +19,7 @@ export const LoginPage: React.FC = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const redirectTo = getSafeRedirectPath(location.state);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -37,7 +40,7 @@ export const LoginPage: React.FC = () => {
       if (response.data.requirePasswordChange) {
         navigate('/change-password');
       } else {
-        navigate('/dashboard');
+        navigate(redirectTo, { replace: true });
       }
     } catch (err: any) {
       // Wyświetl konkretne komunikaty błędów

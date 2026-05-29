@@ -2,7 +2,7 @@
 // Main application with routing
 
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { LoginPage } from './components/auth/LoginPage';
 import { ForgotPasswordPage } from './components/auth/ForgotPasswordPage';
 import { PasswordChangeForm } from './components/auth/PasswordChangeForm';
@@ -54,15 +54,17 @@ import { TokenTimerWidget } from './components/common/TokenTimerWidget';
 import { ConnectionStatusBanner } from './components/common/ConnectionStatusBanner';
 import { initConnectionMonitor } from './services/connectionMonitor';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { getSafeRedirectPath } from './utils/authRedirect';
 import './styles/grover-theme.css';
 import './styles/husky-theme.css';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, requirePasswordChange } = useAuth();
+  const location = useLocation();
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (requirePasswordChange) {
@@ -75,9 +77,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 // Auth Route Component (redirect if already logged in)
 const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, requirePasswordChange } = useAuth();
+  const location = useLocation();
+  const redirectTo = getSafeRedirectPath(location.state);
 
   if (isAuthenticated && !requirePasswordChange) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={redirectTo} replace />;
   }
 
   return <>{children}</>;
