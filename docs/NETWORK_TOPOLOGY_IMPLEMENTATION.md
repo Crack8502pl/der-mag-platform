@@ -2299,9 +2299,12 @@ Kolejność priorytetu dla `id`:
 | Parametr | Wartość |
 |---|---|
 | Rozmiar papieru | A3 poziomo (420 × 297 mm) |
-| Jakość zdjęcia | JPEG 95 % |
-| Skala html2canvas | `devicePixelRatio × 2` |
 | Orientacja | landscape |
+| Podział stron | poziomy (lewa→prawa), gdy szerokość > 400 mm |
+| Zakładka przerywanej linii | 2 mm od prawej krawędzi strefy treści |
+| Napis kontynuacji | `kontynuacja – strona X+1`, pionowy, 6 pt, szary |
+| Stopka | `Strona X / N`, wyśrodkowana, 8 pt |
+| Skala html2canvas | `devicePixelRatio × 2` |
 
 ### 20.2 Flow frontend → backend → download
 

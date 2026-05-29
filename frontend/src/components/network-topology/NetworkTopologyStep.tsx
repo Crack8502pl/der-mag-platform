@@ -17,6 +17,7 @@ import { autoLayoutNodes } from './utils/autoLayout';
 import { optimizeLayout } from './utils/forceDirectedLayout';
 import { findCrossingConnections } from './utils/lineIntersection';
 import { getConnectionEndpoints } from './utils/edgeRouting';
+import { buildPdfHorizontalSplitPlan, CONTINUATION_TAB_MM } from './utils/pdfExport';
 import { CustomNode } from '../network/topology/CustomNode';
 import '../../components/network/topology/NetworkTopologyEditor.css';
 import './NetworkTopologyStep.css';
@@ -487,6 +488,13 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
       const MARGIN_MM = 10;
       const availW = A3_W_MM - 2 * MARGIN_MM; // 400 mm
       const availH = A3_H_MM - 2 * MARGIN_MM; // 277 mm
+      const CONTINUATION_DASH_PATTERN: [number, number] = [1.5, 1.5];
+      const CONTINUATION_LINE_COLOR: [number, number, number] = [102, 102, 102];
+      const CONTINUATION_TEXT_COLOR: [number, number, number] = [85, 85, 85];
+      const CONTINUATION_TEXT_FONT_SIZE = 6;
+      const FOOTER_TEXT_COLOR: [number, number, number] = [136, 136, 136];
+      const FOOTER_FONT_SIZE = 8;
+      const FOOTER_Y_MM = A3_H_MM - 5;
 
       const canvas = await html2canvas(el, {
         scale: window.devicePixelRatio * 2,
@@ -496,30 +504,102 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
         height: bbH,
       });
 
-      // ── Step 3: Letterbox — fit canvas into A3 with correct aspect ratio ──
-      const canvasAspect = canvas.width / canvas.height;
-      const pageAspect   = availW / availH;
+      // ── Step 3: Multi-page horizontal split ──
+      const splitPlan = buildPdfHorizontalSplitPlan(canvas.width, canvas.height, availW, availH);
+      let pdf: InstanceType<typeof jsPDF>;
 
-      let imgW: number, imgH: number;
-      if (canvasAspect > pageAspect) {
-        imgW = availW;
-        imgH = availW / canvasAspect;
+      if (splitPlan.numPages === 1) {
+        // Keep previous behavior for single-page exports (letterbox)
+        const canvasAspect = canvas.width / canvas.height;
+        const pageAspect = availW / availH;
+
+        let imgW: number;
+        let imgH: number;
+        if (canvasAspect > pageAspect) {
+          imgW = availW;
+          imgH = availW / canvasAspect;
+        } else {
+          imgH = availH;
+          imgW = availH * canvasAspect;
+        }
+
+        const offsetX = MARGIN_MM + (availW - imgW) / 2;
+        const offsetY = MARGIN_MM + (availH - imgH) / 2;
+        pdf = new jsPDF({
+          orientation: 'landscape',
+          unit: 'mm',
+          format: 'a3',
+        });
+        const imgData = canvas.toDataURL('image/png');
+        pdf.addImage(imgData, 'PNG', offsetX, offsetY, imgW, imgH, undefined, 'FAST');
       } else {
-        imgH = availH;
-        imgW = availH * canvasAspect;
+        const { scaleHmmPerPx, numPages, slices } = splitPlan;
+        const imgH = availH;
+
+        pdf = new jsPDF({
+          orientation: 'landscape',
+          unit: 'mm',
+          format: 'a3',
+        });
+
+        for (let index = 0; index < slices.length; index++) {
+          const { page, startXPx, sliceWidthPx } = slices[index];
+          if (page > 0) pdf.addPage([A3_W_MM, A3_H_MM], 'landscape');
+
+          const pageCanvas = document.createElement('canvas');
+          pageCanvas.width = sliceWidthPx;
+          pageCanvas.height = canvas.height;
+          const ctx = pageCanvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(
+              canvas,
+              startXPx, 0, sliceWidthPx, canvas.height,
+              0, 0, sliceWidthPx, canvas.height,
+            );
+          }
+
+          const sliceImgWidthMm = sliceWidthPx * scaleHmmPerPx;
+          const sliceData = pageCanvas.toDataURL('image/png');
+          pdf.addImage(
+            sliceData,
+            'PNG',
+            MARGIN_MM,
+            MARGIN_MM,
+            sliceImgWidthMm,
+            imgH,
+            undefined,
+            'FAST',
+          );
+
+          if (page < numPages - 1) {
+            const dashX = MARGIN_MM + availW - CONTINUATION_TAB_MM;
+
+            pdf.setLineDashPattern(CONTINUATION_DASH_PATTERN, 0);
+            pdf.setDrawColor(...CONTINUATION_LINE_COLOR);
+            pdf.setLineWidth(0.3);
+            pdf.line(dashX, MARGIN_MM, dashX, A3_H_MM - MARGIN_MM);
+
+            pdf.setLineDashPattern([], 0);
+            pdf.setDrawColor(0, 0, 0);
+            pdf.setLineWidth(0.2);
+
+            pdf.setFontSize(CONTINUATION_TEXT_FONT_SIZE);
+            pdf.setTextColor(...CONTINUATION_TEXT_COLOR);
+            pdf.text(
+              `kontynuacja – strona ${page + 2}`,
+              dashX - 1,
+              A3_H_MM / 2,
+              { angle: 90, align: 'center' },
+            );
+            pdf.setTextColor(0, 0, 0);
+          }
+
+          pdf.setFontSize(FOOTER_FONT_SIZE);
+          pdf.setTextColor(...FOOTER_TEXT_COLOR);
+          pdf.text(`Strona ${page + 1} / ${numPages}`, A3_W_MM / 2, FOOTER_Y_MM, { align: 'center' });
+          pdf.setTextColor(0, 0, 0);
+        }
       }
-
-      const offsetX = MARGIN_MM + (availW - imgW) / 2;
-      const offsetY = MARGIN_MM + (availH - imgH) / 2;
-
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a3',
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      pdf.addImage(imgData, 'PNG', offsetX, offsetY, imgW, imgH, undefined, 'FAST');
 
       const contractId = wizardData.contractId;
       const defaultFilename = `topology_${subsystemIndex}_${Date.now()}.pdf`;
