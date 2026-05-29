@@ -5,6 +5,18 @@ export interface ConnectionLabelGeometry {
   connLabelText: string;
 }
 
+function extractDistanceKm(label?: string): number | null {
+  if (!label) return null;
+
+  const normalized = label.trim();
+  const distancePattern = /^(-?\d+(?:\.\d+)?)(?:\s*km)?$/i;
+  const match = normalized.match(distancePattern);
+  if (!match) return null;
+
+  const value = Number.parseFloat(match[1]);
+  return Number.isNaN(value) ? null : value;
+}
+
 export function buildConnectionLabelGeometry(
   x1: number,
   y1: number,
@@ -16,7 +28,7 @@ export function buildConnectionLabelGeometry(
   const cx = (x1 + x2) / 2;
   const cy = (y1 + y2) / 2;
 
-  const rawKm = label ? parseFloat(label) : null;
+  const rawKm = extractDistanceKm(label);
   const displayKm = rawKm !== null && !Number.isNaN(rawKm) ? `${Math.round(rawKm)} km` : null;
 
   const lineAngleDeg = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);

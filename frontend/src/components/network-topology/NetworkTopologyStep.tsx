@@ -53,6 +53,7 @@ const DEFAULT_CANVAS_HEIGHT = 600; // fallback canvas height when no nodes exist
 const ZOOM_MIN = 0.25;
 const ZOOM_MAX = 2.0;
 const ZOOM_STEP = 0.1;
+const LABEL_VERTICAL_OFFSET = -5;
 
 function getTaskNodeTypeLabel(taskType: string): string {
   switch (taskType) {
@@ -136,6 +137,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
     if (nodesToFit.length === 0) return;
 
     requestAnimationFrame(() => {
+      // Wait two frames so CSS layout/scroll containers have settled before reading viewport size.
       requestAnimationFrame(() => {
         const viewport = viewportRef.current ?? canvasRef.current?.parentElement;
         if (!viewport) return;
@@ -930,7 +932,7 @@ export const NetworkTopologyStep: React.FC<NetworkTopologyStepProps> = ({
                           className="topology-conn-label"
                           textAnchor="middle"
                           dominantBaseline="auto"
-                          transform={`rotate(${labelGeometry.readableAngle.toFixed(1)}, ${labelGeometry.cx}, ${labelGeometry.cy}) translate(0, -5)`}
+                          transform={`rotate(${labelGeometry.readableAngle.toFixed(1)}, ${labelGeometry.cx}, ${labelGeometry.cy}) translate(0, ${LABEL_VERTICAL_OFFSET})`}
                         >
                           {labelGeometry.connLabelText}
                         </text>
