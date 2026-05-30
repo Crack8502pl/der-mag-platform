@@ -164,6 +164,8 @@ export class AuthController {
         tokenId,
         ipAddress,
         userAgent,
+        lastIpAddress: ipAddress,
+        lastUserAgent: userAgent,
         logoutAt: null,
         durationSeconds: null,
         logoutType: null,
@@ -415,6 +417,29 @@ export class AuthController {
           deviceFingerprint: null
         });
         await refreshTokenRepo.save(newTokenRecord);
+
+        // Aktualizuj log sesji — kontynuacja tej samej sesji po rotacji tokenu
+        const sessionLogRepo = AppDataSource.getRepository(UserSessionLog);
+        const existingLog = await sessionLogRepo.findOne({ where: { tokenId: tokenRecord.tokenId } });
+        if (existingLog) {
+          existingLog.tokenId = newTokenId;
+          if (ipAddress) existingLog.lastIpAddress = ipAddress;
+          if (userAgent) existingLog.lastUserAgent = userAgent;
+          await sessionLogRepo.save(existingLog);
+        } else {
+          const newLog = sessionLogRepo.create({
+            userId: decoded.userId,
+            tokenId: newTokenId,
+            ipAddress,
+            userAgent,
+            lastIpAddress: ipAddress,
+            lastUserAgent: userAgent,
+            logoutAt: null,
+            durationSeconds: null,
+            logoutType: null,
+          });
+          await sessionLogRepo.save(newLog);
+        }
 
         // Generate new CSRF token
         const newCsrfToken = generateCsrfToken();

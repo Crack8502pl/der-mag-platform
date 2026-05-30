@@ -1,17 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/admin/SessionsManagementPage.tsx
-// Admin panel — monitoring active user sessions
+// Admin panel — monitoring active user sessions and session history
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import adminService from '../../services/admin.service';
-import type { AdminSession, SessionStats } from '../../types/sessions.types';
+import type { AdminSession, SessionStats, UserSessionSummary, SessionHistoryEntry } from '../../types/sessions.types';
 
-// ============================================================
-// Funkcje pomocnicze
-// ============================================================
-
-function formatDuration(seconds: number): string {
+function formatDuration(seconds: number | null): string {
+  if (seconds === null) return '—';
   if (seconds < 60) return `${seconds}s`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)}min`;
   const h = Math.floor(seconds / 3600);
@@ -29,7 +26,8 @@ function parseUserAgent(ua: string | null): string {
   return 'Przeglądarka';
 }
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string | null): string {
+  if (!dateStr) return '—';
   const diff = Date.now() - new Date(dateStr).getTime();
   const min = Math.floor(diff / 60000);
   if (min < 1) return 'przed chwilą';
@@ -44,21 +42,42 @@ function timeAgo(dateStr: string): string {
   });
 }
 
-// ============================================================
-// Komponent główny
-// ============================================================
+function formatDateTime(dateStr: string | null): string {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleString('pl-PL', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
+function logoutTypeLabel(type: SessionHistoryEntry['logoutType']): string {
+  if (type === 'manual') return 'manual';
+  if (type === 'admin_forced') return 'admin_forced';
+  if (type === 'token_expired') return 'token_expired';
+  if (type === 'token_reuse') return 'token_reuse';
+  return '—';
+}
 
 export const SessionsManagementPage: React.FC = () => {
   const navigate = useNavigate();
+
+  const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
   const [sessions, setSessions] = useState<AdminSession[]>([]);
+  const [historyUsers, setHistoryUsers] = useState<UserSessionSummary[]>([]);
+  const [expandedUsers, setExpandedUsers] = useState<Record<number, boolean>>({});
   const [stats, setStats] = useState<SessionStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmLogout, setConfirmLogout] = useState<AdminSession | null>(null);
   const [logoutInProgress, setLogoutInProgress] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchActiveData = useCallback(async () => {
     try {
       const [sessionsData, statsData] = await Promise.all([
         adminService.getSessions(),
@@ -67,19 +86,38 @@ export const SessionsManagementPage: React.FC = () => {
       setSessions(sessionsData);
       setStats(statsData);
       setError(null);
-    } catch (err: any) {
+    } catch (_err: any) {
       setError('Nie udało się pobrać danych sesji');
-      console.error('Błąd pobierania sesji:', err);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  const fetchHistoryData = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const history = await adminService.getSessionHistory();
+      setHistoryUsers(history.users || []);
+      setError(null);
+    } catch (_err: any) {
+      setError('Nie udało się pobrać historii sesji');
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 30000);
+    fetchActiveData();
+    const interval = setInterval(fetchActiveData, 30000);
     return () => clearInterval(interval);
-  }, [fetchData]);
+  }, [fetchActiveData]);
+
+  // Oddzielny efekt dla historii (bez auto-odświeżania)
+  useEffect(() => {
+    if (activeTab === 'history' && historyUsers.length === 0 && !historyLoading) {
+      fetchHistoryData();
+    }
+  }, [activeTab, historyUsers.length, historyLoading, fetchHistoryData]);
 
   const handleForceLogout = async (session: AdminSession) => {
     setConfirmLogout(session);
@@ -93,12 +131,16 @@ export const SessionsManagementPage: React.FC = () => {
       await adminService.forceLogout(confirmLogout.tokenId);
       setSuccessMessage(`Sesja użytkownika ${confirmLogout.firstName} ${confirmLogout.lastName} została zakończona`);
       setTimeout(() => setSuccessMessage(null), 4000);
-      await fetchData();
-    } catch (err: any) {
+      await fetchActiveData();
+    } catch (_err: any) {
       setError('Nie udało się zakończyć sesji');
     } finally {
       setLogoutInProgress(null);
     }
+  };
+
+  const toggleUserExpanded = (userId: number) => {
+    setExpandedUsers(prev => ({ ...prev, [userId]: !prev[userId] }));
   };
 
   if (loading) {
@@ -111,26 +153,41 @@ export const SessionsManagementPage: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      {/* Header */}
       <div style={styles.header}>
         <button style={styles.backButton} onClick={() => navigate('/admin')}>
           ← Panel admina
         </button>
         <div>
-          <h1 style={styles.title}>👥 Aktywne sesje użytkowników</h1>
-          <p style={styles.subtitle}>Monitorowanie zalogowanych użytkowników w czasie rzeczywistym</p>
+          <h1 style={styles.title}>👥 Zarządzanie sesjami użytkowników</h1>
+          <p style={styles.subtitle}>Podgląd aktywnych sesji i historii pracy</p>
         </div>
-        <button style={styles.refreshButton} onClick={fetchData}>
+        <button
+          style={styles.refreshButton}
+          onClick={activeTab === 'active' ? fetchActiveData : fetchHistoryData}
+        >
           🔄 Odśwież
         </button>
       </div>
 
-      {/* Alerty */}
+      <div style={styles.tabsRow}>
+        <button
+          style={activeTab === 'active' ? styles.tabActive : styles.tab}
+          onClick={() => setActiveTab('active')}
+        >
+          🟢 Aktywne sesje
+        </button>
+        <button
+          style={activeTab === 'history' ? styles.tabActive : styles.tab}
+          onClick={() => setActiveTab('history')}
+        >
+          📋 Historia sesji
+        </button>
+      </div>
+
       {error && <div style={styles.alertError}>{error}</div>}
       {successMessage && <div style={styles.alertSuccess}>{successMessage}</div>}
 
-      {/* Statystyki */}
-      {stats && (
+      {activeTab === 'active' && stats && (
         <div style={styles.statsGrid}>
           <div style={styles.statCard}>
             <div style={styles.statIcon}>🟢</div>
@@ -163,73 +220,152 @@ export const SessionsManagementPage: React.FC = () => {
         </div>
       )}
 
-      {/* Tabela sesji */}
-      <div style={styles.tableWrapper}>
-        {sessions.length === 0 ? (
-          <div style={styles.emptyState}>Brak aktywnych sesji</div>
-        ) : (
-          <table style={styles.table}>
-            <thead>
-              <tr style={styles.tableHeaderRow}>
-                <th style={styles.th}>Status</th>
-                <th style={styles.th}>Użytkownik</th>
-                <th style={styles.th}>Rola</th>
-                <th style={styles.th}>IP</th>
-                <th style={styles.th}>Urządzenie</th>
-                <th style={styles.th}>Zalogowany</th>
-                <th style={styles.th}>Czas sesji</th>
-                <th style={styles.th}>Łączny czas</th>
-                <th style={styles.th}>Akcje</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sessions.map(session => (
-                <tr key={session.tokenId} style={session.isCurrentSession ? styles.currentSessionRow : styles.tableRow}>
-                  <td style={styles.td}>
-                    <span title="Aktywna sesja">🟢</span>
-                  </td>
-                  <td style={styles.td}>
-                    <div style={styles.userInfo}>
-                      <span style={styles.userName}>
-                        {session.firstName} {session.lastName}
-                      </span>
-                      <span style={styles.userLogin}>{session.username}</span>
-                    </div>
-                  </td>
-                  <td style={styles.td}>
-                    <span style={styles.roleBadge}>{session.role}</span>
-                  </td>
-                  <td style={styles.td}>
-                    <code style={styles.ipCode}>{session.ipAddress || '—'}</code>
-                  </td>
-                  <td style={styles.td}>{parseUserAgent(session.userAgent)}</td>
-                  <td style={styles.td}>{timeAgo(session.loginAt)}</td>
-                  <td style={styles.td}>{formatDuration(session.currentSessionSeconds)}</td>
-                  <td style={styles.td}>{formatDuration(session.totalSessionTimeSeconds)}</td>
-                  <td style={styles.td}>
-                    {session.isCurrentSession ? (
-                      <span style={styles.currentSessionLabel}>Twoja sesja</span>
-                    ) : (
-                      <button
-                        style={logoutInProgress === session.tokenId ? styles.btnLogoutDisabled : styles.btnLogout}
-                        disabled={logoutInProgress === session.tokenId}
-                        onClick={() => handleForceLogout(session)}
-                        title="Wyloguj użytkownika"
-                      >
-                        {logoutInProgress === session.tokenId ? '...' : '🔌 Wyloguj'}
-                      </button>
-                    )}
-                  </td>
+      {activeTab === 'active' ? (
+        <>
+          <div style={styles.tableWrapper}>
+            {sessions.length === 0 ? (
+              <div style={styles.emptyState}>Brak aktywnych sesji</div>
+            ) : (
+              <table style={styles.table}>
+                <thead>
+                  <tr style={styles.tableHeaderRow}>
+                    <th style={styles.th}>Status</th>
+                    <th style={styles.th}>Użytkownik</th>
+                    <th style={styles.th}>Rola</th>
+                    <th style={styles.th}>IP</th>
+                    <th style={styles.th}>Urządzenie</th>
+                    <th style={styles.th}>Zalogowany</th>
+                    <th style={styles.th}>Czas sesji</th>
+                    <th style={styles.th}>Łączny czas</th>
+                    <th style={styles.th}>Akcje</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sessions.map(session => (
+                    <tr key={session.tokenId} style={session.isCurrentSession ? styles.currentSessionRow : styles.tableRow}>
+                      <td style={styles.td}><span title="Aktywna sesja">🟢</span></td>
+                      <td style={styles.td}>
+                        <div style={styles.userInfo}>
+                          <span style={styles.userName}>{session.firstName} {session.lastName}</span>
+                          <span style={styles.userLogin}>{session.username}</span>
+                        </div>
+                      </td>
+                      <td style={styles.td}><span style={styles.roleBadge}>{session.role}</span></td>
+                      <td style={styles.td}>
+                        <code style={styles.ipCode}>{session.currentIpAddress || '—'}</code>
+                        {session.ipChanged && <span style={styles.changeBadge}>⚠️ zmiana IP</span>}
+                      </td>
+                      <td style={styles.td}>
+                        {parseUserAgent(session.currentUserAgent)}
+                        {session.uaChanged && <span style={styles.changeBadge}>⚠️</span>}
+                      </td>
+                      <td style={styles.td}>{timeAgo(session.loginAt)}</td>
+                      <td style={styles.td}>{formatDuration(session.currentSessionSeconds)}</td>
+                      <td style={styles.td}>{formatDuration(session.totalSessionTimeSeconds)}</td>
+                      <td style={styles.td}>
+                        {session.isCurrentSession ? (
+                          <span style={styles.currentSessionLabel}>Twoja sesja</span>
+                        ) : (
+                          <button
+                            style={logoutInProgress === session.tokenId ? styles.btnLogoutDisabled : styles.btnLogout}
+                            disabled={logoutInProgress === session.tokenId}
+                            onClick={() => handleForceLogout(session)}
+                            title="Wyloguj użytkownika"
+                          >
+                            {logoutInProgress === session.tokenId ? '...' : '🔌 Wyloguj'}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+          <p style={styles.autoRefreshNote}>Auto-odświeżanie co 30 sekund</p>
+        </>
+      ) : (
+        <div style={styles.tableWrapper}>
+          {historyLoading ? (
+            <div style={styles.emptyState}>Ładowanie historii sesji...</div>
+          ) : historyUsers.length === 0 ? (
+            <div style={styles.emptyState}>Brak danych historycznych</div>
+          ) : (
+            <table style={styles.table}>
+              <thead>
+                <tr style={styles.tableHeaderRow}>
+                  <th style={styles.th}>Użytkownik</th>
+                  <th style={styles.th}>Rola</th>
+                  <th style={styles.th}>Sesji</th>
+                  <th style={styles.th}>Łączny czas</th>
+                  <th style={styles.th}>Ostatnia aktywność</th>
+                  <th style={styles.th}>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+              </thead>
+              <tbody>
+                {historyUsers.map(user => (
+                  <React.Fragment key={user.userId}>
+                    <tr style={styles.tableRow}>
+                      <td style={styles.td}>
+                        <button style={styles.expandButton} onClick={() => toggleUserExpanded(user.userId)}>
+                          {expandedUsers[user.userId] ? '▼' : '▶'} {user.firstName} {user.lastName}
+                          <span style={styles.userLogin}>({user.username})</span>
+                        </button>
+                      </td>
+                      <td style={styles.td}><span style={styles.roleBadge}>{user.role}</span></td>
+                      <td style={styles.td}>{user.sessionCount}</td>
+                      <td style={styles.td}>{formatDuration(user.totalDurationSeconds)}</td>
+                      <td style={styles.td}>{timeAgo(user.lastActiveAt)}</td>
+                      <td style={styles.td}>{user.isCurrentlyActive ? '🟢' : '⚫'}</td>
+                    </tr>
+                    {expandedUsers[user.userId] && (
+                      <tr style={styles.expandedRow}>
+                        <td style={styles.expandedCell} colSpan={6}>
+                          <table style={styles.innerTable}>
+                            <thead>
+                              <tr style={styles.tableHeaderRow}>
+                                <th style={styles.th}>Data logowania</th>
+                                <th style={styles.th}>Data wylogowania</th>
+                                <th style={styles.th}>Czas trwania</th>
+                                <th style={styles.th}>IP</th>
+                                <th style={styles.th}>Przeglądarka</th>
+                                <th style={styles.th}>Typ zakończenia</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {user.sessions.map(session => (
+                                <tr key={session.id} style={styles.tableRow}>
+                                  <td style={styles.td}>{formatDateTime(session.loginAt)}</td>
+                                  <td style={styles.td}>{session.isActive ? '● Aktywna' : formatDateTime(session.logoutAt)}</td>
+                                  <td style={styles.td}>{formatDuration(session.durationSeconds)}</td>
+                                  <td style={styles.td}>
+                                    <code style={styles.ipCode}>{session.currentIpAddress || '—'}</code>
+                                    {(session.ipChanged || session.loginIpAddress !== session.currentIpAddress) && (
+                                      <span style={styles.changeBadge}>⚠️</span>
+                                    )}
+                                  </td>
+                                  <td style={styles.td}>
+                                    {parseUserAgent(session.currentUserAgent)}
+                                    {(session.uaChanged || session.loginUserAgent !== session.currentUserAgent) && (
+                                      <span style={styles.changeBadge}>⚠️</span>
+                                    )}
+                                  </td>
+                                  <td style={styles.td}>{logoutTypeLabel(session.logoutType)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
 
-      <p style={styles.autoRefreshNote}>Auto-odświeżanie co 30 sekund</p>
-
-      {/* Dialog potwierdzenia */}
       {confirmLogout && (
         <div style={styles.modalOverlay} onClick={() => setConfirmLogout(null)}>
           <div style={styles.modal} onClick={e => e.stopPropagation()}>
@@ -255,10 +391,6 @@ export const SessionsManagementPage: React.FC = () => {
   );
 };
 
-// ============================================================
-// Style (CSS-in-JS z użyciem zmiennych CSS)
-// ============================================================
-
 const styles: Record<string, React.CSSProperties> = {
   container: {
     padding: '24px',
@@ -276,7 +408,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: '24px',
+    marginBottom: '16px',
     flexWrap: 'wrap',
     gap: '12px',
   },
@@ -308,6 +440,29 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '0.875rem',
+    fontWeight: 600,
+  },
+  tabsRow: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '16px',
+  },
+  tab: {
+    background: 'var(--bg-secondary)',
+    border: '1px solid var(--border-color)',
+    color: 'var(--text-secondary)',
+    padding: '8px 12px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontWeight: 600,
+  },
+  tabActive: {
+    background: 'var(--bg-primary)',
+    border: '1px solid var(--accent-color, #3b82f6)',
+    color: 'var(--text-primary)',
+    padding: '8px 12px',
+    borderRadius: '6px',
+    cursor: 'pointer',
     fontWeight: 600,
   },
   alertError: {
@@ -374,12 +529,24 @@ const styles: Record<string, React.CSSProperties> = {
     borderCollapse: 'collapse',
     fontSize: '0.875rem',
   },
+  innerTable: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    fontSize: '0.82rem',
+  },
   tableHeaderRow: {
     background: 'var(--bg-primary)',
     borderBottom: '1px solid var(--border-color)',
   },
   tableRow: {
     borderBottom: '1px solid var(--border-color)',
+  },
+  expandedRow: {
+    borderBottom: '1px solid var(--border-color)',
+    background: 'var(--bg-primary)',
+  },
+  expandedCell: {
+    padding: '8px',
   },
   currentSessionRow: {
     borderBottom: '1px solid var(--border-color)',
@@ -411,7 +578,7 @@ const styles: Record<string, React.CSSProperties> = {
   userLogin: {
     fontSize: '0.75rem',
     color: 'var(--text-secondary)',
-    marginTop: '2px',
+    marginLeft: '6px',
   },
   roleBadge: {
     background: 'var(--accent-color, #3b82f6)',
@@ -429,6 +596,24 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '2px 6px',
     borderRadius: '3px',
     border: '1px solid var(--border-color)',
+  },
+  changeBadge: {
+    background: '#fef3c7',
+    color: '#92400e',
+    padding: '1px 6px',
+    borderRadius: '3px',
+    fontSize: '0.7rem',
+    marginLeft: '6px',
+    display: 'inline-block',
+  },
+  expandButton: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--text-primary)',
+    cursor: 'pointer',
+    fontWeight: 600,
+    padding: 0,
+    textAlign: 'left',
   },
   btnLogout: {
     background: '#ef4444',

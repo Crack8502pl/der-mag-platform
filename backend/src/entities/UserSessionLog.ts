@@ -37,6 +37,12 @@ export class UserSessionLog {
   @Column({ name: 'user_agent', type: 'text', nullable: true })
   userAgent: string | null;
 
+  @Column({ name: 'last_ip_address', type: 'varchar', length: 45, nullable: true })
+  lastIpAddress: string | null;
+
+  @Column({ name: 'last_user_agent', type: 'text', nullable: true })
+  lastUserAgent: string | null;
+
   @Column({ name: 'logout_type', type: 'varchar', length: 20, nullable: true })
   logoutType: 'manual' | 'admin_forced' | 'token_expired' | 'token_reuse' | null;
 }
