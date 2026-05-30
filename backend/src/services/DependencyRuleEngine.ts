@@ -126,8 +126,8 @@ export class DependencyRuleEngine {
             break;
           }
         }
-        value = raw !== undefined ? Number(raw) : 0;
-        if (isNaN(value)) value = 0;
+        const parsedValue = raw !== undefined ? Number(raw) : 0;
+        value = Number.isFinite(parsedValue) ? parsedValue : 0;
       }
 
       // Apply input multiplier

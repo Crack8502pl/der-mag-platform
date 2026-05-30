@@ -51,6 +51,24 @@ interface TaskConfigWizardProps {
   onSuccess: () => void;
 }
 
+interface WizardTaskMetadata {
+  subsystemType?: string;
+  lcsConfig?: {
+    iloscKamer?: unknown;
+    obserwowanePrzejazdy?: unknown[];
+    serwerObrazu?: {
+      maxKamer?: unknown;
+    };
+  };
+  nastawniConfig?: {
+    iloscKamer?: unknown;
+    obserwowanePrzejazdy?: unknown[];
+    stacjaOperatorska?: {
+      przypisaneKamery?: unknown[];
+    };
+  };
+}
+
 // ── Component ────────────────────────────────────────────────
 
 export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClose, onSuccess }) => {
@@ -234,33 +252,39 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
 
   const extractCameraCountFromTask = (): number => {
     const taskTypeCode = task.taskType?.code || '';
-    const meta = task.metadata || {};
+    const meta = (task.metadata || {}) as WizardTaskMetadata;
 
     if (taskTypeCode === 'LCS' && meta.subsystemType === 'SMOKIP_B') {
-      return (meta.lcsConfig as any)?.serwerObrazu?.maxKamer || 0;
+      return Number(meta.lcsConfig?.serwerObrazu?.maxKamer) || 0;
     }
 
     if (taskTypeCode === 'LCS') {
-      const lcsCfg = meta.lcsConfig as any;
-      if (lcsCfg?.iloscKamer) return Number(lcsCfg.iloscKamer);
-      if (Array.isArray(lcsCfg?.obserwowanePrzejazdy)) {
-        return lcsCfg.obserwowanePrzejazdy.length * 2;
+      if (meta.lcsConfig?.iloscKamer) return Number(meta.lcsConfig.iloscKamer);
+      if (Array.isArray(meta.lcsConfig?.obserwowanePrzejazdy)) {
+        return meta.lcsConfig.obserwowanePrzejazdy.length * 2;
       }
       return 0;
     }
 
     if (taskTypeCode === 'NASTAWNIA' && isStandaloneNastawnia) {
-      const cfg = meta.nastawniConfig as any;
-      return cfg?.iloscKamer
-        || cfg?.obserwowanePrzejazdy?.length
-        || 0;
+      const parsedCount = meta.nastawniConfig?.iloscKamer !== undefined && meta.nastawniConfig?.iloscKamer !== null
+        ? Number(meta.nastawniConfig.iloscKamer)
+        : undefined;
+      if (parsedCount !== undefined && Number.isFinite(parsedCount)) {
+        return parsedCount;
+      }
+      return meta.nastawniConfig?.obserwowanePrzejazdy?.length ?? 0;
     }
 
     if (taskTypeCode === 'NASTAWNIA' && !isStandaloneNastawnia) {
-      const cfg = meta.nastawniConfig as any;
-      return cfg?.stacjaOperatorska?.przypisaneKamery?.length
-        || cfg?.iloscKamer
-        || 0;
+      const assignedCount = meta.nastawniConfig?.stacjaOperatorska?.przypisaneKamery?.length;
+      if (assignedCount !== undefined) {
+        return assignedCount;
+      }
+      const parsedCount = meta.nastawniConfig?.iloscKamer !== undefined && meta.nastawniConfig?.iloscKamer !== null
+        ? Number(meta.nastawniConfig.iloscKamer)
+        : undefined;
+      return parsedCount !== undefined && Number.isFinite(parsedCount) ? parsedCount : 0;
     }
 
     return 0;
