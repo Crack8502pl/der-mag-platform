@@ -4,6 +4,6 @@ Ten projekt używa `tsx` (esbuild) który nie emituje metadanych typów dekorato
 
 **Każdy `@Column()` MUSI mieć `type:` podany jawnie.**
 
-Szczegóły: [`backend/docs/ENTITIES.md`](backend/docs/ENTITIES.md)
+Szczegóły: [`docs/ENTITIES.md`](docs/ENTITIES.md)
 
-Wzorzec: [`backend/src/entities/User.ts`](backend/src/entities/User.ts)
+Wzorzec: [`src/entities/User.ts`](src/entities/User.ts)
