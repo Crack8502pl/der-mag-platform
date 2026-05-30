@@ -72,12 +72,21 @@ Status wybranych modułów frontendowych:
 | --- | --- | --- |
 | Kontrakty | ✅ Gotowy | Zarządzanie kontraktami i przebiegiem prac |
 | Prefabrykacja | ✅ Gotowy | Obsługa zleceń prefabrykacji urządzeń |
-| Urządzenia | 🚧 W budowie | Rejestracja urządzeń, numerów seryjnych i konfiguracji |
-| Realizacja | 🚧 W budowie | Zarządzanie realizacją zleceń – planowanie, postęp i rozliczenie prac w terenie |
-| Raporty | 🚧 W budowie | Generowanie raportów, statystyk i eksportów |
-| Dokumenty | 🚧 W budowie | Szablony, generowanie i archiwizacja dokumentów |
-| Zdjęcia z realizacji | 🚧 W budowie | Upload, organizacja i zatwierdzanie dokumentacji fotograficznej |
-| Powiadomienia | 🚧 W budowie | Alerty, triggery i kanały komunikacji |
+| Urządzenia | ✅ v2 | Rejestr urządzeń, filtry, statusy, CRUD, szczegóły i historia |
+| Realizacja | 🚧 Placeholder | Moduł z roadmapą funkcji realizacyjnych (planowanie/postęp/rozliczenie) |
+| Raporty | ✅ v2 | Zakładki raportowe (kontrakty, zadania, zasoby, KPI) + eksport Excel/PDF |
+| Dokumenty | ✅ v2 | Zakładki dokumentów i szablonów, upload, pobieranie, generowanie |
+| Zdjęcia z realizacji | ✅ v2 | Galerie, albumy, upload oraz proces zatwierdzania |
+| Powiadomienia | ✅ v2 | Historia z filtrami/paginacją oraz konfiguracja ustawień |
+
+### Nowe moduły (v2)
+
+- **Urządzenia** – pełna lista urządzeń z wyszukiwaniem, filtrami statusu i typu, paginacją, modalem tworzenia/edycji oraz szczegółami z konfiguracją JSON i historią zdarzeń.
+- **Raporty** – widok zakładkowy: statystyki kontraktów, statystyki zadań, zasoby magazynowe i KPI miesięczne, z możliwością eksportu danych do Excel/PDF.
+- **Dokumenty** – lista dokumentów z uploadem/pobieraniem/usuwaniem, sekcja szablonów, generowanie dokumentów z placeholderów.
+- **Zdjęcia** – galeria miniatur z podglądem, albumy ze zliczaniem zdjęć, workflow zatwierdzania (approve/reject) dla ról managerskich/admin.
+- **Powiadomienia** – historia powiadomień (typ/status, oznaczanie jako przeczytane, paginacja) oraz ustawienia kanałów i subskrypcji modułowych.
+- **Realizacja** – nowy moduł placeholder z ikoną i listą docelowych funkcji do dalszej implementacji.
 
 ## 🛠 Technologie
 

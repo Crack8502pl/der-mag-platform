@@ -73,6 +73,7 @@ export class DocumentController {
         taskId: req.query.taskId ? Number(req.query.taskId) : undefined,
         category: req.query.category as string,
         type: req.query.type as string,
+        search: req.query.search as string,
         limit: req.query.limit ? Number(req.query.limit) : 20,
         offset: req.query.offset ? Number(req.query.offset) : 0
       };

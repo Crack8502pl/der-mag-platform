@@ -5,7 +5,8 @@ import { Router } from 'express';
 import { DocumentController } from '../controllers/DocumentController';
 import { authenticate } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
-import { uploadDocument } from '../middleware/upload';
+import { uploadDocument, uploadTemplate } from '../middleware/upload';
+import { BOMBuilderController } from '../controllers/BOMBuilderController';
 
 const router = Router();
 
@@ -19,17 +20,25 @@ router.post(
   DocumentController.uploadDocument
 );
 
+// Template endpoints and generator aliases for frontend module compatibility
+router.get('/templates/list', BOMBuilderController.getTemplates);
+router.post('/templates/upload', uploadTemplate.single('file'), BOMBuilderController.uploadTemplate);
+router.post('/generate/:templateId', (req, _res, next) => {
+  req.params.id = req.params.templateId;
+  next();
+}, BOMBuilderController.generateDocument);
+
 // Lista dokumentów (z filtrowaniem)
 router.get('/', DocumentController.getDocuments);
 
 // Dokumenty dla zadania
 router.get('/task/:taskId', DocumentController.getTaskDocuments);
 
-// Szczegóły dokumentu
-router.get('/:id', DocumentController.getDocument);
-
 // Pobierz plik dokumentu
 router.get('/:id/download', DocumentController.downloadDocument);
+
+// Szczegóły dokumentu
+router.get('/:id', DocumentController.getDocument);
 
 // Aktualizuj dokument
 router.put('/:id', DocumentController.updateDocument);
