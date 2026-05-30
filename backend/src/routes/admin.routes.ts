@@ -10,6 +10,7 @@ import { UserController } from '../controllers/UserController';
 import { RoleController } from '../controllers/RoleController';
 import { AdminController } from '../controllers/AdminController';
 import { CompletionController } from '../controllers/CompletionController';
+import { AdminSessionsController } from '../controllers/AdminSessionsController';
 import cronConfigRouter from './cronConfig.routes';
 
 const router = Router();
@@ -86,5 +87,13 @@ router.post('/seed-database', AdminController.seedDatabase);
 
 // CRON schedule management
 router.use('/cron', cronConfigRouter);
+
+// ============================================
+// Session Management Routes
+// ============================================
+
+router.get('/sessions/stats', AdminSessionsController.getSessionStats);
+router.get('/sessions', AdminSessionsController.getAllSessions);
+router.delete('/sessions/:tokenId', AdminSessionsController.forceLogout);
 
 export default router;

@@ -504,6 +504,29 @@ W przypadku problemów z modułem zarządzania użytkownikami:
 
 ---
 
-**Ostatnia aktualizacja:** 2026-01-06  
+## Panel Monitorowania Sesji (Admin)
+
+### Dostęp
+- Ścieżka: `/admin/sessions`
+- Uprawnienia: tylko rola `admin`
+
+### Funkcjonalności
+- Widok wszystkich aktywnych sesji w czasie rzeczywistym
+- Informacje: użytkownik, rola, IP, urządzenie, czas logowania, czas trwania sesji
+- Łączny czas spędzony w aplikacji (suma wszystkich sesji historycznych)
+- Ręczne wylogowanie dowolnego użytkownika
+- Auto-odświeżanie co 30 sekund
+- Statystyki: aktywne sesje, zalogowani dziś, średni czas sesji
+
+### API Endpoints
+| Metoda | Endpoint | Opis |
+|--------|----------|------|
+| GET | `/api/admin/sessions` | Lista aktywnych sesji |
+| GET | `/api/admin/sessions/stats` | Statystyki sesji |
+| DELETE | `/api/admin/sessions/:tokenId` | Wylogowanie sesji |
+
+---
+
+**Ostatnia aktualizacja:** 2026-05-30  
 **Wersja:** 1.0.0  
 **Autor:** Cr@ck8502PL / DER-MAG

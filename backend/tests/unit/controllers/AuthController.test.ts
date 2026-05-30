@@ -481,6 +481,7 @@ describe('AuthController', () => {
 
   describe('POST /api/auth/logout-all', () => {
     it('should revoke all sessions for authenticated user', async () => {
+      mockRefreshTokenRepository.find = jest.fn().mockResolvedValue([]);
       mockRefreshTokenRepository.update = jest.fn().mockResolvedValue({ affected: 3 });
       req = createMockRequest({ userId: 1 });
 

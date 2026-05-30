@@ -24,6 +24,7 @@ import { SymfoniaSyncPage } from './components/admin/SymfoniaSyncPage';
 import { SerialPatternSettings } from './components/admin/SerialPatternSettings';
 import { HoneypotDashboardPage } from './components/admin/HoneypotDashboardPage';
 import { PermissionDebugTool } from './components/admin/PermissionDebugTool';
+import { SessionsManagementPage } from './components/admin/SessionsManagementPage';
 import { SubsystemsPage } from './components/modules/SubsystemsPage';
 import { TasksPage } from './components/modules/TasksPage';
 import { PrefabricationPage } from './components/modules/PrefabricationPage';
@@ -517,6 +518,16 @@ function App() {
             <ProtectedRoute>
               <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
                 <HoneypotDashboardPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/sessions"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
+                <SessionsManagementPage />
               </RoleBasedRoute>
             </ProtectedRoute>
           }

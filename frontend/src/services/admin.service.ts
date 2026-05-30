@@ -12,6 +12,7 @@ import type {
   ChangePasswordDto,
   Role,
 } from '../types/admin.types';
+import type { AdminSession, SessionStats } from '../types/sessions.types';
 import { FALLBACK_ROLES } from '../constants/roles';
 
 export class AdminService {
@@ -166,6 +167,33 @@ export class AdminService {
    */
   async setPortalUrl(url: string): Promise<void> {
     await api.put('/admin/config/portal', { url });
+  }
+
+  // ============================================
+  // Session Management
+  // ============================================
+
+  /**
+   * Get all active sessions (admin)
+   */
+  async getSessions(): Promise<AdminSession[]> {
+    const response = await api.get('/admin/sessions');
+    return response.data.data;
+  }
+
+  /**
+   * Get session statistics (admin)
+   */
+  async getSessionStats(): Promise<SessionStats> {
+    const response = await api.get('/admin/sessions/stats');
+    return response.data.data;
+  }
+
+  /**
+   * Force logout a session (admin)
+   */
+  async forceLogout(tokenId: string): Promise<void> {
+    await api.delete(`/admin/sessions/${tokenId}`);
   }
 
   // ============================================

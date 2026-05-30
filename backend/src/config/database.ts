@@ -72,6 +72,7 @@ import { TaskGeneratedBomItem } from '../entities/TaskGeneratedBomItem';
 import { UserPreferences } from '../entities/UserPreferences';
 import { PushSubscription } from '../entities/PushSubscription';
 import { HoneypotLog } from '../entities/HoneypotLog';
+import { UserSessionLog } from '../entities/UserSessionLog';
 // Cars
 import { Car } from '../entities/Car';
 // Recorder and Disk Specifications
@@ -197,6 +198,8 @@ export const AppDataSource = new DataSource({
     PushSubscription,
     // Honeypot logs
     HoneypotLog,
+    // User Session Logs
+    UserSessionLog,
     // Cars
     Car,
     // Recorder and Disk Specifications
