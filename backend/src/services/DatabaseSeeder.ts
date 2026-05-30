@@ -54,6 +54,7 @@ export class DatabaseSeeder {
           tasks: { read: true, create: true, update: true, assign: true },
           completion: { read: true, decideContinue: true },
           prefabrication: { read: true },
+          realization: { read: true },
           network: { read: true, createPool: true, updatePool: true, allocate: true, viewMatrix: true },
           bom: { read: true, create: true, update: true },
           devices: { read: true, create: true, update: true },
@@ -76,6 +77,7 @@ export class DatabaseSeeder {
           tasks: { read: true, create: true, update: true, assign: true },
           completion: { read: true, decideContinue: true },
           prefabrication: { read: true },
+          realization: { read: true },
           network: { read: true, createPool: true, updatePool: true, allocate: true, viewMatrix: true },
           bom: { read: true, create: true, update: true },
           devices: { read: true, create: true, update: true },
@@ -98,6 +100,7 @@ export class DatabaseSeeder {
           tasks: { read: true, create: 'SERWIS', update: true, assign: true },
           completion: { read: true },
           prefabrication: { read: true },
+          realization: { read: true },
           network: { read: true, viewMatrix: true },
           bom: { read: true },
           devices: { read: true },
@@ -152,6 +155,7 @@ export class DatabaseSeeder {
         permissions: {
           dashboard: { read: true },
           tasks: { read: true, update: 'OWN' },
+          realization: { read: true },
           completion: { 
             read: true, scan: true, assignPallet: true, 
             reportMissing: true, complete: true 
@@ -203,6 +207,7 @@ export class DatabaseSeeder {
           tasks: { read: true },
           completion: { read: true },
           prefabrication: { read: true },
+          realization: { read: true },
           network: { read: true, viewMatrix: true },
           bom: { read: true },
           devices: { read: true },

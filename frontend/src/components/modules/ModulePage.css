@@ -101,3 +101,24 @@
   color: var(--primary-color);
   font-size: 20px;
 }
+
+.page-subtitle {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.module-cta {
+  margin-top: 32px;
+  padding: 20px;
+  border: 1px dashed var(--border-primary);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+}
+
+.module-cta p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}

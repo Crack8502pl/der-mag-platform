@@ -37,6 +37,7 @@ import { ReportsPage } from './components/modules/ReportsPage';
 import { DocumentsPage } from './components/modules/DocumentsPage';
 import { PhotosPage } from './components/modules/PhotosPage';
 import { NotificationsPage } from './components/modules/NotificationsPage';
+import { RealizationPage } from './components/modules/RealizationPage';
 import { SettingsPage } from './components/modules/SettingsPage';
 import { ContractListPage } from './components/contracts/ContractListPage';
 import { ContractDetailPage } from './components/contracts/ContractDetailPage';
@@ -306,6 +307,17 @@ function App() {
             <ProtectedRoute>
               <RoleBasedRoute requiredPermission={{ module: 'photos', action: 'read' }}>
                 <PhotosPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/realization"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'realization', action: 'read' }}>
+                <RealizationPage />
               </RoleBasedRoute>
             </ProtectedRoute>
           }
