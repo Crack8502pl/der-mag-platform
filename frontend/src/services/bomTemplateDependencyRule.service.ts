@@ -14,7 +14,7 @@ export interface BomTemplateDependencyRule {
   aggregationType: 'SUM' | 'COUNT' | 'MIN' | 'MAX' | 'PRODUCT' | 'FIRST' | 'SELECT_RECORDER' | 'SELECT_DISKS';
   mathOperation: 'NONE' | 'FLOOR_DIV' | 'MODULO' | 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'CEIL_DIV' | 'ROUND_DIV' | 'CALCULATE_STORAGE';
   mathOperand?: number | null;
-  targetItemId: number;
+  targetItemId: number | null;
   isActive: boolean;
   targetWarehouseCategory?: string | null;
   selectionCriteria?: Record<string, unknown> | null;
@@ -61,7 +61,7 @@ export interface CreateRuleDto {
   aggregationType: string;
   mathOperation: string;
   mathOperand?: number;
-  targetItemId: number;
+  targetItemId?: number;
   isActive?: boolean;
   targetWarehouseCategory?: string;
   selectionCriteria?: Record<string, unknown>;
