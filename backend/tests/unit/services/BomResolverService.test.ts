@@ -128,4 +128,8 @@ describe('BomResolverService', () => {
       iloscKamer: 6
     });
   });
+
+  it('needsRecorder returns true for SMOKIP_A LCS', () => {
+    expect(BomResolverService.needsRecorder(SubsystemType.SMOKIP_A, 'LCS')).toBe(true);
+  });
 });

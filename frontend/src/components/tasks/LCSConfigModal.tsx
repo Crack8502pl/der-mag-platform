@@ -10,6 +10,7 @@ import type {
   LCSConfigSmokB,
   CUIDConfig,
 } from '../../types/lcs.types';
+import { mergeLcsConfigToMetadata, readLcsConfig } from '../../utils/metadataMerge';
 import { usePermissions } from '../../hooks/usePermissions';
 import '../../styles/grover-theme.css';
 import './LCSConfigModal.css';
@@ -62,7 +63,7 @@ export const LCSConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =>
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const saved = task.metadata?.configParams?.lcsConfig;
+    const saved = readLcsConfig((task.metadata || {}) as Record<string, unknown>);
     if (saved) {
       if (systemType === 'SMOK_A') {
         setConfigA({ ...defaultSmokAConfig(), ...saved });
@@ -79,13 +80,10 @@ export const LCSConfigModal: React.FC<Props> = ({ task, onClose, onSuccess }) =>
       setError('');
       const lcsConfig = systemType === 'SMOK_A' ? configA : configB;
       await taskService.update(task.taskNumber, {
-        metadata: {
-          ...task.metadata,
-          configParams: {
-            ...(task.metadata?.configParams || {}),
-            lcsConfig,
-          },
-        },
+        metadata: mergeLcsConfigToMetadata(
+          (task.metadata || {}) as Record<string, unknown>,
+          lcsConfig as unknown as Record<string, unknown>
+        ),
         status: 'configured',
       });
       onSuccess();

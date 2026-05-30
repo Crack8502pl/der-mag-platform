@@ -105,7 +105,7 @@ export const TaskEditModal: React.FC<Props> = ({ task, onClose, onSuccess }) => 
   };
 
   const isTaskTypeLocked = useMemo(() => {
-    const hasBom = task.metadata?.bomGenerated === true || task.metadata?.bomId;
+    const hasBom = task.metadata?.bomGenerated === true || Boolean(task.metadata?.bomId);
     const advancedStatuses = ['configured', 'ready_for_completion', 'completed'];
     return hasBom || advancedStatuses.includes(task.status);
   }, [task]);
