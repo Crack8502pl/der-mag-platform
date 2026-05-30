@@ -210,11 +210,28 @@ export class BomResolverService {
     }
 
     // ── 3. Build merged configParams ─────────────────────────────────────────
+    const existingLcsConfig =
+      callerConfigParams.lcsConfig && typeof callerConfigParams.lcsConfig === 'object'
+        ? (callerConfigParams.lcsConfig as Record<string, unknown>)
+        : {};
+    const existingNastawniConfig =
+      callerConfigParams.nastawniConfig && typeof callerConfigParams.nastawniConfig === 'object'
+        ? (callerConfigParams.nastawniConfig as Record<string, unknown>)
+        : {};
+
     const mergedConfigParams: Record<string, unknown> = {
       ...callerConfigParams,
       cameraCount,
       recordingDays,
       bitrateMbps,
+      lcsConfig: {
+        ...existingLcsConfig,
+        iloscKamer: cameraCount
+      },
+      nastawniConfig: {
+        ...existingNastawniConfig,
+        iloscKamer: cameraCount
+      },
       ...(recorder && {
         recorderId: recorder.id,
         recorderWarehouseStockId: recorder.warehouseStockId,

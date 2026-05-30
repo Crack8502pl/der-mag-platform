@@ -3,6 +3,7 @@
 
 export interface LCSConfigSmokA {
   obserwowanePrzejazdy: number[];  // IDs of crossings managed by this LCS
+  iloscKamer?: number;
   iloscStanowisk: number;
   stanowiska: LCSStanowisko[];
   iloscMonitorow: number;
