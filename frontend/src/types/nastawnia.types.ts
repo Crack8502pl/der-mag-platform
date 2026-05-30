@@ -4,6 +4,7 @@
 export interface NastawniaSamodzielnaConfig {
   // Full functionality (no LCS above it)
   obserwowanePrzejazdy: number[];
+  iloscKamer?: number;
   iloscStanowisk: number;
   iloscMonitorow: number;
   funkcjonalnosci: {

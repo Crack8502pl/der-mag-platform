@@ -81,8 +81,15 @@ Dostępne dla zadań szczegółowych (PRZEJAZD, SKP, NASTAWNIA, LCS, CUID):
 
 ### LCSConfigSmokA
 
+`lcsConfig.iloscKamer` nie pochodzi z modalu LCS. Wartość jest wyliczana w Task Config Wizardze:
+- docelowo jako suma kamer dzieci Nastawni przypisanych do LCS,
+- gdy brak danych dzieci: suma pól szablonu BOM z `configValues` zawierających `kamer`,
+- fallback do wcześniej zapisanej wartości metadata,
+- fallback do `obserwowanePrzejazdy.length * 2`.
+
 | Ścieżka parametru                            | Typ     | Opis                         |
 |----------------------------------------------|---------|------------------------------|
+| `lcsConfig.iloscKamer`                       | number  | Łączna liczba kamer dla LCS  |
 | `lcsConfig.iloscStanowisk`                   | number  | Ilość stanowisk operatorskich|
 | `lcsConfig.iloscMonitorow`                   | number  | Ilość monitorów              |
 | `lcsConfig.funkcjonalnosci.obserwacja`       | boolean | Funkcja obserwacji           |
@@ -118,8 +125,14 @@ Dostępne dla zadań szczegółowych (PRZEJAZD, SKP, NASTAWNIA, LCS, CUID):
 
 ### NastawniaSamodzielnaConfig
 
+`nastawniConfig.iloscKamer` dla nastawni samodzielnej jest wyliczane przez Task Config Wizard:
+- suma pól szablonu BOM z `configValues` zawierających `kamer`,
+- fallback do zapisanej wartości metadata,
+- fallback do `obserwowanePrzejazdy.length`.
+
 | Ścieżka parametru                                    | Typ     | Opis                           |
 |------------------------------------------------------|---------|--------------------------------|
+| `nastawniConfig.iloscKamer`                          | number  | Łączna liczba kamer Nastawni   |
 | `nastawniConfig.iloscStanowisk`                      | number  | Ilość stanowisk                |
 | `nastawniConfig.iloscMonitorow`                      | number  | Ilość monitorów                |
 | `nastawniConfig.funkcjonalnosci.obserwacja`          | boolean | Obserwacja                     |

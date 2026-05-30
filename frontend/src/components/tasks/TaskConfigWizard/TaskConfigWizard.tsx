@@ -53,6 +53,8 @@ interface TaskConfigWizardProps {
 
 interface WizardTaskMetadata {
   subsystemType?: string;
+  taskVariant?: string;
+  isStandaloneNastawnia?: boolean;
   lcsConfig?: {
     iloscKamer?: unknown;
     obserwowanePrzejazdy?: unknown[];
@@ -250,6 +252,21 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
     return labels[paramName] || paramName;
   };
 
+  const extractCameraCountFromConfigValues = (): number => {
+    return Object.entries(configValues).reduce((sum, [key, value]) => {
+      const normalizedKey = key.toLowerCase();
+      if (
+        !normalizedKey.includes('kamer') ||
+        normalizedKey.includes('model') ||
+        normalizedKey.includes('selectedmodels')
+      ) {
+        return sum;
+      }
+      const parsedValue = Number(value);
+      return Number.isFinite(parsedValue) ? sum + parsedValue : sum;
+    }, 0);
+  };
+
   const extractCameraCountFromTask = (): number => {
     const taskTypeCode = task.taskType?.code || '';
     const meta = (task.metadata || {}) as WizardTaskMetadata;
@@ -259,7 +276,16 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
     }
 
     if (taskTypeCode === 'LCS') {
-      if (meta.lcsConfig?.iloscKamer) return Number(meta.lcsConfig.iloscKamer);
+      const cameraCountFromConfigValues = extractCameraCountFromConfigValues();
+      if (cameraCountFromConfigValues > 0) {
+        return cameraCountFromConfigValues;
+      }
+      if (meta.lcsConfig?.iloscKamer !== undefined && meta.lcsConfig?.iloscKamer !== null) {
+        const parsedCount = Number(meta.lcsConfig.iloscKamer);
+        if (Number.isFinite(parsedCount)) {
+          return parsedCount;
+        }
+      }
       if (Array.isArray(meta.lcsConfig?.obserwowanePrzejazdy)) {
         return meta.lcsConfig.obserwowanePrzejazdy.length * 2;
       }
@@ -267,6 +293,10 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
     }
 
     if (taskTypeCode === 'NASTAWNIA' && isStandaloneNastawnia) {
+      const cameraCountFromConfigValues = extractCameraCountFromConfigValues();
+      if (cameraCountFromConfigValues > 0) {
+        return cameraCountFromConfigValues;
+      }
       const parsedCount = meta.nastawniConfig?.iloscKamer !== undefined && meta.nastawniConfig?.iloscKamer !== null
         ? Number(meta.nastawniConfig.iloscKamer)
         : undefined;
@@ -329,6 +359,9 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
     setSaving(true);
     setError('');
     try {
+      const cameraCount = Number.isFinite(resolvedBom.cameraCount)
+        ? resolvedBom.cameraCount
+        : extractCameraCountFromTask();
       const newConfigParams = {
         ...(task.metadata?.configParams || {}),
         ...configValues,
@@ -339,8 +372,28 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
         wizardResolvedAt: resolvedBom.resolvedAt || new Date().toISOString(),
       };
 
+      const existingMetadata = (task.metadata || {}) as WizardTaskMetadata & Record<string, unknown>;
+      const metadataToSave: Record<string, unknown> = {
+        ...existingMetadata,
+        configParams: newConfigParams,
+      };
+
+      if (task.taskType?.code === 'LCS') {
+        metadataToSave.lcsConfig = {
+          ...(existingMetadata.lcsConfig || {}),
+          iloscKamer: cameraCount,
+        };
+      }
+
+      if (task.taskType?.code === 'NASTAWNIA' && isStandaloneNastawnia) {
+        metadataToSave.nastawniConfig = {
+          ...(existingMetadata.nastawniConfig || {}),
+          iloscKamer: cameraCount,
+        };
+      }
+
       await taskService.update(task.taskNumber, {
-        metadata: { ...task.metadata, configParams: newConfigParams },
+        metadata: metadataToSave,
         status: 'configured',
       });
 

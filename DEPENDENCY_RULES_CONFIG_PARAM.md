@@ -16,10 +16,10 @@ Dzięki temu reguły nie muszą bazować wyłącznie na pozycjach BOM (`ITEM`) a
 - `recorderId` — ID wybranego rejestratora
 
 ### 🏗️ Konfiguracja LCS / Nastawnia
-- `lcsConfig.iloscKamer` — kamery LCS
+- `lcsConfig.iloscKamer` — kamery LCS (docelowo suma kamer dzieci Nastawni, a gdy brak dzieci fallback do sumy pól `*kamer*` z `configValues`)
 - `lcsConfig.iloscStanowisk` — stanowiska
 - `lcsConfig.serwerObrazu.maxKamer` — max kamer serwera
-- `nastawniConfig.iloscKamer` — kamery Nastawni
+- `nastawniConfig.iloscKamer` — kamery Nastawni samodzielnej (wyliczane przez Wizard z pól `*kamer*` z `configValues`)
 - `nastawniConfig.stacjaOperatorska.przypisaneKamery.length`
 
 ### ⚙️ Parametry z szablonu BOM
@@ -45,7 +45,7 @@ W praktyce konfiguracja typowo wygląda jako:
 
 1. W regule wejściowej wybierz typ **Parametr Wizarda** (`CONFIG_PARAM`).
 2. Dla LCS SMOKIP_A użyj:
-   - `lcsConfig.iloscKamer` (jeśli ustawiane), albo
+   - `lcsConfig.iloscKamer` (wartość wyliczona przez Wizard),
    - `cameraCount` (wyliczane w Wizardzie).
 3. Dla NASTAWNIA użyj:
    - `nastawniConfig.iloscKamer`, lub
