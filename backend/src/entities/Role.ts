@@ -71,6 +71,13 @@ export interface PrefabricationPermissions {
 }
 
 /**
+ * Granularne uprawnienia dla realizacji
+ */
+export interface RealizationPermissions {
+  read?: boolean;
+}
+
+/**
  * Granularne uprawnienia dla sieci/IP
  */
 export interface NetworkPermissions {
@@ -212,7 +219,7 @@ export interface MapPermissions {
 }
 
 /**
- * Struktura wszystkich uprawnień - 18 modułów
+ * Struktura wszystkich uprawnień
  */
 export interface RolePermissions {
   all?: boolean; // Admin - pełny dostęp
@@ -222,6 +229,7 @@ export interface RolePermissions {
   tasks?: TaskPermissions;
   completion?: CompletionPermissions;
   prefabrication?: PrefabricationPermissions;
+  realization?: RealizationPermissions;
   network?: NetworkPermissions;
   bom?: BOMPermissions;
   devices?: DevicePermissions;

@@ -14,6 +14,7 @@ export const MODULE_ICONS: Record<string, string> = {
   photos: '📷',
   users: '👥',
   notifications: '🔔',
+  realization: '🛠️',
   settings: '⚙️',
   admin: '🛡️',
   dashboard: '📊',

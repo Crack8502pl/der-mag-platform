@@ -278,6 +278,11 @@ export class RoleController {
           actions: ['read', 'receiveOrder', 'configure', 'verify', 'assignSerial', 'complete']
         },
         {
+          name: 'realization',
+          displayName: 'Realizacja',
+          actions: ['read']
+        },
+        {
           name: 'network',
           displayName: 'Sieć',
           actions: ['read', 'createPool', 'updatePool', 'deletePool', 'allocate', 'viewMatrix']

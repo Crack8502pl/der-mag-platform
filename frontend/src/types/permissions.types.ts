@@ -51,6 +51,10 @@ export interface PrefabricationPermissions {
   complete?: boolean;
 }
 
+export interface RealizationPermissions {
+  read?: boolean;
+}
+
 export interface NetworkPermissions {
   read?: boolean;
   createPool?: boolean;
@@ -161,6 +165,7 @@ export interface RolePermissions {
   tasks?: TaskPermissions;
   completion?: CompletionPermissions;
   prefabrication?: PrefabricationPermissions;
+  realization?: RealizationPermissions;
   network?: NetworkPermissions;
   bom?: BOMPermissions;
   devices?: DevicePermissions;
@@ -186,6 +191,7 @@ export type PermissionModule =
   | 'tasks'
   | 'completion'
   | 'prefabrication'
+  | 'realization'
   | 'network'
   | 'bom'
   | 'devices'

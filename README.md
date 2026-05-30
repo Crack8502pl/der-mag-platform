@@ -66,6 +66,19 @@ Grover Platform to kompleksowy system do zarządzania zadaniami infrastrukturaln
   - "Twoje konto zostało zablokowane" - zablokowane konto
 - 📱 **Responsive Design** - interfejs dostosowany do urządzeń mobilnych
 
+Status wybranych modułów frontendowych:
+
+| Moduł frontendowy | Status | Opis |
+| --- | --- | --- |
+| Kontrakty | ✅ Gotowy | Zarządzanie kontraktami i przebiegiem prac |
+| Prefabrykacja | ✅ Gotowy | Obsługa zleceń prefabrykacji urządzeń |
+| Urządzenia | 🚧 W budowie | Rejestracja urządzeń, numerów seryjnych i konfiguracji |
+| Realizacja | 🚧 W budowie | Zarządzanie realizacją zleceń – planowanie, postęp i rozliczenie prac w terenie |
+| Raporty | 🚧 W budowie | Generowanie raportów, statystyk i eksportów |
+| Dokumenty | 🚧 W budowie | Szablony, generowanie i archiwizacja dokumentów |
+| Zdjęcia z realizacji | 🚧 W budowie | Upload, organizacja i zatwierdzanie dokumentacji fotograficznej |
+| Powiadomienia | 🚧 W budowie | Alerty, triggery i kanały komunikacji |
+
 ## 🛠 Technologie
 
 ### Backend
