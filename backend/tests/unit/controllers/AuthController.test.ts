@@ -67,7 +67,7 @@ describe('AuthController', () => {
   });
 
   describe('POST /api/auth/login', () => {
-    it('should return 200 and tokens for valid credentials', async () => {
+    const prepareSuccessfulLogin = () => {
       const mockUser = {
         id: 1,
         username: 'testuser',
@@ -82,11 +82,17 @@ describe('AuthController', () => {
       mockQueryBuilder.getOne.mockResolvedValue(mockUser);
       mockUserRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
       mockUserRepository.save.mockResolvedValue(mockUser);
-      mockRefreshTokenRepository.create.mockReturnValue({ tokenId: 'test-uuid-1234' });
+      mockRefreshTokenRepository.create.mockImplementation((data: any) => data);
       mockRefreshTokenRepository.save.mockResolvedValue({});
 
       (jwt.generateAccessToken as jest.Mock).mockReturnValue('access-token-123');
       (jwt.generateRefreshToken as jest.Mock).mockReturnValue('refresh-token-456');
+
+      return mockUser;
+    };
+
+    it('should return 200 and tokens for valid credentials', async () => {
+      const mockUser = prepareSuccessfulLogin();
 
       req.body = {
         username: 'testuser',
@@ -126,6 +132,64 @@ describe('AuthController', () => {
       // Ensure refresh token is NOT in response body
       const jsonCall = (res.json as jest.Mock).mock.calls[0][0];
       expect(jsonCall.data.refreshToken).toBeUndefined();
+    });
+
+    it('login with rememberMe=true should set maxAge on cookies', async () => {
+      prepareSuccessfulLogin();
+
+      req.body = {
+        username: 'testuser',
+        password: 'password123',
+        rememberMe: true,
+      };
+
+      await AuthController.login(req as Request, res as Response);
+
+      expect(res.cookie).toHaveBeenCalledWith('refreshToken', 'refresh-token-456', expect.objectContaining({
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      }));
+      expect(res.cookie).toHaveBeenCalledWith('csrf-token', expect.any(String), expect.objectContaining({
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      }));
+    });
+
+    it('login with rememberMe=false should set session cookies without maxAge', async () => {
+      prepareSuccessfulLogin();
+
+      req.body = {
+        username: 'testuser',
+        password: 'password123',
+        rememberMe: false,
+      };
+
+      await AuthController.login(req as Request, res as Response);
+
+      const refreshCookieOptions = (res.cookie as jest.Mock).mock.calls.find((call: any[]) => call[0] === 'refreshToken')?.[2];
+      const csrfCookieOptions = (res.cookie as jest.Mock).mock.calls.find((call: any[]) => call[0] === 'csrf-token')?.[2];
+
+      expect(refreshCookieOptions).toBeDefined();
+      expect(csrfCookieOptions).toBeDefined();
+      expect(refreshCookieOptions.maxAge).toBeUndefined();
+      expect(csrfCookieOptions.maxAge).toBeUndefined();
+    });
+
+    it('login without rememberMe should set session cookies without maxAge', async () => {
+      prepareSuccessfulLogin();
+
+      req.body = {
+        username: 'testuser',
+        password: 'password123',
+      };
+
+      await AuthController.login(req as Request, res as Response);
+
+      const refreshCookieOptions = (res.cookie as jest.Mock).mock.calls.find((call: any[]) => call[0] === 'refreshToken')?.[2];
+      const csrfCookieOptions = (res.cookie as jest.Mock).mock.calls.find((call: any[]) => call[0] === 'csrf-token')?.[2];
+
+      expect(refreshCookieOptions).toBeDefined();
+      expect(csrfCookieOptions).toBeDefined();
+      expect(refreshCookieOptions.maxAge).toBeUndefined();
+      expect(csrfCookieOptions.maxAge).toBeUndefined();
     });
 
     it('should return 401 for invalid username', async () => {

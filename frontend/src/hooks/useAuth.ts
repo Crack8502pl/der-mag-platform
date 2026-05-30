@@ -79,8 +79,8 @@ export const useAuth = () => {
     initializeAuth();
   }, [setUser, storeLogout]);
 
-  const login = async (username: string, password: string) => {
-    const response = await authService.login({ username, password });
+  const login = async (username: string, password: string, rememberMe: boolean = false) => {
+    const response = await authService.login({ username, password, rememberMe });
     
     // Save access token to Zustand (refresh token is in httpOnly cookie)
     authService.saveTokens(response.data.accessToken);

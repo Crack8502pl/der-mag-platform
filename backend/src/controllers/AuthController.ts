@@ -63,7 +63,7 @@ export class AuthController {
    */
   static async login(req: Request, res: Response): Promise<void> {
     try {
-      const { username, password } = req.body;
+      const { username, password, rememberMe = false } = req.body;
 
       const userRepository = AppDataSource.getRepository(User);
       
@@ -148,6 +148,7 @@ export class AuthController {
         tokenId,
         userId: user.id,
         expiresAt,
+        rememberMe,
         ipAddress,
         userAgent,
         deviceFingerprint: null
@@ -167,7 +168,7 @@ export class AuthController {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        ...(rememberMe && { maxAge: 7 * 24 * 60 * 60 * 1000 }),
         path: '/api/auth'
       });
 
@@ -176,7 +177,7 @@ export class AuthController {
         httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        ...(rememberMe && { maxAge: 7 * 24 * 60 * 60 * 1000 }),
         path: '/'
       });
 
@@ -185,6 +186,7 @@ export class AuthController {
         message: 'Zalogowano pomyślnie',
         data: {
           accessToken,
+          rememberMe,
           // refreshToken is now in httpOnly cookie, not in response body
           requirePasswordChange: user.forcePasswordChange,
           user: {

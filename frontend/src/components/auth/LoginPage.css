@@ -52,6 +52,23 @@
   margin-top: var(--spacing-md);
 }
 
+.remember-me {
+  margin-top: var(--spacing-sm);
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.checkbox-label input[type='checkbox'] {
+  accent-color: var(--primary-color);
+}
+
 .login-footer {
   text-align: center;
   margin-top: var(--spacing-lg);

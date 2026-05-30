@@ -19,6 +19,7 @@ export interface User {
 export interface LoginRequest {
   username: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface LoginResponse {
@@ -27,6 +28,7 @@ export interface LoginResponse {
   data: {
     accessToken: string;
     refreshToken: string;
+    rememberMe?: boolean;
     requirePasswordChange: boolean;
     user: {
       id: number;

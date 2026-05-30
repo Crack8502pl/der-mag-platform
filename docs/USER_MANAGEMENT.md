@@ -30,6 +30,7 @@ Szczegółowy widok i edycja profilu użytkownika:
 - **Edycja profilu** - modyfikacja danych osobowych i kontaktowych
 - **Historia zmian** - pełny log modyfikacji profilu z timestampami
 - **Informacje o sesji** - lista aktywnych i historycznych sesji
+- **Opcja "Zapamiętaj mnie"** - przy logowaniu użytkownik może świadomie utrzymać sesję przez 7 dni; domyślnie sesja wygasa po zamknięciu przeglądarki
 
 ### Zarządzanie rolami
 System ról z predefiniowanymi uprawnieniami:
