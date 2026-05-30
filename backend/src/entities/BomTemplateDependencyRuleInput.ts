@@ -14,7 +14,8 @@ import { BomSubsystemTemplateItem } from './BomSubsystemTemplateItem';
 
 export enum InputType {
   ITEM = 'ITEM',
-  RULE_RESULT = 'RULE_RESULT'
+  RULE_RESULT = 'RULE_RESULT',
+  CONFIG_PARAM = 'CONFIG_PARAM'
 }
 
 @Entity('bom_template_dependency_rule_inputs')
@@ -55,6 +56,9 @@ export class BomTemplateDependencyRuleInput {
 
   @Column({ type: 'int', name: 'source_rule_id', nullable: true })
   sourceRuleId: number | null;
+
+  @Column({ name: 'source_param_name', type: 'varchar', length: 100, nullable: true })
+  sourceParamName: string | null;
 
   @Column({ name: 'only_if_selected', type: 'boolean', default: true })
   onlyIfSelected: boolean;

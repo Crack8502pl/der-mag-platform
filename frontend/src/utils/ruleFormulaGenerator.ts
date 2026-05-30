@@ -100,6 +100,9 @@ export function formatInputDescription(
       const multiplierPart = input.inputMultiplier !== 1 ? ` × ${input.inputMultiplier}` : '';
       return `wynik reguły "${rule.ruleName}"${multiplierPart}`;
     }
+  } else if (input.inputType === 'CONFIG_PARAM') {
+    const multiplierPart = input.inputMultiplier !== 1 ? ` × ${input.inputMultiplier}` : '';
+    return `param(${input.sourceParamName || '?'})${multiplierPart}`;
   }
   return 'nieznane wejście';
 }

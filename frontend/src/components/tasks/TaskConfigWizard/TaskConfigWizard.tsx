@@ -51,6 +51,24 @@ interface TaskConfigWizardProps {
   onSuccess: () => void;
 }
 
+interface WizardTaskMetadata {
+  subsystemType?: string;
+  lcsConfig?: {
+    iloscKamer?: unknown;
+    obserwowanePrzejazdy?: unknown[];
+    serwerObrazu?: {
+      maxKamer?: unknown;
+    };
+  };
+  nastawniConfig?: {
+    iloscKamer?: unknown;
+    obserwowanePrzejazdy?: unknown[];
+    stacjaOperatorska?: {
+      przypisaneKamery?: unknown[];
+    };
+  };
+}
+
 // ── Component ────────────────────────────────────────────────
 
 export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClose, onSuccess }) => {
@@ -232,6 +250,46 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
     return labels[paramName] || paramName;
   };
 
+  const extractCameraCountFromTask = (): number => {
+    const taskTypeCode = task.taskType?.code || '';
+    const meta = (task.metadata || {}) as WizardTaskMetadata;
+
+    if (taskTypeCode === 'LCS' && meta.subsystemType === 'SMOKIP_B') {
+      return Number(meta.lcsConfig?.serwerObrazu?.maxKamer) || 0;
+    }
+
+    if (taskTypeCode === 'LCS') {
+      if (meta.lcsConfig?.iloscKamer) return Number(meta.lcsConfig.iloscKamer);
+      if (Array.isArray(meta.lcsConfig?.obserwowanePrzejazdy)) {
+        return meta.lcsConfig.obserwowanePrzejazdy.length * 2;
+      }
+      return 0;
+    }
+
+    if (taskTypeCode === 'NASTAWNIA' && isStandaloneNastawnia) {
+      const parsedCount = meta.nastawniConfig?.iloscKamer !== undefined && meta.nastawniConfig?.iloscKamer !== null
+        ? Number(meta.nastawniConfig.iloscKamer)
+        : undefined;
+      if (parsedCount !== undefined && Number.isFinite(parsedCount)) {
+        return parsedCount;
+      }
+      return meta.nastawniConfig?.obserwowanePrzejazdy?.length ?? 0;
+    }
+
+    if (taskTypeCode === 'NASTAWNIA' && !isStandaloneNastawnia) {
+      const assignedCount = meta.nastawniConfig?.stacjaOperatorska?.przypisaneKamery?.length;
+      if (assignedCount !== undefined) {
+        return assignedCount;
+      }
+      const parsedCount = meta.nastawniConfig?.iloscKamer !== undefined && meta.nastawniConfig?.iloscKamer !== null
+        ? Number(meta.nastawniConfig.iloscKamer)
+        : undefined;
+      return parsedCount !== undefined && Number.isFinite(parsedCount) ? parsedCount : 0;
+    }
+
+    return 0;
+  };
+
   // ── handleResolve ────────────────────────────────────────────
 
   const handleResolve = async (): Promise<boolean> => {
@@ -241,6 +299,7 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
       const subsystemType = task.metadata?.subsystemType || task.taskType?.code || '';
       const taskType = task.taskType?.code || subsystemType;
       const taskVariant = task.metadata?.taskVariant || null;
+      const cameraCount = extractCameraCountFromTask();
 
       const result = await bomResolverService.resolve({
         subsystemType,
@@ -250,6 +309,7 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
         isStandaloneNastawnia,
         selectedRecorderId: selectedRecorderId || null,
         retentionDays,
+        cameraCount,
       });
 
       setResolvedBom(result);
