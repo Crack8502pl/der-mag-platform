@@ -193,6 +193,20 @@ export const HONEYPOT_PATHS: string[] = [
   '/openapi.json',
   '/api/swagger',
 
+  // API Tester (deweloperskie narzędzie zastąpione honeypotem)
+  '/test/api-tester.html',
+  '/test/api-tester.js',
+  '/api-tester',
+  '/api-tester.html',
+  '/api-tester.js',
+  '/api/test',
+  '/api-test',
+  '/apitest',
+  '/dev',
+  '/dev/api',
+  '/developer',
+  '/devtools',
+
   // Inne typowe cele
   '/robots.txt',
   '/sitemap.xml',
@@ -261,6 +275,96 @@ const FAKE_RESPONSES: Record<string, { status: number; body: string; contentType
     contentType: 'text/plain',
     body: '[core]\n\trepositoryformatversion = 0\n\tfilemode = true\n\tbare = false\n[remote "origin"]\n\turl = https://github.com/example/honeypot.git\n',
   },
+  '/test/api-tester.html': {
+    status: 200,
+    contentType: 'text/html',
+    body: `<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Grover Platform - API Tester v2.3.1</title>
+  <style>
+    body { font-family: sans-serif; background: #1a1a2e; color: #eee; padding: 20px; }
+    .container { max-width: 800px; margin: 0 auto; background: #16213e; padding: 30px; border-radius: 8px; }
+    h1 { color: #e94560; margin-bottom: 20px; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; color: #a8b2d8; }
+    input, select, textarea { width: 100%; padding: 10px; background: #0f3460; border: 1px solid #e94560; color: #eee; border-radius: 4px; }
+    button { background: #e94560; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+    .status { margin-top: 20px; padding: 10px; background: #0f3460; border-radius: 4px; }
+    .warning { color: #ffd700; font-size: 12px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 API Tester v2.3.1</h1>
+    <p style="color:#a8b2d8;margin-bottom:20px;">Grover Platform Backend — Developer Tools</p>
+    <div class="form-group">
+      <label>Endpoint URL</label>
+      <input type="text" id="endpoint" placeholder="/api/auth/login" value="/api/auth/login" />
+    </div>
+    <div class="form-group">
+      <label>Method</label>
+      <select id="method"><option>POST</option><option>GET</option><option>PUT</option><option>DELETE</option></select>
+    </div>
+    <div class="form-group">
+      <label>Auth Token</label>
+      <input type="password" id="token" placeholder="eyJhbGc..." />
+    </div>
+    <div class="form-group">
+      <label>Request Body (JSON)</label>
+      <textarea id="body" rows="5" placeholder='{"username":"admin","password":"..."}'></textarea>
+    </div>
+    <button onclick="sendRequest()">🚀 Send Request</button>
+    <div class="status" id="response">Oczekiwanie na zapytanie...</div>
+    <p class="warning">⚠️ Narzędzie deweloperskie. Użyj tylko w środowisku testowym.</p>
+  </div>
+  <script>
+    function sendRequest() {
+      const endpoint = document.getElementById('endpoint').value || '/api/auth/login';
+      const method = document.getElementById('method').value || 'POST';
+      const token = document.getElementById('token').value ? '[REDACTED]' : '(brak)';
+      const body = document.getElementById('body').value ? '***' : '(puste)';
+      document.getElementById('response').innerHTML =
+        '<pre>' + JSON.stringify({
+          ok: true,
+          message: 'Developer sandbox response',
+          endpoint,
+          method,
+          token,
+          body,
+          requestId: 'sim-' + Date.now()
+        }, null, 2) + '</pre>';
+    }
+  </script>
+</body>
+</html>`,
+  },
+  '/test/api-tester.js': {
+    status: 200,
+    contentType: 'application/javascript',
+    body: 'console.info("API Tester module loaded.");',
+  },
+  '/api-tester': {
+    status: 200,
+    contentType: 'text/html',
+    body: '<html><body><h1>API Tester</h1><p>Moved to <a href="/test/api-tester.html">/test/api-tester.html</a></p></body></html>',
+  },
+  '/api-tester.html': {
+    status: 200,
+    contentType: 'text/html',
+    body: '<html><body><h1>API Tester</h1><p>Moved to <a href="/test/api-tester.html">/test/api-tester.html</a></p></body></html>',
+  },
+  '/api-tester.js': {
+    status: 200,
+    contentType: 'application/javascript',
+    body: 'console.info("API Tester script moved to /test/api-tester.js");',
+  },
+  '/test': {
+    status: 301,
+    contentType: 'text/html',
+    body: '<html><body><a href="/test/api-tester.html">API Tester</a></body></html>',
+  },
 };
 
 function getFakeResponse(reqPath: string): { status: number; body: string; contentType: string } {
@@ -290,6 +394,15 @@ export const honeypotMiddleware = (req: Request, res: Response, next: NextFuncti
 
   const detectedScanner = detectScanner(userAgent);
   const isHoneypotPath = HONEYPOT_PATHS_SET.has(reqPathLower);
+  const isApiTesterPath = [
+    '/test/api-tester.html',
+    '/test/api-tester.js',
+    '/api-tester',
+    '/api-tester.html',
+    '/api-tester.js',
+    '/test',
+  ].includes(reqPathLower);
+  const honeypotType = isApiTesterPath ? 'api_tester_trap' : (isHoneypotPath ? 'path_trap' : 'scanner_ua');
 
   // Jeśli ani skaner ani honeypot path - przepuść dalej
   if (!detectedScanner && !isHoneypotPath) {
@@ -335,7 +448,7 @@ export const honeypotMiddleware = (req: Request, res: Response, next: NextFuncti
     method: req.method,
     path: reqPath,
     detectedScanner: detectedScanner?.name || null,
-    honeypotType: isHoneypotPath ? 'path_trap' : 'scanner_ua',
+    honeypotType,
     queryParams: req.query ? JSON.stringify(req.query) : null,
     threatLevel,
   };
@@ -351,7 +464,7 @@ export const honeypotMiddleware = (req: Request, res: Response, next: NextFuncti
     path: reqPath,
     headers: safeHeaders,
     detectedScanner: detectedScanner?.name || null,
-    honeypotType: isHoneypotPath ? 'path_trap' : 'scanner_ua',
+    honeypotType,
     queryParams: req.query ? JSON.stringify(req.query) : null,
     requestBody:
       req.body && typeof req.body !== 'object'

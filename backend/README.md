@@ -685,6 +685,13 @@ curl -X POST http://localhost:3000/api/tasks \
 - ✅ **SQL injection prevention**
 - ✅ **XSS protection**
 
+## API Tester Trap
+
+Ścieżki `/test/api-tester.html`, `/test`, `/api-tester` zostały przekształcone w pułapki honeypot.
+Każde wejście jest logowane z `honeypotType: api_tester_trap` i widoczne w panelu admina.
+
+Zmienna `ENABLE_API_TESTER` jest przestarzała.
+
 #### 🔐 Secrets Management
 
 System używa **@dotenvx/dotenvx** do zaszyfrowanego zarządzania zmiennymi środowiskowymi:
