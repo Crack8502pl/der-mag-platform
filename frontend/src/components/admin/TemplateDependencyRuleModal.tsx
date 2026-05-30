@@ -119,9 +119,13 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
     setConditions(conditions.filter((_, i) => i !== index));
   };
 
+  const isAutoAggregation =
+    aggregationType === 'SELECT_RECORDER' ||
+    aggregationType === 'SELECT_DISKS';
+
   const validateForm = (): string | null => {
     if (!ruleName.trim()) return 'Nazwa reguły jest wymagana';
-    if (!targetItemId) return 'Należy wybrać pozycję docelową';
+    if (!isAutoAggregation && !targetItemId) return 'Należy wybrać pozycję docelową';
     if (inputs.length === 0) return 'Należy dodać co najmniej jedno wejście';
     if (mathOperation === 'CALCULATE_STORAGE' && (storageBitrateMbps === '' || Number(storageBitrateMbps) <= 0)) {
       return 'Bitrate musi być wartością większą od 0';
@@ -168,7 +172,7 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
         aggregationType,
         mathOperation,
         mathOperand: mathOperand || undefined,
-        targetItemId: Number(targetItemId),
+        ...(isAutoAggregation ? {} : { targetItemId: Number(targetItemId) }),
         isActive,
         storageDaysParam: mathOperation === 'CALCULATE_STORAGE' ? storageDaysParam : undefined,
         storageBitrateMbps: mathOperation === 'CALCULATE_STORAGE' ? (storageBitrateMbps !== '' ? Number(storageBitrateMbps) : 4.0) : undefined,
@@ -865,22 +869,44 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
               5️⃣ Pozycja docelowa
             </h3>
 
-            <div>
-              <label className="label">Wybierz pozycję, której ilość będzie obliczana *</label>
-              <select
-                className="input"
-                value={targetItemId}
-                onChange={(e) => setTargetItemId(Number(e.target.value))}
-                required
+            {isAutoAggregation ? (
+              <div
+                style={{
+                  padding: '14px 16px',
+                  background: 'rgba(99,102,241,0.08)',
+                  border: '1px solid rgba(99,102,241,0.35)',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '13px'
+                }}
               >
-                <option value="">-- Wybierz pozycję docelową --</option>
-                {templateItems.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {formatItemFullLabel(item)}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <strong style={{ color: 'var(--primary-color)' }}>
+                  {aggregationType === 'SELECT_RECORDER' ? '🖥️ Rejestrator' : '💾 Dyski'}
+                  {' '}— pozycja dobierana automatycznie
+                </strong>
+                <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  Dla tego typu agregacji pozycja docelowa jest wybierana automatycznie
+                  przez <code>BomResolverService</code> na podstawie konfiguracji zadania
+                  w Wizardzie. Nie jest wymagany ręczny wybór pozycji.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <label className="label">Wybierz pozycję, której ilość będzie obliczana *</label>
+                <select
+                  className="input"
+                  value={targetItemId}
+                  onChange={(e) => setTargetItemId(Number(e.target.value))}
+                  required
+                >
+                  <option value="">-- Wybierz pozycję docelową --</option>
+                  {templateItems.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {formatItemFullLabel(item)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}

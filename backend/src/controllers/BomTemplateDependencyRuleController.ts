@@ -73,11 +73,20 @@ export class BomTemplateDependencyRuleController {
   static async createRule(req: Request, res: Response): Promise<void> {
     try {
       const data = req.body;
+      const AUTO_AGGREGATION_TYPES = ['SELECT_RECORDER', 'SELECT_DISKS'];
+      const isAutoAggregation = AUTO_AGGREGATION_TYPES.includes(data.aggregationType);
 
       // Basic validation
-      if (!data.templateId || !data.ruleName || !data.targetItemId) {
+      if (!data.templateId || !data.ruleName) {
         res.status(400).json({
-          error: 'Missing required fields: templateId, ruleName, targetItemId'
+          error: 'Missing required fields: templateId, ruleName'
+        });
+        return;
+      }
+
+      if (!isAutoAggregation && !data.targetItemId) {
+        res.status(400).json({
+          error: 'Missing required field: targetItemId (required for non-auto aggregation types)'
         });
         return;
       }

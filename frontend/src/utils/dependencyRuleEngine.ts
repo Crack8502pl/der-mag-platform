@@ -58,11 +58,15 @@ export class DependencyRuleEngine {
 
         // Step 5: Store result
         ruleResults.set(rule.id, finalResult);
-        itemQuantities.set(rule.targetItemId, finalResult);
+        if (rule.targetItemId != null) {
+          itemQuantities.set(rule.targetItemId, finalResult);
+        }
       } catch (error) {
         console.error(`Error evaluating rule ${rule.id} (${rule.ruleName}):`, error);
         // On error, set target item quantity to 0
-        itemQuantities.set(rule.targetItemId, 0);
+        if (rule.targetItemId != null) {
+          itemQuantities.set(rule.targetItemId, 0);
+        }
       }
     }
 

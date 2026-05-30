@@ -66,11 +66,16 @@ export class DependencyRuleEngine {
 
         // Step 5: Store result
         ruleResults.set(rule.id, finalResult);
-        itemQuantities.set(rule.targetItemId, finalResult);
+        // targetItemId may be null for SELECT_RECORDER / SELECT_DISKS rules (handled by BomResolverService)
+        if (rule.targetItemId != null) {
+          itemQuantities.set(rule.targetItemId, finalResult);
+        }
       } catch (error) {
         console.error(`Error evaluating rule ${rule.id} (${rule.ruleName}):`, error);
-        // On error, set target item quantity to 0
-        itemQuantities.set(rule.targetItemId, 0);
+        // On error, skip null targetItemId (SELECT_RECORDER/SELECT_DISKS handled externally)
+        if (rule.targetItemId != null) {
+          itemQuantities.set(rule.targetItemId, 0);
+        }
       }
     }
 

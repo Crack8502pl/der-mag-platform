@@ -87,12 +87,12 @@ export class BomTemplateDependencyRule {
   @Column({ name: 'math_operand', type: 'decimal', precision: 10, scale: 2, nullable: true })
   mathOperand: number | null;
 
-  @ManyToOne(() => BomSubsystemTemplateItem)
+  @ManyToOne(() => BomSubsystemTemplateItem, { nullable: true })
   @JoinColumn({ name: 'target_item_id' })
-  targetItem: BomSubsystemTemplateItem;
+  targetItem: BomSubsystemTemplateItem | null;
 
-  @Column({ type: 'int', name: 'target_item_id' })
-  targetItemId: number;
+  @Column({ type: 'int', name: 'target_item_id', nullable: true })
+  targetItemId: number | null;
 
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;

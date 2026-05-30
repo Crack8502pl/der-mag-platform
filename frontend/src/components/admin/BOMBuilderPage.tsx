@@ -1287,7 +1287,7 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                               mathOperation={rule.mathOperation}
                               mathOperand={rule.mathOperand ?? ''}
                               conditions={rule.conditions ?? []}
-                              targetItemId={rule.targetItemId}
+                              targetItemId={rule.targetItemId ?? ''}
                               templateItems={selectedTemplate?.items ?? []}
                               existingRules={dependencyRules}
                               storageDaysParam={rule.storageDaysParam || undefined}
