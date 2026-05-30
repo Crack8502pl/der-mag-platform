@@ -12,6 +12,7 @@ import { PasswordChangedEmailContext } from '../types/EmailTypes';
 import { generateRandomPassword } from '../utils/password';
 import { NotificationService } from '../services/NotificationService';
 import { generateCsrfToken } from '../middleware/csrf';
+import { UserSessionLog } from '../entities/UserSessionLog';
 
 // Helper function to log security events
 const logSecurityEvent = async (
@@ -156,6 +157,19 @@ export class AuthController {
 
       await refreshTokenRepo.save(refreshTokenRecord);
 
+      // Zapisz log sesji
+      const sessionLogRepo = AppDataSource.getRepository(UserSessionLog);
+      const sessionLog = sessionLogRepo.create({
+        userId: user.id,
+        tokenId,
+        ipAddress,
+        userAgent,
+        logoutAt: null,
+        durationSeconds: null,
+        logoutType: null,
+      });
+      await sessionLogRepo.save(sessionLog);
+
       // Aktualizuj ostatnie logowanie
       user.lastLogin = new Date();
       await userRepository.save(user);
@@ -297,10 +311,24 @@ export class AuthController {
           
           // If not within grace period or no replacement found, treat as real attack
           // Token reuse detected! Revoke all user's tokens
+          const activeTokensForReuse = await refreshTokenRepo.find({ where: { userId: decoded.userId, revoked: false } });
           await refreshTokenRepo.update(
             { userId: decoded.userId, revoked: false },
             { revoked: true, revokedAt: new Date() }
           );
+
+          // Uzupełnij logi sesji dla odwołanych tokenów (atak TOKEN_REUSE)
+          const sessionLogRepoReuse = AppDataSource.getRepository(UserSessionLog);
+          const nowReuse = new Date();
+          for (const token of activeTokensForReuse) {
+            const sessionLog = await sessionLogRepoReuse.findOne({ where: { tokenId: token.tokenId } });
+            if (sessionLog && !sessionLog.logoutAt) {
+              sessionLog.logoutAt = nowReuse;
+              sessionLog.durationSeconds = Math.floor((nowReuse.getTime() - sessionLog.loginAt.getTime()) / 1000);
+              sessionLog.logoutType = 'token_reuse';
+              await sessionLogRepoReuse.save(sessionLog);
+            }
+          }
 
           const ipAddress = getClientIP(req);
           await logSecurityEvent(
@@ -324,6 +352,15 @@ export class AuthController {
 
         // Check if token is expired
         if (tokenRecord.expiresAt < new Date()) {
+          // Uzupełnij log sesji dla wygasłego tokenu
+          const sessionLogRepoExp = AppDataSource.getRepository(UserSessionLog);
+          const sessionLogExp = await sessionLogRepoExp.findOne({ where: { tokenId: tokenRecord.tokenId } });
+          if (sessionLogExp && !sessionLogExp.logoutAt) {
+            sessionLogExp.logoutAt = new Date();
+            sessionLogExp.durationSeconds = Math.floor((sessionLogExp.logoutAt.getTime() - sessionLogExp.loginAt.getTime()) / 1000);
+            sessionLogExp.logoutType = 'token_expired';
+            await sessionLogRepoExp.save(sessionLogExp);
+          }
           res.status(401).json({
             success: false,
             message: 'Refresh token wygasł'
@@ -454,6 +491,16 @@ export class AuthController {
           { tokenId, revoked: false },
           { revoked: true, revokedAt: new Date() }
         );
+
+        // Uzupełnij log sesji
+        const sessionLogRepo = AppDataSource.getRepository(UserSessionLog);
+        const sessionLog = await sessionLogRepo.findOne({ where: { tokenId } });
+        if (sessionLog && !sessionLog.logoutAt) {
+          sessionLog.logoutAt = new Date();
+          sessionLog.durationSeconds = Math.floor((sessionLog.logoutAt.getTime() - sessionLog.loginAt.getTime()) / 1000);
+          sessionLog.logoutType = 'manual';
+          await sessionLogRepo.save(sessionLog);
+        }
       }
 
       // Clear cookies
@@ -490,10 +537,28 @@ export class AuthController {
       }
 
       const refreshTokenRepo = AppDataSource.getRepository(RefreshToken);
+
+      // Pobierz tokeny przed rewokacją, aby uzupełnić logi sesji
+      const activeTokens = await refreshTokenRepo.find({ where: { userId, revoked: false } });
       const result = await refreshTokenRepo.update(
         { userId, revoked: false },
         { revoked: true, revokedAt: new Date() }
       );
+
+      // Uzupełnij logi sesji dla wszystkich odwołanych tokenów
+      if (activeTokens.length > 0) {
+        const sessionLogRepo = AppDataSource.getRepository(UserSessionLog);
+        const now = new Date();
+        for (const token of activeTokens) {
+          const sessionLog = await sessionLogRepo.findOne({ where: { tokenId: token.tokenId } });
+          if (sessionLog && !sessionLog.logoutAt) {
+            sessionLog.logoutAt = now;
+            sessionLog.durationSeconds = Math.floor((now.getTime() - sessionLog.loginAt.getTime()) / 1000);
+            sessionLog.logoutType = 'manual';
+            await sessionLogRepo.save(sessionLog);
+          }
+        }
+      }
 
       res.json({
         success: true,

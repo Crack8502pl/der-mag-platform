@@ -104,6 +104,13 @@ export const AdminDashboard: React.FC = () => {
       adminOnly: true,
     },
     {
+      title: 'Aktywne sesje 👥',
+      description: 'Monitorowanie zalogowanych użytkowników i zarządzanie sesjami',
+      icon: '👥',
+      path: '/admin/sessions',
+      adminOnly: true,
+    },
+    {
       title: 'Seed Database 🌱',
       description: 'Zresetuj i zainicjalizuj bazę danych testowymi danymi',
       icon: '🗄️',
