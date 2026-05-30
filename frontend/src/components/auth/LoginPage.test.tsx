@@ -47,7 +47,7 @@ describe('LoginPage redirect after login', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Zaloguj się' }));
 
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith('jan', 'tajne');
+      expect(mockLogin).toHaveBeenCalledWith('jan', 'tajne', false);
       expect(mockNavigate).toHaveBeenCalledWith('/brigades?tab=active#crew', { replace: true });
     });
   });
@@ -87,6 +87,21 @@ describe('LoginPage redirect after login', () => {
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/change-password');
+    });
+  });
+
+  it('passes rememberMe=true when checkbox is selected', async () => {
+    mockLogin.mockResolvedValue({ data: { requirePasswordChange: false } });
+
+    render(<LoginPage />);
+
+    fireEvent.change(screen.getByLabelText('Nazwa użytkownika'), { target: { value: 'jan' } });
+    fireEvent.change(screen.getByLabelText('Hasło'), { target: { value: 'tajne' } });
+    fireEvent.click(screen.getByLabelText('Zapamiętaj mnie na 7 dni'));
+    fireEvent.click(screen.getByRole('button', { name: 'Zaloguj się' }));
+
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalledWith('jan', 'tajne', true);
     });
   });
 });

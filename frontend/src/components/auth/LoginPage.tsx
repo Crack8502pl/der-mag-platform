@@ -19,6 +19,7 @@ export const LoginPage: React.FC = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const redirectTo = getSafeRedirectPath(location.state);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,7 +36,7 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await login(formData.username, formData.password);
+      const response = await login(formData.username, formData.password, rememberMe);
       
       if (response.data.requirePasswordChange) {
         navigate('/change-password');
@@ -107,6 +108,17 @@ export const LoginPage: React.FC = () => {
               placeholder="Wpisz hasło"
               autoComplete="current-password"
             />
+          </div>
+
+          <div className="form-group remember-me">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
+              <span>Zapamiętaj mnie na 7 dni</span>
+            </label>
           </div>
 
           <button

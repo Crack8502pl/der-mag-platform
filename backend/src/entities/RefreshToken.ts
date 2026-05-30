@@ -45,4 +45,7 @@ export class RefreshToken {
 
   @Column({ name: 'device_fingerprint', type: 'varchar', length: 255, nullable: true })
   deviceFingerprint: string | null;
+
+  @Column({ name: 'remember_me', type: 'boolean', default: false })
+  rememberMe: boolean;
 }

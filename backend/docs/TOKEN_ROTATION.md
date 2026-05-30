@@ -106,9 +106,14 @@ Authenticate user and receive tokens.
 ```json
 {
   "username": "user@example.com",
-  "password": "password123"
+  "password": "password123",
+  "rememberMe": false
 }
 ```
+
+`rememberMe` is optional (default: `false`).  
+When `rememberMe=true`, login cookies are persistent for 7 days.  
+When omitted or `false`, cookies are session cookies and expire when the browser session ends.
 
 **Response:**
 ```json
@@ -130,8 +135,8 @@ Authenticate user and receive tokens.
 ```
 
 **Cookies Set:**
-- `refreshToken` (httpOnly, secure, sameSite=strict, path=/api/auth) - 7 days
-- `csrf-token` (secure, sameSite=strict, path=/) - 7 days
+- `refreshToken` (httpOnly, secure, sameSite=strict, path=/api/auth) - session cookie by default, or 7 days when `rememberMe=true`
+- `csrf-token` (secure, sameSite=strict, path=/) - session cookie by default, or 7 days when `rememberMe=true`
 
 ### GET /api/auth/csrf-token
 Bootstrap CSRF token for SPA.
