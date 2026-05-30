@@ -66,6 +66,7 @@ export class BomTemplateDependencyRuleService {
       inputType: string;
       sourceItemId?: number;
       sourceRuleId?: number;
+      sourceParamName?: string;
       onlyIfSelected?: boolean;
       inputMultiplier?: number;
       sortOrder?: number;
@@ -116,6 +117,7 @@ export class BomTemplateDependencyRuleService {
             inputType: input.inputType as any,
             sourceItemId: input.sourceItemId || null,
             sourceRuleId: input.sourceRuleId || null,
+            sourceParamName: input.sourceParamName || null,
             onlyIfSelected: input.onlyIfSelected ?? true,
             inputMultiplier: input.inputMultiplier ?? 1,
             sortOrder: input.sortOrder ?? 0
@@ -175,6 +177,7 @@ export class BomTemplateDependencyRuleService {
         inputType: string;
         sourceItemId?: number;
         sourceRuleId?: number;
+        sourceParamName?: string;
         onlyIfSelected?: boolean;
         inputMultiplier?: number;
         sortOrder?: number;
@@ -232,6 +235,7 @@ export class BomTemplateDependencyRuleService {
               inputType: input.inputType as any,
               sourceItemId: input.sourceItemId || null,
               sourceRuleId: input.sourceRuleId || null,
+              sourceParamName: input.sourceParamName || null,
               onlyIfSelected: input.onlyIfSelected ?? true,
               inputMultiplier: input.inputMultiplier ?? 1,
               sortOrder: input.sortOrder ?? 0

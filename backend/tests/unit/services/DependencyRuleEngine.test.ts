@@ -460,4 +460,149 @@ describe('DependencyRuleEngine', () => {
       expect(result.get(115)).toBe(12); // 3 * 4 = 12
     });
   });
+
+  describe('CONFIG_PARAM input type', () => {
+    it('should read cameraCount from configParams', async () => {
+      const rule: any = {
+        id: 17,
+        evaluationOrder: 0,
+        isActive: true,
+        aggregationType: AggregationType.FIRST,
+        mathOperation: MathOperation.NONE,
+        mathOperand: null,
+        targetItemId: 116,
+        inputs: [
+          { inputType: InputType.CONFIG_PARAM, sourceParamName: 'cameraCount', inputMultiplier: 1, sortOrder: 0, onlyIfSelected: false }
+        ],
+        conditions: []
+      };
+
+      const result = await DependencyRuleEngine.evaluate([rule], new Map(), undefined, { cameraCount: 12 });
+
+      expect(result.get(116)).toBe(12);
+    });
+
+    it('should read nested lcsConfig.iloscKamer from configParams', async () => {
+      const rule: any = {
+        id: 18,
+        evaluationOrder: 0,
+        isActive: true,
+        aggregationType: AggregationType.FIRST,
+        mathOperation: MathOperation.NONE,
+        mathOperand: null,
+        targetItemId: 117,
+        inputs: [
+          { inputType: InputType.CONFIG_PARAM, sourceParamName: 'lcsConfig.iloscKamer', inputMultiplier: 1, sortOrder: 0, onlyIfSelected: false }
+        ],
+        conditions: []
+      };
+
+      const result = await DependencyRuleEngine.evaluate([rule], new Map(), undefined, {
+        lcsConfig: { iloscKamer: 8 }
+      });
+
+      expect(result.get(117)).toBe(8);
+    });
+
+    it('should return 0 when config param is missing', async () => {
+      const rule: any = {
+        id: 19,
+        evaluationOrder: 0,
+        isActive: true,
+        aggregationType: AggregationType.FIRST,
+        mathOperation: MathOperation.NONE,
+        mathOperand: null,
+        targetItemId: 118,
+        inputs: [
+          { inputType: InputType.CONFIG_PARAM, sourceParamName: 'cameraCount', inputMultiplier: 1, sortOrder: 0, onlyIfSelected: false }
+        ],
+        conditions: []
+      };
+
+      const result = await DependencyRuleEngine.evaluate([rule], new Map(), undefined, {});
+
+      expect(result.get(118)).toBe(0);
+    });
+
+    it('should return 0 when nested config path is incomplete', async () => {
+      const rule: any = {
+        id: 20,
+        evaluationOrder: 0,
+        isActive: true,
+        aggregationType: AggregationType.FIRST,
+        mathOperation: MathOperation.NONE,
+        mathOperand: null,
+        targetItemId: 119,
+        inputs: [
+          { inputType: InputType.CONFIG_PARAM, sourceParamName: 'lcsConfig.iloscKamer', inputMultiplier: 1, sortOrder: 0, onlyIfSelected: false }
+        ],
+        conditions: []
+      };
+
+      const result = await DependencyRuleEngine.evaluate([rule], new Map(), undefined, {
+        lcsConfig: null
+      });
+
+      expect(result.get(119)).toBe(0);
+    });
+
+    it('should keep existing ITEM behavior unchanged', async () => {
+      const rule: any = {
+        id: 21,
+        evaluationOrder: 0,
+        isActive: true,
+        aggregationType: AggregationType.FIRST,
+        mathOperation: MathOperation.NONE,
+        mathOperand: null,
+        targetItemId: 120,
+        inputs: [
+          { inputType: InputType.ITEM, sourceItemId: 1, inputMultiplier: 1, sortOrder: 0, onlyIfSelected: false }
+        ],
+        conditions: []
+      };
+
+      const result = await DependencyRuleEngine.evaluate([rule], new Map([[1, 7]]), undefined, { cameraCount: 100 });
+
+      expect(result.get(120)).toBe(7);
+    });
+
+    it('should keep existing RULE_RESULT behavior unchanged', async () => {
+      const sourceRule: any = {
+        id: 22,
+        evaluationOrder: 0,
+        isActive: true,
+        aggregationType: AggregationType.FIRST,
+        mathOperation: MathOperation.NONE,
+        mathOperand: null,
+        targetItemId: 121,
+        inputs: [
+          { inputType: InputType.ITEM, sourceItemId: 1, inputMultiplier: 1, sortOrder: 0, onlyIfSelected: false }
+        ],
+        conditions: []
+      };
+      const dependentRule: any = {
+        id: 23,
+        evaluationOrder: 1,
+        isActive: true,
+        aggregationType: AggregationType.FIRST,
+        mathOperation: MathOperation.NONE,
+        mathOperand: null,
+        targetItemId: 122,
+        inputs: [
+          { inputType: InputType.RULE_RESULT, sourceRuleId: 22, inputMultiplier: 1, sortOrder: 0, onlyIfSelected: false }
+        ],
+        conditions: []
+      };
+
+      const result = await DependencyRuleEngine.evaluate(
+        [sourceRule, dependentRule],
+        new Map([[1, 9]]),
+        undefined,
+        { cameraCount: 100 }
+      );
+
+      expect(result.get(121)).toBe(9);
+      expect(result.get(122)).toBe(9);
+    });
+  });
 });

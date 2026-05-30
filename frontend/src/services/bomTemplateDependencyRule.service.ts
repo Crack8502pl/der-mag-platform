@@ -30,9 +30,10 @@ export interface BomTemplateDependencyRule {
 export interface BomTemplateDependencyRuleInput {
   id?: number;
   ruleId?: number;
-  inputType: 'ITEM' | 'RULE_RESULT';
+  inputType: 'ITEM' | 'RULE_RESULT' | 'CONFIG_PARAM';
   sourceItemId?: number | null;
   sourceRuleId?: number | null;
+  sourceParamName?: string | null;
   onlyIfSelected: boolean;
   inputMultiplier: number;
   sortOrder: number;

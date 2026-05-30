@@ -83,11 +83,9 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
     
     // Reset source IDs when changing input type
     if (field === 'inputType') {
-      if (value === 'ITEM') {
-        updated[index].sourceRuleId = null;
-      } else {
-        updated[index].sourceItemId = null;
-      }
+      updated[index].sourceItemId = null;
+      updated[index].sourceRuleId = null;
+      updated[index].sourceParamName = null;
     }
     
     setInputs(updated);
@@ -137,6 +135,9 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
       if (input.inputType === 'RULE_RESULT' && !input.sourceRuleId) {
         return `Wejście ${i + 1}: Należy wybrać regułę źródłową`;
       }
+      if (input.inputType === 'CONFIG_PARAM' && !input.sourceParamName) {
+        return `Wejście ${i + 1}: Należy wybrać parametr Wizarda`;
+      }
     }
 
     const circularError = detectCircularReference(rule?.id, inputs, existingRules);
@@ -175,6 +176,7 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
           inputType: input.inputType,
           sourceItemId: input.sourceItemId || undefined,
           sourceRuleId: input.sourceRuleId || undefined,
+          sourceParamName: input.sourceParamName || undefined,
           onlyIfSelected: input.onlyIfSelected,
           inputMultiplier: input.inputMultiplier,
           sortOrder: input.sortOrder
@@ -407,14 +409,19 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
                         onChange={(e) => handleUpdateInput(idx, 'inputType', e.target.value)}
                         style={{ fontSize: '13px', padding: '6px' }}
                       >
-                        <option value="ITEM">Pozycja</option>
+                        <option value="ITEM">Pozycja BOM</option>
                         <option value="RULE_RESULT">Wynik reguły</option>
+                        <option value="CONFIG_PARAM">Parametr Wizarda</option>
                       </select>
                     </div>
 
                     <div>
                       <label className="label" style={{ fontSize: '11px' }}>
-                        {input.inputType === 'ITEM' ? 'Pozycja źródłowa *' : 'Reguła źródłowa *'}
+                        {input.inputType === 'ITEM'
+                          ? 'Pozycja źródłowa *'
+                          : input.inputType === 'RULE_RESULT'
+                          ? 'Reguła źródłowa *'
+                          : 'Parametr Wizarda *'}
                       </label>
                       {input.inputType === 'ITEM' ? (
                         <select
@@ -430,7 +437,7 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
                             </option>
                           ))}
                         </select>
-                      ) : (
+                      ) : input.inputType === 'RULE_RESULT' ? (
                         <select
                           className="input"
                           value={input.sourceRuleId || ''}
@@ -446,6 +453,40 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
                               </option>
                             ))}
                         </select>
+                      ) : (
+                        <>
+                            <select
+                              className="input"
+                              value={input.sourceParamName || ''}
+                              onChange={(e) => handleUpdateInput(idx, 'sourceParamName', e.target.value)}
+                              style={{ fontSize: '13px', padding: '6px' }}
+                            >
+                              <option value="">-- Wybierz parametr --</option>
+                              <optgroup label="📷 Kamery i rejestratory">
+                                <option value="cameraCount">cameraCount — łączna liczba kamer</option>
+                                <option value="recordingDays">recordingDays — dni retencji</option>
+                                <option value="bitrateMbps">bitrateMbps — bitrate Mbps/kamera</option>
+                                <option value="requiredStorageTb">requiredStorageTb — wymagana pojemność TB</option>
+                                <option value="diskSlots">diskSlots — sloty HDD rejestratora</option>
+                                <option value="recorderId">recorderId — ID wybranego rejestratora</option>
+                              </optgroup>
+                              <optgroup label="🏗️ Konfiguracja LCS / Nastawnia">
+                                <option value="lcsConfig.iloscKamer">lcsConfig.iloscKamer — kamery LCS</option>
+                                <option value="lcsConfig.iloscStanowisk">lcsConfig.iloscStanowisk — stanowiska</option>
+                                <option value="lcsConfig.serwerObrazu.maxKamer">lcsConfig.serwerObrazu.maxKamer — max kamer serwera</option>
+                                <option value="nastawniConfig.iloscKamer">nastawniConfig.iloscKamer — kamery Nastawni</option>
+                                <option value="nastawniConfig.stacjaOperatorska.przypisaneKamery.length">nastawniConfig.stacjaOperatorska.przypisaneKamery.length</option>
+                              </optgroup>
+                              <optgroup label="⚙️ Parametry z szablonu BOM">
+                                <option value="iloscKamerOgolnych">iloscKamerOgolnych — kamery ogólne</option>
+                                <option value="iloscKamerLPR">iloscKamerLPR — kamery LPR</option>
+                                <option value="iloscSlupow">iloscSlupow — ilość słupów</option>
+                              </optgroup>
+                            </select>
+                            <small style={{ color: 'var(--text-secondary)', fontSize: '11px', display: 'block', marginTop: '4px' }}>
+                              💡 Wartość pochodzi z konfiguracji zadania wypełnionej w Wizardzie
+                            </small>
+                        </>
                       )}
                     </div>
 

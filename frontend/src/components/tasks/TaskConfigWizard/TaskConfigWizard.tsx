@@ -232,6 +232,40 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
     return labels[paramName] || paramName;
   };
 
+  const extractCameraCountFromTask = (): number => {
+    const taskTypeCode = task.taskType?.code || '';
+    const meta = task.metadata || {};
+
+    if (taskTypeCode === 'LCS' && meta.subsystemType === 'SMOKIP_B') {
+      return (meta.lcsConfig as any)?.serwerObrazu?.maxKamer || 0;
+    }
+
+    if (taskTypeCode === 'LCS') {
+      const lcsCfg = meta.lcsConfig as any;
+      if (lcsCfg?.iloscKamer) return Number(lcsCfg.iloscKamer);
+      if (Array.isArray(lcsCfg?.obserwowanePrzejazdy)) {
+        return lcsCfg.obserwowanePrzejazdy.length * 2;
+      }
+      return 0;
+    }
+
+    if (taskTypeCode === 'NASTAWNIA' && isStandaloneNastawnia) {
+      const cfg = meta.nastawniConfig as any;
+      return cfg?.iloscKamer
+        || cfg?.obserwowanePrzejazdy?.length
+        || 0;
+    }
+
+    if (taskTypeCode === 'NASTAWNIA' && !isStandaloneNastawnia) {
+      const cfg = meta.nastawniConfig as any;
+      return cfg?.stacjaOperatorska?.przypisaneKamery?.length
+        || cfg?.iloscKamer
+        || 0;
+    }
+
+    return 0;
+  };
+
   // ── handleResolve ────────────────────────────────────────────
 
   const handleResolve = async (): Promise<boolean> => {
@@ -241,6 +275,7 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
       const subsystemType = task.metadata?.subsystemType || task.taskType?.code || '';
       const taskType = task.taskType?.code || subsystemType;
       const taskVariant = task.metadata?.taskVariant || null;
+      const cameraCount = extractCameraCountFromTask();
 
       const result = await bomResolverService.resolve({
         subsystemType,
@@ -250,6 +285,7 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
         isStandaloneNastawnia,
         selectedRecorderId: selectedRecorderId || null,
         retentionDays,
+        cameraCount,
       });
 
       setResolvedBom(result);

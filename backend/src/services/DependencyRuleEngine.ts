@@ -39,7 +39,8 @@ export class DependencyRuleEngine {
           rule,
           itemQuantities,
           ruleResults,
-          selectedModels
+          selectedModels,
+          configParams
         );
 
         // Step 2: Aggregate inputs (may be async for DB-backed aggregations)
@@ -83,7 +84,8 @@ export class DependencyRuleEngine {
     rule: BomTemplateDependencyRule,
     itemQuantities: Map<number, number>,
     ruleResults: Map<number, number>,
-    selectedModels?: Record<string, { checked: boolean; quantity?: number }>
+    selectedModels?: Record<string, { checked: boolean; quantity?: number }>,
+    configParams?: Record<string, unknown>
   ): number[] {
     if (!rule.inputs || rule.inputs.length === 0) {
       return [];
@@ -113,6 +115,19 @@ export class DependencyRuleEngine {
       } else if (input.inputType === InputType.RULE_RESULT && input.sourceRuleId) {
         // Get value from previous rule result
         value = ruleResults.get(input.sourceRuleId) || 0;
+      } else if (input.inputType === InputType.CONFIG_PARAM && input.sourceParamName) {
+        const keys = input.sourceParamName.split('.');
+        let raw: unknown = configParams;
+        for (const key of keys) {
+          if (raw && typeof raw === 'object') {
+            raw = (raw as Record<string, unknown>)[key];
+          } else {
+            raw = undefined;
+            break;
+          }
+        }
+        value = raw !== undefined ? Number(raw) : 0;
+        if (isNaN(value)) value = 0;
       }
 
       // Apply input multiplier

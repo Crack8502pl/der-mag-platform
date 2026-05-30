@@ -10,6 +10,7 @@ export interface BomResolveRequest {
   isStandaloneNastawnia?: boolean;
   selectedRecorderId?: number | null;
   retentionDays?: number;
+  cameraCount?: number;
 }
 
 export interface ResolvedBomItem {
