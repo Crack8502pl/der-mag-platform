@@ -93,6 +93,7 @@ router.use('/cron', cronConfigRouter);
 // ============================================
 
 router.get('/sessions/stats', AdminSessionsController.getSessionStats);
+router.get('/sessions/history', AdminSessionsController.getSessionHistory);
 router.get('/sessions', AdminSessionsController.getAllSessions);
 router.delete('/sessions/:tokenId', AdminSessionsController.forceLogout);
 

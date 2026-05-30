@@ -65,6 +65,19 @@ export class AdminSessionsController {
         .orderBy('rt.createdAt', 'DESC')
         .getMany();
 
+      // Pobierz rzeczywisty loginAt z session_log dla każdego aktywnego tokenu
+      const activeTokenIds = activeSessions.map(session => session.tokenId);
+      const sessionLogsMap = new Map<string, UserSessionLog>();
+      if (activeTokenIds.length > 0) {
+        const logs = await sessionLogRepo
+          .createQueryBuilder('sl')
+          .where('sl.tokenId IN (:...tokenIds)', { tokenIds: activeTokenIds })
+          .getMany();
+        for (const log of logs || []) {
+          sessionLogsMap.set(log.tokenId, log);
+        }
+      }
+
       // Pobierz sumę czasu sesji dla każdego userId
       const totalTimesRaw = await sessionLogRepo
         .createQueryBuilder('sl')
@@ -89,7 +102,9 @@ export class AdminSessionsController {
       }
 
       const result = activeSessions.map(session => {
-        const currentSessionSeconds = Math.floor((now.getTime() - session.createdAt.getTime()) / 1000);
+        const sessionLog = sessionLogsMap.get(session.tokenId);
+        const realLoginAt = sessionLog?.loginAt || session.createdAt;
+        const currentSessionSeconds = Math.floor((now.getTime() - realLoginAt.getTime()) / 1000);
         const totalSessionTimeSeconds = totalTimeMap.get(session.userId) || 0;
 
         return {
@@ -102,7 +117,11 @@ export class AdminSessionsController {
           email: session.user?.email || '',
           ipAddress: session.ipAddress,
           userAgent: session.userAgent,
-          loginAt: session.createdAt,
+          currentIpAddress: sessionLog?.lastIpAddress || session.ipAddress,
+          currentUserAgent: sessionLog?.lastUserAgent || session.userAgent,
+          ipChanged: !!(sessionLog?.lastIpAddress && sessionLog.lastIpAddress !== sessionLog.ipAddress),
+          uaChanged: !!(sessionLog?.lastUserAgent && sessionLog.lastUserAgent !== sessionLog.userAgent),
+          loginAt: realLoginAt,
           expiresAt: session.expiresAt,
           currentSessionSeconds,
           totalSessionTimeSeconds,
@@ -185,6 +204,119 @@ export class AdminSessionsController {
         success: false,
         message: 'Błąd serwera podczas wylogowania',
       });
+    }
+  }
+
+  /**
+   * GET /api/admin/sessions/history
+   * Historia wszystkich sesji (zakończonych i aktywnych) pogrupowana per użytkownik
+   */
+  static async getSessionHistory(req: Request, res: Response): Promise<void> {
+    try {
+      const sessionLogRepo = AppDataSource.getRepository(UserSessionLog);
+      const refreshTokenRepo = AppDataSource.getRepository(RefreshToken);
+
+      // Pobierz wszystkie logi sesji z danymi użytkowników
+      const allLogs = await sessionLogRepo
+        .createQueryBuilder('sl')
+        .leftJoinAndSelect('sl.user', 'user')
+        .leftJoinAndSelect('user.role', 'role')
+        .orderBy('sl.loginAt', 'DESC')
+        .getMany();
+
+      // Pobierz aktywne tokenId żeby oznaczyć aktywne sesje
+      const now = new Date();
+      const activeTokenIds = new Set<string>();
+      const activeTokens = await refreshTokenRepo
+        .createQueryBuilder('rt')
+        .select('rt.tokenId')
+        .where('rt.revoked = :revoked', { revoked: false })
+        .andWhere('rt.expiresAt > :now', { now })
+        .getMany();
+      for (const token of activeTokens) {
+        activeTokenIds.add(token.tokenId);
+      }
+
+      // Pogrupuj per userId
+      const usersMap = new Map<number, {
+        userId: number;
+        username: string;
+        firstName: string;
+        lastName: string;
+        role: string;
+        email: string;
+        totalDurationSeconds: number;
+        sessionCount: number;
+        lastActiveAt: Date | null;
+        isCurrentlyActive: boolean;
+        sessions: object[];
+      }>();
+
+      for (const log of allLogs) {
+        if (!log.user) continue;
+
+        const isActive = activeTokenIds.has(log.tokenId);
+        const sessionDuration = log.durationSeconds ??
+          (isActive ? Math.floor((now.getTime() - log.loginAt.getTime()) / 1000) : null);
+
+        if (!usersMap.has(log.userId)) {
+          usersMap.set(log.userId, {
+            userId: log.userId,
+            username: log.user.username,
+            firstName: log.user.firstName,
+            lastName: log.user.lastName,
+            role: log.user.role?.name || '',
+            email: log.user.email,
+            totalDurationSeconds: 0,
+            sessionCount: 0,
+            lastActiveAt: null,
+            isCurrentlyActive: false,
+            sessions: [],
+          });
+        }
+
+        const userEntry = usersMap.get(log.userId)!;
+        userEntry.sessionCount++;
+        if (sessionDuration !== null) {
+          userEntry.totalDurationSeconds += sessionDuration;
+        }
+        if (isActive) {
+          userEntry.isCurrentlyActive = true;
+        }
+        if (!userEntry.lastActiveAt || log.loginAt > userEntry.lastActiveAt) {
+          userEntry.lastActiveAt = log.loginAt;
+        }
+
+        const ipChanged = !!(log.lastIpAddress && log.lastIpAddress !== log.ipAddress);
+        const uaChanged = !!(log.lastUserAgent && log.lastUserAgent !== log.userAgent);
+
+        userEntry.sessions.push({
+          id: log.id,
+          loginAt: log.loginAt,
+          logoutAt: log.logoutAt,
+          durationSeconds: sessionDuration,
+          loginIpAddress: log.ipAddress,
+          currentIpAddress: log.lastIpAddress || log.ipAddress,
+          loginUserAgent: log.userAgent,
+          currentUserAgent: log.lastUserAgent || log.userAgent,
+          ipChanged,
+          uaChanged,
+          logoutType: log.logoutType,
+          isActive,
+        });
+      }
+
+      const result = Array.from(usersMap.values())
+        .sort((a, b) => {
+          if (!a.lastActiveAt) return 1;
+          if (!b.lastActiveAt) return -1;
+          return b.lastActiveAt.getTime() - a.lastActiveAt.getTime();
+        });
+
+      res.json({ success: true, data: { users: result } });
+    } catch (error) {
+      console.error('Błąd pobierania historii sesji:', error);
+      res.status(500).json({ success: false, message: 'Błąd serwera podczas pobierania historii' });
     }
   }
 

@@ -12,7 +12,7 @@ import type {
   ChangePasswordDto,
   Role,
 } from '../types/admin.types';
-import type { AdminSession, SessionStats } from '../types/sessions.types';
+import type { AdminSession, SessionStats, SessionHistoryResponse } from '../types/sessions.types';
 import { FALLBACK_ROLES } from '../constants/roles';
 
 export class AdminService {
@@ -186,6 +186,14 @@ export class AdminService {
    */
   async getSessionStats(): Promise<SessionStats> {
     const response = await api.get('/admin/sessions/stats');
+    return response.data.data;
+  }
+
+  /**
+   * Get session history grouped by user (admin)
+   */
+  async getSessionHistory(): Promise<SessionHistoryResponse> {
+    const response = await api.get('/admin/sessions/history');
     return response.data.data;
   }
 
