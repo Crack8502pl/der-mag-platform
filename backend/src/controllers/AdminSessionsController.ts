@@ -1,5 +1,5 @@
 // src/controllers/AdminSessionsController.ts
-// Kontroler zarządzania sesjami użytkowników (panel admina)
+// Controller for managing user sessions (admin panel)
 
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
@@ -98,7 +98,7 @@ export class AdminSessionsController {
           username: session.user?.username || '',
           firstName: session.user?.firstName || '',
           lastName: session.user?.lastName || '',
-          role: (session.user as any)?.role?.name || '',
+          role: session.user?.role?.name || '',
           email: session.user?.email || '',
           ipAddress: session.ipAddress,
           userAgent: session.userAgent,

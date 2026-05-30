@@ -1,5 +1,5 @@
 // src/entities/UserSessionLog.ts
-// Encja logu sesji użytkownika — do monitorowania czasu pracy w systemie
+// User session log entity — for monitoring work time in the system
 
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { User } from './User';

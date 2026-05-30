@@ -160,7 +160,7 @@ describe('AdminSessionsController', () => {
       mockLogQb.getRawMany = jest.fn().mockResolvedValue([]);
       mockSessionLogRepository.createQueryBuilder = jest.fn().mockReturnValue(mockLogQb);
 
-      // Same tokenId as the session — provide a ****** so the controller can decode it
+      // Same tokenId as the session — provide an Authorization header so the controller can decode the jti claim
       req = createMockRequest({
         userId: 99,
         headers: { authorization: 'Bearer test-access-token' },

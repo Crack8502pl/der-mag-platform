@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/admin/SessionsManagementPage.tsx
-// Panel admina — monitorowanie aktywnych sesji użytkowników
+// Admin panel — monitoring active user sessions
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
