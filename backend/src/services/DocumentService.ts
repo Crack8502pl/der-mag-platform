@@ -3,9 +3,7 @@
 
 import { AppDataSource } from '../config/database';
 import { Document } from '../entities/Document';
-import { FindOptionsWhere } from 'typeorm';
 import * as fs from 'fs';
-import * as path from 'path';
 
 export class DocumentService {
   /**
@@ -40,23 +38,32 @@ export class DocumentService {
     taskId?: number;
     category?: string;
     type?: string;
+    search?: string;
     limit?: number;
     offset?: number;
   }): Promise<{ documents: Document[]; total: number }> {
     const documentRepository = AppDataSource.getRepository(Document);
-    
-    const where: FindOptionsWhere<Document> = {};
+    const where: Partial<Document> = {};
     if (filters?.taskId) where.taskId = filters.taskId;
     if (filters?.category) where.category = filters.category;
     if (filters?.type) where.type = filters.type;
 
-    const [documents, total] = await documentRepository.findAndCount({
+    const [documents, total] = await (documentRepository as any).findAndCount({
       where,
       relations: ['task', 'createdBy', 'generatedFromTemplate'],
       order: { createdAt: 'DESC' },
       take: filters?.limit || 20,
-      skip: filters?.offset || 0
+      skip: filters?.offset || 0,
     });
+
+    if (filters?.search) {
+      const lowerSearch = filters.search.toLowerCase();
+      const filtered = documents.filter((doc: Document) =>
+        doc.name?.toLowerCase().includes(lowerSearch) ||
+        doc.originalFilename?.toLowerCase().includes(lowerSearch)
+      );
+      return { documents: filtered, total: filtered.length };
+    }
 
     return { documents, total };
   }

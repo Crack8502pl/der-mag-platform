@@ -1,83 +1,85 @@
-// src/components/devices/DeviceDetailPage.tsx
-// Device detail page - PR#17
-
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import deviceService from '../../services/device.service';
-import type { DeviceDetails } from '../../services/device.service';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { BackButton } from '../common/BackButton';
 import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
-import { getAssetTypeLabel, getAssetStatusLabel, getAssetStatusBadgeClass } from '../../utils/assetLabels';
+import { deviceService, type DeviceDto, type DeviceHistoryEvent } from '../../services/deviceService';
 import './DeviceDetailPage.css';
 
 export const DeviceDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [device, setDevice] = useState<DeviceDetails | null>(null);
+  const [device, setDevice] = useState<DeviceDto | null>(null);
+  const [history, setHistory] = useState<DeviceHistoryEvent[]>([]);
+  const [configurationText, setConfigurationText] = useState('{}');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
-  const fetchDeviceDetails = useCallback(async () => {
+  const loadDevice = async () => {
+    if (!id) return;
+    const deviceId = Number(id);
+    if (!Number.isInteger(deviceId) || deviceId <= 0) {
+      setError('Nieprawidłowy identyfikator urządzenia');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError('');
     try {
-      setLoading(true);
-      setError(null);
-      const deviceId = Number(id);
-      if (!Number.isInteger(deviceId) || deviceId <= 0) {
-        setDevice(null);
-        setError('Nieprawidłowy identyfikator urządzenia');
-        setLoading(false);
-        return;
-      }
-      const data = await deviceService.getDeviceById(deviceId);
-      setDevice(data);
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
-      setError(axiosErr.response?.data?.message || 'Błąd podczas pobierania szczegółów urządzenia');
-      console.error('Error fetching device details:', err);
+      const [deviceResponse, historyResponse] = await Promise.all([
+        deviceService.getDevice(deviceId),
+        deviceService.getDeviceHistory(deviceId),
+      ]);
+      setDevice(deviceResponse);
+      setHistory(historyResponse);
+      setConfigurationText(JSON.stringify(deviceResponse.configuration || {}, null, 2));
+    } catch (loadError) {
+      const message = loadError instanceof Error ? loadError.message : 'Nie udało się pobrać urządzenia';
+      setError(message);
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  };
 
   useEffect(() => {
-    if (id) {
-      fetchDeviceDetails();
+    loadDevice();
+  }, [id]);
+
+  const handleDelete = async () => {
+    if (!device) return;
+    if (!window.confirm('Czy na pewno usunąć urządzenie?')) return;
+    await deviceService.deleteDevice(device.id);
+    navigate('/devices');
+  };
+
+  const handleEdit = async () => {
+    if (!device) return;
+    const nextName = window.prompt('Nazwa urządzenia', device.name);
+    if (!nextName) return;
+    const nextStatus = window.prompt('Status (active|maintenance|inactive|decommissioned)', device.status);
+    if (!nextStatus) return;
+
+    await deviceService.updateDevice(device.id, { name: nextName, status: nextStatus });
+    await loadDevice();
+  };
+
+  const handleSaveConfiguration = async () => {
+    if (!device) return;
+    try {
+      const parsed = JSON.parse(configurationText) as Record<string, unknown>;
+      await deviceService.updateDevice(device.id, { configuration: parsed });
+      await loadDevice();
+    } catch {
+      setError('Konfiguracja musi być poprawnym JSON');
     }
-  }, [id, fetchDeviceDetails]);
-
-  const getInventoryStatusLabel = (status: string): string => {
-    const statusMap: Record<string, string> = {
-      'in_stock': 'W magazynie',
-      'reserved': 'Zarezerwowane',
-      'installed': 'Zainstalowane',
-      'faulty': 'Uszkodzone',
-      'returned': 'Zwrócone',
-      'decommissioned': 'Wycofane'
-    };
-    return statusMap[status] || status;
   };
-
-  const getInventoryStatusBadgeClass = (status: string): string => {
-    const statusMap: Record<string, string> = {
-      'in_stock': 'status-in-stock',
-      'reserved': 'status-reserved',
-      'installed': 'status-installed',
-      'faulty': 'status-faulty',
-      'returned': 'status-returned',
-      'decommissioned': 'status-decommissioned'
-    };
-    return statusMap[status] || 'status-default';
-  };
-
 
   if (loading) {
     return (
       <div className="device-detail-page">
         <BackButton to="/devices" />
-        <div className="loading-state">
-          <p>⏳ Ładowanie szczegółów urządzenia...</p>
-        </div>
+        <p>Ładowanie urządzenia...</p>
       </div>
     );
   }
@@ -86,142 +88,60 @@ export const DeviceDetailPage: React.FC = () => {
     return (
       <div className="device-detail-page">
         <BackButton to="/devices" />
-        <div className="error-state">
-          <p>❌ {error || 'Urządzenie nie znalezione'}</p>
-          <button onClick={fetchDeviceDetails}>Spróbuj ponownie</button>
-        </div>
+        <p className="status-text" style={{ color: 'var(--danger)' }}>❌ {error || 'Nie znaleziono urządzenia'}</p>
       </div>
     );
   }
 
   return (
-    <div className="device-detail-page">
+    <div className="device-detail-page module-page">
       <BackButton to="/devices" />
-
-      {/* Header */}
-      <div className="device-header">
-        <div className="header-left">
-          <ModuleIcon name="devices" emoji={MODULE_ICONS.devices} size={48} />
-          <div className="header-info">
-            <div className="device-type">📦 Urządzenie</div>
-            <h1>{device.deviceModel || device.deviceType}</h1>
-            <div className="device-meta">
-              <span className="device-serial">S/N: {device.serialNumber}</span>
-            </div>
-          </div>
+      <div className="page-header">
+        <div className="module-icon">
+          <ModuleIcon name="devices" emoji={MODULE_ICONS.devices} size={36} />
         </div>
-        <div className="header-right">
-          <span className={`status-badge ${getInventoryStatusBadgeClass(device.inventoryStatus || 'in_stock')}`}>
-            {getInventoryStatusLabel(device.inventoryStatus || 'in_stock')}
-          </span>
+        <div>
+          <h1>{device.name}</h1>
+          <p className="page-subtitle">Numer seryjny: {device.serialNumber}</p>
         </div>
       </div>
 
-      {/* Technical Data Section */}
-      <div className="detail-section">
-        <h2>📋 Dane techniczne</h2>
-        <div className="detail-grid">
-          <div className="detail-item">
-            <span className="detail-label">Typ urządzenia:</span>
-            <span className="detail-value">{device.deviceType}</span>
-          </div>
-          {device.deviceModel && (
-            <div className="detail-item">
-              <span className="detail-label">Model:</span>
-              <span className="detail-value">{device.deviceModel}</span>
-            </div>
-          )}
-          {device.manufacturer && (
-            <div className="detail-item">
-              <span className="detail-label">Producent:</span>
-              <span className="detail-value">{device.manufacturer}</span>
-            </div>
-          )}
-          {device.catalogNumber && (
-            <div className="detail-item">
-              <span className="detail-label">Numer katalogowy:</span>
-              <span className="detail-value">{device.catalogNumber}</span>
-            </div>
-          )}
-          <div className="detail-item">
-            <span className="detail-label">Status magazynowy:</span>
-            <span className="detail-value">
-              <span className={`status-badge ${getInventoryStatusBadgeClass(device.inventoryStatus || 'in_stock')}`}>
-                {getInventoryStatusLabel(device.inventoryStatus || 'in_stock')}
-              </span>
-            </span>
-          </div>
+      <div className="card module-content" style={{ marginBottom: '1rem' }}>
+        <h3>Dane ogólne</h3>
+        <div className="detail-grid" style={{ display: 'grid', gap: '0.35rem' }}>
+          <p><strong>Model:</strong> {device.model || '-'}</p>
+          <p><strong>Producent:</strong> {device.manufacturer || '-'}</p>
+          <p><strong>Typ:</strong> {device.deviceType || '-'}</p>
+          <p><strong>Status:</strong> <span className={`status-badge status-${device.status}`}>{device.status}</span></p>
+          <p><strong>Lokalizacja:</strong> {device.location || '-'}</p>
+          <p><strong>Notatki:</strong> {device.notes || '-'}</p>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn-ghost" onClick={handleEdit}>Edytuj</button>
+          <button className="btn btn-ghost" onClick={handleDelete}>Usuń</button>
         </div>
       </div>
 
-      {/* Installed in Asset Section */}
-      {device.installedAsset ? (
-        <div className="detail-section">
-          <h2>🏗️ Zainstalowane w obiekcie</h2>
-          <div className="installed-asset-card">
-            <div className="asset-card-header">
-              <div className="asset-number-wrapper">
-                <code className="asset-number">{device.installedAsset.assetNumber}</code>
-                <span className={`status-badge ${getAssetStatusBadgeClass(device.installedAsset.status)}`}>
-                  {getAssetStatusLabel(device.installedAsset.status)}
-                </span>
-              </div>
-            </div>
-            <h3 className="asset-name">{device.installedAsset.name}</h3>
-            <div className="asset-details-grid">
-              <div className="asset-detail-row">
-                <span className="asset-detail-label">Typ obiektu:</span>
-                <span className="asset-detail-value">
-                  {getAssetTypeLabel(device.installedAsset.assetType)}
-                  {device.installedAsset.category && ` ${device.installedAsset.category}`}
-                </span>
-              </div>
-              {device.installedAsset.actualInstallationDate && (
-                <div className="asset-detail-row">
-                  <span className="asset-detail-label">Data instalacji:</span>
-                  <span className="asset-detail-value">
-                    {new Date(device.installedAsset.actualInstallationDate).toLocaleDateString('pl-PL')}
-                  </span>
-                </div>
-              )}
-              {(device.installedAsset.liniaKolejowa || device.installedAsset.miejscowosc) && (
-                <div className="asset-detail-row">
-                  <span className="asset-detail-label">Lokalizacja:</span>
-                  <span className="asset-detail-value">
-                    {device.installedAsset.liniaKolejowa && device.installedAsset.kilometraz
-                      ? `${device.installedAsset.liniaKolejowa} km ${device.installedAsset.kilometraz}`
-                      : device.installedAsset.liniaKolejowa || ''}
-                    {device.installedAsset.miejscowosc && (
-                      <> ({device.installedAsset.miejscowosc})</>
-                    )}
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className="asset-actions">
-              <button
-                className="btn-primary"
-                onClick={() => navigate(`/assets/${device.installedAsset?.id}`)}
-              >
-                👁️ Zobacz szczegóły obiektu
-              </button>
-            </div>
-          </div>
+      <div className="card module-content" style={{ marginBottom: '1rem' }}>
+        <h3>Konfiguracja (JSON)</h3>
+        <textarea value={configurationText} onChange={e => setConfigurationText(e.target.value)} rows={10} style={{ width: '100%' }} />
+        <div style={{ marginTop: '0.5rem' }}>
+          <button className="btn btn-primary" onClick={handleSaveConfiguration}>Zapisz konfigurację</button>
         </div>
-      ) : (
-        <div className="detail-section">
-          <h2>🏗️ Status instalacji</h2>
-          <div className="empty-state-asset">
-            <div className="empty-icon">📦</div>
-            <p className="empty-title">Urządzenie w magazynie</p>
-            <p className="empty-subtitle">
-              To urządzenie nie jest jeszcze zainstalowane w obiekcie.
-              <br />
-              Po instalacji tutaj pojawi się link do obiektu.
-            </p>
-          </div>
-        </div>
-      )}
+      </div>
+
+      <div className="card module-content">
+        <h3>Historia serwisowa</h3>
+        {history.length === 0 ? <p>Brak historii zdarzeń.</p> : (
+          <ul>
+            {history.map(event => (
+              <li key={event.id}>
+                <strong>{new Date(event.timestamp).toLocaleString('pl-PL')}</strong> — {event.description}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 };

@@ -62,6 +62,7 @@ import { DocumentTemplate } from '../entities/DocumentTemplate';
 import { MaterialImport } from '../entities/MaterialImport';
 import { SystemConfig } from '../entities/SystemConfig';
 import { NotificationSchedule } from '../entities/NotificationSchedule';
+import { Notification } from '../entities/Notification';
 import { ServiceTask } from '../entities/ServiceTask';
 import { ServiceTaskActivity } from '../entities/ServiceTaskActivity';
 import { Brigade } from '../entities/Brigade';
@@ -71,6 +72,8 @@ import { TaskGeneratedBom } from '../entities/TaskGeneratedBom';
 import { TaskGeneratedBomItem } from '../entities/TaskGeneratedBomItem';
 import { UserPreferences } from '../entities/UserPreferences';
 import { PushSubscription } from '../entities/PushSubscription';
+import { Photo } from '../entities/Photo';
+import { PhotoAlbum } from '../entities/PhotoAlbum';
 import { HoneypotLog } from '../entities/HoneypotLog';
 import { UserSessionLog } from '../entities/UserSessionLog';
 // Cars
@@ -184,6 +187,7 @@ export const AppDataSource = new DataSource({
     SystemConfig,
     // Notification Schedules
     NotificationSchedule,
+    Notification,
     // Service Tasks
     ServiceTask,
     ServiceTaskActivity,
@@ -196,6 +200,8 @@ export const AppDataSource = new DataSource({
     // User Preferences & Push Subscriptions
     UserPreferences,
     PushSubscription,
+    Photo,
+    PhotoAlbum,
     // Honeypot logs
     HoneypotLog,
     // User Session Logs
