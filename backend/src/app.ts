@@ -318,15 +318,15 @@ if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEBUG_ENDPOINTS 
   });
 }
 
-// Serwowanie interfejsu testowego
-const enableApiTester = process.env.ENABLE_API_TESTER === 'true';
-if (enableApiTester) {
-  app.use('/test', express.static(path.join(__dirname, '../public')));
-  serverLogger.info('🧪 Test interface dostępny na: /test/api-tester.html');
-}
-
-// Honeypot middleware - wykrywanie skanerów (przed głównymi routami)
+// Honeypot middleware - wykrywanie skanerów (przed głównymi routami i static routingiem)
 app.use(honeypotMiddleware);
+
+// ENABLE_API_TESTER is deprecated. The /test path is now handled by the honeypot middleware.
+// Any access to /test/api-tester.html is logged as a honeypot hit (api_tester_trap).
+// To restore dev access, use the admin panel honeypot dashboard.
+if (process.env.ENABLE_API_TESTER === 'true') {
+  serverLogger.warn('⚠️  ENABLE_API_TESTER=true jest przestarzałe. Ścieżka /test jest teraz obsługiwana przez honeypot middleware.');
+}
 
 // API routes (MUSZĄ być przed serwowaniem frontendu)
 app.use('/api/integrations/webhooks', noCacheHeaders, webhookRoutes);
