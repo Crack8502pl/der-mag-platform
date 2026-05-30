@@ -219,7 +219,7 @@ export interface MapPermissions {
 }
 
 /**
- * Struktura wszystkich uprawnień - 19 modułów
+ * Struktura wszystkich uprawnień
  */
 export interface RolePermissions {
   all?: boolean; // Admin - pełny dostęp
