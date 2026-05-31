@@ -17,10 +17,13 @@ import { validateCsrfToken } from './middleware/csrf';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { noCacheHeaders } from './middleware/noCacheHeaders';
 import { verifyWebhookSignature } from './middleware/webhookAuth';
+import { requestIdMiddleware } from './middleware/requestId';
 import { RATE_LIMIT } from './config/constants';
 import { serverLogger } from './utils/logger';
 
 const app: Application = express();
+
+app.use(requestIdMiddleware);
 
 // Trust proxy - required when behind nginx/reverse proxy
 // Allows express-rate-limit to correctly identify client IPs from X-Forwarded-For

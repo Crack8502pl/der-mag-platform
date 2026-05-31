@@ -8,6 +8,7 @@ import { User } from '../entities/User';
 import { RefreshToken } from '../entities/RefreshToken';
 import { Role } from '../entities/Role';
 import { serverLogger } from '../utils/logger';
+import { logSecurityEvent } from '../utils/securityLogger';
 
 // Rozszerzenie typu Request o dane użytkownika
 declare global {
@@ -36,6 +37,14 @@ export const authenticate = async (
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      logSecurityEvent({
+        type: 'ACCESS_UNAUTHORIZED',
+        ip: req.ip,
+        path: req.path,
+        method: req.method,
+        requestId: req.requestId,
+        details: { reason: 'MISSING_OR_INVALID_AUTH_HEADER' }
+      });
       res.status(401).json({
         success: false,
         message: 'Brak tokenu autoryzacyjnego'
@@ -58,6 +67,15 @@ export const authenticate = async (
       });
 
       if (!user) {
+        logSecurityEvent({
+          type: 'ACCESS_DENIED',
+          userId: payload.userId,
+          ip: req.ip,
+          path: req.path,
+          method: req.method,
+          requestId: req.requestId,
+          details: { reason: 'USER_INACTIVE_OR_NOT_FOUND' }
+        });
         res.status(401).json({
           success: false,
           message: 'Użytkownik nieaktywny lub nie istnieje'
@@ -80,6 +98,15 @@ export const authenticate = async (
         });
 
         if (!tokenRecord) {
+          logSecurityEvent({
+            type: 'AUTH_TOKEN_INVALID',
+            userId: payload.userId,
+            ip: req.ip,
+            path: req.path,
+            method: req.method,
+            requestId: req.requestId,
+            details: { reason: 'TOKEN_REVOKED', jti: payload.jti }
+          });
           res.status(401).json({
             success: false,
             message: 'Token został unieważniony',
@@ -89,8 +116,23 @@ export const authenticate = async (
         }
       }
 
+      logSecurityEvent({
+        type: 'AUTH_LOGIN_SUCCESS',
+        userId: payload.userId,
+        ip: req.ip,
+        path: req.path,
+        method: req.method,
+        requestId: req.requestId,
+      });
       next();
     } catch (error) {
+      logSecurityEvent({
+        type: 'AUTH_TOKEN_INVALID',
+        ip: req.ip,
+        path: req.path,
+        method: req.method,
+        requestId: req.requestId,
+      });
       res.status(401).json({
         success: false,
         message: 'Nieprawidłowy lub wygasły token'
@@ -128,6 +170,14 @@ export const authorize = (...allowedRoles: string[]) => {
       );
 
       if (!req.user) {
+        logSecurityEvent({
+          type: 'ACCESS_UNAUTHORIZED',
+          ip: req.ip,
+          path: req.path,
+          method: req.method,
+          requestId: req.requestId,
+          details: { reason: 'AUTHORIZE_WITHOUT_USER' }
+        });
         res.status(401).json({
           success: false,
           message: 'Brak autoryzacji'
@@ -141,6 +191,15 @@ export const authorize = (...allowedRoles: string[]) => {
         : (req.user.role as any)?.name;
 
       if (!roleName || !allowedRoles.includes(roleName)) {
+        logSecurityEvent({
+          type: 'ACCESS_DENIED',
+          userId: req.user.userId,
+          ip: req.ip,
+          path: req.path,
+          method: req.method,
+          requestId: req.requestId,
+          details: { requiredRoles: allowedRoles, roleName: roleName || null }
+        });
         res.status(403).json({
           success: false,
           message: 'Brak uprawnień do wykonania tej operacji'

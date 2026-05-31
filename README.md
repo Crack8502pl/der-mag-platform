@@ -505,6 +505,20 @@ Moduł wizualnego projektowania topologii sieciowych dla podsystemów **SMOKIP_A
 - 🔐 [Security & Secrets Guide](backend/docs/SECURITY_SECRETS_GUIDE.md) - Best practices i procedury
 - 🔄 [Token Rotation Guide](backend/docs/TOKEN_ROTATION.md) - System rotacji tokenów
 
+## 🔍 Security Monitoring
+
+Backend udostępnia centralne logowanie zdarzeń bezpieczeństwa (`backend/src/utils/securityLogger.ts`) zgodne z OWASP A09.
+
+Rejestrowane są m.in. zdarzenia:
+- `AUTH_LOGIN_SUCCESS`, `AUTH_LOGIN_FAILURE`, `AUTH_TOKEN_INVALID`
+- `ACCESS_UNAUTHORIZED`, `ACCESS_DENIED`
+- `WEBHOOK_SIGNATURE_VALID`, `WEBHOOK_SIGNATURE_INVALID`
+- `RATE_LIMIT_EXCEEDED`, `CSRF_TOKEN_INVALID`
+- `SQL_INJECTION_ATTEMPT`, `XSS_ATTEMPT`, `SUSPICIOUS_ACTIVITY`
+
+Każdy request otrzymuje `X-Request-ID` (middleware `backend/src/middleware/requestId.ts`) do korelacji logów.
+Wrażliwe pola (`password`, `token`, `secret`, `authorization`, `cookie`, `creditCard`, `cvv`) są redagowane do `[REDACTED]` przy sanitizacji danych logowania.
+
 ## 💾 System Backup-u Bazy Danych
 
 Platforma Grover zawiera kompletny system automatycznych backupów bazy PostgreSQL.
