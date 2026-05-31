@@ -18,10 +18,13 @@ export class SubsystemTaskService {
    * Przykład: P000010726-001, P000010726-002
    */
   async generateTaskNumber(subsystemNumber: string): Promise<string> {
+    const escapedSubsystemNumber = subsystemNumber.replace(/[\\%_]/g, '\\$&');
+
     // Znajdź ostatni task dla tego podsystemu
     const lastTask = await this.taskRepository
       .createQueryBuilder('task')
-      .where('task.taskNumber LIKE :pattern', { pattern: `${subsystemNumber}-%` })
+      // SAFE: parameterized query
+      .where("task.taskNumber LIKE :pattern ESCAPE '\\'", { pattern: `${escapedSubsystemNumber}-%` })
       .orderBy('task.taskNumber', 'DESC')
       .limit(1)
       .getOne();

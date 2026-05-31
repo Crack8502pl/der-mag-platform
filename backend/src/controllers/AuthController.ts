@@ -32,6 +32,7 @@ const logSecurityEvent = async (
     const tableExists = await queryRunner.hasTable('audit_logs');
     
     if (tableExists) {
+      // SAFE: parameterized query
       await queryRunner.query(
         `INSERT INTO audit_logs (event_type, user_id, ip_address, details, created_at) 
          VALUES ($1, $2, $3, $4, NOW())`,
