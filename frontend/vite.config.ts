@@ -13,10 +13,13 @@ if (!certsExist) {
   console.warn('   Run: cd backend && ./scripts/generate-certs.sh 192.168.2.38')
 }
 
+// Vite automatycznie ustawia NODE_ENV=production podczas `vite build`
+const isProduction = process.env.NODE_ENV === 'production'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/', // 🆕 CRITICAL - ensure relative paths work on any domain
+  base: '/', // CRITICAL - ensure relative paths work on any domain
 
   // RAM optimization: limit esbuild pre-bundling work
   optimizeDeps: {
@@ -34,26 +37,31 @@ export default defineConfig({
       key: fs.readFileSync(keyPath),
       cert: fs.readFileSync(certPath)
     } : undefined,
-    cors:  true, // 🆕 Enable CORS in Vite dev server
+    cors: true, // Enable CORS in Vite dev server
     // RAM optimization: disable polling watcher
     watch: {
       usePolling: false
     },
     hmr: {
-      protocol: certsExist ? 'wss' : 'ws', // 🆕 Use WebSocket Secure when HTTPS enabled
+      protocol: certsExist ? 'wss' : 'ws', // Use WebSocket Secure when HTTPS enabled
       host: 'localhost',
       overlay: true
     }
   },
   build: {
     target: 'es2020',
-    sourcemap: true, // 🆕 Sourcemapy dla debugowania
+    // OWASP A05: Sourcemaps wyłączone w produkcji — publicznie dostępne .map pliki
+    // ujawniają oryginalny kod TypeScript atakującym.
+    // W development sourcemaps są włączone dla wygody debugowania.
+    // Jeśli potrzebujesz sourcemaps w produkcji (np. dla Sentry), uploaduj je
+    // osobno podczas CI/CD zamiast serwować publicznie.
+    sourcemap: !isProduction,
     minify: 'esbuild',
-    assetsDir: 'assets', // 🆕 Ensure assets are in /assets/
+    assetsDir: 'assets', // Ensure assets are in /assets/
     rollupOptions: {
       output: {
-        manualChunks:  undefined, // 🆕 Single bundle for better mobile performance
-        // 🆕 Proper asset naming for consistent structure
+        manualChunks: undefined, // Single bundle for better mobile performance
+        // Proper asset naming for consistent structure
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]'

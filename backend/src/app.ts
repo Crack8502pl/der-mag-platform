@@ -3,7 +3,7 @@
 
 import 'reflect-metadata';
 import express, { Application, NextFunction, Request, Response } from 'express';
-import cors from 'cors';
+import cors, { CorsOptions } from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
@@ -26,9 +26,8 @@ const app: Application = express();
 // Value '1' means trust first proxy hop; adjust if there are multiple proxies
 app.set('trust proxy', 1);
 
-// 🆕 Prevent HTTPS upgrade in local network (before helmet)
+// Prevent HTTPS upgrade in local network (before helmet)
 app.use((req, res, next) => {
-  // Remove HSTS and upgrade-insecure-requests for local network
   const isLocalNetwork = /^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(req.hostname);
   if (isLocalNetwork) {
     res.removeHeader('Strict-Transport-Security');
@@ -116,79 +115,83 @@ if (isProduction) {
   app.use(helmet({ contentSecurityPolicy: false }));
 }
 
-// CORS configuration - permissive for development and local network
+// ── CORS ─────────────────────────────────────────────────────────────────────
+// OWASP A05: Wyekstrahowana funkcja weryfikacji originu używana zarówno
+// przez middleware cors() jak i przez preflight handler app.options('*').
+// Zapobiega sytuacji gdzie preflight akceptuje szerszy zestaw origins niż
+// faktyczne requesty.
 const corsOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
   : ['http://localhost:5173', 'http://localhost:3001', 'http://localhost:3000'];
 
-app.use(cors({
-  origin: (origin, callback) => {
-    // Pozwól na requesty bez origin (curl, Postman, same-origin)
-    if (!origin) {
-      return callback(null, true);
-    }
+const corsOriginValidator = (
+  origin: string | undefined,
+  callback: (err: Error | null, allow?: boolean) => void
+): void => {
+  // Pozwól na requesty bez origin (curl, Postman, same-origin)
+  if (!origin) {
+    return callback(null, true);
+  }
 
-    // Sprawdź czy origin jest na liście
-    if (corsOrigins.includes(origin)) {
-      return callback(null, true);
-    }
+  // Sprawdź czy origin jest na liście
+  if (corsOrigins.includes(origin)) {
+    return callback(null, true);
+  }
 
-    // W development pozwól na localhost URLs (more specific pattern)
-    if (process.env.NODE_ENV !== 'production' && /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
-      return callback(null, true);
-    }
+  // W development pozwól na localhost URLs
+  if (process.env.NODE_ENV !== 'production' && /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+    return callback(null, true);
+  }
 
-    // Pozwól na local network (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
-    const isLocalNetwork = /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(origin);
-    if (isLocalNetwork) {
-      return callback(null, true);
-    }
+  // Pozwól na local network (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+  const isLocalNetwork = /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(origin);
+  if (isLocalNetwork) {
+    return callback(null, true);
+  }
 
-    // Pozwól na wewnętrzne domeny (.lan, .local, .internal, .home, .corp, .intranet, .private)
-    const isInternalDomain = /^https?:\/\/[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?\.(lan|local|internal|home|corp|intranet|private)(:[1-9]\d{0,4})?$/.test(origin);
-    if (isInternalDomain) {
-      return callback(null, true);
-    }
+  // Pozwól na wewnętrzne domeny (.lan, .local, .internal, .home, .corp, .intranet, .private)
+  const isInternalDomain = /^https?:\/\/[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?\.(lan|local|internal|home|corp|intranet|private)(:[1-9]\d{0,4})?$/.test(origin);
+  if (isInternalDomain) {
+    return callback(null, true);
+  }
 
-    callback(new Error('Not allowed by CORS'));
-  },
+  callback(new Error('Not allowed by CORS'));
+};
+
+const corsOptions: CorsOptions = {
+  origin: corsOriginValidator,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
-}));
+};
 
-// Handle preflight requests
-app.options('*', cors());
+app.use(cors(corsOptions));
+
+// OWASP A05: Preflight używa tej samej konfiguracji CORS co reszta —
+// nie akceptuje szerszego zestawu origins na OPTIONS niż na właściwych requestach.
+app.options('*', cors(corsOptions));
 
 // Cookie parser middleware
 app.use(cookieParser());
 
 // CSRF protection for all state-mutating /api requests
 app.use('/api/', (req: Request, res: Response, next: NextFunction) => {
-  // Safe methods do not require CSRF validation
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
     return next();
   }
-
-  // Bootstrap login endpoint (CSRF cookie may not exist yet)
   if (req.path === '/auth/login' || req.path === '/auth/login/') {
     return next();
   }
-
-  // Public endpoint without authenticated session cookie
   if (req.path === '/auth/forgot-password' || req.path === '/auth/forgot-password/') {
     return next();
   }
-
-  // External systems calling webhooks do not have browser CSRF cookie
   if (req.path.startsWith('/integrations/webhooks')) {
     return next();
   }
-
   return validateCsrfToken(req, res, next);
 });
 
-// Rate limiting dla endpointów auth (bardziej permisywny)
+// Rate limiting dla endpointów auth
 const authLimiter = rateLimit({
   windowMs: RATE_LIMIT.AUTH_WINDOW_MS,
   max: RATE_LIMIT.AUTH_MAX_REQUESTS,
@@ -200,12 +203,10 @@ const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => {
-    return `${req.ip}-auth`;
-  }
+  keyGenerator: (req) => `${req.ip}-auth`
 });
 
-// Rate limiter dla operacji read-only (GET) - wyższy limit per IP
+// Rate limiter dla operacji read-only (GET)
 const readLimiter = rateLimit({
   windowMs: RATE_LIMIT.READ_WINDOW_MS,
   max: RATE_LIMIT.READ_MAX_REQUESTS,
@@ -217,14 +218,11 @@ const readLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => {
-    return `${req.ip}-read`;
-  },
-  // Zastosuj TYLKO dla GET requests
+  keyGenerator: (req) => `${req.ip}-read`,
   skip: (req) => req.method !== 'GET'
 });
 
-// Ogólny rate limiter - pomiń GET requests (mają własny limiter)
+// Ogólny rate limiter
 const apiLimiter = rateLimit({
   windowMs: RATE_LIMIT.WINDOW_MS,
   max: RATE_LIMIT.MAX_REQUESTS,
@@ -236,17 +234,14 @@ const apiLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => {
-    return req.path.startsWith('/api/auth/') || req.method === 'GET';
-  }
+  skip: (req) => req.path.startsWith('/api/auth/') || req.method === 'GET'
 });
 
-// Aplikuj limitery w odpowiedniej kolejności
 app.use('/api/auth/', authLimiter);
 app.use('/api/', readLimiter);
 app.use('/api/', apiLimiter);
 
-// Rate limiting for debug endpoints (more permissive than API)
+// Rate limiting for debug endpoints
 const debugLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 30,
@@ -270,7 +265,7 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('combined', { stream: morganStream }));
 }
 
-// Health check endpoint (przed wszystkim innym)
+// Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -346,7 +341,7 @@ if (isProduction) {
   serverLogger.info('ℹ️  Debug endpoints są wyłączone (ENABLE_DEBUG_ENDPOINTS nie jest ustawiony)');
 }
 
-// Honeypot middleware - wykrywanie skanerów (przed głównymi routami i static routingiem)
+// Honeypot middleware
 app.use(honeypotMiddleware);
 
 // ENABLE_API_TESTER is deprecated. The /test path is now handled by the honeypot middleware.
@@ -354,28 +349,30 @@ if (process.env.ENABLE_API_TESTER === 'true') {
   serverLogger.warn('⚠️  ENABLE_API_TESTER=true jest przestarzałe. Ścieżka /test jest teraz obsługiwana przez honeypot middleware.');
 }
 
-// API routes (MUSZĄ być przed serwowaniem frontendu)
+// API routes
 app.use('/api/integrations/webhooks', noCacheHeaders, webhookRoutes);
 app.use('/api', noCacheHeaders);
 app.use('/api', routes);
 
-// Serwowanie frontendu z tego samego portu co backend
+// Serwowanie frontendu
 const frontendPath = path.join(__dirname, '../../frontend/dist');
 if (fs.existsSync(frontendPath)) {
   serverLogger.info('🌐 Frontend będzie serwowany z: ' + frontendPath);
 
-  // Explicit route for assets directory
-  // OWASP A05: Ograniczono CORS dla assetów — brak wildcard '*' w produkcji
+  // OWASP A05: X-Content-Type-Options dla assetów statycznych — blokuje MIME sniffing.
+  // CORS dla assetów ograniczony do CORS_ORIGIN w produkcji (brak wildcard '*').
   app.use('/assets', express.static(path.join(frontendPath, 'assets'), {
     maxAge: '1d',
     etag: true,
     setHeaders: (res, filePath) => {
+      // Blokuj MIME sniffing (OWASP A05)
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+
+      // CORS: wildcard tylko w dev/LAN, w produkcji ograniczony do CORS_ORIGIN
       if (isProduction) {
-        // Produkcja: CORS tylko dla skonfigurowanego originu
         const allowedOrigin = process.env.CORS_ORIGIN?.split(',')[0]?.trim() || "'self'";
         res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
       } else {
-        // Development / LAN: wildcard dozwolony
         res.setHeader('Access-Control-Allow-Origin', '*');
       }
       res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -395,6 +392,8 @@ if (fs.existsSync(frontendPath)) {
     maxAge: '1d',
     etag: true,
     setHeaders: (res, filePath) => {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+
       if (isProduction) {
         const allowedOrigin = process.env.CORS_ORIGIN?.split(',')[0]?.trim() || "'self'";
         res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
