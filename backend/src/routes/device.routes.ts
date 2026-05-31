@@ -6,11 +6,6 @@ import { safeLike } from '../utils/queryBuilder';
 
 const router = Router();
 router.use(authenticate);
-const DEVICE_SEARCH_PREDICATE = [
-  "device.serialNumber ILIKE :search ESCAPE '\\'",
-  "device.deviceModel ILIKE :search ESCAPE '\\'",
-  "device.manufacturer ILIKE :search ESCAPE '\\'",
-].join(' OR ');
 
 const mapDevice = (device: Device) => {
   const metadata = device.metadata || {};
@@ -44,8 +39,14 @@ router.get('/', async (req, res) => {
     if (status) qb.andWhere('device.status = :status', { status });
     if (deviceType) qb.andWhere('device.deviceType = :deviceType', { deviceType });
     if (search) {
+      const deviceSearchPredicate = [
+        "device.serialNumber ILIKE :search ESCAPE '\\'",
+        "device.deviceModel ILIKE :search ESCAPE '\\'",
+        "device.manufacturer ILIKE :search ESCAPE '\\'",
+      ].join(' OR ');
+
       // SAFE: parameterized query
-      qb.andWhere(`(${DEVICE_SEARCH_PREDICATE})`, { search: safeLike(search) });
+      qb.andWhere(`(${deviceSearchPredicate})`, { search: safeLike(search) });
     }
 
     qb.orderBy('device.createdAt', 'DESC').skip((page - 1) * limit).take(limit);
