@@ -124,7 +124,10 @@ if (isProduction) {
   }));
 } else {
   // ── DISABLE_CSP=true w development — helmet bez CSP ──────────────────────
+  // INTENTIONAL: CSP is disabled only when DISABLE_CSP=true AND NODE_ENV !== 'production'.
+  // validateEnv() prevents production startup with DISABLE_CSP=true (defense-in-depth).
   serverLogger.warn('⚠️  CSP wyłączone przez DISABLE_CSP=true (dozwolone tylko w development)');
+  // codeql[js/insecure-helmet-configuration] -- intentional dev-only escape hatch; blocked in production by validateEnv()
   app.use(helmet({
     contentSecurityPolicy: false,
     // OWASP A05: Explicit security header hardening (nawet bez CSP)
