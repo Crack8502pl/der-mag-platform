@@ -294,10 +294,12 @@ export class DatabaseSeeder {
     console.log('⚠️  WYMUSZONE SEEDOWANIE - Usuwanie istniejących danych...');
     
     // Wyłącz foreign key checks tymczasowo
+    // SAFE: static maintenance query without user-controlled input
     await AppDataSource.query('SET session_replication_role = replica;');
     
     try {
       // Usuń dane z tabel zależnych (od najniższego poziomu)
+      // SAFE: static maintenance queries without user-controlled input
       await AppDataSource.query('TRUNCATE TABLE service_task_activities CASCADE');
       await AppDataSource.query('TRUNCATE TABLE service_tasks CASCADE');
       await AppDataSource.query('TRUNCATE TABLE brigade_members CASCADE');
@@ -328,6 +330,7 @@ export class DatabaseSeeder {
       console.log('✅ Wymuszone seedowanie zakończone pomyślnie!');
     } finally {
       // Włącz z powrotem foreign key checks
+      // SAFE: static maintenance query without user-controlled input
       await AppDataSource.query('SET session_replication_role = DEFAULT;');
     }
   }

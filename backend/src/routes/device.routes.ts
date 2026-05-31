@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { AppDataSource } from '../config/database';
 import { Device } from '../entities/Device';
 import { authenticate } from '../middleware/auth';
+import { safeLike } from '../utils/queryBuilder';
 
 const router = Router();
 router.use(authenticate);
@@ -38,7 +39,11 @@ router.get('/', async (req, res) => {
     if (status) qb.andWhere('device.status = :status', { status });
     if (deviceType) qb.andWhere('device.deviceType = :deviceType', { deviceType });
     if (search) {
-      qb.andWhere('(device.serialNumber ILIKE :search OR device.deviceModel ILIKE :search OR device.manufacturer ILIKE :search)', { search: `%${search}%` });
+      // SAFE: parameterized query
+      qb.andWhere(
+        "(device.serialNumber ILIKE :search ESCAPE '\\' OR device.deviceModel ILIKE :search ESCAPE '\\' OR device.manufacturer ILIKE :search ESCAPE '\\')",
+        { search: safeLike(search) }
+      );
     }
 
     qb.orderBy('device.createdAt', 'DESC').skip((page - 1) * limit).take(limit);

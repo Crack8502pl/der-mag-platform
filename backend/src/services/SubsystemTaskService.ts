@@ -21,6 +21,7 @@ export class SubsystemTaskService {
     // Znajdź ostatni task dla tego podsystemu
     const lastTask = await this.taskRepository
       .createQueryBuilder('task')
+      // SAFE: parameterized query
       .where('task.taskNumber LIKE :pattern', { pattern: `${subsystemNumber}-%` })
       .orderBy('task.taskNumber', 'DESC')
       .limit(1)
