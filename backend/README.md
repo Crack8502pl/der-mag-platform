@@ -163,9 +163,10 @@ DB_USER=dermag_user
 DB_PASSWORD=your-secure-password
 
 # JWT
-JWT_SECRET=your-super-secret-jwt-key-change-in-production
-JWT_EXPIRES_IN=8h
-REFRESH_TOKEN_EXPIRES_IN=7d
+JWT_ACCESS_SECRET=your-super-secret-access-jwt-key-change-in-production
+JWT_REFRESH_SECRET=your-super-secret-refresh-jwt-key-change-in-production
+JWT_ACCESS_EXPIRY=15m
+JWT_REFRESH_EXPIRY=7d
 
 # SMTP Configuration (Email Notifications)
 SMTP_HOST=smtp.nazwa.pl

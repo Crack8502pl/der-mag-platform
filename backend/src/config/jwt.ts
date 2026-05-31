@@ -2,21 +2,9 @@
 // Konfiguracja JSON Web Token z obsługą rotacji tokenów
 
 import jwt from 'jsonwebtoken';
+import { getJwtConfig } from './jwtConfig';
 
-// Separate secrets for access and refresh tokens (no fallback - must be set)
-const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
-
-// Validate secrets on startup
-if (!JWT_ACCESS_SECRET || !JWT_REFRESH_SECRET) {
-  throw new Error(
-    'JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be defined in environment variables. ' +
-    'Generate strong secrets and add them to your .env file.'
-  );
-}
-
-const ACCESS_EXPIRES = process.env.ACCESS_EXPIRES || '15m';
-const REFRESH_EXPIRES = process.env.REFRESH_EXPIRES || '7d';
+const jwtConfig = getJwtConfig();
 const JWT_ISSUER = process.env.JWT_ISSUER || 'der-mag-platform';
 const JWT_AUDIENCE = process.env.JWT_AUDIENCE || 'der-mag-api';
 
@@ -41,9 +29,9 @@ export const generateAccessToken = (payload: JWTPayload, tokenId: string): strin
       username: payload.username,
       role: payload.role
     },
-    JWT_ACCESS_SECRET,
+    jwtConfig.accessSecret,
     {
-      expiresIn: ACCESS_EXPIRES,
+      expiresIn: jwtConfig.accessExpiresIn,
       jwtid: tokenId,
       issuer: JWT_ISSUER,
       audience: JWT_AUDIENCE
@@ -63,9 +51,9 @@ export const generateRefreshToken = (payload: JWTPayload, tokenId: string): stri
       username: payload.username,
       role: payload.role
     },
-    JWT_REFRESH_SECRET,
+    jwtConfig.refreshSecret,
     {
-      expiresIn: REFRESH_EXPIRES,
+      expiresIn: jwtConfig.refreshExpiresIn,
       jwtid: tokenId,
       issuer: JWT_ISSUER,
       audience: JWT_AUDIENCE
@@ -77,7 +65,7 @@ export const generateRefreshToken = (payload: JWTPayload, tokenId: string): stri
  * Verify access token
  */
 export const verifyAccessToken = (token: string): JWTPayload => {
-  return jwt.verify(token, JWT_ACCESS_SECRET, {
+  return jwt.verify(token, jwtConfig.accessSecret, {
     issuer: JWT_ISSUER,
     audience: JWT_AUDIENCE
   }) as JWTPayload;
@@ -87,7 +75,7 @@ export const verifyAccessToken = (token: string): JWTPayload => {
  * Verify refresh token
  */
 export const verifyRefreshToken = (token: string): JWTPayload => {
-  return jwt.verify(token, JWT_REFRESH_SECRET, {
+  return jwt.verify(token, jwtConfig.refreshSecret, {
     issuer: JWT_ISSUER,
     audience: JWT_AUDIENCE
   }) as JWTPayload;

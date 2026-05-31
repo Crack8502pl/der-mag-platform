@@ -2,6 +2,7 @@
 // Walidacja krytycznych zmiennych środowiskowych przy starcie aplikacji
 
 import { serverLogger } from '../utils/logger';
+import { parseExpiryToSeconds } from './jwtConfig';
 
 interface EnvValidationResult {
   valid: boolean;
@@ -62,6 +63,36 @@ function checkEnvVariables(): EnvValidationResult {
     process.env.JWT_ACCESS_SECRET === process.env.JWT_REFRESH_SECRET
   ) {
     errors.push('JWT_ACCESS_SECRET i JWT_REFRESH_SECRET muszą być różne');
+  }
+
+  const accessExpiry = process.env.JWT_ACCESS_EXPIRY ?? process.env.ACCESS_EXPIRES;
+  const refreshExpiry = process.env.JWT_REFRESH_EXPIRY ?? process.env.REFRESH_EXPIRES;
+
+  let accessExpirySeconds: number | null = null;
+  let refreshExpirySeconds: number | null = null;
+
+  if (accessExpiry !== undefined) {
+    try {
+      accessExpirySeconds = parseExpiryToSeconds(accessExpiry);
+    } catch {
+      errors.push(`JWT_ACCESS_EXPIRY ma nieprawidłowy format: "${accessExpiry}". Użyj: 15m, 1h, 7d`);
+    }
+  }
+
+  if (refreshExpiry !== undefined) {
+    try {
+      refreshExpirySeconds = parseExpiryToSeconds(refreshExpiry);
+    } catch {
+      errors.push(`JWT_REFRESH_EXPIRY ma nieprawidłowy format: "${refreshExpiry}". Użyj: 15m, 1h, 7d`);
+    }
+  }
+
+  if (
+    accessExpirySeconds !== null &&
+    refreshExpirySeconds !== null &&
+    refreshExpirySeconds <= accessExpirySeconds
+  ) {
+    errors.push('JWT_REFRESH_EXPIRY musi być dłuższe niż JWT_ACCESS_EXPIRY');
   }
 
   // ── KRYTYCZNE: Produkcja ─────────────────────────────────────────────────
