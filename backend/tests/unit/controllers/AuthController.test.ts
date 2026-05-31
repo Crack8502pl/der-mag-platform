@@ -59,7 +59,7 @@ describe('AuthController', () => {
     res = createMockResponse();
 
     // Setup default environment
-    process.env.REFRESH_EXPIRES = '7d';
+    process.env.JWT_REFRESH_EXPIRY = '7d';
   });
 
   afterEach(() => {

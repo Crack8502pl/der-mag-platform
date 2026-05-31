@@ -60,6 +60,22 @@ describe('validateEnv()', () => {
     expect(() => validateEnv()).toThrow('muszą być różne');
   });
 
+  it('rzuca błąd gdy JWT_ACCESS_EXPIRY ma nieprawidłowy format', () => {
+    process.env.JWT_ACCESS_EXPIRY = 'abc';
+    expect(() => validateEnv()).toThrow('JWT_ACCESS_EXPIRY ma nieprawidłowy format');
+  });
+
+  it('rzuca błąd gdy JWT_REFRESH_EXPIRY ma nieprawidłowy format', () => {
+    process.env.JWT_REFRESH_EXPIRY = '';
+    expect(() => validateEnv()).toThrow('JWT_REFRESH_EXPIRY ma nieprawidłowy format');
+  });
+
+  it('rzuca błąd gdy JWT_REFRESH_EXPIRY jest krótsze lub równe JWT_ACCESS_EXPIRY', () => {
+    process.env.JWT_ACCESS_EXPIRY = '1h';
+    process.env.JWT_REFRESH_EXPIRY = '30m';
+    expect(() => validateEnv()).toThrow('JWT_REFRESH_EXPIRY musi być dłuższe niż JWT_ACCESS_EXPIRY');
+  });
+
   // ── Produkcja: blokady bezpieczeństwa ────────────────────────────────────
   describe('środowisko produkcyjne', () => {
     beforeEach(() => {

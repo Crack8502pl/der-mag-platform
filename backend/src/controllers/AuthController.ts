@@ -13,6 +13,9 @@ import { generateRandomPassword } from '../utils/password';
 import { NotificationService } from '../services/NotificationService';
 import { generateCsrfToken } from '../middleware/csrf';
 import { UserSessionLog } from '../entities/UserSessionLog';
+import { getJwtConfig } from '../config/jwtConfig';
+
+const jwtConfig = getJwtConfig();
 
 // Helper function to log security events
 const logSecurityEvent = async (
@@ -124,24 +127,8 @@ export class AuthController {
       const refreshToken = generateRefreshToken(payload, tokenId);
 
       // Calculate expiration date for refresh token
-      const refreshExpiresIn = process.env.REFRESH_EXPIRES || '7d';
       const expiresAt = new Date();
-      
-      // Parse expiration time
-      const match = refreshExpiresIn.match(/^(\d+)([dhms])$/);
-      if (match) {
-        const value = parseInt(match[1]);
-        const unit = match[2];
-        switch (unit) {
-          case 'd': expiresAt.setDate(expiresAt.getDate() + value); break;
-          case 'h': expiresAt.setHours(expiresAt.getHours() + value); break;
-          case 'm': expiresAt.setMinutes(expiresAt.getMinutes() + value); break;
-          case 's': expiresAt.setSeconds(expiresAt.getSeconds() + value); break;
-        }
-      } else {
-        // Default 7 days
-        expiresAt.setDate(expiresAt.getDate() + 7);
-      }
+      expiresAt.setSeconds(expiresAt.getSeconds() + jwtConfig.refreshExpiresInSeconds);
 
       // Save refresh token to database
       const refreshTokenRepo = AppDataSource.getRepository(RefreshToken);
@@ -184,7 +171,7 @@ export class AuthController {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        ...(rememberMe && { maxAge: 7 * 24 * 60 * 60 * 1000 }),
+        ...(rememberMe && { maxAge: jwtConfig.refreshExpiresInSeconds * 1000 }),
         path: '/api/auth'
       });
 
@@ -193,7 +180,7 @@ export class AuthController {
         httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        ...(rememberMe && { maxAge: 7 * 24 * 60 * 60 * 1000 }),
+        ...(rememberMe && { maxAge: jwtConfig.refreshExpiresInSeconds * 1000 }),
         path: '/'
       });
 
@@ -385,21 +372,8 @@ export class AuthController {
         const newRefreshToken = generateRefreshToken(payload, newTokenId);
 
         // Calculate new expiration
-        const refreshExpiresIn = process.env.REFRESH_EXPIRES || '7d';
         const expiresAt = new Date();
-        const match = refreshExpiresIn.match(/^(\d+)([dhms])$/);
-        if (match) {
-          const value = parseInt(match[1]);
-          const unit = match[2];
-          switch (unit) {
-            case 'd': expiresAt.setDate(expiresAt.getDate() + value); break;
-            case 'h': expiresAt.setHours(expiresAt.getHours() + value); break;
-            case 'm': expiresAt.setMinutes(expiresAt.getMinutes() + value); break;
-            case 's': expiresAt.setSeconds(expiresAt.getSeconds() + value); break;
-          }
-        } else {
-          expiresAt.setDate(expiresAt.getDate() + 7);
-        }
+        expiresAt.setSeconds(expiresAt.getSeconds() + jwtConfig.refreshExpiresInSeconds);
 
         // Revoke old token
         tokenRecord.revoked = true;
@@ -449,7 +423,7 @@ export class AuthController {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'strict',
-          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+          maxAge: jwtConfig.refreshExpiresInSeconds * 1000,
           path: '/api/auth'
         });
 
@@ -458,7 +432,7 @@ export class AuthController {
           httpOnly: false,
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'strict',
-          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+          maxAge: jwtConfig.refreshExpiresInSeconds * 1000,
           path: '/'
         });
 
