@@ -7,6 +7,7 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import app from './app';
+import { validateEnv } from './config/envValidation';
 import { initializeDatabase } from './config/database';
 import { DatabaseSeeder } from './services/DatabaseSeeder';
 import { ShipmentBomTemplatesSeed } from './seeds/shipmentBomTemplates.seed';
@@ -22,6 +23,16 @@ import { serverLogger, overrideConsole } from './utils/logger';
 
 // Override console.* to redirect all logs to winston files
 overrideConsole();
+
+// ── Walidacja ENV — musi być przed wszystkim innym ───────────────────────────
+// OWASP A05: Security Misconfiguration
+// Rzuca błąd i blokuje start serwera jeśli:
+//   - brak JWT_ACCESS_SECRET / JWT_REFRESH_SECRET (lub za krótkie / identyczne)
+//   - DISABLE_CSP=true w produkcji
+//   - ENABLE_DEBUG_ENDPOINTS=true w produkcji
+//   - brak CORS_ORIGIN w produkcji
+//   - brak konfiguracji bazy danych w produkcji
+validateEnv();
 
 const PORT = process.env.PORT || 3000;
 const USE_HTTPS = process.env.USE_HTTPS === 'true';
