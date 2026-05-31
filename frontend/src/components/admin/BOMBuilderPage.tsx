@@ -1330,10 +1330,18 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                                                     padding: '2px 6px',
                                                     fontSize: '10px',
                                                     borderRadius: 'var(--radius-sm)',
-                                                    background: input.inputType === 'ITEM' ? '#3b82f6' : '#8b5cf6',
+                                                    background: input.inputType === 'ITEM'
+                                                      ? '#3b82f6'
+                                                      : input.inputType === 'CONFIG_PARAM'
+                                                        ? '#059669'
+                                                        : '#8b5cf6',
                                                     color: '#fff'
                                                   }}>
-                                                    {input.inputType === 'ITEM' ? 'Pozycja' : 'Reguła'}
+                                                    {input.inputType === 'ITEM'
+                                                      ? 'Pozycja'
+                                                      : input.inputType === 'CONFIG_PARAM'
+                                                        ? 'Parametr'
+                                                        : 'Reguła'}
                                                   </span>
                                                 </td>
                                                 <td style={{ fontSize: '11px' }}>
@@ -1369,6 +1377,15 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                                                     </div>
                                                   ) : sourceRule ? (
                                                     <span style={{ fontSize: '11px' }}>🔗 {sourceRule.ruleName}</span>
+                                                  ) : input.inputType === 'CONFIG_PARAM' ? (
+                                                    <div>
+                                                      <span style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--primary-color)' }}>
+                                                        ⚙️ {input.sourceParamName || '?'}
+                                                      </span>
+                                                      <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                                        Parametr Wizarda
+                                                      </div>
+                                                    </div>
                                                   ) : (
                                                     <span style={{ color: '#ef4444', fontSize: '11px' }}>⚠️ Usunięta pozycja</span>
                                                   )}
