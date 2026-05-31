@@ -250,7 +250,7 @@ describe('ContractController', () => {
       expect(res.json).toHaveBeenCalledWith({
         success: false,
         message: 'Błąd podczas pobierania kontraktów',
-        error: 'Database error',
+        // OWASP A05: error details are logged server-side only, not returned to client
       });
     });
   });

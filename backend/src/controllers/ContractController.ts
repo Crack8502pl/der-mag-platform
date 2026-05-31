@@ -174,8 +174,8 @@ export class ContractController {
         }
       });
     } catch (error: any) {
-      // Pełne logowanie błędu dla debugowania
-      console.error('❌ [ContractController.getContracts] Error:', {
+      // Pełne logowanie błędu po stronie serwera (nie wysyłane do klienta)
+      serverLogger.error('[ContractController.getContracts]', {
         message: error.message,
         stack: error.stack,
         query: error.query,
@@ -187,12 +187,7 @@ export class ContractController {
       res.status(500).json({
         success: false,
         message: 'Błąd podczas pobierania kontraktów',
-        error: error.message,
-        ...(process.env.NODE_ENV === 'development' && {
-          sqlQuery: error.query,
-          detail: error.detail,
-          code: error.code
-        })
+        // OWASP A05: nie ujawniamy szczegółów SQL (error.message, error.query, error.detail, error.code)
       });
     }
   };
@@ -222,7 +217,7 @@ export class ContractController {
       res.status(500).json({
         success: false,
         message: 'Błąd podczas pobierania kontraktu',
-        error: error.message
+        // OWASP A05: nie ujawniamy szczegółów błędu
       });
     }
   };
