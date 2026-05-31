@@ -218,8 +218,8 @@ export class AuthController {
    */
   static async refresh(req: Request, res: Response): Promise<void> {
     try {
-      // Read refresh token from httpOnly cookie
-      const refreshToken = req.cookies.refreshToken;
+      // Read refresh token from httpOnly cookie (preferred) or request body
+      const refreshToken = req.cookies.refreshToken || req.body?.refreshToken;
 
       if (!refreshToken) {
         res.status(400).json({

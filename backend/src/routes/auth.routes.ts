@@ -1,13 +1,24 @@
 // src/routes/auth.routes.ts
-import { Router } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
 import { AuthController } from '../controllers/AuthController';
 import { authenticate } from '../middleware/auth';
 import { validateDto } from '../middleware/validator';
-import { LoginDto } from '../dto/LoginDto';
+import { validate } from '../middleware/validate';
+import { LoginDto } from '../dto/auth/LoginDto';
 import { ChangePasswordDto } from '../dto/ChangePasswordDto';
+import { RefreshTokenDto } from '../dto/auth/RefreshTokenDto';
 import { generateCsrfToken } from '../middleware/csrf';
 
 const router = Router();
+
+const validateRefreshBody = validate(RefreshTokenDto);
+const validateRefreshInput = (req: Request, res: Response, next: NextFunction) => {
+  if (req.cookies?.refreshToken) {
+    next();
+    return;
+  }
+  void validateRefreshBody(req, res, next);
+};
 
 // CSRF token endpoint for SPA bootstrap
 router.get('/csrf-token', (req, res) => {
@@ -30,8 +41,8 @@ router.get('/csrf-token', (req, res) => {
   });
 });
 
-router.post('/login', validateDto(LoginDto), AuthController.login);
-router.post('/refresh', AuthController.refresh);
+router.post('/login', validate(LoginDto), AuthController.login);
+router.post('/refresh', validateRefreshInput, AuthController.refresh);
 router.post('/logout', authenticate, AuthController.logout);
 router.post('/logout/all', authenticate, AuthController.logoutAll);
 router.get('/sessions', authenticate, AuthController.getActiveSessions);
