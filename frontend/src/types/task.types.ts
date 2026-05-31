@@ -27,6 +27,27 @@ export interface TaskAssignment {
   assignedAt: string;
 }
 
+export interface TaskConfigParams {
+  [key: string]: unknown;
+  cameraCount?: number;
+  retentionDays?: number;
+  selectedRecorderId?: number | null;
+  selectedModels?: Record<string, { checked: boolean; quantity: number }>;
+  appliedBomTemplateId?: number | null;
+  wizardResolvedAt?: string;
+}
+
+export interface TaskMetadata {
+  subsystemType?: string;
+  taskVariant?: string | null;
+  isStandaloneNastawnia?: boolean;
+  lcsConfig?: Record<string, unknown>;
+  nastawniConfig?: Record<string, unknown>;
+  configParams?: TaskConfigParams;
+  bomId?: number | null;
+  bomGenerated?: boolean;
+}
+
 export interface Task {
   id: number;
   taskNumber: string;
@@ -46,7 +67,7 @@ export interface Task {
   actualStartDate?: Date | null;
   actualEndDate?: Date | null;
   priority: number;
-  metadata: Record<string, any>;
+  metadata: TaskMetadata & Record<string, any>;
   assignments?: TaskAssignment[];
   createdAt: string;
   updatedAt: string;
@@ -69,7 +90,7 @@ export interface CreateTaskDto {
   plannedStartDate?: Date;
   plannedEndDate?: Date;
   priority?: number;
-  metadata?: Record<string, any>;
+  metadata?: TaskMetadata & Record<string, any>;
   gpsLatitude?: number | null;
   gpsLongitude?: number | null;
   googleMapsUrl?: string | null;
@@ -90,7 +111,7 @@ export interface UpdateTaskDto {
   actualStartDate?: Date;
   actualEndDate?: Date;
   priority?: number;
-  metadata?: Record<string, any>;
+  metadata?: TaskMetadata & Record<string, any>;
   gpsLatitude?: number | null;
   gpsLongitude?: number | null;
   googleMapsUrl?: string | null;

@@ -20,6 +20,10 @@ interface Props {
 }
 
 type NastawniTyp = 'SAMODZIELNA' | 'PODLEGLA';
+interface SavedNastawniConfig {
+  typ?: NastawniTyp;
+  data?: Record<string, unknown>;
+}
 
 const defaultSamodzielna = (): NastawniaSamodzielnaConfig => ({
   obserwowanePrzejazdy: [],
@@ -54,9 +58,12 @@ export const NastawniConfigModal: React.FC<Props> = ({ task, onClose, onSuccess 
   const canEdit = hasPermission('tasks', 'update');
 
   // Determine type from saved metadata, fallback to SAMODZIELNA
-  const savedConfig = task.metadata?.configParams?.nastawniConfig;
+  const savedConfig = task.metadata?.configParams?.nastawniConfig as SavedNastawniConfig | undefined;
+  const savedTyp = savedConfig?.typ === 'PODLEGLA' || savedConfig?.typ === 'SAMODZIELNA'
+    ? savedConfig.typ
+    : undefined;
   const [typ, setTyp] = useState<NastawniTyp>(
-    savedConfig?.typ ?? (task.metadata?.configParams?.nastawniaSamodzielna === false ? 'PODLEGLA' : 'SAMODZIELNA')
+    savedTyp ?? (task.metadata?.configParams?.nastawniaSamodzielna === false ? 'PODLEGLA' : 'SAMODZIELNA')
   );
 
   const [configS, setConfigS] = useState<NastawniaSamodzielnaConfig>(defaultSamodzielna());
@@ -66,13 +73,13 @@ export const NastawniConfigModal: React.FC<Props> = ({ task, onClose, onSuccess 
 
   useEffect(() => {
     if (savedConfig) {
-      if (savedConfig.typ === 'SAMODZIELNA' && savedConfig.data) {
+      if (savedTyp === 'SAMODZIELNA' && savedConfig.data && typeof savedConfig.data === 'object') {
         setConfigS({ ...defaultSamodzielna(), ...savedConfig.data });
-      } else if (savedConfig.typ === 'PODLEGLA' && savedConfig.data) {
+      } else if (savedTyp === 'PODLEGLA' && savedConfig.data && typeof savedConfig.data === 'object') {
         setConfigP({ ...defaultPodlegla(), ...savedConfig.data });
       }
     }
-  }, [task.metadata]);
+  }, [savedConfig, savedTyp]);
 
   const handleSave = async () => {
     if (!canEdit) return;

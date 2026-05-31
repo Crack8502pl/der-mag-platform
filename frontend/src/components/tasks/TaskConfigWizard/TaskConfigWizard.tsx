@@ -11,7 +11,14 @@ import taskRelationshipService from '../../../services/taskRelationship.service'
 import type { BomSubsystemTemplate, BomSubsystemTemplateItem } from '../../../services/bomSubsystemTemplate.service';
 import type { BomGroup } from '../../../services/bomGroup.service';
 import type { BomResolveResult } from '../../../services/bomResolver.service';
-import type { Task } from '../../../types/task.types';
+import type { Task, TaskMetadata } from '../../../types/task.types';
+import { extractCameraCount } from '../../../utils/cameraCountUtils';
+import {
+  mergeLcsConfigToMetadata,
+  mergeNastawniConfigToMetadata,
+  readLcsConfig,
+  readNastawniConfig,
+} from '../../../utils/metadataMerge';
 import { WizardStepParams } from './WizardStepParams';
 import { WizardStepBom } from './WizardStepBom';
 import { WizardStepRecorder } from './WizardStepRecorder';
@@ -51,12 +58,13 @@ interface TaskConfigWizardProps {
   onSuccess: () => void;
 }
 
-interface WizardTaskMetadata {
+interface WizardTaskMetadata extends TaskMetadata {
   subsystemType?: string;
-  taskVariant?: string;
+  taskVariant?: string | null;
   isStandaloneNastawnia?: boolean;
   lcsConfig?: {
     iloscKamer?: unknown;
+    iloscStanowisk?: unknown;
     obserwowanePrzejazdy?: unknown[];
     serwerObrazu?: {
       maxKamer?: unknown;
@@ -79,6 +87,7 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
   const [selectedModels, setSelectedModels] = useState<Record<string, { checked: boolean; quantity: number }>>({});
   const [retentionDays, setRetentionDays] = useState<number>(30);
   const [selectedRecorderId, setSelectedRecorderId] = useState<number | null>(null);
+  const [cameraCount, setCameraCount] = useState<number>(0);
   const [resolvedBom, setResolvedBom] = useState<BomResolveResult | null>(null);
   const [template, setTemplate] = useState<BomSubsystemTemplate | null>(null);
   const [configGroups, setConfigGroups] = useState<ConfigGroup[]>([]);
@@ -94,14 +103,37 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const getNormalizedMetadata = (): WizardTaskMetadata & Record<string, unknown> => {
+    const baseMetadata = (task.metadata || {}) as WizardTaskMetadata & Record<string, unknown>;
+    const existingLcsConfig = readLcsConfig(baseMetadata);
+    const existingNastawniConfig = readNastawniConfig(baseMetadata);
+    return {
+      ...baseMetadata,
+      ...(existingLcsConfig ? { lcsConfig: existingLcsConfig } : {}),
+      ...(existingNastawniConfig ? { nastawniConfig: existingNastawniConfig } : {}),
+    };
+  };
+
   const initWizard = async () => {
     try {
       setLoading(true);
       setError('');
 
       // Load existing config from task metadata
-      const existingConfig = task.metadata?.configParams || {};
+      const normalizedMetadata = getNormalizedMetadata();
+      const existingConfig = normalizedMetadata.configParams || {};
       setConfigValues(existingConfig);
+      setCameraCount(
+        extractCameraCount({
+          taskTypeCode: task.taskType?.code || '',
+          subsystemType: String(normalizedMetadata.subsystemType || task.taskType?.code || ''),
+          configValues: existingConfig as Record<string, unknown>,
+          metadata: normalizedMetadata,
+          isStandaloneNastawnia: Boolean(
+            normalizedMetadata.isStandaloneNastawnia ?? task.metadata?.isStandaloneNastawnia
+          ),
+        })
+      );
 
       if (existingConfig.retentionDays) {
         setRetentionDays(Number(existingConfig.retentionDays) || 30);
@@ -131,8 +163,8 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
       setBomGroups(groups);
 
       // Load template
-      const subsystemType = task.metadata?.subsystemType || task.taskType?.code || '';
-      const taskVariant = task.metadata?.taskVariant || null;
+      const subsystemType = normalizedMetadata.subsystemType || task.taskType?.code || '';
+      const taskVariant = normalizedMetadata.taskVariant || null;
 
       if (!subsystemType) {
         setError('Brak informacji o typie podsystemu w zadaniu');
@@ -145,7 +177,7 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
       // of any LCS task.  Priority: explicit metadata flag → live relationship query.
       const taskTypeCode = task.taskType?.code || '';
       if (subsystemType === 'SMOKIP_A' && taskTypeCode === 'NASTAWNIA') {
-        const metadataFlag = task.metadata?.isStandaloneNastawnia;
+        const metadataFlag = normalizedMetadata.isStandaloneNastawnia;
         if (typeof metadataFlag === 'boolean') {
           setIsStandaloneNastawnia(metadataFlag);
         } else if (task.subsystemId) {
@@ -252,72 +284,15 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
     return labels[paramName] || paramName;
   };
 
-  const extractCameraCountFromConfigValues = (): number => {
-    return Object.entries(configValues).reduce((sum, [key, value]) => {
-      const normalizedKey = key.toLowerCase();
-      if (
-        !normalizedKey.includes('kamer') ||
-        normalizedKey.includes('model') ||
-        normalizedKey.includes('selectedmodels')
-      ) {
-        return sum;
-      }
-      const parsedValue = Number(value);
-      return Number.isFinite(parsedValue) ? sum + parsedValue : sum;
-    }, 0);
-  };
-
-  const extractCameraCountFromTask = (): number => {
-    const taskTypeCode = task.taskType?.code || '';
-    const meta = (task.metadata || {}) as WizardTaskMetadata;
-
-    if (taskTypeCode === 'LCS' && meta.subsystemType === 'SMOKIP_B') {
-      return Number(meta.lcsConfig?.serwerObrazu?.maxKamer) || 0;
-    }
-
-    if (taskTypeCode === 'LCS') {
-      const cameraCountFromConfigValues = extractCameraCountFromConfigValues();
-      if (cameraCountFromConfigValues > 0) {
-        return cameraCountFromConfigValues;
-      }
-      if (meta.lcsConfig?.iloscKamer !== undefined && meta.lcsConfig?.iloscKamer !== null) {
-        const parsedCount = Number(meta.lcsConfig.iloscKamer);
-        if (Number.isFinite(parsedCount)) {
-          return parsedCount;
-        }
-      }
-      if (Array.isArray(meta.lcsConfig?.obserwowanePrzejazdy)) {
-        return meta.lcsConfig.obserwowanePrzejazdy.length * 2;
-      }
-      return 0;
-    }
-
-    if (taskTypeCode === 'NASTAWNIA' && isStandaloneNastawnia) {
-      const cameraCountFromConfigValues = extractCameraCountFromConfigValues();
-      if (cameraCountFromConfigValues > 0) {
-        return cameraCountFromConfigValues;
-      }
-      const parsedCount = meta.nastawniConfig?.iloscKamer !== undefined && meta.nastawniConfig?.iloscKamer !== null
-        ? Number(meta.nastawniConfig.iloscKamer)
-        : undefined;
-      if (parsedCount !== undefined && Number.isFinite(parsedCount)) {
-        return parsedCount;
-      }
-      return meta.nastawniConfig?.obserwowanePrzejazdy?.length ?? 0;
-    }
-
-    if (taskTypeCode === 'NASTAWNIA' && !isStandaloneNastawnia) {
-      const assignedCount = meta.nastawniConfig?.stacjaOperatorska?.przypisaneKamery?.length;
-      if (assignedCount !== undefined) {
-        return assignedCount;
-      }
-      const parsedCount = meta.nastawniConfig?.iloscKamer !== undefined && meta.nastawniConfig?.iloscKamer !== null
-        ? Number(meta.nastawniConfig.iloscKamer)
-        : undefined;
-      return parsedCount !== undefined && Number.isFinite(parsedCount) ? parsedCount : 0;
-    }
-
-    return 0;
+  const getCameraCount = (): number => {
+    const metadata = getNormalizedMetadata();
+    return extractCameraCount({
+      taskTypeCode: task.taskType?.code || '',
+      subsystemType: String(metadata.subsystemType || task.taskType?.code || ''),
+      configValues,
+      metadata,
+      isStandaloneNastawnia,
+    });
   };
 
   // ── handleResolve ────────────────────────────────────────────
@@ -326,10 +301,12 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
     setResolving(true);
     setError('');
     try {
-      const subsystemType = task.metadata?.subsystemType || task.taskType?.code || '';
+      const metadata = getNormalizedMetadata();
+      const subsystemType = metadata.subsystemType || task.taskType?.code || '';
       const taskType = task.taskType?.code || subsystemType;
-      const taskVariant = task.metadata?.taskVariant || null;
-      const cameraCount = extractCameraCountFromTask();
+      const taskVariant = metadata.taskVariant || null;
+      const count = getCameraCount();
+      setCameraCount(count);
 
       const result = await bomResolverService.resolve({
         subsystemType,
@@ -339,7 +316,7 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
         isStandaloneNastawnia,
         selectedRecorderId: selectedRecorderId || null,
         retentionDays,
-        cameraCount,
+        cameraCount: count,
       });
 
       setResolvedBom(result);
@@ -359,9 +336,6 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
     setSaving(true);
     setError('');
     try {
-      const cameraCount = Number.isFinite(resolvedBom.cameraCount)
-        ? resolvedBom.cameraCount
-        : extractCameraCountFromTask();
       const newConfigParams = {
         ...(task.metadata?.configParams || {}),
         ...configValues,
@@ -372,24 +346,18 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
         wizardResolvedAt: resolvedBom.resolvedAt || new Date().toISOString(),
       };
 
-      const existingMetadata = (task.metadata || {}) as WizardTaskMetadata & Record<string, unknown>;
-      const metadataToSave: Record<string, unknown> = {
+      const existingMetadata = getNormalizedMetadata();
+      let metadataToSave: Record<string, unknown> = {
         ...existingMetadata,
         configParams: newConfigParams,
       };
 
       if (task.taskType?.code === 'LCS') {
-        metadataToSave.lcsConfig = {
-          ...(existingMetadata.lcsConfig || {}),
-          iloscKamer: cameraCount,
-        };
+        metadataToSave = mergeLcsConfigToMetadata(metadataToSave, { iloscKamer: cameraCount });
       }
 
       if (task.taskType?.code === 'NASTAWNIA' && isStandaloneNastawnia) {
-        metadataToSave.nastawniConfig = {
-          ...(existingMetadata.nastawniConfig || {}),
-          iloscKamer: cameraCount,
-        };
+        metadataToSave = mergeNastawniConfigToMetadata(metadataToSave, { iloscKamer: cameraCount });
       }
 
       await taskService.update(task.taskNumber, {

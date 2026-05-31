@@ -16,7 +16,7 @@ Dzięki temu reguły nie muszą bazować wyłącznie na pozycjach BOM (`ITEM`) a
 - `recorderId` — ID wybranego rejestratora
 
 ### 🏗️ Konfiguracja LCS / Nastawnia
-- `lcsConfig.iloscKamer` — kamery LCS (docelowo suma kamer dzieci Nastawni, a gdy brak dzieci fallback do sumy pól `*kamer*` z `configValues`)
+- `lcsConfig.iloscKamer` — kamery LCS (wyliczane i zapisywane przez Task Config Wizard; nie przez LCSConfigModal)
 - `lcsConfig.iloscStanowisk` — stanowiska
 - `lcsConfig.serwerObrazu.maxKamer` — max kamer serwera
 - `nastawniConfig.iloscKamer` — kamery Nastawni samodzielnej (wyliczane przez Wizard z pól `*kamer*` z `configValues`)
@@ -54,3 +54,19 @@ W praktyce konfiguracja typowo wygląda jako:
 5. Upewnij się, że kolejność ewaluacji (`evaluationOrder`) zachowuje łańcuch:
    - najpierw reguły wejściowe (kamery/retencja),
    - potem reguły pochodne (rejestrator, dyski).
+
+## Priorytet źródeł `cameraCount` (Wizard)
+
+1. Live `configValues` z bieżącej sesji Wizarda (`*kamer*`, bez kluczy modeli/selected)
+2. Zapisane `task.metadata.lcsConfig.iloscKamer` / `task.metadata.nastawniConfig.iloscKamer`
+3. Strukturalne fallbacki (`lcsConfig.serwerObrazu.maxKamer`, `nastawniConfig.stacjaOperatorska.przypisaneKamery.length`)
+4. Fallback obserwacji (`obserwowanePrzejazdy.length * 2` dla LCS, `obserwowanePrzejazdy.length` dla samodzielnej Nastawni)
+5. Ostateczny fallback: `0`
+
+## Ostrzeżenie: poprawna ścieżka metadata
+
+Docelowa ścieżka konfiguracji to:
+- `task.metadata.lcsConfig`
+- `task.metadata.nastawniConfig`
+
+Ścieżki legacy `task.metadata.configParams.lcsConfig` i `task.metadata.configParams.nastawniConfig` są obsługiwane tylko dla kompatybilności wstecznej odczytu/migracji.
