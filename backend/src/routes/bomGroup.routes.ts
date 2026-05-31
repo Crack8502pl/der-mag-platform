@@ -3,7 +3,8 @@
 
 import { Router } from 'express';
 import { BomGroupController } from '../controllers/BomGroupController';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 
 const router = Router();
 
@@ -26,21 +27,21 @@ router.get(
 // Create new group (requires admin, manager, or bom_editor role)
 router.post(
   '/',
-  authorize('admin', 'manager', 'bom_editor'),
+  checkPermission('bom', 'create'),
   BomGroupController.createGroup
 );
 
 // Update group (requires admin, manager, or bom_editor role)
 router.put(
   '/:id',
-  authorize('admin', 'manager', 'bom_editor'),
+  checkPermission('bom', 'update'),
   BomGroupController.updateGroup
 );
 
 // Delete group (requires admin, manager, or bom_editor role)
 router.delete(
   '/:id',
-  authorize('admin', 'manager', 'bom_editor'),
+  checkPermission('bom', 'delete'),
   BomGroupController.deleteGroup
 );
 

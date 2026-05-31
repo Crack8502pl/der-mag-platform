@@ -7,6 +7,7 @@ import { AppDataSource } from '../config/database';
 import { User } from '../entities/User';
 import { RefreshToken } from '../entities/RefreshToken';
 import { Role } from '../entities/Role';
+import { serverLogger } from '../utils/logger';
 
 // Rozszerzenie typu Request o dane użytkownika
 declare global {
@@ -21,7 +22,7 @@ declare global {
   }
 }
 
-const PARANOID_MODE = process.env.PARANOID_MODE === 'true';
+const isParanoidModeEnabled = () => process.env.PARANOID_MODE === 'true';
 
 /**
  * Middleware weryfikacji JWT token
@@ -72,7 +73,7 @@ export const authenticate = async (
       };
 
       // Paranoid mode: verify token exists in database and is not revoked
-      if (PARANOID_MODE && payload.jti) {
+      if (isParanoidModeEnabled() && payload.jti) {
         const refreshTokenRepo = AppDataSource.getRepository(RefreshToken);
         const tokenRecord = await refreshTokenRepo.findOne({
           where: { tokenId: payload.jti, revoked: false }
@@ -105,13 +106,27 @@ export const authenticate = async (
 };
 
 /**
- * @deprecated Use checkPermission() from middleware/permissions.ts instead.
- * This function only checks role name, not granular JSONB permissions.
- * Middleware sprawdzania roli użytkownika
+ * @deprecated Używaj checkPermission(resource, action) zamiast authorize().
+ * Ta funkcja sprawdza tylko nazwę roli, nie granularne uprawnienia JSONB.
+ * OWASP A01: Broken Access Control
+ *
+ * W środowisku produkcyjnym rzuca błąd — wymusza migrację do checkPermission().
  */
 export const authorize = (...allowedRoles: string[]) => {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      '[SECURITY] authorize() jest zabronione w produkcji. ' +
+      'Użyj checkPermission(resource, action) zamiast authorize().'
+    );
+  }
+
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      serverLogger.warn(
+        `[DEPRECATED] authorize() użyte dla roli "${allowedRoles.join(', ')}" — ` +
+        `przemigruj do checkPermission(). Ścieżka: ${req.path}`
+      );
+
       if (!req.user) {
         res.status(401).json({
           success: false,

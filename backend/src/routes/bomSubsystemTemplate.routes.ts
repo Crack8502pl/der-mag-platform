@@ -4,6 +4,7 @@
 import { Router } from 'express';
 import { BomSubsystemTemplateController } from '../controllers/BomSubsystemTemplateController';
 import { authenticate, authorize } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { uploadCSV } from '../middleware/upload';
 import multer from 'multer';
 
@@ -34,12 +35,14 @@ router.get(
 
 router.get(
   '/export-all-json',
+  // TODO: migrate to checkPermission(resource, action)
   authorize('admin'),
   BomSubsystemTemplateController.exportAllJson
 );
 
 router.post(
   '/import-all-json',
+  // TODO: migrate to checkPermission(resource, action)
   authorize('admin'),
   upload.single('file'),
   BomSubsystemTemplateController.importAllJson
@@ -48,7 +51,7 @@ router.post(
 // Import template from CSV (must be before /:id)
 router.post(
   '/import',
-  authorize('admin', 'manager'),
+  checkPermission('bom', 'create'),
   uploadCSV.single('file'),
   BomSubsystemTemplateController.importTemplate
 );
@@ -62,35 +65,35 @@ router.get(
 // Export template to CSV
 router.get(
   '/:id/export',
-  authorize('admin', 'manager', 'bom_editor'),
+  checkPermission('bom', 'read'),
   BomSubsystemTemplateController.exportTemplate
 );
 
 // Create new template (requires admin or manager role)
 router.post(
   '/',
-  authorize('admin', 'manager', 'bom_editor'),
+  checkPermission('bom', 'create'),
   BomSubsystemTemplateController.createTemplate
 );
 
 // Update template (requires admin, manager, or bom_editor role)
 router.put(
   '/:id',
-  authorize('admin', 'manager', 'bom_editor'),
+  checkPermission('bom', 'update'),
   BomSubsystemTemplateController.updateTemplate
 );
 
 // Delete template (requires admin, manager, or bom_editor role)
 router.delete(
   '/:id',
-  authorize('admin', 'manager', 'bom_editor'),
+  checkPermission('bom', 'delete'),
   BomSubsystemTemplateController.deleteTemplate
 );
 
 // Apply template to task (requires admin, manager, or bom_editor role)
 router.post(
   '/:id/apply/:taskId',
-  authorize('admin', 'manager', 'bom_editor'),
+  checkPermission('bom', 'update'),
   BomSubsystemTemplateController.applyTemplateToTask
 );
 

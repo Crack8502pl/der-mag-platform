@@ -3,7 +3,8 @@
 
 import { Router } from 'express';
 import { DiskSpecificationController } from '../controllers/DiskSpecificationController';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 
 const router = Router();
 
@@ -12,23 +13,23 @@ router.use(authenticate);
 // POST /api/disk-specifications/calculate — must come before /:id
 router.post(
   '/calculate',
-  authorize('admin', 'manager', 'bom_editor'),
+  checkPermission('bom', 'read'),
   DiskSpecificationController.calculate
 );
 
 // GET /api/disk-specifications
-router.get('/', authorize('admin', 'manager', 'bom_editor'), DiskSpecificationController.getAll);
+router.get('/', checkPermission('bom', 'read'), DiskSpecificationController.getAll);
 
 // GET /api/disk-specifications/:id
-router.get('/:id', authorize('admin', 'manager', 'bom_editor'), DiskSpecificationController.getById);
+router.get('/:id', checkPermission('bom', 'read'), DiskSpecificationController.getById);
 
 // POST /api/disk-specifications
-router.post('/', authorize('admin', 'manager', 'bom_editor'), DiskSpecificationController.create);
+router.post('/', checkPermission('bom', 'create'), DiskSpecificationController.create);
 
 // PUT /api/disk-specifications/:id
-router.put('/:id', authorize('admin', 'manager', 'bom_editor'), DiskSpecificationController.update);
+router.put('/:id', checkPermission('bom', 'update'), DiskSpecificationController.update);
 
 // DELETE /api/disk-specifications/:id
-router.delete('/:id', authorize('admin'), DiskSpecificationController.delete);
+router.delete('/:id', checkPermission('bom', 'delete'), DiskSpecificationController.delete);
 
 export default router;
