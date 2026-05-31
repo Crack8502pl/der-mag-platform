@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   security-audit:
     name: npm audit (HIGH+)
@@ -33,7 +36,7 @@ jobs:
         continue-on-error: false
         run: |
           npm ci
-          # NOTE: run npm audit fix to resolve known issues
+          # NOTE: run npm audit fix locally to resolve known issues
           npm audit --audit-level=high
 
   typescript-build-check:
