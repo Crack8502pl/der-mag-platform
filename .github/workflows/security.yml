@@ -1,0 +1,63 @@
+name: Security & Build Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  security-audit:
+    name: npm audit (HIGH+)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Backend — install & audit
+        working-directory: backend
+        continue-on-error: false
+        run: |
+          npm ci
+          npm audit --audit-level=high
+
+      - name: Frontend — install & audit
+        working-directory: frontend
+        continue-on-error: false
+        run: |
+          npm ci
+          # NOTE: run npm audit fix to resolve known issues
+          npm audit --audit-level=high
+
+  typescript-build-check:
+    name: TypeScript Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Backend — build
+        working-directory: backend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Frontend — build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
