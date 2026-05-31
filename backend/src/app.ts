@@ -16,6 +16,7 @@ import { honeypotMiddleware } from './middleware/honeypot';
 import { validateCsrfToken } from './middleware/csrf';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { noCacheHeaders } from './middleware/noCacheHeaders';
+import { verifyWebhookSignature } from './middleware/webhookAuth';
 import { RATE_LIMIT } from './config/constants';
 import { serverLogger } from './utils/logger';
 
@@ -249,7 +250,12 @@ const debugLimiter = rateLimit({
 });
 
 // Body parsers
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  verify: (req: Request, _res: Response, buf: Buffer) => {
+    (req as any).rawBody = buf;
+  }
+}));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logging
@@ -350,7 +356,7 @@ if (process.env.ENABLE_API_TESTER === 'true') {
 }
 
 // API routes
-app.use('/api/integrations/webhooks', noCacheHeaders, webhookRoutes);
+app.use('/api/integrations/webhooks', noCacheHeaders, verifyWebhookSignature, webhookRoutes);
 app.use('/api', noCacheHeaders);
 app.use('/api', routes);
 
