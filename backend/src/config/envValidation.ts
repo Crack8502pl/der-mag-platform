@@ -99,6 +99,13 @@ function checkEnvVariables(): EnvValidationResult {
     if (!process.env.SESSION_SECRET) {
       warnings.push('[PRODUKCJA] SESSION_SECRET nie jest ustawiony');
     }
+
+    if (!process.env.WEBHOOK_SECRET) {
+      warnings.push(
+        '[PRODUKCJA] WEBHOOK_SECRET nie jest ustawiony — ' +
+        'endpointy /api/integrations/webhooks/* nie weryfikują tożsamości nadawcy (OWASP A04)'
+      );
+    }
   }
 
   // ── OSTRZEŻENIA: Development / ogólne ────────────────────────────────────
