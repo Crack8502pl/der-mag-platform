@@ -80,6 +80,12 @@ if (isProduction) {
     },
     crossOriginEmbedderPolicy: true,
     crossOriginResourcePolicy: { policy: "same-origin" },
+    // OWASP A05: Explicit security header hardening
+    hidePoweredBy: true,
+    noSniff: true,
+    frameguard: { action: 'deny' },
+    xssFilter: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   }));
 } else if (!disableCSP) {
   // ── DEVELOPMENT / STAGING: Zrelaksowane CSP (BEZ unsafe-eval) ────────────
@@ -108,13 +114,45 @@ if (isProduction) {
       }
     },
     crossOriginEmbedderPolicy: false,                   // Wyłącz dla local network
-    crossOriginResourcePolicy: { policy: "cross-origin" } // Zezwól cross-origin w LAN
+    crossOriginResourcePolicy: { policy: "cross-origin" }, // Zezwól cross-origin w LAN
+    // OWASP A05: Explicit security header hardening
+    hidePoweredBy: true,
+    noSniff: true,
+    frameguard: { action: 'deny' },
+    xssFilter: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   }));
 } else {
   // ── DISABLE_CSP=true w development — helmet bez CSP ──────────────────────
   serverLogger.warn('⚠️  CSP wyłączone przez DISABLE_CSP=true (dozwolone tylko w development)');
-  app.use(helmet({ contentSecurityPolicy: false }));
+  app.use(helmet({
+    contentSecurityPolicy: false,
+    // OWASP A05: Explicit security header hardening (nawet bez CSP)
+    hidePoweredBy: true,
+    noSniff: true,
+    frameguard: { action: 'deny' },
+    xssFilter: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  }));
 }
+
+// ── Permissions-Policy ────────────────────────────────────────────────────────
+// OWASP A05: Ogranicz dostęp do wrażliwych API przeglądarki.
+// Helmet nie obsługuje Permissions-Policy natywnie — dodajemy osobny middleware.
+app.use((_req, res, next) => {
+  res.setHeader(
+    'Permissions-Policy',
+    [
+      'camera=()',           // brak dostępu do kamery
+      'microphone=()',       // brak dostępu do mikrofonu
+      'geolocation=(self)', // geolokalizacja tylko dla własnego originu
+      'payment=()',         // brak dostępu do Payment API
+      'usb=()',             // brak dostępu do USB
+      'fullscreen=(self)',  // fullscreen tylko dla własnego originu
+    ].join(', ')
+  );
+  next();
+});
 
 // ── CORS ─────────────────────────────────────────────────────────────────────
 // OWASP A05: Wyekstrahowana funkcja weryfikacji originu używana zarówno
