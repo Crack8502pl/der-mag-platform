@@ -20,9 +20,10 @@ interface ExtendedError extends Error {
  * Mapuje błędy TypeORM/PostgreSQL na bezpieczne komunikaty dla klienta.
  * NIE ujawnia szczegółów SQL atakującym.
  */
-function sanitizeTypeOrmError(err: Error): { statusCode: number; message: string } {
+function sanitizeTypeOrmError(err: ExtendedError): { statusCode: number; message: string } {
   if (err instanceof QueryFailedError) {
-    const pgCode = (err as any).code as string | undefined;
+    // TypeORM copies all driverError properties (including PostgreSQL code) onto the error at runtime
+    const pgCode = (err as ExtendedError).code;
 
     // PostgreSQL error codes: https://www.postgresql.org/docs/current/errcodes-appendix.html
     switch (pgCode) {
@@ -66,7 +67,7 @@ export const errorHandler = (
     path: req.path,
     method: req.method,
     statusCode: err.statusCode,
-    pgCode: (err as any).code,
+    pgCode: err.code,
   });
 
   // TypeORM / PostgreSQL errors — always sanitize regardless of environment
@@ -103,9 +104,9 @@ export const errorHandler = (
 
   const isClientError = statusCode >= 400 && statusCode < 500;
   // Evaluate dynamically so tests can change NODE_ENV per test
-  const production = process.env.NODE_ENV === 'production';
+  const isProduction = process.env.NODE_ENV === 'production';
 
-  if (production) {
+  if (isProduction) {
     res.status(statusCode).json({
       success: false,
       // Dla błędów klienta (4xx) wysyłaj komunikat jeśli błąd jest operacyjny
@@ -122,7 +123,7 @@ export const errorHandler = (
       message,
       stack: err.stack,
       error: err.message,
-      code: (err as any).code,
+      code: err.code,
     });
   }
 };
