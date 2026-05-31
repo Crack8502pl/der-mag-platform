@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { serverLogger } from '../utils/logger';
+import { logSecurityEvent } from '../utils/securityLogger';
 
 /**
  * Weryfikuje HMAC-SHA256 signature webhooka.
@@ -25,6 +26,14 @@ export const verifyWebhookSignature = (req: Request, res: Response, next: NextFu
 
   const signature = req.headers['x-webhook-signature'] as string | undefined;
   if (!signature) {
+    logSecurityEvent({
+      type: 'WEBHOOK_SIGNATURE_INVALID',
+      ip: req.ip,
+      path: req.path,
+      method: req.method,
+      requestId: req.requestId,
+      details: { reason: 'MISSING_SIGNATURE_HEADER' }
+    });
     serverLogger.warn('[WEBHOOK] Brak nagłówka X-Webhook-Signature', { path: req.path, ip: req.ip });
     res.status(401).json({ success: false, message: 'Missing webhook signature' });
     return;
@@ -32,6 +41,14 @@ export const verifyWebhookSignature = (req: Request, res: Response, next: NextFu
 
   const [algo, digest] = signature.split('=');
   if (algo !== 'sha256' || !digest) {
+    logSecurityEvent({
+      type: 'WEBHOOK_SIGNATURE_INVALID',
+      ip: req.ip,
+      path: req.path,
+      method: req.method,
+      requestId: req.requestId,
+      details: { reason: 'INVALID_SIGNATURE_FORMAT' }
+    });
     res.status(401).json({ success: false, message: 'Invalid signature format. Expected: sha256=<hex>' });
     return;
   }
@@ -53,15 +70,38 @@ export const verifyWebhookSignature = (req: Request, res: Response, next: NextFu
     const receivedBuf = Buffer.from(digest, 'hex');
 
     if (expectedBuf.length !== receivedBuf.length || !crypto.timingSafeEqual(expectedBuf, receivedBuf)) {
+      logSecurityEvent({
+        type: 'WEBHOOK_SIGNATURE_INVALID',
+        ip: req.ip,
+        path: req.path,
+        method: req.method,
+        requestId: req.requestId,
+        details: { reason: 'SIGNATURE_MISMATCH' }
+      });
       serverLogger.warn('[WEBHOOK] Nieprawidłowa signature', { path: req.path, ip: req.ip });
       res.status(401).json({ success: false, message: 'Invalid webhook signature' });
       return;
     }
   } catch {
+    logSecurityEvent({
+      type: 'WEBHOOK_SIGNATURE_INVALID',
+      ip: req.ip,
+      path: req.path,
+      method: req.method,
+      requestId: req.requestId,
+      details: { reason: 'SIGNATURE_PARSE_FAILED' }
+    });
     res.status(401).json({ success: false, message: 'Invalid webhook signature' });
     return;
   }
 
+  logSecurityEvent({
+    type: 'WEBHOOK_SIGNATURE_VALID',
+    ip: req.ip,
+    path: req.path,
+    method: req.method,
+    requestId: req.requestId,
+  });
   serverLogger.info('[WEBHOOK] Signature zweryfikowana pomyślnie', { path: req.path });
   next();
 };

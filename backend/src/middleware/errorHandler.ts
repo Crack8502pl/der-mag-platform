@@ -5,6 +5,7 @@ import { Request, Response, NextFunction } from 'express';
 import { QueryFailedError, EntityNotFoundError } from 'typeorm';
 import { serverLogger } from '../utils/logger';
 import { AppError } from '../utils/AppError';
+import { logSecurityEvent } from '../utils/securityLogger';
 
 // Re-export AppError for backward compatibility
 export { AppError };
@@ -73,6 +74,16 @@ export const errorHandler = (
   // TypeORM / PostgreSQL errors — always sanitize regardless of environment
   if (err instanceof QueryFailedError || err instanceof EntityNotFoundError) {
     const { statusCode, message } = sanitizeTypeOrmError(err);
+    if (process.env.NODE_ENV === 'production' && statusCode >= 500) {
+      logSecurityEvent({
+        type: 'SUSPICIOUS_ACTIVITY',
+        ip: req.ip,
+        path: req.path,
+        method: req.method,
+        requestId: req.requestId,
+        details: { statusCode, errorName: err.name, source: 'TYPEORM_ERROR' }
+      });
+    }
     res.status(statusCode).json({
       success: false,
       message,
@@ -105,6 +116,16 @@ export const errorHandler = (
   const isClientError = statusCode >= 400 && statusCode < 500;
   // Evaluate dynamically so tests can change NODE_ENV per test
   const isProduction = process.env.NODE_ENV === 'production';
+  if (isProduction && statusCode >= 500) {
+    logSecurityEvent({
+      type: 'SUSPICIOUS_ACTIVITY',
+      ip: req.ip,
+      path: req.path,
+      method: req.method,
+      requestId: req.requestId,
+      details: { statusCode, errorName: err.name, source: 'ERROR_HANDLER_5XX' }
+    });
+  }
 
   if (isProduction) {
     res.status(statusCode).json({
