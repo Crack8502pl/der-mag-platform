@@ -6,6 +6,21 @@
 
 ---
 
+## 🔐 Security Architecture
+
+Middleware stack dla requestów HTTP:
+
+```
+Request → requestIdMiddleware → helmet → CORS → CSRF → rateLimiter
+       → verifyWebhookSignature (dla /webhooks)
+       → authenticate (dla chronionych tras)
+       → validate (DTO validation)
+       → controller
+       → errorHandler
+```
+
+---
+
 ## 📐 Przegląd architektury
 
 Grover Platform to zaawansowany system zarządzania zadaniami infrastrukturalnymi zbudowany w architekturze trzywarstwowej (three-tier architecture) z separacją warstw prezentacji, logiki biznesowej i danych.

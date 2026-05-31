@@ -8,6 +8,25 @@ System zarządzania projektami infrastrukturalnymi dla branży kolejowej i telek
 
 Grover Platform to kompleksowy system do zarządzania zadaniami infrastrukturalnymi, obsługujący 13 różnych typów projektów - od systemów monitoringu wizyjnego (SMW) po struktury światłowodowe.
 
+## 🚀 Szybki start
+
+- [Onboarding dla deweloperów](docs/ONBOARDING.md)
+
+## 📚 Dokumentacja
+
+- [Architektura](docs/ARCHITECTURE.md)
+- [Role i uprawnienia](docs/ROLES_AND_PERMISSIONS.md)
+- [Plan bezpieczeństwa OWASP Top 10:2025](docs/security/OWASP_SECURITY_PLAN.md)
+- [Przewodnik onboarding](docs/ONBOARDING.md)
+- [Migracje](docs/MIGRATION_GUIDE.md)
+- [BOM](docs/bom/)
+- [Dokumentacja funkcjonalności](docs/features/)
+- [Dokumentacja bezpieczeństwa](docs/security/)
+
+## 🔐 Bezpieczeństwo
+
+- [Plan bezpieczeństwa OWASP Top 10:2025](docs/security/OWASP_SECURITY_PLAN.md)
+
 ## 🚀 Funkcjonalności
 
 ### Backend
