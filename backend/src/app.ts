@@ -36,100 +36,128 @@ app.use((req, res, next) => {
   next();
 });
 
-// Security middleware - conditional based on environment
+// ── Security middleware ──────────────────────────────────────────────────────
+// OWASP A05: Security Misconfiguration
+//
+// DISABLE_CSP=true jest dozwolone TYLKO w development.
+// validateEnv() rzuca błąd przy starcie jeśli DISABLE_CSP=true w produkcji,
+// ale dodajemy drugi poziom ochrony (defense-in-depth).
 const isProduction = process.env.NODE_ENV === 'production';
-const disableCSP = process.env.DISABLE_CSP === 'true';
+const disableCSP = !isProduction && process.env.DISABLE_CSP === 'true';
 
-if (isProduction && !disableCSP) {
-  // Strict security for production
-  app.use(helmet());
-} else {
-  // Relaxed security for development/local network
+if (isProduction) {
+  // ── PRODUKCJA: Pełny Helmet ze strict CSP ─────────────────────────────────
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'", 
-          "'unsafe-inline'", // 🆕 Allow Vite inline scripts in dev
-          "'unsafe-eval'"    // 🆕 Allow eval for dev tools
-        ],
-        scriptSrcElem: [
-          "'self'",
-          "'unsafe-inline'" // 🆕 Critical for Vite HMR and inline scripts
-        ],
-        styleSrc: [
-          "'self'", 
-          "'unsafe-inline'" // 🆕 Allow inline styles
-        ],
-        imgSrc: [
+        defaultSrc:         ["'self'"],
+        scriptSrc:          ["'self'"],                // brak unsafe-inline/unsafe-eval
+        scriptSrcElem:      ["'self'"],
+        styleSrc:           ["'self'", "'unsafe-inline'"], // inline styles wymagane przez React/Angular
+        imgSrc:             [
           "'self'",
           "data:",
           "blob:",
-          "https://*.tile.openstreetmap.org",  // OpenStreetMap tiles
-          "https://*.openstreetmap.org",        // OSM domain
-          "https://*.basemaps.cartocdn.com",    // Carto Dark basemap tiles
-          "https://unpkg.com",                   // Leaflet marker icons (fallback)
-          "https://*.tiles.openrailwaymap.org"   // OpenRailwayMap tiles
+          "https://*.tile.openstreetmap.org",
+          "https://*.openstreetmap.org",
+          "https://*.basemaps.cartocdn.com",
+          "https://unpkg.com",
+          "https://*.tiles.openrailwaymap.org"
         ],
-        connectSrc: [
-          "'self'",
-          "ws:", // 🆕 Allow WebSocket for Vite HMR
-          "wss:" // 🆕 Allow secure WebSocket
-        ],
-        fontSrc: ["'self'", "data:"],
-        objectSrc: ["'none'"],
-        mediaSrc: ["'self'"],
-        frameSrc: ["'self'"]
+        connectSrc:         ["'self'"],                // brak ws:/wss: — niepotrzebne w prod
+        fontSrc:            ["'self'", "data:"],
+        objectSrc:          ["'none'"],
+        mediaSrc:           ["'self'"],
+        frameSrc:           ["'self'"],
+        frameAncestors:     ["'none'"],                // clickjacking protection
+        upgradeInsecureRequests: [],                   // wymuszaj HTTPS
       }
     },
-    crossOriginEmbedderPolicy: false, // 🆕 Disable for local network
-    crossOriginResourcePolicy: { policy: "cross-origin" } // 🆕 Allow cross-origin in LAN
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+    crossOriginEmbedderPolicy: true,
+    crossOriginResourcePolicy: { policy: "same-origin" },
   }));
+} else if (!disableCSP) {
+  // ── DEVELOPMENT / STAGING: Zrelaksowane CSP (BEZ unsafe-eval) ────────────
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc:     ["'self'"],
+        scriptSrc:      ["'self'", "'unsafe-inline'"],  // unsafe-eval USUNIĘTE (Vite nie potrzebuje)
+        scriptSrcElem:  ["'self'", "'unsafe-inline'"],  // krytyczne dla Vite HMR i inline scripts
+        styleSrc:       ["'self'", "'unsafe-inline'"],  // inline styles
+        imgSrc:         [
+          "'self'",
+          "data:",
+          "blob:",
+          "https://*.tile.openstreetmap.org",
+          "https://*.openstreetmap.org",
+          "https://*.basemaps.cartocdn.com",
+          "https://unpkg.com",
+          "https://*.tiles.openrailwaymap.org"
+        ],
+        connectSrc:     ["'self'", "ws:", "wss:"],      // WebSocket dla Vite HMR
+        fontSrc:        ["'self'", "data:"],
+        objectSrc:      ["'none'"],
+        mediaSrc:       ["'self'"],
+        frameSrc:       ["'self'"]
+      }
+    },
+    crossOriginEmbedderPolicy: false,                   // Wyłącz dla local network
+    crossOriginResourcePolicy: { policy: "cross-origin" } // Zezwól cross-origin w LAN
+  }));
+} else {
+  // ── DISABLE_CSP=true w development — helmet bez CSP ──────────────────────
+  serverLogger.warn('⚠️  CSP wyłączone przez DISABLE_CSP=true (dozwolone tylko w development)');
+  app.use(helmet({ contentSecurityPolicy: false }));
 }
 
 // CORS configuration - permissive for development and local network
-const corsOrigins = process.env.CORS_ORIGIN 
+const corsOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
   : ['http://localhost:5173', 'http://localhost:3001', 'http://localhost:3000'];
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Pozwół na requesty bez origin (curl, Postman, same-origin)
+    // Pozwól na requesty bez origin (curl, Postman, same-origin)
     if (!origin) {
       return callback(null, true);
     }
-    
+
     // Sprawdź czy origin jest na liście
     if (corsOrigins.includes(origin)) {
       return callback(null, true);
     }
-    
-    // 🆕 W development pozwól na localhost URLs (more specific pattern)
+
+    // W development pozwól na localhost URLs (more specific pattern)
     if (process.env.NODE_ENV !== 'production' && /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
       return callback(null, true);
     }
-    
-    // 🆕 Pozwól na local network (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+
+    // Pozwól na local network (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
     const isLocalNetwork = /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(origin);
     if (isLocalNetwork) {
       return callback(null, true);
     }
-    
-    // 🆕 Pozwól na wewnętrzne domeny (.lan, .local, .internal, .home, .corp, .intranet, .private)
+
+    // Pozwól na wewnętrzne domeny (.lan, .local, .internal, .home, .corp, .intranet, .private)
     const isInternalDomain = /^https?:\/\/[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?\.(lan|local|internal|home|corp|intranet|private)(:[1-9]\d{0,4})?$/.test(origin);
     if (isInternalDomain) {
       return callback(null, true);
     }
-    
+
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // 🆕 Explicit methods
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'] // 🆕 Explicit headers (X-CSRF-Token required by AuthController)
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
 }));
 
-// 🆕 Handle preflight requests
+// Handle preflight requests
 app.options('*', cors());
 
 // Cookie parser middleware
@@ -164,16 +192,15 @@ app.use('/api/', (req: Request, res: Response, next: NextFunction) => {
 const authLimiter = rateLimit({
   windowMs: RATE_LIMIT.AUTH_WINDOW_MS,
   max: RATE_LIMIT.AUTH_MAX_REQUESTS,
-  message: { 
-    success: false, 
+  message: {
+    success: false,
     message: 'Zbyt wiele żądań autoryzacyjnych, spróbuj ponownie za chwilę',
     code: 'RATE_LIMIT_AUTH',
     retryAfter: Math.ceil(RATE_LIMIT.AUTH_WINDOW_MS / 1000)
   },
-  standardHeaders: true, // Zwraca info o rate limit w nagłówkach
+  standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
-    // Klucz rate limit: IP + endpoint (bardziej granularny)
     return `${req.ip}-auth`;
   }
 });
@@ -182,8 +209,8 @@ const authLimiter = rateLimit({
 const readLimiter = rateLimit({
   windowMs: RATE_LIMIT.READ_WINDOW_MS,
   max: RATE_LIMIT.READ_MAX_REQUESTS,
-  message: { 
-    success: false, 
+  message: {
+    success: false,
     message: 'Zbyt wiele żądań odczytu, spróbuj ponownie za chwilę',
     code: 'RATE_LIMIT_READ',
     retryAfter: Math.ceil(RATE_LIMIT.READ_WINDOW_MS / 1000)
@@ -191,7 +218,6 @@ const readLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
-    // Per IP + endpoint dla lepszej granularności
     return `${req.ip}-read`;
   },
   // Zastosuj TYLKO dla GET requests
@@ -202,8 +228,8 @@ const readLimiter = rateLimit({
 const apiLimiter = rateLimit({
   windowMs: RATE_LIMIT.WINDOW_MS,
   max: RATE_LIMIT.MAX_REQUESTS,
-  message: { 
-    success: false, 
+  message: {
+    success: false,
     message: 'Zbyt wiele żądań z tego adresu IP, spróbuj ponownie później',
     code: 'RATE_LIMIT_GENERAL',
     retryAfter: Math.ceil(RATE_LIMIT.WINDOW_MS / 1000)
@@ -211,21 +237,19 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Pomiń endpointy auth - mają własny limiter
-    // Pomiń GET requests - mają własny limiter (readLimiter)
     return req.path.startsWith('/api/auth/') || req.method === 'GET';
   }
 });
 
 // Aplikuj limitery w odpowiedniej kolejności
 app.use('/api/auth/', authLimiter);
-app.use('/api/', readLimiter);   // dla GET requests
-app.use('/api/', apiLimiter);    // dla POST/PUT/DELETE
+app.use('/api/', readLimiter);
+app.use('/api/', apiLimiter);
 
 // Rate limiting for debug endpoints (more permissive than API)
 const debugLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 30, // 30 requests per minute
+  max: 30,
   message: 'Zbyt wiele żądań do endpointów diagnostycznych'
 });
 
@@ -256,9 +280,24 @@ app.get('/health', (req, res) => {
   });
 });
 
-// 🆕 Debug endpoints - only in development or when explicitly enabled
-if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEBUG_ENDPOINTS === 'true') {
-  // Debug endpoint - zwraca info o konfiguracji
+// ── Debug endpoints ──────────────────────────────────────────────────────────
+// OWASP A05: Security Misconfiguration
+//
+// HARD BLOCK w produkcji — defense-in-depth (validateEnv() blokuje wcześniej).
+// W produkcji zwracamy 404 zamiast ujawniać że endpoint istnieje.
+if (isProduction) {
+  app.get('/debug/*', (_req, res) => {
+    res.status(404).json({ success: false, message: 'Not found' });
+  });
+  if (process.env.ENABLE_DEBUG_ENDPOINTS === 'true') {
+    serverLogger.error(
+      '🚨 [SECURITY] ENABLE_DEBUG_ENDPOINTS=true wykryte w produkcji! ' +
+      'validateEnv() powinien był zablokować start. Endpointy NIE są aktywne.'
+    );
+  }
+} else if (process.env.ENABLE_DEBUG_ENDPOINTS === 'true') {
+  // Development: endpointy diagnostyczne z rate limiterem
+  // UWAGA: Nie ujawniamy requestHeaders (mogą zawierać wrażliwe dane)
   app.get('/debug/config', debugLimiter, (req, res) => {
     res.json({
       status: 'OK',
@@ -266,45 +305,33 @@ if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEBUG_ENDPOINTS 
       environment: process.env.NODE_ENV || 'development',
       frontendServed: fs.existsSync(path.join(__dirname, '../../frontend/dist')),
       apiUrl: `${req.protocol}://${req.get('host')}/api`,
-      requestHeaders: {
-        host: req.get('host'),
-        userAgent: req.get('user-agent'),
-        referer: req.get('referer')
-      }
     });
   });
 
-  // Debug endpoint - lista assets (merged from two versions)
   app.get('/debug/assets', debugLimiter, async (req, res) => {
     const frontendPath = path.join(__dirname, '../../frontend/dist');
     const assetsPath = path.join(frontendPath, 'assets');
-    
+
     let assetFiles: string[] = [];
     try {
       if (!fs.existsSync(assetsPath)) {
         return res.json({
           status: 'ERROR',
           message: 'Assets directory not found',
-          path: assetsPath,
-          frontendPath,
           frontendExists: fs.existsSync(frontendPath),
           indexHtmlExists: fs.existsSync(path.join(frontendPath, 'index.html'))
         });
       }
-      
+
       assetFiles = await fs.promises.readdir(assetsPath);
       res.json({
         status: 'OK',
         timestamp: new Date().toISOString(),
-        frontendPath,
         frontendExists: fs.existsSync(frontendPath),
-        assetsPath,
         assetsExists: fs.existsSync(assetsPath),
         assetFiles,
         count: assetFiles.length,
         indexHtmlExists: fs.existsSync(path.join(frontendPath, 'index.html')),
-        requestUrl: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
-        assetsUrl: `${req.protocol}://${req.get('host')}/assets/`
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -312,18 +339,17 @@ if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEBUG_ENDPOINTS 
         status: 'ERROR',
         message: 'Failed to read assets directory',
         error: errorMessage,
-        assetFiles: ['Error reading assets: ' + errorMessage]
       });
     }
   });
+} else {
+  serverLogger.info('ℹ️  Debug endpoints są wyłączone (ENABLE_DEBUG_ENDPOINTS nie jest ustawiony)');
 }
 
 // Honeypot middleware - wykrywanie skanerów (przed głównymi routami i static routingiem)
 app.use(honeypotMiddleware);
 
 // ENABLE_API_TESTER is deprecated. The /test path is now handled by the honeypot middleware.
-// Any access to /test/api-tester.html is logged as a honeypot hit (api_tester_trap).
-// To restore dev access, use the admin panel honeypot dashboard.
 if (process.env.ENABLE_API_TESTER === 'true') {
   serverLogger.warn('⚠️  ENABLE_API_TESTER=true jest przestarzałe. Ścieżka /test jest teraz obsługiwana przez honeypot middleware.');
 }
@@ -337,18 +363,25 @@ app.use('/api', routes);
 const frontendPath = path.join(__dirname, '../../frontend/dist');
 if (fs.existsSync(frontendPath)) {
   serverLogger.info('🌐 Frontend będzie serwowany z: ' + frontendPath);
-  
-  // 🆕 CRITICAL - Explicit route for assets directory with CORS
+
+  // Explicit route for assets directory
+  // OWASP A05: Ograniczono CORS dla assetów — brak wildcard '*' w produkcji
   app.use('/assets', express.static(path.join(frontendPath, 'assets'), {
     maxAge: '1d',
     etag: true,
     setHeaders: (res, filePath) => {
-      // 🆕 Enable CORS for assets (critical for local network)
-      res.setHeader('Access-Control-Allow-Origin', '*');
+      if (isProduction) {
+        // Produkcja: CORS tylko dla skonfigurowanego originu
+        const allowedOrigin = process.env.CORS_ORIGIN?.split(',')[0]?.trim() || "'self'";
+        res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+      } else {
+        // Development / LAN: wildcard dozwolony
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      }
       res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-      
-      // 🆕 Set correct MIME types
+
+      // Set correct MIME types
       if (filePath.endsWith('.js')) {
         res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
       } else if (filePath.endsWith('.css')) {
@@ -356,16 +389,19 @@ if (fs.existsSync(frontendPath)) {
       }
     }
   }));
-  
+
   // Serwuj statyczne pliki frontendu
   app.use(express.static(frontendPath, {
     maxAge: '1d',
     etag: true,
     setHeaders: (res, filePath) => {
-      // 🆕 Force reload for HTML files (prevent 304 cache issues on mobile)
-      // 🆕 CORS for all static files
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      
+      if (isProduction) {
+        const allowedOrigin = process.env.CORS_ORIGIN?.split(',')[0]?.trim() || "'self'";
+        res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+      } else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      }
+
       // Force reload for HTML files
       if (filePath.endsWith('.html')) {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -374,11 +410,10 @@ if (fs.existsSync(frontendPath)) {
       }
     }
   }));
-  
+
   // Obsługa React Router - wszystkie pozostałe ścieżki zwracają index.html
   // MUSI być PRZED error handlers
   app.get('*', (req, res) => {
-    // 🆕 Force no-cache for SPA routing
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
@@ -390,7 +425,6 @@ if (fs.existsSync(frontendPath)) {
 }
 
 // Error handlers (MUSZĄ być na samym końcu, ale tylko dla API routes)
-// Catch-all dla React Router jest powyżej
 app.use(notFoundHandler);
 app.use(errorHandler);
 
