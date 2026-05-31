@@ -3,7 +3,8 @@
 
 import { Router } from 'express';
 import { BomTemplateDependencyRuleController } from '../controllers/BomTemplateDependencyRuleController';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 
 const router = Router();
 
@@ -13,35 +14,35 @@ router.use(authenticate);
 // List rules for a template
 router.get(
   '/template/:templateId',
-  authorize('admin', 'manager', 'bom_editor'),
+  checkPermission('bom', 'read'),
   BomTemplateDependencyRuleController.getRulesForTemplate
 );
 
 // Get single rule
 router.get(
   '/:id',
-  authorize('admin', 'manager', 'bom_editor'),
+  checkPermission('bom', 'read'),
   BomTemplateDependencyRuleController.getRule
 );
 
 // Create rule
 router.post(
   '/',
-  authorize('admin', 'manager', 'bom_editor'),
+  checkPermission('bom', 'create'),
   BomTemplateDependencyRuleController.createRule
 );
 
 // Update rule
 router.put(
   '/:id',
-  authorize('admin', 'manager', 'bom_editor'),
+  checkPermission('bom', 'update'),
   BomTemplateDependencyRuleController.updateRule
 );
 
 // Delete rule
 router.delete(
   '/:id',
-  authorize('admin', 'manager', 'bom_editor'),
+  checkPermission('bom', 'delete'),
   BomTemplateDependencyRuleController.deleteRule
 );
 

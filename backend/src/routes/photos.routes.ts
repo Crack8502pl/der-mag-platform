@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import path from 'path';
 import { AppDataSource } from '../config/database';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { uploadSingle } from '../middleware/upload';
 import { Photo } from '../entities/Photo';
 import { PhotoAlbum } from '../entities/PhotoAlbum';
@@ -88,7 +89,7 @@ router.post('/upload', uploadSingle, async (req, res) => {
   }
 });
 
-router.put('/:id/approve', authorize('admin', 'manager'), async (req, res) => {
+router.put('/:id/approve', checkPermission('photos', 'approve'), async (req, res) => {
   try {
     const photoRepo = AppDataSource.getRepository(Photo);
     const photo = await photoRepo.findOne({ where: { id: Number(req.params.id) } });
@@ -107,7 +108,7 @@ router.put('/:id/approve', authorize('admin', 'manager'), async (req, res) => {
   }
 });
 
-router.put('/:id/reject', authorize('admin', 'manager'), async (req, res) => {
+router.put('/:id/reject', checkPermission('photos', 'approve'), async (req, res) => {
   try {
     const photoRepo = AppDataSource.getRepository(Photo);
     const photo = await photoRepo.findOne({ where: { id: Number(req.params.id) } });

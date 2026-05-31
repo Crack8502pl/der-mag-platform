@@ -9,6 +9,7 @@ const router = Router();
 
 // Wszystkie endpointy honeypota wymagają autentykacji i roli admin
 router.use(authenticate);
+// TODO: migrate to checkPermission(resource, action)
 router.use(authorize('admin'));
 
 // Statystyki honeypota

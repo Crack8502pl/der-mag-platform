@@ -3,7 +3,8 @@
 
 import { Router } from 'express';
 import { ImportController } from '../controllers/ImportController';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { uploadCSV } from '../middleware/upload';
 
 const router = Router();
@@ -17,7 +18,7 @@ router.get('/materials/template', ImportController.downloadTemplate);
 // Upload pliku CSV i generowanie preview (wymaga uprawnień admin lub manager)
 router.post(
   '/materials/csv',
-  authorize('admin', 'manager'),
+  checkPermission('warehouse_stock', 'import'),
   uploadCSV.single('file'),
   ImportController.uploadCSV
 );
@@ -28,14 +29,14 @@ router.get('/materials/:uuid/preview', ImportController.getPreview);
 // Potwierdź import (wymaga uprawnień admin lub manager)
 router.post(
   '/materials/:uuid/confirm',
-  authorize('admin', 'manager'),
+  checkPermission('warehouse_stock', 'import'),
   ImportController.confirmImport
 );
 
 // Anuluj import (wymaga uprawnień admin lub manager)
 router.delete(
   '/materials/:uuid',
-  authorize('admin', 'manager'),
+  checkPermission('warehouse_stock', 'import'),
   ImportController.cancelImport
 );
 

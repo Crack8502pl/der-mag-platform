@@ -3,7 +3,8 @@
 
 import { Router } from 'express';
 import { RecorderSpecificationController } from '../controllers/RecorderSpecificationController';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 
 const router = Router();
 
@@ -12,23 +13,23 @@ router.use(authenticate);
 // GET /api/recorder-specifications/select/:cameraCount — must come before /:id
 router.get(
   '/select/:cameraCount',
-  authorize('admin', 'manager', 'bom_editor'),
+  checkPermission('bom', 'read'),
   RecorderSpecificationController.selectForCameras
 );
 
 // GET /api/recorder-specifications
-router.get('/', authorize('admin', 'manager', 'bom_editor'), RecorderSpecificationController.getAll);
+router.get('/', checkPermission('bom', 'read'), RecorderSpecificationController.getAll);
 
 // GET /api/recorder-specifications/:id
-router.get('/:id', authorize('admin', 'manager', 'bom_editor'), RecorderSpecificationController.getById);
+router.get('/:id', checkPermission('bom', 'read'), RecorderSpecificationController.getById);
 
 // POST /api/recorder-specifications
-router.post('/', authorize('admin', 'manager', 'bom_editor'), RecorderSpecificationController.create);
+router.post('/', checkPermission('bom', 'create'), RecorderSpecificationController.create);
 
 // PUT /api/recorder-specifications/:id
-router.put('/:id', authorize('admin', 'manager', 'bom_editor'), RecorderSpecificationController.update);
+router.put('/:id', checkPermission('bom', 'update'), RecorderSpecificationController.update);
 
 // DELETE /api/recorder-specifications/:id
-router.delete('/:id', authorize('admin'), RecorderSpecificationController.delete);
+router.delete('/:id', checkPermission('bom', 'delete'), RecorderSpecificationController.delete);
 
 export default router;

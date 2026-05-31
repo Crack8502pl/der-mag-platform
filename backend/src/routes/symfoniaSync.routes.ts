@@ -11,6 +11,7 @@ const router = Router();
 
 // All routes require authentication and admin role
 router.use(authenticate);
+// TODO: migrate to checkPermission(resource, action)
 router.use(authorize('admin'));
 
 // Warehouse stock sync (Magazyn)

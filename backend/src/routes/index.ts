@@ -2,7 +2,8 @@
 // Główny router aplikacji
 
 import { Router } from 'express';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import authRoutes from './auth.routes';
 import taskRoutes from './task.routes';
 import bomRoutes from './bom.routes';
@@ -315,10 +316,10 @@ import { uploadTemplate } from '../middleware/upload';
 
 // Alias dla szablonów dokumentów (tylko endpointy związane z szablonami)
 router.get('/document-templates', authenticate, BOMBuilderController.getTemplates);
-router.post('/document-templates', authenticate, authorize('admin', 'manager'), uploadTemplate.single('file'), BOMBuilderController.uploadTemplate);
+router.post('/document-templates', authenticate, checkPermission('documents', 'create'), uploadTemplate.single('file'), BOMBuilderController.uploadTemplate);
 router.get('/document-templates/:id', authenticate, BOMBuilderController.getTemplate);
 router.post('/document-templates/:id/generate', authenticate, BOMBuilderController.generateDocument);
-router.delete('/document-templates/:id', authenticate, authorize('admin', 'manager'), BOMBuilderController.deleteTemplate);
+router.delete('/document-templates/:id', authenticate, checkPermission('documents', 'delete'), BOMBuilderController.deleteTemplate);
 
 // Dodatkowa trasa dla BOM zadań
 import { BOMController } from '../controllers/BOMController';

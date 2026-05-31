@@ -3,7 +3,8 @@
 
 import { Router } from 'express';
 import { MaterialStockController } from '../controllers/MaterialStockController';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { uploadMaterials } from '../middleware/upload';
 
 const router = Router();
@@ -20,21 +21,21 @@ router.get('/stocks/import/:id', MaterialStockController.getImportDetails);
 router.get('/stocks/:id', MaterialStockController.getStock);
 
 // Operacje na materiałach (wymagają roli manager lub admin)
-router.post('/stocks', authorize('admin', 'manager'), MaterialStockController.createStock);
-router.put('/stocks/:id', authorize('admin', 'manager'), MaterialStockController.updateStock);
-router.delete('/stocks/:id', authorize('admin', 'manager'), MaterialStockController.deleteStock);
+router.post('/stocks', checkPermission('warehouse_stock', 'create'), MaterialStockController.createStock);
+router.put('/stocks/:id', checkPermission('warehouse_stock', 'update'), MaterialStockController.updateStock);
+router.delete('/stocks/:id', checkPermission('warehouse_stock', 'delete'), MaterialStockController.deleteStock);
 
 // Import materiałów (wymagają roli manager lub admin)
 router.post('/stocks/import', 
-  authorize('admin', 'manager'), 
+  checkPermission('warehouse_stock', 'import'), 
   uploadMaterials.single('file'), 
   MaterialStockController.importStocks
 );
 
 // Sprawdzanie dostępności i rezerwacje
 router.post('/stocks/check-availability', MaterialStockController.checkAvailability);
-router.post('/stocks/reserve', authorize('admin', 'manager', 'technician'), MaterialStockController.reserveMaterials);
-router.post('/stocks/release', authorize('admin', 'manager', 'technician'), MaterialStockController.releaseMaterials);
+router.post('/stocks/reserve', checkPermission('warehouse_stock', 'reserve_stock'), MaterialStockController.reserveMaterials);
+router.post('/stocks/release', checkPermission('warehouse_stock', 'release_stock'), MaterialStockController.releaseMaterials);
 
 // Endpoint statusu integracji Symfonia
 router.get('/integrations/symfonia/status', MaterialStockController.getSymfoniaStatus);

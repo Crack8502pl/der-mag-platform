@@ -5,6 +5,7 @@ import * as jwt from '../../../src/config/jwt';
 import { AppDataSource } from '../../../src/config/database';
 import { User } from '../../../src/entities/User';
 import { RefreshToken } from '../../../src/entities/RefreshToken';
+import { serverLogger } from '../../../src/utils/logger';
 import { createMockRequest, createMockResponse, createMockNext } from '../../mocks/request.mock';
 import { createMockRepository } from '../../mocks/database.mock';
 
@@ -16,6 +17,14 @@ jest.mock('../../../src/config/database', () => ({
 }));
 
 jest.mock('../../../src/config/jwt');
+jest.mock('../../../src/utils/logger', () => ({
+  serverLogger: {
+    warn: jest.fn(),
+    info: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
 
 describe('Auth Middleware', () => {
   let mockUserRepository: any;
@@ -40,6 +49,7 @@ describe('Auth Middleware', () => {
 
     // Reset environment variables
     delete process.env.PARANOID_MODE;
+    process.env.NODE_ENV = 'test';
   });
 
   afterEach(() => {
@@ -155,7 +165,7 @@ describe('Auth Middleware', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it.skip('should check token in database when PARANOID_MODE is enabled', async () => {
+    it('should check token in database when PARANOID_MODE is enabled', async () => {
       process.env.PARANOID_MODE = 'true';
 
       req.headers = {
@@ -163,7 +173,12 @@ describe('Auth Middleware', () => {
       };
 
       (jwt.verifyAccessToken as jest.Mock).mockReturnValue(mockPayload);
-      mockUserRepository.findOne.mockResolvedValue({ id: 1, username: 'testuser', active: true });
+      mockUserRepository.findOne.mockResolvedValue({
+        id: 1,
+        username: 'testuser',
+        active: true,
+        role: { id: 1, name: 'admin', permissions: { all: true } }
+      });
       mockRefreshTokenRepository.findOne.mockResolvedValue({ tokenId: 'test-token-id', revoked: false });
 
       // Ensure the right repository is returned
@@ -181,7 +196,7 @@ describe('Auth Middleware', () => {
       expect(next).toHaveBeenCalled();
     });
 
-    it.skip('should return 401 if token is revoked in PARANOID_MODE', async () => {
+    it('should return 401 if token is revoked in PARANOID_MODE', async () => {
       process.env.PARANOID_MODE = 'true';
 
       req.headers = {
@@ -189,7 +204,12 @@ describe('Auth Middleware', () => {
       };
 
       (jwt.verifyAccessToken as jest.Mock).mockReturnValue(mockPayload);
-      mockUserRepository.findOne.mockResolvedValue({ id: 1, username: 'testuser', active: true });
+      mockUserRepository.findOne.mockResolvedValue({
+        id: 1,
+        username: 'testuser',
+        active: true,
+        role: { id: 1, name: 'admin', permissions: { all: true } }
+      });
       mockRefreshTokenRepository.findOne.mockResolvedValue(null);
 
       // Ensure the right repository is returned
@@ -218,6 +238,28 @@ describe('Auth Middleware', () => {
         username: 'testuser',
         role: 'manager',
       };
+    });
+
+    it('should throw error in production mode', () => {
+      process.env.NODE_ENV = 'production';
+      expect(() => authorize('admin')).toThrow(
+        '[SECURITY] authorize() jest zabronione w produkcji. Użyj checkPermission(resource, action) zamiast authorize().'
+      );
+    });
+
+    it('should log deprecated warning in development mode', async () => {
+      process.env.NODE_ENV = 'development';
+      (req as any).path = '/secure/path';
+      const middleware = authorize('admin', 'manager');
+
+      await middleware(req as Request, res as Response, next);
+
+      expect(serverLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('[DEPRECATED] authorize() użyte dla roli "admin, manager"')
+      );
+      expect(serverLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Ścieżka: /secure/path')
+      );
     });
 
     it('should allow access for authorized role (string)', async () => {

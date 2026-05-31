@@ -3,7 +3,8 @@
 
 import { Router } from 'express';
 import { BOMBuilderController } from '../controllers/BOMBuilderController';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { uploadTemplate } from '../middleware/upload';
 
 const router = Router();
@@ -25,42 +26,42 @@ router.get('/task-type/:taskTypeId', BOMBuilderController.getTaskTypeBOM);
 // Utwórz szablon BOM dla typu zadania (batch) - wymaga uprawnień
 router.post(
   '/task-type/:taskTypeId',
-  authorize('admin', 'manager'),
+  checkPermission('bom', 'create'),
   BOMBuilderController.createTaskTypeBOM
 );
 
 // Aktualizuj szablon BOM (batch update) - wymaga uprawnień
 router.put(
   '/task-type/:taskTypeId',
-  authorize('admin', 'manager'),
+  checkPermission('bom', 'update'),
   BOMBuilderController.updateTaskTypeBOM
 );
 
 // Kopiuj szablon BOM do innego typu zadania - wymaga uprawnień
 router.post(
   '/task-type/:sourceId/copy/:targetId',
-  authorize('admin', 'manager'),
+  checkPermission('bom', 'create'),
   BOMBuilderController.copyBOMTemplate
 );
 
 // Dodaj pojedynczy materiał - wymaga uprawnień
 router.post(
   '/items',
-  authorize('admin', 'manager'),
+  checkPermission('bom', 'create'),
   BOMBuilderController.createItem
 );
 
 // Edytuj materiał - wymaga uprawnień
 router.put(
   '/items/:id',
-  authorize('admin', 'manager'),
+  checkPermission('bom', 'update'),
   BOMBuilderController.updateItem
 );
 
 // Usuń materiał - wymaga uprawnień
 router.delete(
   '/items/:id',
-  authorize('admin', 'manager'),
+  checkPermission('bom', 'delete'),
   BOMBuilderController.deleteItem
 );
 
@@ -72,7 +73,7 @@ router.get('/templates', BOMBuilderController.getTemplates);
 // Upload szablonu dokumentu - wymaga uprawnień
 router.post(
   '/templates',
-  authorize('admin', 'manager'),
+  checkPermission('documents', 'create'),
   uploadTemplate.single('file'),
   BOMBuilderController.uploadTemplate
 );
@@ -89,7 +90,7 @@ router.post(
 // Usuń szablon - wymaga uprawnień
 router.delete(
   '/templates/:id',
-  authorize('admin', 'manager'),
+  checkPermission('documents', 'delete'),
   BOMBuilderController.deleteTemplate
 );
 
