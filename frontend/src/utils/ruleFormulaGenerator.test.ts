@@ -162,6 +162,16 @@ describe('ruleFormulaGenerator', () => {
     expect(fallback).toBe('nieznane wejście');
   });
 
+  it('formatInputDescription: CONFIG_PARAM obsługuje nazwę, brak nazwy i mnożnik', () => {
+    const namedInput = createInput({ inputType: 'CONFIG_PARAM', sourceItemId: null, sourceParamName: 'cameraCount' });
+    const missingNameInput = createInput({ inputType: 'CONFIG_PARAM', sourceItemId: null, sourceParamName: null });
+    const multipliedInput = createInput({ inputType: 'CONFIG_PARAM', sourceItemId: null, sourceParamName: 'cameraCount', inputMultiplier: 2 });
+
+    expect(formatInputDescription(namedInput, [], [])).toBe('param(cameraCount)');
+    expect(formatInputDescription(missingNameInput, [], [])).toBe('param(?)');
+    expect(formatInputDescription(multipliedInput, [], [])).toBe('param(cameraCount) × 2');
+  });
+
   it('interpretCondition obsługuje >, <, ==, BETWEEN i nieznany operator', () => {
     expect(interpretCondition('>', 5, null, 2)).toBe('jeśli wynik większy niż 5 → ustaw ilość = 2');
     expect(interpretCondition('<', 5, null, 2)).toBe('jeśli wynik mniejszy niż 5 → ustaw ilość = 2');

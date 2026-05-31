@@ -30,13 +30,16 @@ export const RulePipelineView: React.FC<RulePipelineViewProps> = ({
       const item = templateItems.find(i => i.id === input.sourceItemId);
       return item
         ? item.materialName.substring(0, MAX_ITEM_LABEL_LENGTH) + (item.materialName.length > MAX_ITEM_LABEL_LENGTH ? '…' : '')
-        : `ID:${input.sourceItemId}`;
+        : `⚠️ ID:${input.sourceItemId}`;
     }
     if (input.inputType === 'RULE_RESULT' && input.sourceRuleId) {
       const sourceRule = existingRules.find(existingRule => existingRule.id === input.sourceRuleId);
-      return sourceRule ? `⇒ ${sourceRule.ruleName.substring(0, MAX_RULE_LABEL_LENGTH)}` : `Reguła #${input.sourceRuleId}`;
+      return sourceRule ? `⇒ ${sourceRule.ruleName.substring(0, MAX_RULE_LABEL_LENGTH)}` : `⚠️ Reguła #${input.sourceRuleId}`;
     }
-    return '?';
+    if (input.inputType === 'CONFIG_PARAM') {
+      return `⚙️ ${input.sourceParamName ?? '?'}`;
+    }
+    return '❓ nieznane';
   };
 
   const aggDesc = AGGREGATION_DESCRIPTIONS[rule.aggregationType];
@@ -104,7 +107,17 @@ export const RulePipelineView: React.FC<RulePipelineViewProps> = ({
               ) : (
                 (rule.inputs ?? []).map((input, index) => (
                   <div key={index} style={{ marginBottom: '3px', fontSize: '11px' }}>
-                    {getInputLabel(input)}
+                    <span style={{
+                      color: input.inputType === 'CONFIG_PARAM'
+                        ? '#059669'
+                        : input.inputType === 'ITEM'
+                          ? '#3b82f6'
+                          : input.inputType === 'RULE_RESULT'
+                            ? '#8b5cf6'
+                            : '#ef4444',
+                    }}>
+                      {getInputLabel(input)}
+                    </span>
                     {input.inputMultiplier !== 1 && (
                       <span style={{ color: 'var(--text-muted)' }}> ×{input.inputMultiplier}</span>
                     )}
