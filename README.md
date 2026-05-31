@@ -582,6 +582,32 @@ sudo systemctl restart postgresql
 
 ## 📄 Licencja
 
+## 🔒 CI/CD Security
+
+Repozytorium korzysta z workflow `.github/workflows/security.yml`, który uruchamia się dla `push` i `pull_request` na branch `main`.
+
+Workflow wykonuje dwa wymagane joby:
+- `security-audit` — uruchamia `npm ci` oraz `npm audit --audit-level=high` osobno w katalogach `backend/` i `frontend/`, blokując merge przy lukach `HIGH` lub `CRITICAL`
+- `typescript-build-check` — uruchamia `npm ci` i `npm run build` w `backend/` oraz `frontend/`, aby potwierdzić poprawną kompilację TypeScript
+
+Zależności są dodatkowo monitorowane przez `.github/dependabot.yml`:
+- cotygodniowe aktualizacje npm dla `backend/` i `frontend/`
+- cotygodniowe aktualizacje GitHub Actions
+- maksymalnie 5 otwartych PR-ów na ekosystem
+- automatyczne przypisanie PR-ów do `Crack8502pl`
+
+Lokalne uruchamianie audytu:
+
+```bash
+cd backend
+npm ci
+npm audit --audit-level=high
+
+cd ../frontend
+npm ci
+npm audit --audit-level=high
+```
+
 MIT License - zobacz [LICENSE](LICENSE)
 
 ## 👥 Wsparcie

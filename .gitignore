@@ -1,6 +1,8 @@
 # Dependencies
 node_modules/
 package-lock.json
+!backend/package-lock.json
+!frontend/package-lock.json
 
 # Build outputs
 dist/
