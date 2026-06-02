@@ -118,7 +118,9 @@ export class BomTemplateDependencyRuleService {
             sourceItemId: input.sourceItemId || null,
             sourceRuleId: input.sourceRuleId || null,
             sourceParamName: input.sourceParamName || null,
-            onlyIfSelected: input.onlyIfSelected ?? true,
+            onlyIfSelected: input.inputType === 'CONFIG_PARAM'
+              ? false
+              : (input.onlyIfSelected ?? false),
             inputMultiplier: input.inputMultiplier ?? 1,
             sortOrder: input.sortOrder ?? 0
           })
@@ -236,7 +238,9 @@ export class BomTemplateDependencyRuleService {
               sourceItemId: input.sourceItemId || null,
               sourceRuleId: input.sourceRuleId || null,
               sourceParamName: input.sourceParamName || null,
-              onlyIfSelected: input.onlyIfSelected ?? true,
+              onlyIfSelected: input.inputType === 'CONFIG_PARAM'
+                ? false
+                : (input.onlyIfSelected ?? false),
               inputMultiplier: input.inputMultiplier ?? 1,
               sortOrder: input.sortOrder ?? 0
             })

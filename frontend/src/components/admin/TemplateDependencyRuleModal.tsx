@@ -86,6 +86,9 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
       updated[index].sourceItemId = null;
       updated[index].sourceRuleId = null;
       updated[index].sourceParamName = null;
+      if (value === 'CONFIG_PARAM') {
+        updated[index].onlyIfSelected = false;
+      }
     }
     
     setInputs(updated);
@@ -507,24 +510,35 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: '8px' }}>
-                      <input
-                        type="checkbox"
-                        id={`onlyIfSelected-${idx}`}
-                        checked={input.onlyIfSelected}
-                        onChange={(e) => handleUpdateInput(idx, 'onlyIfSelected', e.target.checked)}
-                        style={{ width: '16px', height: '16px' }}
-                      />
-                      <label
-                        htmlFor={`onlyIfSelected-${idx}`}
-                        style={{ fontSize: '11px', marginLeft: '5px', color: 'var(--text-secondary)', cursor: 'pointer' }}
-                      >
-                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                          Tylko jeśli wybrany
-                          <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', fontStyle: 'italic' }}>
-                            (pomiń gdy użytkownik odznaczył w BOM)
+                      {input.inputType === 'CONFIG_PARAM' ? (
+                        <div title="Parametry Wizarda są zawsze dostępne" style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                          <span>N/D</span>
+                          <span style={{ display: 'block', fontSize: '10px', marginTop: '2px' }}>
+                            (parametry Wizarda są zawsze dostępne)
                           </span>
-                        </span>
-                      </label>
+                        </div>
+                      ) : (
+                        <>
+                          <input
+                            type="checkbox"
+                            id={`onlyIfSelected-${idx}`}
+                            checked={input.onlyIfSelected}
+                            onChange={(e) => handleUpdateInput(idx, 'onlyIfSelected', e.target.checked)}
+                            style={{ width: '16px', height: '16px' }}
+                          />
+                          <label
+                            htmlFor={`onlyIfSelected-${idx}`}
+                            style={{ fontSize: '11px', marginLeft: '5px', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                          >
+                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                              Tylko jeśli wybrany
+                              <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', fontStyle: 'italic' }}>
+                                (pomiń gdy użytkownik odznaczył w BOM)
+                              </span>
+                            </span>
+                          </label>
+                        </>
+                      )}
                     </div>
 
                     <div style={{ paddingBottom: '8px' }}>
