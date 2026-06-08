@@ -90,7 +90,7 @@
     "reflect-metadata": "^0.2.1",
     "sharp": "^0.33.1",
     "typeorm": "^0.3.30",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "uuid": "^14.0.0",
     "web-push": "^3.6.7",
     "webdav-server": "^2.6.2",
