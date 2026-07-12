@@ -110,6 +110,12 @@ describe('BomResolverService', () => {
       subsystemType: SubsystemType.SMOKIP_A,
       taskType: 'LCS',
       cameraCount: 6,
+      cameraBreakdown: {
+        total: 6,
+        ogolna: 4,
+        lpr: 1,
+        skp: 1
+      },
       configParams: {
         lcsConfig: { existing: 'keep' },
         nastawniConfig: { standalone: true }
@@ -119,6 +125,14 @@ describe('BomResolverService', () => {
     expect(DependencyRuleEngine.evaluate).toHaveBeenCalledTimes(1);
     const mergedConfigParams = (DependencyRuleEngine.evaluate as jest.Mock).mock.calls[0][3];
     expect(mergedConfigParams.cameraCount).toBe(6);
+    expect(mergedConfigParams['camera.total']).toBe(6);
+    expect(mergedConfigParams['camera.total.ip']).toBe(6);
+    expect(mergedConfigParams['camera.total.ip.ogolna']).toBe(4);
+    expect(mergedConfigParams['camera.total.ip.lpr']).toBe(1);
+    expect(mergedConfigParams['camera.total.ip.skp']).toBe(1);
+    expect(mergedConfigParams['camera.recording.days']).toBe(14);
+    expect(mergedConfigParams['camera.bitrate.mbps']).toBe(4);
+    expect(mergedConfigParams['camera.storage.tb']).toBe(1);
     expect(mergedConfigParams.lcsConfig).toEqual({
       existing: 'keep',
       iloscKamer: 6
@@ -126,6 +140,29 @@ describe('BomResolverService', () => {
     expect(mergedConfigParams.nastawniConfig).toEqual({
       standalone: true,
       iloscKamer: 6
+    });
+  });
+
+  it('uses cameraBreakdown total when cameraCount is not provided', async () => {
+    const result = await BomResolverService.resolve({
+      subsystemType: SubsystemType.SMOKIP_A,
+      taskType: 'LCS',
+      cameraBreakdown: {
+        total: 5,
+        ogolna: 3,
+        lpr: 1,
+        skp: 1
+      },
+      configParams: {}
+    });
+
+    expect(RecorderSelectionService.selectRecorder).toHaveBeenCalledWith(5);
+    expect(result.cameraCount).toBe(5);
+    expect(result.cameraBreakdown).toEqual({
+      total: 5,
+      ogolna: 3,
+      lpr: 1,
+      skp: 1
     });
   });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractCameraCount, sumCamerasFromConfigValues } from '../cameraCountUtils';
+import { extractCameraBreakdown, extractCameraCount, sumCamerasFromConfigValues } from '../cameraCountUtils';
 
 describe('cameraCountUtils', () => {
   describe('sumCamerasFromConfigValues', () => {
@@ -97,6 +97,63 @@ describe('cameraCountUtils', () => {
           isStandaloneNastawnia: false,
         })
       ).not.toThrow();
+    });
+  });
+
+  describe('extractCameraBreakdown', () => {
+    it('extracts ogolna, lpr and skp counts from dynamic config keys', () => {
+      const breakdown = extractCameraBreakdown({
+        taskTypeCode: 'LCS',
+        subsystemType: 'SMOKIP_A',
+        configValues: {
+          Kamery_iloscKamerOgolnych: 6,
+          Kamery_iloscKamerLPR: '2',
+          Kamery_iloscSKP: 3,
+        },
+        metadata: {},
+        isStandaloneNastawnia: false,
+      });
+
+      expect(breakdown).toEqual({
+        total: 11,
+        ogolna: 6,
+        lpr: 2,
+        skp: 3,
+      });
+    });
+
+    it('falls back to extractCameraCount total when type breakdown is unavailable', () => {
+      const breakdown = extractCameraBreakdown({
+        taskTypeCode: 'LCS',
+        subsystemType: 'SMOKIP_A',
+        configValues: {},
+        metadata: { lcsConfig: { iloscKamer: 9 } },
+        isStandaloneNastawnia: false,
+      });
+
+      expect(breakdown).toEqual({
+        total: 9,
+        ogolna: 0,
+        lpr: 0,
+        skp: 0,
+      });
+    });
+
+    it('soft-fails to zeros on invalid input', () => {
+      expect(
+        extractCameraBreakdown({
+          taskTypeCode: 'LCS',
+          subsystemType: 'SMOKIP_A',
+          configValues: null as unknown as Record<string, unknown>,
+          metadata: {},
+          isStandaloneNastawnia: false,
+        })
+      ).toEqual({
+        total: 0,
+        ogolna: 0,
+        lpr: 0,
+        skp: 0,
+      });
     });
   });
 });

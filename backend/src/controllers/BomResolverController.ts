@@ -31,7 +31,8 @@ export class BomResolverController {
         bitrateMbps,
         configParams,
         isStandaloneNastawnia,
-        selectedRecorderId
+        selectedRecorderId,
+        cameraBreakdown
       } = req.body as Partial<BomResolveRequest>;
 
       if (!subsystemType) {
@@ -61,7 +62,8 @@ export class BomResolverController {
         bitrateMbps: bitrateMbps !== undefined ? Number(bitrateMbps) : undefined,
         configParams: configParams ?? {},
         isStandaloneNastawnia: isStandaloneNastawnia ?? false,
-        selectedRecorderId: selectedRecorderId ?? null
+        selectedRecorderId: selectedRecorderId ?? null,
+        cameraBreakdown: normalizeCameraBreakdown(cameraBreakdown)
       });
 
       res.json({
@@ -110,7 +112,8 @@ export class BomResolverController {
           bitrateMbps: r.bitrateMbps !== undefined ? Number(r.bitrateMbps) : undefined,
           configParams: r.configParams ?? {},
           isStandaloneNastawnia: r.isStandaloneNastawnia ?? false,
-          selectedRecorderId: r.selectedRecorderId ?? null
+          selectedRecorderId: r.selectedRecorderId ?? null,
+          cameraBreakdown: normalizeCameraBreakdown(r.cameraBreakdown)
         }))
       );
 
@@ -151,4 +154,20 @@ export class BomResolverController {
       res.status(500).json({ success: false, message: 'Błąd sprawdzania needsRecorder', error: message });
     }
   }
+
+}
+
+function normalizeCameraBreakdown(
+  cameraBreakdown: Partial<NonNullable<BomResolveRequest['cameraBreakdown']>> | undefined
+): BomResolveRequest['cameraBreakdown'] | undefined {
+  if (!cameraBreakdown || typeof cameraBreakdown !== 'object') {
+    return undefined;
+  }
+
+  return {
+    total: Number(cameraBreakdown.total) || 0,
+    ogolna: Number(cameraBreakdown.ogolna) || 0,
+    lpr: Number(cameraBreakdown.lpr) || 0,
+    skp: Number(cameraBreakdown.skp) || 0
+  };
 }

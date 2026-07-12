@@ -44,6 +44,13 @@ export interface ExtractCameraCountParams {
   isStandaloneNastawnia: boolean;
 }
 
+export interface CameraBreakdown {
+  total: number;
+  ogolna: number;
+  lpr: number;
+  skp: number;
+}
+
 /**
  * Główna funkcja obliczania cameraCount.
  * Nigdy nie rzuca błędu — zawsze zwraca liczbę >= 0.
@@ -93,6 +100,30 @@ export function extractCameraCount(params: ExtractCameraCountParams): number {
   }
 }
 
+export function extractCameraBreakdown(params: ExtractCameraCountParams): CameraBreakdown {
+  try {
+    const { configValues } = params;
+    const ogolna = sumMatchingConfigValues(configValues, ['kamerogolnych', 'kameraogolna', 'ogolna']);
+    const lpr = sumMatchingConfigValues(configValues, ['kamerlpr', 'lpr']);
+    const skp = sumMatchingConfigValues(configValues, ['kamerskp', 'ilosckamerskp', 'iloscskp', 'skp']);
+    const sum = ogolna + lpr + skp;
+
+    return {
+      total: sum > 0 ? sum : extractCameraCount(params),
+      ogolna,
+      lpr,
+      skp,
+    };
+  } catch {
+    return {
+      total: 0,
+      ogolna: 0,
+      lpr: 0,
+      skp: 0,
+    };
+  }
+}
+
 /** Bezpieczne zagnieżdżone odczytanie klucza z obiektu */
 function safeGet<T>(obj: unknown, key: string): T | undefined {
   if (obj && typeof obj === 'object' && key in (obj as object)) {
@@ -105,4 +136,20 @@ function safeGet<T>(obj: unknown, key: string): T | undefined {
 function toPositiveInt(val: unknown): number {
   const n = Number(val);
   return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
+}
+
+function sumMatchingConfigValues(
+  configValues: Record<string, unknown>,
+  patterns: string[]
+): number {
+  if (!configValues || typeof configValues !== 'object') {
+    return 0;
+  }
+
+  return Object.entries(configValues)
+    .filter(([key]) => {
+      const lower = key.toLowerCase();
+      return patterns.some(pattern => lower.includes(pattern));
+    })
+    .reduce((sum, [, value]) => sum + toPositiveInt(value), 0);
 }

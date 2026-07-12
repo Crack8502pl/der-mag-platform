@@ -2,8 +2,9 @@
 // src/components/admin/TemplateDependencyRuleModal.tsx
 // Modal for creating/editing BOM template dependency rules
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import bomTemplateDependencyRuleService from '../../services/bomTemplateDependencyRule.service';
+import variableEngineService, { type VariableEngineVariable } from '../../services/variableEngine.service';
 import type {
   BomTemplateDependencyRule,
   BomTemplateDependencyRuleInput,
@@ -31,6 +32,107 @@ interface TemplateDependencyRuleModalProps {
   onSuccess: () => void;
 }
 
+const WIZARD_PARAM_SUGGESTIONS: VariableEngineVariable[] = [
+  {
+    expression: 'cameraCount',
+    type: 'number',
+    description: 'Łączna liczba kamer z konfiguracji Wizarda',
+    provider: 'wizard',
+    usableInBom: true
+  },
+  {
+    expression: 'recordingDays',
+    type: 'number',
+    description: 'Dni retencji z Wizarda',
+    provider: 'wizard',
+    usableInBom: true
+  },
+  {
+    expression: 'bitrateMbps',
+    type: 'number',
+    description: 'Bitrate Mbps/kamera z Wizarda',
+    provider: 'wizard',
+    usableInBom: true
+  },
+  {
+    expression: 'requiredStorageTb',
+    type: 'number',
+    description: 'Wyliczona wymagana pojemność TB',
+    provider: 'wizard',
+    usableInBom: true
+  },
+  {
+    expression: 'diskSlots',
+    type: 'number',
+    description: 'Liczba slotów HDD wybranego rejestratora',
+    provider: 'wizard',
+    usableInBom: true
+  },
+  {
+    expression: 'recorderId',
+    type: 'number',
+    description: 'ID wybranego rejestratora',
+    provider: 'wizard',
+    usableInBom: true
+  },
+  {
+    expression: 'lcsConfig.iloscKamer',
+    type: 'number',
+    description: 'Liczba kamer zapisana w lcsConfig',
+    provider: 'wizard',
+    usableInBom: true
+  },
+  {
+    expression: 'lcsConfig.iloscStanowisk',
+    type: 'number',
+    description: 'Liczba stanowisk w lcsConfig',
+    provider: 'wizard',
+    usableInBom: true
+  },
+  {
+    expression: 'lcsConfig.serwerObrazu.maxKamer',
+    type: 'number',
+    description: 'Limit kamer serwera obrazu',
+    provider: 'wizard',
+    usableInBom: true
+  },
+  {
+    expression: 'nastawniConfig.iloscKamer',
+    type: 'number',
+    description: 'Liczba kamer zapisana w nastawniConfig',
+    provider: 'wizard',
+    usableInBom: true
+  },
+  {
+    expression: 'nastawniConfig.stacjaOperatorska.przypisaneKamery.length',
+    type: 'number',
+    description: 'Liczba przypisanych kamer stacji operatorskiej',
+    provider: 'wizard',
+    usableInBom: true
+  },
+  {
+    expression: 'iloscKamerOgolnych',
+    type: 'number',
+    description: 'Parametr szablonu BOM dla kamer ogólnych',
+    provider: 'wizard',
+    usableInBom: true
+  },
+  {
+    expression: 'iloscKamerLPR',
+    type: 'number',
+    description: 'Parametr szablonu BOM dla kamer LPR',
+    provider: 'wizard',
+    usableInBom: true
+  },
+  {
+    expression: 'iloscSlupow',
+    type: 'number',
+    description: 'Parametr szablonu BOM dla liczby słupów',
+    provider: 'wizard',
+    usableInBom: true
+  }
+];
+
 export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalProps> = ({
   templateId,
   templateItems,
@@ -54,6 +156,7 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
   const [targetItemId, setTargetItemId] = useState<number | ''>(rule?.targetItemId || '');
   const [storageDaysParam, setStorageDaysParam] = useState<string>(rule?.storageDaysParam || 'recordingDays');
   const [storageBitrateMbps, setStorageBitrateMbps] = useState<number | ''>(rule?.storageBitrateMbps ?? 4.0);
+  const [variableEngineVars, setVariableEngineVars] = useState<VariableEngineVariable[]>([]);
   
   const [inputs, setInputs] = useState<BomTemplateDependencyRuleInput[]>(
     rule?.inputs || []
@@ -62,6 +165,33 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
   const [conditions, setConditions] = useState<BomTemplateDependencyRuleCondition[]>(
     rule?.conditions || []
   );
+
+  useEffect(() => {
+    let active = true;
+
+    variableEngineService
+      .listVariables()
+      .then((variables) => {
+        if (!active) return;
+        setVariableEngineVars(variables);
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const sourceParamSuggestions = [...WIZARD_PARAM_SUGGESTIONS, ...variableEngineVars]
+    .sort((a, b) => {
+      if (a.provider === b.provider) {
+        return a.expression.localeCompare(b.expression);
+      }
+      if (a.provider === 'wizard') return -1;
+      if (b.provider === 'wizard') return 1;
+      return a.provider.localeCompare(b.provider);
+    })
+    .filter((item, index, array) => array.findIndex(entry => entry.expression === item.expression) === index);
 
   const handleAddInput = () => {
     setInputs([
@@ -143,7 +273,7 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
         return `Wejście ${i + 1}: Należy wybrać regułę źródłową`;
       }
       if (input.inputType === 'CONFIG_PARAM' && !input.sourceParamName) {
-        return `Wejście ${i + 1}: Należy wybrać parametr Wizarda`;
+        return `Wejście ${i + 1}: Należy wybrać parametr lub wyrażenie`;
       }
     }
 
@@ -428,7 +558,7 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
                           ? 'Pozycja źródłowa *'
                           : input.inputType === 'RULE_RESULT'
                           ? 'Reguła źródłowa *'
-                          : 'Parametr Wizarda *'}
+                          : 'Parametr / wyrażenie *'}
                       </label>
                       {input.inputType === 'ITEM' ? (
                         <select
@@ -462,37 +592,24 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
                         </select>
                       ) : (
                         <>
-                            <select
-                              className="input"
-                              value={input.sourceParamName || ''}
-                              onChange={(e) => handleUpdateInput(idx, 'sourceParamName', e.target.value)}
-                              style={{ fontSize: '13px', padding: '6px' }}
-                            >
-                              <option value="">-- Wybierz parametr --</option>
-                              <optgroup label="📷 Kamery i rejestratory">
-                                <option value="cameraCount">cameraCount — łączna liczba kamer</option>
-                                <option value="recordingDays">recordingDays — dni retencji</option>
-                                <option value="bitrateMbps">bitrateMbps — bitrate Mbps/kamera</option>
-                                <option value="requiredStorageTb">requiredStorageTb — wymagana pojemność TB</option>
-                                <option value="diskSlots">diskSlots — sloty HDD rejestratora</option>
-                                <option value="recorderId">recorderId — ID wybranego rejestratora</option>
-                              </optgroup>
-                              <optgroup label="🏗️ Konfiguracja LCS / Nastawnia">
-                                <option value="lcsConfig.iloscKamer">lcsConfig.iloscKamer — kamery LCS</option>
-                                <option value="lcsConfig.iloscStanowisk">lcsConfig.iloscStanowisk — stanowiska</option>
-                                <option value="lcsConfig.serwerObrazu.maxKamer">lcsConfig.serwerObrazu.maxKamer — max kamer serwera</option>
-                                <option value="nastawniConfig.iloscKamer">nastawniConfig.iloscKamer — kamery Nastawni</option>
-                                <option value="nastawniConfig.stacjaOperatorska.przypisaneKamery.length">nastawniConfig.stacjaOperatorska.przypisaneKamery.length</option>
-                              </optgroup>
-                              <optgroup label="⚙️ Parametry z szablonu BOM">
-                                <option value="iloscKamerOgolnych">iloscKamerOgolnych — kamery ogólne</option>
-                                <option value="iloscKamerLPR">iloscKamerLPR — kamery LPR</option>
-                                <option value="iloscSlupow">iloscSlupow — ilość słupów</option>
-                              </optgroup>
-                            </select>
-                            <small style={{ color: 'var(--text-secondary)', fontSize: '11px', display: 'block', marginTop: '4px' }}>
-                              💡 Wartość pochodzi z konfiguracji zadania wypełnionej w Wizardzie
-                            </small>
+                          <input
+                            list="variable-engine-vars"
+                            className="input"
+                            value={input.sourceParamName || ''}
+                            onChange={(e) => handleUpdateInput(idx, 'sourceParamName', e.target.value)}
+                            placeholder="np. cameraCount lub camera.total.ip.lpr"
+                            style={{ fontSize: '13px', padding: '6px' }}
+                          />
+                          <datalist id="variable-engine-vars">
+                            {sourceParamSuggestions.map((suggestion) => (
+                              <option key={suggestion.expression} value={suggestion.expression}>
+                                {suggestion.expression} — {suggestion.description}
+                              </option>
+                            ))}
+                          </datalist>
+                          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '4px 0 0' }}>
+                            Wpisz nazwę parametru Wizarda (np. <code>cameraCount</code>) lub wyrażenie Variable Engine (np. <code>camera.total.ip.lpr</code>).
+                          </p>
                         </>
                       )}
                     </div>

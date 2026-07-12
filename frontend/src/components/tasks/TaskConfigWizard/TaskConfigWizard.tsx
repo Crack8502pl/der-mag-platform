@@ -12,7 +12,7 @@ import type { BomSubsystemTemplate, BomSubsystemTemplateItem } from '../../../se
 import type { BomGroup } from '../../../services/bomGroup.service';
 import type { BomResolveResult } from '../../../services/bomResolver.service';
 import type { Task, TaskMetadata } from '../../../types/task.types';
-import { extractCameraCount } from '../../../utils/cameraCountUtils';
+import { extractCameraBreakdown, extractCameraCount } from '../../../utils/cameraCountUtils';
 import {
   mergeLcsConfigToMetadata,
   mergeNastawniConfigToMetadata,
@@ -306,6 +306,13 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
       const taskType = task.taskType?.code || subsystemType;
       const taskVariant = metadata.taskVariant || null;
       const count = getCameraCount();
+      const breakdown = extractCameraBreakdown({
+        taskTypeCode: task.taskType?.code || '',
+        subsystemType: String(metadata.subsystemType || task.taskType?.code || ''),
+        configValues,
+        metadata,
+        isStandaloneNastawnia,
+      });
       setCameraCount(count);
 
       const result = await bomResolverService.resolve({
@@ -317,6 +324,7 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
         selectedRecorderId: selectedRecorderId || null,
         retentionDays,
         cameraCount: count,
+        cameraBreakdown: breakdown,
       });
 
       setResolvedBom(result);

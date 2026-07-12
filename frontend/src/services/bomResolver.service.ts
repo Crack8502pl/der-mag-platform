@@ -2,6 +2,13 @@
 // frontend/src/services/bomResolver.service.ts
 import api from './api';
 
+export interface CameraBreakdown {
+  total: number;
+  ogolna: number;
+  lpr: number;
+  skp: number;
+}
+
 export interface BomResolveRequest {
   subsystemType: string;
   taskType: string;
@@ -11,6 +18,7 @@ export interface BomResolveRequest {
   selectedRecorderId?: number | null;
   retentionDays?: number;
   cameraCount?: number;
+  cameraBreakdown?: CameraBreakdown;
 }
 
 export interface ResolvedBomItem {
@@ -77,6 +85,7 @@ export interface BomResolveResult {
   isConfigured: boolean;
   resolvedAt: string;
   warnings: string[];
+  cameraBreakdown?: CameraBreakdown;
 }
 
 export const bomResolverService = {
