@@ -89,8 +89,7 @@ export class HierarchyVariableProvider extends AbstractVariableProvider {
   // ─── Field resolvers ──────────────────────────────────────────────────────
 
   private async resolveParent(entityId: number, entityType: string): Promise<VariableValue> {
-    const parentId = await this.traversal.getParentId(entityId, entityType);
-    return parentId ?? undefined;
+    return this.traversal.getParentId(entityId, entityType);
   }
 
   private async resolveChildren(entityId: number, entityType: string): Promise<VariableValue> {
