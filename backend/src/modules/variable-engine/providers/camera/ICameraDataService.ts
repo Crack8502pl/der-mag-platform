@@ -19,6 +19,12 @@ export interface CameraData {
   readonly total: number;
   /** Number of IP cameras. */
   readonly totalIp: number;
+  /** Number of general-purpose IP cameras. */
+  readonly totalIpOgolna: number;
+  /** Number of LPR IP cameras. */
+  readonly totalIpLpr: number;
+  /** Number of SKP IP cameras. */
+  readonly totalIpSkp: number;
   /** Number of analog cameras. */
   readonly totalAnalog: number;
   /** Total required storage capacity in TB. */

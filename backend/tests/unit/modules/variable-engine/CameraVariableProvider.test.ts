@@ -4,6 +4,9 @@
  * Covers:
  * - camera.total
  * - camera.total.ip
+ * - camera.total.ip.ogolna
+ * - camera.total.ip.lpr
+ * - camera.total.ip.skp
  * - camera.total.analog
  * - camera.storage.tb
  * - camera.recording.days
@@ -23,6 +26,9 @@ import type { VariableContext } from '../../../../src/modules/variable-engine/co
 const DEFAULT_DATA: CameraData = {
   total: 10,
   totalIp: 8,
+  totalIpOgolna: 5,
+  totalIpLpr: 2,
+  totalIpSkp: 1,
   totalAnalog: 2,
   storageTb: 12.5,
   recordingDays: 30,
@@ -84,6 +90,33 @@ describe('CameraVariableProvider', () => {
     it('returns IP camera count', async () => {
       const provider = new CameraVariableProvider(makeService());
       expect(await provider.resolve('camera.total.ip', ctx(1))).toBe(8);
+    });
+  });
+
+  // ── camera.total.ip.ogolna ───────────────────────────────────────────────────
+
+  describe('camera.total.ip.ogolna', () => {
+    it('returns general-purpose IP camera count', async () => {
+      const provider = new CameraVariableProvider(makeService());
+      expect(await provider.resolve('camera.total.ip.ogolna', ctx(1))).toBe(5);
+    });
+  });
+
+  // ── camera.total.ip.lpr ──────────────────────────────────────────────────────
+
+  describe('camera.total.ip.lpr', () => {
+    it('returns LPR IP camera count', async () => {
+      const provider = new CameraVariableProvider(makeService());
+      expect(await provider.resolve('camera.total.ip.lpr', ctx(1))).toBe(2);
+    });
+  });
+
+  // ── camera.total.ip.skp ──────────────────────────────────────────────────────
+
+  describe('camera.total.ip.skp', () => {
+    it('returns SKP IP camera count', async () => {
+      const provider = new CameraVariableProvider(makeService());
+      expect(await provider.resolve('camera.total.ip.skp', ctx(1))).toBe(1);
     });
   });
 

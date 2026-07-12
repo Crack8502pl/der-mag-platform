@@ -44,7 +44,17 @@ describe('Provider N+1 elimination', () => {
     // Only one call before data resolves.
     expect(svc.getCameraData).toHaveBeenCalledTimes(1);
 
-    resolveData({ total: 5, totalIp: 3, totalAnalog: 2, storageTb: 4.0, recordingDays: 14, bitrateMbps: 2 });
+    resolveData({
+      total: 5,
+      totalIp: 3,
+      totalIpOgolna: 2,
+      totalIpLpr: 1,
+      totalIpSkp: 0,
+      totalAnalog: 2,
+      storageTb: 4.0,
+      recordingDays: 14,
+      bitrateMbps: 2,
+    });
     const [r1, r2, r3] = await Promise.all([p1, p2, p3]);
 
     expect(r1).toBe(5);
@@ -220,7 +230,17 @@ describe('Provider N+1 elimination', () => {
   // ── Different entities are NOT deduplicated ───────────────────────────────────
 
   it('separate entity contexts each trigger their own data-service call', async () => {
-    const cameraData: CameraData = { total: 5, totalIp: 3, totalAnalog: 2, storageTb: 4.0, recordingDays: 14, bitrateMbps: 2 };
+    const cameraData: CameraData = {
+      total: 5,
+      totalIp: 3,
+      totalIpOgolna: 2,
+      totalIpLpr: 1,
+      totalIpSkp: 0,
+      totalAnalog: 2,
+      storageTb: 4.0,
+      recordingDays: 14,
+      bitrateMbps: 2,
+    };
     const svc: ICameraDataService = { getCameraData: jest.fn().mockResolvedValue(cameraData) };
     const provider = new CameraVariableProvider(svc);
 
@@ -239,7 +259,17 @@ describe('Provider N+1 elimination', () => {
   // ── Sequential calls after settle start fresh ─────────────────────────────────
 
   it('sequential calls after first settles issue a second data-service call', async () => {
-    const cameraData: CameraData = { total: 5, totalIp: 3, totalAnalog: 2, storageTb: 4.0, recordingDays: 14, bitrateMbps: 2 };
+    const cameraData: CameraData = {
+      total: 5,
+      totalIp: 3,
+      totalIpOgolna: 2,
+      totalIpLpr: 1,
+      totalIpSkp: 0,
+      totalAnalog: 2,
+      storageTb: 4.0,
+      recordingDays: 14,
+      bitrateMbps: 2,
+    };
     const svc: ICameraDataService = { getCameraData: jest.fn().mockResolvedValue(cameraData) };
     const provider = new CameraVariableProvider(svc);
 

@@ -8,12 +8,15 @@
  *
  * | Expression             | Type   | Description                                        |
  * |------------------------|--------|----------------------------------------------------|
- * | `camera.total`         | number | Total number of cameras (all types).               |
- * | `camera.total.ip`      | number | Number of IP cameras.                              |
- * | `camera.total.analog`  | number | Number of analog cameras.                          |
- * | `camera.storage.tb`    | number | Required storage capacity in TB.                   |
- * | `camera.recording.days`| number | Recording retention in days.                        |
- * | `camera.bitrate.mbps`  | number | Average bitrate per camera in Mbps.                |
+ * | `camera.total`            | number | Total number of cameras (all types).             |
+ * | `camera.total.ip`         | number | Number of IP cameras.                            |
+ * | `camera.total.ip.ogolna`  | number | Number of general-purpose IP cameras.            |
+ * | `camera.total.ip.lpr`     | number | Number of LPR IP cameras.                        |
+ * | `camera.total.ip.skp`     | number | Number of SKP IP cameras.                        |
+ * | `camera.total.analog`     | number | Number of analog cameras.                        |
+ * | `camera.storage.tb`       | number | Required storage capacity in TB.                 |
+ * | `camera.recording.days`   | number | Recording retention in days.                     |
+ * | `camera.bitrate.mbps`     | number | Average bitrate per camera in Mbps.              |
  *
  * ## Soft-fail
  *
@@ -34,6 +37,9 @@ import { DataFetchDeduplicator } from '../DataFetchDeduplicator';
 type CameraField =
   | 'total'
   | 'total.ip'
+  | 'total.ip.ogolna'
+  | 'total.ip.lpr'
+  | 'total.ip.skp'
   | 'total.analog'
   | 'storage.tb'
   | 'recording.days'
@@ -42,6 +48,9 @@ type CameraField =
 const SUPPORTED_FIELDS: ReadonlySet<string> = new Set<CameraField>([
   'total',
   'total.ip',
+  'total.ip.ogolna',
+  'total.ip.lpr',
+  'total.ip.skp',
   'total.analog',
   'storage.tb',
   'recording.days',
@@ -95,6 +104,12 @@ export class CameraVariableProvider extends AbstractVariableProvider {
         return data.total;
       case 'total.ip':
         return data.totalIp;
+      case 'total.ip.ogolna':
+        return data.totalIpOgolna;
+      case 'total.ip.lpr':
+        return data.totalIpLpr;
+      case 'total.ip.skp':
+        return data.totalIpSkp;
       case 'total.analog':
         return data.totalAnalog;
       case 'storage.tb':
