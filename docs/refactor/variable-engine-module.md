@@ -314,7 +314,7 @@ ${count}           ← no-dot, namespace == "count"
 | **PR-3** | Template Integration Adapter | ✅ **Done** |
 | **PR-4** | Hierarchy Providers | ✅ **Done** |
 | **PR-5** | CCTV/Network/Fiber Providers | ✅ **Done** |
-| **PR-6** | Contract/Warehouse/Task/AI Providers | ✅ **Done** |
+| **PR-6** | Contract/Warehouse/Task/AI/User Providers | ✅ **Done** |
 | PR-7 | Error Policy + Observability | ⏳ Pending |
 | PR-8 | Function Registry (MVP) | ⏳ Pending |
 | PR-9 | Performance & Stabilization | ⏳ Pending |
@@ -428,7 +428,7 @@ ${count}           ← no-dot, namespace == "count"
 
 | Metric | Result |
 |---|---|
-| Tests (variable-engine suite) | 339 passing (233 PR-1…5 + 106 PR-6) |
+| Tests (variable-engine suite) | 314 passing across 22 test files (228 PR-1…5 + 86 PR-6) |
 
 ### New test files (PR-6)
 
