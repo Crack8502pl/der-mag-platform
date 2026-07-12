@@ -109,7 +109,7 @@ export class L1VariableCache implements IVariableCache {
     this.store.clear();
   }
 
-  /** Diagnostic: current number of cached entries (including expired). */
+  /** Diagnostic: current number of cached entries (may include not-yet-accessed expired entries – expired entries are lazily evicted on `get()`). */
   get size(): number {
     return this.store.size;
   }

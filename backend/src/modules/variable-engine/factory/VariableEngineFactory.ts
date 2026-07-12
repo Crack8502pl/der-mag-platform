@@ -169,7 +169,16 @@ export class VariableEngineFactory {
     // Run initialize() in registration order (L-07).
     for (const provider of this.providers) {
       if (typeof provider.initialize === 'function') {
-        await provider.initialize();
+        try {
+          await provider.initialize();
+        } catch (err) {
+          const providerName = provider.constructor.name;
+          const message = err instanceof Error ? err.message : String(err);
+          throw new Error(
+            `VariableEngineFactory: provider "${providerName}" failed during initialize(): ${message}`,
+            { cause: err }
+          );
+        }
       }
     }
 

@@ -68,11 +68,18 @@ export class CompositeVariableCache implements IVariableCache {
       return l1Value;
     }
 
-    // ── 2. L2 hit (async; not awaitable from sync IVariableCache.get) ─────────
+    // ── 2. L2 read-through (async, fire-and-forget) ───────────────────────────
     // Because IVariableCache.get is synchronous we cannot await L2 here.
-    // L2 read-through is best-effort: trigger async L2 lookup and populate L1
-    // in the background.  Callers that need guaranteed L2 hit should use
-    // `getAsync()`.
+    // The background L2 lookup populates L1 for **subsequent** requests.
+    //
+    // ⚠ RACE CONDITION: between the time this synchronous `get` returns
+    // `undefined` and the async L2 read completes, the caller may trigger a
+    // provider fetch for the same key.  Both the L2 read and the provider fetch
+    // will populate L1; the last write wins.  This is an acceptable trade-off
+    // because:
+    //  a) Both values are for the same key and should be identical.
+    //  b) L2 is a supplemental cache, not the source of truth.
+    // Callers that need guaranteed L2 read-through should use `getAsync()`.
     this.l2.get(key).then((l2Value) => {
       if (l2Value !== undefined) {
         this.l1.set(key, l2Value);

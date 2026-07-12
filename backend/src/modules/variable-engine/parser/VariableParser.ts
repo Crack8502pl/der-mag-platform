@@ -60,8 +60,10 @@ export class VariableParser implements IVariableParser {
           // The full matched text (e.g. `${camera.total}`) is
           // template[tokenStart .. i-1].
           const raw = template.slice(tokenStart, i);
-          // The expression is everything between `${` and the last `}`.
-          const expression = raw.slice(2, raw.length - 1).trim();
+          // The expression is everything between the opening `${` (2 chars)
+          // and the last `}` (1 char from the end).
+          const OPEN_DELIMITER_LEN = 2; // length of `${`
+          const expression = raw.slice(OPEN_DELIMITER_LEN, raw.length - 1).trim();
 
           if (expression.length > 0) {
             tokens.push({ raw, expression, offset: tokenStart });

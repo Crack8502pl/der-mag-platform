@@ -96,6 +96,11 @@ export function parseFunctionCall(expression: string): FunctionCallExpression | 
 /**
  * Split a comma-separated argument list, respecting nested parentheses and
  * braces.  Returns trimmed argument strings.  An empty arg list returns `[]`.
+ *
+ * Depth tracking covers both `(...)` and `{...}` so that object-literal
+ * arguments like `fn({a: 1}, {b: 2})` are split correctly (the comma inside
+ * the object literals is at depth > 0 and is not treated as an argument
+ * separator).
  */
 function splitArguments(argsRaw: string): readonly string[] {
   if (argsRaw.trim().length === 0) {

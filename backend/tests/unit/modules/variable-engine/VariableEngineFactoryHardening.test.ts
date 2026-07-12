@@ -59,6 +59,15 @@ describe('VariableEngineFactory – async init (L-07)', () => {
     const result = await engine.evaluate('${camera.total}', ctx);
     expect(result).toBe('42');
   });
+
+  it('createAsync wraps initialize() errors with provider context', async () => {
+    const p = {
+      ...makeProvider(['camera']),
+      initialize: jest.fn().mockRejectedValue(new Error('DB connection failed')),
+    };
+    const factory = new VariableEngineFactory([p]);
+    await expect(factory.createAsync()).rejects.toThrow('failed during initialize()');
+  });
 });
 
 // ── Rollback on registration failure (L-10) ───────────────────────────────────
