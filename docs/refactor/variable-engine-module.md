@@ -618,3 +618,8 @@ const factory = new VariableEngineFactory(providers, {
 4. **No multi-argument functions** – The current function call syntax only supports a single argument expression (`funcName(arg)`).  Multi-argument functions (e.g. `pad(x, 5)`) are not supported.
 5. **Last-write-wins in FunctionRegistry** – Registering the same function name twice silently replaces the first.  There is intentionally no conflict error; this differs from the strict-mode `VariableRegistry`.
 6. **No function-argument caching isolation** – The argument expression's resolved value is cached under its own key; the full `funcName(arg)` expression result is also cached.  If the argument value changes between requests the cache must be cleared (or `bypassCache: true` used).
+
+## Limitations (PR-9 Scope)
+1. **Deduplication is in-flight only** — sequential calls (not overlapping in time) each issue a fresh fetch. This is intentional.
+2. **L1VariableCache has no TTL** - invalidation requires external clear() or LRU eviction pressure.
+3. **durationMs uses Date.now() (wall-clock)** - treat as coarse profiling signal only.
