@@ -58,9 +58,11 @@ All interfaces live in `contracts/index.ts` and are re-exported from the module 
 | `IVariableParser` | Contract for the `${...}` parser |
 | `IVariableResolver` | Resolves a single expression |
 | `IVariableEvaluator` | Top-level evaluate(template, context) call |
+| `IVariableLogger` | Structured logger injected into resolver and evaluator |
 | `VariableContext` | Execution context (entityId, entityType, params) |
 | `VariableToken` | A parsed `${...}` placeholder |
-| `EvaluateOptions` | Evaluate-time flags (fallback, bypassCache) |
+| `EvaluateOptions` | Evaluate-time flags (fallback, fallbackMode, bypassCache) |
+| `FallbackMode` | Enum: `EMPTY` \| `PRESERVE` \| `CUSTOM` |
 
 ---
 
@@ -247,11 +249,53 @@ ${count}           ← no-dot, namespace == "count"
 
 ---
 
-## Soft-fail Policy
+## Soft-fail Policy (PR-7)
 
 - Providers that throw are caught by the resolver; the expression resolves to `undefined`.
-- `undefined` / `null` values are replaced with the configured `fallback` string (default `''`).
+- `undefined` / `null` values are replaced according to the configured `FallbackMode`:
+  - `EMPTY` (default) – replaced with `''` so the rendered string is always well-formed.
+  - `PRESERVE` – the original `${expression}` placeholder is kept as-is (useful for
+    debugging or two-pass rendering pipelines).
+  - `CUSTOM` – replaced with the static string from `EvaluateOptions.fallback`.
 - A failing provider **never** crashes the rendering of the whole template.
+- All provider errors are forwarded to the injected `IVariableLogger` as structured JSON
+  entries.  Stack traces are **never** included in the output unless the logger was
+  constructed with `includeStackTrace: true` (local dev / CI only).
+
+### Structured Logging
+
+Inject a `VariableEngineLogger` instance into `VariableResolver` and / or
+`VariableEvaluator` via `ResolverOptions.logger`:
+
+```ts
+import { VariableEngineLogger } from '@/modules/variable-engine';
+
+const logger = new VariableEngineLogger({
+  traceEnabled: process.env.VARIABLE_ENGINE_TRACE === 'true',
+  includeStackTrace: process.env.NODE_ENV !== 'production',
+});
+
+const resolver = new VariableResolver(registry, cache, { logger });
+const evaluator = new VariableEvaluator(parser, resolver, logger);
+```
+
+Each log entry is a single JSON line emitted to the appropriate `console.*` method:
+
+```json
+{ "level": "error", "source": "VariableEngine", "message": "Provider threw during resolution – soft-fail applied", "expression": "camera.total", "provider": "CameraVariableProvider", "errorName": "Error", "errorMessage": "Connection refused" }
+```
+
+- `error` → `console.error`
+- `warn` → `console.warn`
+- `trace` → `console.debug` (no-op when `traceEnabled=false`)
+
+Use `NullVariableLogger` in tests or when silent operation is required.
+
+### Environment Variables
+
+| Variable | Values | Effect |
+|---|---|---|
+| `VARIABLE_ENGINE_TRACE` | `true` / anything else | Enables trace-level logs in `VariableEngineLogger` |
 
 ---
 
@@ -315,7 +359,7 @@ ${count}           ← no-dot, namespace == "count"
 | **PR-4** | Hierarchy Providers | ✅ **Done** |
 | **PR-5** | CCTV/Network/Fiber Providers | ✅ **Done** |
 | **PR-6** | Contract/Warehouse/Task/AI/User Providers | ✅ **Done** |
-| PR-7 | Error Policy + Observability | ⏳ Pending |
+| PR-7 | Error Policy + Observability | ✅ **Done** |
 | PR-8 | Function Registry (MVP) | ⏳ Pending |
 | PR-9 | Performance & Stabilization | ⏳ Pending |
 | PR-10 | Final Rollout | ⏳ Pending |

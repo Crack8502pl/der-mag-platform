@@ -4,7 +4,8 @@
 
 import { VariableEvaluator } from '../../../../src/modules/variable-engine/evaluator/VariableEvaluator';
 import { VariableParser } from '../../../../src/modules/variable-engine/parser/VariableParser';
-import type { IVariableResolver, VariableContext, VariableValue } from '../../../../src/modules/variable-engine/contracts';
+import { FallbackMode } from '../../../../src/modules/variable-engine/contracts';
+import type { IVariableResolver, IVariableLogger, VariableContext, VariableValue } from '../../../../src/modules/variable-engine/contracts';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -13,6 +14,14 @@ const ctx: VariableContext = { entityId: 42, entityType: 'task' };
 function makeResolver(map: Record<string, VariableValue>): IVariableResolver {
   return {
     resolve: jest.fn().mockImplementation(async (expr: string) => map[expr])
+  };
+}
+
+function makeMockLogger(): jest.Mocked<IVariableLogger> {
+  return {
+    error: jest.fn(),
+    warn: jest.fn(),
+    trace: jest.fn(),
   };
 }
 
@@ -77,7 +86,7 @@ describe('VariableEvaluator', () => {
     expect(resolveFn).toHaveBeenCalledTimes(1);
   });
 
-  // ── Fallback ──────────────────────────────────────────────────────────────────
+  // ── Fallback – backward-compatible defaults ───────────────────────────────────
 
   it('uses empty string as default fallback for unresolved placeholders', async () => {
     const resolver = makeResolver({});
@@ -105,6 +114,87 @@ describe('VariableEvaluator', () => {
     const evaluator = new VariableEvaluator(parser, resolver);
     const result = await evaluator.evaluate('${y}', ctx, { fallback: '?' });
     expect(result).toBe('?');
+  });
+
+  // ── FallbackMode.EMPTY ────────────────────────────────────────────────────────
+
+  it('FallbackMode.EMPTY replaces unresolved with empty string', async () => {
+    const resolver = makeResolver({});
+    const evaluator = new VariableEvaluator(parser, resolver);
+    const result = await evaluator.evaluate('Value: ${missing}', ctx, {
+      fallbackMode: FallbackMode.EMPTY,
+    });
+    expect(result).toBe('Value: ');
+  });
+
+  // ── FallbackMode.PRESERVE ─────────────────────────────────────────────────────
+
+  it('FallbackMode.PRESERVE keeps the original ${expression} token when unresolved', async () => {
+    const resolver = makeResolver({});
+    const evaluator = new VariableEvaluator(parser, resolver);
+    const result = await evaluator.evaluate('Value: ${missing.metric}', ctx, {
+      fallbackMode: FallbackMode.PRESERVE,
+    });
+    expect(result).toBe('Value: ${missing.metric}');
+  });
+
+  it('FallbackMode.PRESERVE does not affect resolved expressions', async () => {
+    const resolver = makeResolver({ 'camera.total': 7 });
+    const evaluator = new VariableEvaluator(parser, resolver);
+    const result = await evaluator.evaluate('Cameras: ${camera.total}, missing: ${x}', ctx, {
+      fallbackMode: FallbackMode.PRESERVE,
+    });
+    expect(result).toBe('Cameras: 7, missing: ${x}');
+  });
+
+  // ── FallbackMode.CUSTOM ───────────────────────────────────────────────────────
+
+  it('FallbackMode.CUSTOM uses the fallback string for unresolved expressions', async () => {
+    const resolver = makeResolver({});
+    const evaluator = new VariableEvaluator(parser, resolver);
+    const result = await evaluator.evaluate('Value: ${missing}', ctx, {
+      fallbackMode: FallbackMode.CUSTOM,
+      fallback: 'N/A',
+    });
+    expect(result).toBe('Value: N/A');
+  });
+
+  it('FallbackMode.CUSTOM defaults to empty string when no fallback provided', async () => {
+    const resolver = makeResolver({});
+    const evaluator = new VariableEvaluator(parser, resolver);
+    const result = await evaluator.evaluate('Value: ${missing}', ctx, {
+      fallbackMode: FallbackMode.CUSTOM,
+    });
+    expect(result).toBe('Value: ');
+  });
+
+  // ── Logger / trace mode ───────────────────────────────────────────────────────
+
+  it('calls logger.trace with token count when evaluating a template with placeholders', async () => {
+    const logger = makeMockLogger();
+    const resolver = makeResolver({ 'x': 1 });
+    const evaluator = new VariableEvaluator(parser, resolver, logger);
+    await evaluator.evaluate('${x}', ctx);
+    expect(logger.trace).toHaveBeenCalledWith('Evaluating template', { tokenCount: 1 });
+  });
+
+  it('does not call logger when template has no placeholders', async () => {
+    const logger = makeMockLogger();
+    const resolver = makeResolver({});
+    const evaluator = new VariableEvaluator(parser, resolver, logger);
+    await evaluator.evaluate('no placeholders', ctx);
+    expect(logger.trace).not.toHaveBeenCalled();
+  });
+
+  it('calls logger.trace when expression resolves to undefined', async () => {
+    const logger = makeMockLogger();
+    const resolver = makeResolver({});
+    const evaluator = new VariableEvaluator(parser, resolver, logger);
+    await evaluator.evaluate('${missing}', ctx);
+    expect(logger.trace).toHaveBeenCalledWith(
+      'Expression resolved to undefined – fallback will apply',
+      expect.objectContaining({ expression: 'missing' })
+    );
   });
 
   // ── Edge cases ────────────────────────────────────────────────────────────────

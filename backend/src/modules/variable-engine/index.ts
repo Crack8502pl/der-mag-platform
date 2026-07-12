@@ -40,8 +40,10 @@ export type {
   IVariableParser,
   IVariableResolver,
   IVariableEvaluator,
+  IVariableLogger,
   EvaluateOptions
 } from './contracts';
+export { FallbackMode } from './contracts';
 
 // ─── Errors ───────────────────────────────────────────────────────────────────
 export {
@@ -60,6 +62,10 @@ export type { L1CacheOptions } from './cache';
 export { VariableResolver } from './resolver';
 export type { ResolverOptions } from './resolver';
 export { VariableEvaluator } from './evaluator';
+
+// ─── Logger (PR-7) ────────────────────────────────────────────────────────────
+export { VariableEngineLogger, NullVariableLogger } from './logger';
+export type { VariableEngineLoggerOptions } from './logger';
 
 // ─── Provider base class (PR-2) ───────────────────────────────────────────────
 export { AbstractVariableProvider } from './providers';

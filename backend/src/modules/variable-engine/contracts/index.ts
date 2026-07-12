@@ -179,13 +179,81 @@ export interface IVariableEvaluator {
   ): Promise<string>;
 }
 
+// ─── Logger ───────────────────────────────────────────────────────────────────
+
+/**
+ * Structured logger contract used across the Variable Engine.
+ *
+ * Implementations must ensure:
+ * - No stack traces are included in production output (`error` / `warn`).
+ * - `trace` calls are no-ops unless trace mode is explicitly enabled.
+ *
+ * Accepting `IVariableLogger` via DI (instead of calling `console` directly)
+ * allows callers to inject a no-op logger in tests and a structured logger in
+ * production.
+ */
+export interface IVariableLogger {
+  /**
+   * Log a structured error-level event.
+   * Must NOT include a raw stack trace string in the `meta` payload when
+   * running in production (to prevent stack trace leakage).
+   */
+  error(message: string, meta?: Record<string, unknown>): void;
+
+  /** Log a warning-level event. */
+  warn(message: string, meta?: Record<string, unknown>): void;
+
+  /**
+   * Log a fine-grained trace event (verbose / debug level).
+   * Must be a complete no-op unless the logger was created with trace mode
+   * enabled.
+   */
+  trace(message: string, meta?: Record<string, unknown>): void;
+}
+
+// ─── Fallback policy ──────────────────────────────────────────────────────────
+
+/**
+ * Determines how unresolved or failed variable expressions are rendered.
+ *
+ * - `EMPTY`    – replace with an empty string (default, silent).
+ * - `PRESERVE` – keep the original `${expression}` placeholder unchanged.
+ * - `CUSTOM`   – replace with the static string supplied in
+ *                `EvaluateOptions.fallback`.
+ */
+export const FallbackMode = {
+  /** Replace unresolved expressions with an empty string. */
+  EMPTY: 'EMPTY',
+  /** Preserve the original `${expression}` token as-is. */
+  PRESERVE: 'PRESERVE',
+  /** Replace with the custom string from `EvaluateOptions.fallback`. */
+  CUSTOM: 'CUSTOM',
+} as const;
+
+export type FallbackMode = (typeof FallbackMode)[keyof typeof FallbackMode];
+
 /** Options controlling evaluator behaviour. */
 export interface EvaluateOptions {
   /**
-   * String used when a variable cannot be resolved.
-   * Defaults to `''` (empty string) so templates never crash.
+   * String used when a variable cannot be resolved **and** `fallbackMode` is
+   * `CUSTOM` (or omitted, which defaults to `EMPTY` / empty-string behaviour).
+   *
+   * Kept for backward compatibility: when `fallbackMode` is not set, this
+   * string is used directly as the replacement (defaults to `''`).
    */
   readonly fallback?: string;
+
+  /**
+   * Fallback strategy for unresolved expressions.
+   *
+   * - `EMPTY` (default) – replaces with `''`.
+   * - `PRESERVE` – keeps `${expression}` in the output.
+   * - `CUSTOM` – uses the `fallback` string.
+   *
+   * When omitted, behaviour is backward-compatible: the `fallback` string
+   * (defaulting to `''`) is used.
+   */
+  readonly fallbackMode?: FallbackMode;
 
   /**
    * When `true` the evaluator skips the cache for all resolutions.

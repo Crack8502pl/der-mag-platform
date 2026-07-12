@@ -11,9 +11,13 @@
  * 3. Build a replacement map: `raw → resolvedString`.
  * 4. Walk through the template once and substitute every token.
  *
- * A token that resolves to `undefined` (provider returned nothing) is replaced
- * with `options.fallback` (default `''`) so the rendered string is always
- * well-formed.
+ * A token that resolves to `undefined` is replaced according to the
+ * configured `FallbackMode`:
+ * - `EMPTY` (default) – replaced with `''` so the rendered string is
+ *   always well-formed.
+ * - `PRESERVE` – the original `${expression}` placeholder is kept as-is,
+ *   useful for debugging or two-pass rendering.
+ * - `CUSTOM` – replaced with the static string from `options.fallback`.
  *
  * The evaluator itself never throws.  Individual resolution failures are
  * handled inside `VariableResolver` (soft-fail).
@@ -23,10 +27,14 @@ import type {
   IVariableEvaluator,
   IVariableParser,
   IVariableResolver,
+  IVariableLogger,
   VariableContext,
   EvaluateOptions,
-  VariableValue
+  VariableValue,
+  VariableToken
 } from '../contracts';
+import { FallbackMode } from '../contracts';
+import { NullVariableLogger } from '../logger';
 
 /** Coerce a resolved value to its string representation. */
 function toDisplayString(value: VariableValue, fallback: string): string {
@@ -34,13 +42,33 @@ function toDisplayString(value: VariableValue, fallback: string): string {
   return String(value);
 }
 
+/** Determine the replacement string for an unresolved token. */
+function applyFallbackPolicy(token: VariableToken, options: EvaluateOptions): string {
+  const mode = options.fallbackMode ?? FallbackMode.EMPTY;
+  switch (mode) {
+    case FallbackMode.PRESERVE:
+      return token.raw;
+    case FallbackMode.CUSTOM:
+      return options.fallback ?? '';
+    case FallbackMode.EMPTY:
+    default:
+      return options.fallback ?? '';
+  }
+}
+
 export class VariableEvaluator implements IVariableEvaluator {
   private readonly parser: IVariableParser;
   private readonly resolver: IVariableResolver;
+  private readonly logger: IVariableLogger;
 
-  constructor(parser: IVariableParser, resolver: IVariableResolver) {
+  constructor(
+    parser: IVariableParser,
+    resolver: IVariableResolver,
+    logger?: IVariableLogger
+  ) {
     this.parser = parser;
     this.resolver = resolver;
+    this.logger = logger ?? new NullVariableLogger();
   }
 
   async evaluate(
@@ -56,6 +84,8 @@ export class VariableEvaluator implements IVariableEvaluator {
       return template;
     }
 
+    this.logger.trace('Evaluating template', { tokenCount: tokens.length });
+
     // ── 2. Resolve unique expressions (deduplication) ─────────────────────────
     const uniqueExpressions = [...new Set(tokens.map((t) => t.expression))];
     const resolvedMap = new Map<string, VariableValue>();
@@ -64,6 +94,12 @@ export class VariableEvaluator implements IVariableEvaluator {
       uniqueExpressions.map(async (expr) => {
         const value = await this.resolver.resolve(expr, context);
         resolvedMap.set(expr, value);
+        if (value === undefined) {
+          this.logger.trace('Expression resolved to undefined – fallback will apply', {
+            expression: expr,
+            fallbackMode: options.fallbackMode ?? FallbackMode.EMPTY,
+          });
+        }
       })
     );
 
@@ -75,7 +111,10 @@ export class VariableEvaluator implements IVariableEvaluator {
     let result = template;
     for (const token of sortedByOffsetDesc) {
       const value = resolvedMap.get(token.expression);
-      const replacement = toDisplayString(value, fallback);
+      const replacement =
+        value === undefined || value === null
+          ? applyFallbackPolicy(token, options)
+          : toDisplayString(value, fallback);
       result =
         result.slice(0, token.offset) +
         replacement +
@@ -85,3 +124,4 @@ export class VariableEvaluator implements IVariableEvaluator {
     return result;
   }
 }
+
