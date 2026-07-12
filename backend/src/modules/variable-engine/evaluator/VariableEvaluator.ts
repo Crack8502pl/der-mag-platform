@@ -44,15 +44,18 @@ function toDisplayString(value: VariableValue, fallback: string): string {
 
 /** Determine the replacement string for an unresolved token. */
 function applyFallbackPolicy(token: VariableToken, options: EvaluateOptions): string {
-  const mode = options.fallbackMode ?? FallbackMode.EMPTY;
-  switch (mode) {
+  // When fallbackMode is not set, maintain backward-compatible behaviour:
+  // the `fallback` string (defaulting to '') is used directly.
+  if (options.fallbackMode === undefined) {
+    return options.fallback ?? '';
+  }
+  switch (options.fallbackMode) {
     case FallbackMode.PRESERVE:
       return token.raw;
     case FallbackMode.CUSTOM:
       return options.fallback ?? '';
     case FallbackMode.EMPTY:
-    default:
-      return options.fallback ?? '';
+      return '';
   }
 }
 
@@ -97,7 +100,7 @@ export class VariableEvaluator implements IVariableEvaluator {
         if (value === undefined) {
           this.logger.trace('Expression resolved to undefined – fallback will apply', {
             expression: expr,
-            fallbackMode: options.fallbackMode ?? FallbackMode.EMPTY,
+            fallbackMode: options.fallbackMode ?? 'default',
           });
         }
       })
