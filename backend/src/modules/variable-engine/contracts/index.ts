@@ -211,6 +211,60 @@ export interface IVariableLogger {
   trace(message: string, meta?: Record<string, unknown>): void;
 }
 
+// ─── Functions (PR-8) ────────────────────────────────────────────────────────
+
+/**
+ * A single callable function that transforms one resolved variable value.
+ *
+ * Implementations must be pure (no side effects, no async I/O).
+ * They receive the already-resolved argument value and return the
+ * transformed result.  Returning `undefined` signals a soft-fail (no output).
+ */
+export interface IVariableFunction {
+  /**
+   * Apply the function to `arg`.
+   *
+   * @param arg – The already-resolved value of the function argument.
+   * @returns The transformed value, or `undefined` on soft-fail.
+   */
+  call(arg: VariableValue): VariableValue;
+}
+
+/**
+ * Registry mapping function names (e.g. `count`, `round`, `uppercase`) to
+ * their `IVariableFunction` implementations.
+ *
+ * A function registry instance is injected into `VariableResolver` via
+ * `ResolverOptions.functionRegistry` so that callers can swap the built-in
+ * set or extend it without touching core engine code.
+ */
+export interface IFunctionRegistry {
+  /**
+   * Register a named function.  Overwrites any existing registration for the
+   * same name (last-write-wins semantics – intentionally simple for MVP).
+   */
+  register(name: string, fn: IVariableFunction): void;
+
+  /**
+   * Look up a function by name.
+   * Returns `undefined` when no function with that name has been registered.
+   */
+  find(name: string): IVariableFunction | undefined;
+}
+
+/**
+ * Parsed representation of a function-call expression such as
+ * `count(children)` or `round(fiber.length.total)`.
+ *
+ * Produced by `parseFunctionCall()` in the `functions` module.
+ */
+export interface FunctionCallExpression {
+  /** The function name, e.g. `count`. */
+  readonly funcName: string;
+  /** The argument expression passed to the function, e.g. `children`. */
+  readonly argExpression: string;
+}
+
 // ─── Fallback policy ──────────────────────────────────────────────────────────
 
 /**

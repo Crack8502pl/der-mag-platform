@@ -46,6 +46,7 @@ import { L1VariableCache } from '../cache';
 import { VariableParser } from '../parser';
 import { VariableResolver } from '../resolver';
 import { VariableEvaluator } from '../evaluator';
+import { createBuiltinFunctionRegistry } from '../functions';
 import type { RegistryOptions } from '../registry';
 import type { L1CacheOptions } from '../cache';
 import type { ResolverOptions } from '../resolver';
@@ -100,6 +101,10 @@ export class VariableEngineFactory {
    * Each call returns a **new** independent instance; the factory itself is
    * stateless and can be called multiple times (useful for tests).
    *
+   * The built-in function registry (`count`, `round`, `uppercase`) is
+   * automatically wired into the resolver unless the caller supplies a custom
+   * `functionRegistry` via `options.resolver.functionRegistry`.
+   *
    * @throws {NamespaceConflictError} if two providers claim the same namespace
    *         and strict mode is active (the default).
    */
@@ -113,7 +118,14 @@ export class VariableEngineFactory {
       registry.register(provider);
     }
 
-    const resolver = new VariableResolver(registry, cache, this.options.resolver);
+    // Wire built-in function registry unless the caller provided a custom one.
+    const resolverOptions: ResolverOptions = {
+      ...this.options.resolver,
+      functionRegistry:
+        this.options.resolver?.functionRegistry ?? createBuiltinFunctionRegistry(),
+    };
+
+    const resolver = new VariableResolver(registry, cache, resolverOptions);
     const engine = new VariableEvaluator(parser, resolver);
 
     return { engine, registry };

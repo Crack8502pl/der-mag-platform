@@ -1,6 +1,6 @@
 # Variable Engine – Module Documentation
 
-> **Status:** PR-3 – Template Integration Adapter / BOM path (implemented)  
+> **Status:** PR-8 – Function Registry (count / round / uppercase) (implemented)  
 > **Location:** `backend/src/modules/variable-engine/`
 
 ---
@@ -19,11 +19,14 @@ VariableEvaluator
   └── IVariableResolver
         ├── IVariableRegistry   (find a provider by namespace)
         │     └── IVariableProvider[]  (domain-specific resolvers)
-        └── IVariableCache      (L1 in-process cache)
+        ├── IVariableCache      (L1 in-process cache)
+        └── IFunctionRegistry   (PR-8: count / round / uppercase)
+              └── IVariableFunction[]  (built-in or custom functions)
 
 VariableEngineFactory  ← PR-2: DI wiring / auto-registration
   ├── IVariableProvider[]  (injected list; auto-registered on create())
-  └── creates VariableEvaluator + VariableRegistry
+  ├── creates VariableEvaluator + VariableRegistry
+  └── auto-wires built-in FunctionRegistry (PR-8)
 
 AbstractVariableProvider  ← PR-2: convenience base class for providers
 ```
@@ -35,10 +38,16 @@ AbstractVariableProvider  ← PR-2: convenience base class for providers
 | `VariableParser` | `parser/VariableParser.ts` | Extracts `${expr}` tokens from template strings |
 | `VariableRegistry` | `registry/VariableRegistry.ts` | Maps namespace → provider; detects conflicts |
 | `L1VariableCache` | `cache/L1VariableCache.ts` | In-process Map-based cache with FIFO eviction |
-| `VariableResolver` | `resolver/VariableResolver.ts` | Resolves a single expression via registry + cache |
+| `VariableResolver` | `resolver/VariableResolver.ts` | Resolves a single expression via registry + cache + functions |
 | `VariableEvaluator` | `evaluator/VariableEvaluator.ts` | Orchestrates parse → resolve → render pipeline |
 | `AbstractVariableProvider` | `providers/AbstractVariableProvider.ts` | Base class for domain providers (PR-2) |
 | `VariableEngineFactory` | `factory/VariableEngineFactory.ts` | DI-friendly factory; auto-registers providers (PR-2) |
+| `FunctionRegistry` | `functions/FunctionRegistry.ts` | Maps function name → `IVariableFunction` (PR-8) |
+| `parseFunctionCall` | `functions/parseFunctionCall.ts` | Detects `funcName(arg)` expressions (PR-8) |
+| `CountFunction` | `functions/builtins/CountFunction.ts` | Built-in `count()` function (PR-8) |
+| `RoundFunction` | `functions/builtins/RoundFunction.ts` | Built-in `round()` function (PR-8) |
+| `UppercaseFunction` | `functions/builtins/UppercaseFunction.ts` | Built-in `uppercase()` function (PR-8) |
+| `createBuiltinFunctionRegistry` | `functions/createBuiltinFunctionRegistry.ts` | Factory for a pre-wired `FunctionRegistry` (PR-8) |
 | `LegacyVariableResolver` | `adapter/LegacyVariableResolver.ts` | Simple flat-map `${...}` substitution (PR-3 fallback) |
 | `BomTemplateRenderingAdapter` | `adapter/BomTemplateRenderingAdapter.ts` | Connects engine to BOM rendering; feature-flagged (PR-3) |
 | `readFeatureFlags` | `config/featureFlags.ts` | Reads `VARIABLE_ENGINE_V2` env var (PR-3) |
@@ -59,6 +68,9 @@ All interfaces live in `contracts/index.ts` and are re-exported from the module 
 | `IVariableResolver` | Resolves a single expression |
 | `IVariableEvaluator` | Top-level evaluate(template, context) call |
 | `IVariableLogger` | Structured logger injected into resolver and evaluator |
+| `IVariableFunction` | Single callable function that transforms a resolved value (PR-8) |
+| `IFunctionRegistry` | Maps function names to `IVariableFunction` instances (PR-8) |
+| `FunctionCallExpression` | Parsed `funcName` + `argExpression` pair (PR-8) |
 | `VariableContext` | Execution context (entityId, entityType, params) |
 | `VariableToken` | A parsed `${...}` placeholder |
 | `EvaluateOptions` | Evaluate-time flags (fallback, fallbackMode, bypassCache) |
@@ -360,15 +372,15 @@ Use `NullVariableLogger` in tests or when silent operation is required.
 | **PR-5** | CCTV/Network/Fiber Providers | ✅ **Done** |
 | **PR-6** | Contract/Warehouse/Task/AI/User Providers | ✅ **Done** |
 | PR-7 | Error Policy + Observability | ✅ **Done** |
-| PR-8 | Function Registry (MVP) | ⏳ Pending |
+| **PR-8** | Function Registry (MVP) | ✅ **Done** |
 | PR-9 | Performance & Stabilization | ⏳ Pending |
 | PR-10 | Final Rollout | ⏳ Pending |
 
 ## Limitations and Possible Errors (PR-1 Scope)
 
 1. **No TTL / L2 cache** – `L1VariableCache` is a simple Map with FIFO eviction.  Long-running processes with high cardinality contexts may need a more sophisticated cache (PR-7/9 scope).
-2. **No nested `${...}` expressions** – The parser regex stops at the first `}`, so `${fn(${inner})}` is not supported.  Nested expressions are PR-8 scope.
-3. **No function call syntax** – `${round(fiber.length)}` is not yet parsed (PR-8 scope).
+2. **No nested `${...}` expressions** – The parser regex stops at the first `}`, so `${fn(${inner})}` is not supported.  Nested expressions remain out of scope.
+3. **No nested function calls** – `${count(round(fiber.length))}` is not supported (PR-8 MVP constraint: no parser redesign).
 4. **No strict-mode resolver** – `VariableResolutionError` is defined but the current resolver always soft-fails.  A strict evaluator mode can be added later.
 5. **FIFO eviction is an approximation of LRU** – The Map-based cache evicts the oldest *inserted* key, not the least *recently used* one.  This is acceptable for an L1 cache; a proper LRU is a future optimisation.
 6. **Parser edge case: `}` inside expression** – The regex `[^}]*` stops at the first `}`, so expressions containing a literal `}` are truncated.  This is intentional MVP behaviour; escape sequences are out of scope.
@@ -546,3 +558,63 @@ Use `NullVariableLogger` in tests or when silent operation is required.
 4. **AI data availability** – `ai.*` variables depend on a pre-computed AI analysis.  If the AI service has not processed an entity yet, the data service returns `undefined` and all `ai.*` expressions render as empty strings.  No fallback text is injected automatically.
 5. **`user.*` represents a single associated user** – The `user.*` namespace models one user per entity (e.g. the contract creator or primary task assignee).  Multi-user scenarios (e.g. teams) require additional namespaces or dedicated providers.
 6. **Warehouse data is entity-scoped** – `warehouse.*` resolves inventory data for a single entity ID.  Cross-entity or aggregated warehouse reports are not supported by this provider; they require a dedicated aggregation service.
+
+---
+
+## Function Registry (PR-8)
+
+The `functions/` sub-module adds support for calling built-in transformation functions directly inside template placeholders:
+
+```
+${count(children)}
+${round(fiber.length.total)}
+${uppercase(contract.customer.name)}
+```
+
+### How it works
+
+1. `VariableResolver.resolve()` calls `parseFunctionCall(expression)`.
+2. If the expression matches the `funcName(argExpression)` pattern **and** a `functionRegistry` is provided:
+   - The argument expression is resolved first via the normal provider pipeline.
+   - The registered function is applied to the resolved argument value.
+   - The result is cached under the full expression key.
+3. Otherwise, the expression is treated as a plain dot-notation variable.
+
+### Built-in functions
+
+| Function | Argument | Returns |
+|---|---|---|
+| `count` | number → the number; string → its length; null/undefined → `0` | `number` |
+| `round` | number or numeric string → `Math.round()`; otherwise → `undefined` | `number \| undefined` |
+| `uppercase` | any non-null/undefined → `String(arg).toUpperCase()` | `string \| undefined` |
+
+### Adding custom functions
+
+```ts
+import { FunctionRegistry, VariableEngineFactory } from '@/modules/variable-engine';
+
+const customRegistry = new FunctionRegistry();
+customRegistry.register('double', { call: (v) => typeof v === 'number' ? v * 2 : undefined });
+
+const factory = new VariableEngineFactory(providers, {
+  resolver: { functionRegistry: customRegistry },
+});
+```
+
+### Test coverage (PR-8)
+
+| File | Covers |
+|---|---|
+| `parseFunctionCall.test.ts` | Pattern matching: valid calls, dot-notation, edge cases |
+| `FunctionRegistry.test.ts` | Register / find / overwrite / case-sensitivity |
+| `builtinFunctions.test.ts` | All coercion rules for `count`, `round`, `uppercase` |
+| `FunctionRegistryIntegration.test.ts` | Resolver integration, end-to-end rendering, caching, soft-fail |
+
+## Limitations and Possible Errors (PR-8 Scope)
+
+1. **No nested function calls** – `${count(round(fiber.length))}` is not supported.  The `parseFunctionCall` regex stops at the first `)`, so a nested call would be parsed with a truncated argument.  This is a deliberate MVP constraint (no parser redesign).
+2. **Wrong argument type** – If a provider returns a type that a function does not handle (e.g. `round("hello")`), the function returns `undefined` and the template falls back to the configured `FallbackMode` rather than throwing.
+3. **Unknown function names** – An expression using an unregistered function name (e.g. `${foo(x)}`) resolves to `undefined` with a `warn` log entry.  No error is thrown.
+4. **No multi-argument functions** – The current function call syntax only supports a single argument expression (`funcName(arg)`).  Multi-argument functions (e.g. `pad(x, 5)`) are not supported.
+5. **Last-write-wins in FunctionRegistry** – Registering the same function name twice silently replaces the first.  There is intentionally no conflict error; this differs from the strict-mode `VariableRegistry`.
+6. **No function-argument caching isolation** – The argument expression's resolved value is cached under its own key; the full `funcName(arg)` expression result is also cached.  If the argument value changes between requests the cache must be cleared (or `bypassCache: true` used).
