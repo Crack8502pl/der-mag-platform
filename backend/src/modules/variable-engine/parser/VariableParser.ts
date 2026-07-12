@@ -14,14 +14,7 @@
  */
 
 import type { IVariableParser, VariableToken } from '../contracts';
-
-/**
- * Matches `${...}` where `...` is any non-`}` character sequence.
- * The inner group captures the raw expression content.
- *
- * Flag `g` – find all occurrences.
- */
-const TOKEN_PATTERN = /\$\{([^}]*)\}/g;
+import { createTokenPattern } from './tokenPattern';
 
 export class VariableParser implements IVariableParser {
   /**
@@ -33,9 +26,9 @@ export class VariableParser implements IVariableParser {
   parse(template: string): VariableToken[] {
     const tokens: VariableToken[] = [];
 
-    // Reset lastIndex in case the regex instance is reused (safety measure for
-    // future refactors where a shared instance might be introduced).
-    TOKEN_PATTERN.lastIndex = 0;
+    // Create a fresh regex instance per call so that lastIndex is always 0
+    // and concurrent callers cannot interfere with each other.
+    const TOKEN_PATTERN = createTokenPattern();
 
     let match: RegExpExecArray | null;
     while ((match = TOKEN_PATTERN.exec(template)) !== null) {

@@ -67,3 +67,9 @@ export { AbstractVariableProvider } from './providers';
 // ─── Factory / DI wiring (PR-2) ───────────────────────────────────────────────
 export { VariableEngineFactory } from './factory';
 export type { VariableEngineFactoryOptions, VariableEngineInstance } from './factory';
+
+// ─── Template Integration Adapter + Feature Flags (PR-3) ─────────────────────
+export { LegacyVariableResolver, BomTemplateRenderingAdapter } from './adapter';
+export type { BomRenderContext, LegacyVariableValue } from './adapter';
+export { readFeatureFlags } from './config';
+export type { FeatureFlags } from './config';
