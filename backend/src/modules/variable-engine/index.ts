@@ -60,3 +60,10 @@ export type { L1CacheOptions } from './cache';
 export { VariableResolver } from './resolver';
 export type { ResolverOptions } from './resolver';
 export { VariableEvaluator } from './evaluator';
+
+// ─── Provider base class (PR-2) ───────────────────────────────────────────────
+export { AbstractVariableProvider } from './providers';
+
+// ─── Factory / DI wiring (PR-2) ───────────────────────────────────────────────
+export { VariableEngineFactory } from './factory';
+export type { VariableEngineFactoryOptions, VariableEngineInstance } from './factory';
