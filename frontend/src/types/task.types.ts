@@ -2,6 +2,8 @@
 // src/types/task.types.ts
 // Type definitions for Task module
 
+import type { CameraBreakdown, CameraRow } from './cameraBreakdown';
+
 export interface TaskType {
   id: number;
   name: string;
@@ -33,6 +35,8 @@ export interface TaskConfigParams {
   retentionDays?: number;
   selectedRecorderId?: number | null;
   selectedModels?: Record<string, { checked: boolean; quantity: number }>;
+  cameraRows?: CameraRow[];
+  cameraBreakdown?: CameraBreakdown;
   appliedBomTemplateId?: number | null;
   wizardResolvedAt?: string;
 }

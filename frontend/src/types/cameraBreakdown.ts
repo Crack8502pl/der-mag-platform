@@ -4,3 +4,9 @@ export interface CameraBreakdown {
   lpr: number;
   skp: number;
 }
+
+export interface CameraRow {
+  type: 'Ogólna' | 'LPR' | 'SKP';
+  quantity: number;
+  quantityPerPole: number;
+}
