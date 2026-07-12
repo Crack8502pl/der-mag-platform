@@ -16,3 +16,19 @@ export type { IFiberDataService, FiberData } from './fiber';
 
 export { IpVariableProvider } from './ip';
 export type { IIpDataService, IpData } from './ip';
+
+// ─── Business providers (PR-6) ────────────────────────────────────────────────
+export { ContractVariableProvider } from './contract';
+export type { IContractDataService, ContractData } from './contract';
+
+export { WarehouseVariableProvider } from './warehouse';
+export type { IWarehouseDataService, WarehouseData } from './warehouse';
+
+export { TaskVariableProvider } from './task';
+export type { ITaskDataService, TaskData } from './task';
+
+export { AiVariableProvider } from './ai';
+export type { IAiDataService, AiData } from './ai';
+
+export { UserVariableProvider } from './user';
+export type { IUserDataService, UserData } from './user';
