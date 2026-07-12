@@ -6,8 +6,10 @@
  * Characteristics:
  * - O(1) get/set/delete.
  * - No TTL in PR-1 scope (TTL / L2 Redis cache is a PR-7+ concern).
- * - Optional capacity limit with LRU-style eviction to prevent unbounded
- *   memory growth in long-running processes.
+ * - Optional capacity limit with FIFO eviction to prevent unbounded
+ *   memory growth in long-running processes.  The oldest *inserted* key is
+ *   dropped when the limit is reached (not the least recently used one –
+ *   a true LRU is a future optimisation).
  */
 
 import type { IVariableCache, VariableValue } from '../contracts';
