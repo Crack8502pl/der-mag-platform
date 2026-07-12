@@ -293,7 +293,7 @@ ${count}           ← no-dot, namespace == "count"
 | Branches | 97 % |
 | Functions | 100 % |
 | Lines | 100 % |
-| Tests (variable-engine suite) | 124 passing (89 PR-1/2 + 35 PR-3) |
+| Tests (variable-engine suite) | 126 passing (89 PR-1/2 + 37 PR-3) |
 
 ### New test files (PR-3)
 
