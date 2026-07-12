@@ -106,9 +106,8 @@ describe('VariableEngineFactory', () => {
       [makeProvider(['camera'], {}, 'Provider1'), p2],
       { registry: { overwrite: true } }
     );
-    expect(() => factory.create()).not.toThrow();
-    // The second provider wins
     const { registry } = factory.create();
+    // Should not throw and the second provider wins
     expect(registry.find('camera.total')).toBe(p2);
   });
 

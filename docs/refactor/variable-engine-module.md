@@ -199,7 +199,10 @@ ${count}           ← no-dot, namespace == "count"
 
 | Metric | Result |
 |---|---|
-| Statements | ≥ 70 % (new code) |
+| Statements | 100 % |
+| Branches | 96.38 % |
+| Functions | 100 % |
+| Lines | 100 % |
 | Tests (variable-engine suite) | 89 passing (70 PR-1 + 19 PR-2) |
 
 ### New test files (PR-2)
