@@ -1,6 +1,6 @@
 # Variable Engine – Module Documentation
 
-> **Status:** PR-8 – Function Registry (count / round / uppercase) (implemented)  
+> **Status:** PR-10 – Final Rollout (complete; new engine is default)  
 > **Location:** `backend/src/modules/variable-engine/`
 
 ---
@@ -373,8 +373,8 @@ Use `NullVariableLogger` in tests or when silent operation is required.
 | **PR-6** | Contract/Warehouse/Task/AI/User Providers | ✅ **Done** |
 | PR-7 | Error Policy + Observability | ✅ **Done** |
 | **PR-8** | Function Registry (MVP) | ✅ **Done** |
-| PR-9 | Performance & Stabilization | ⏳ Pending |
-| PR-10 | Final Rollout | ⏳ Pending |
+| PR-9 | Performance & Stabilization | ✅ **Done** |
+| PR-10 | Final Rollout | ✅ **Done** |
 
 ## Limitations and Possible Errors (PR-1 Scope)
 
@@ -623,3 +623,27 @@ const factory = new VariableEngineFactory(providers, {
 1. **Deduplication is in-flight only** — sequential calls (not overlapping in time) each issue a fresh fetch. This is intentional.
 2. **L1VariableCache has no TTL** - invalidation requires external clear() or LRU eviction pressure.
 3. **durationMs uses Date.now() (wall-clock)** - treat as coarse profiling signal only.
+
+
+## PR-10 – Final Rollout
+
+### What changed
+
+| Area | Change |
+|---|---|
+| `config/featureFlags.ts` | `variableEngineV2` now defaults to **`true`** (was `false`). Rollback: `VARIABLE_ENGINE_V2=false`. |
+| `adapter/LegacyVariableResolver.ts` | Marked `@deprecated` – retained as rollback safety net only. |
+| `docs/refactor/known-limitations.md` | Created – full limitations inventory with owners and targets. |
+| `docs/refactor/release-gate-pr10.md` | Updated – all technical gates checked off. |
+
+### Rollback procedure
+
+1. Set the environment variable `VARIABLE_ENGINE_V2=false`.
+2. Restart the process.
+3. `BomTemplateRenderingAdapter.render()` will immediately route to the legacy path.
+4. No code change, no redeploy of compiled assets required.
+
+### Limitations (PR-10 Scope)
+1. **`LegacyVariableResolver` is not removed** – it is deprecated and retained as a rollback path.  It will be removed in a future cleanup PR once all modules have migrated.
+2. **No per-module adapters** – only `BomTemplateRenderingAdapter` is updated.  PDF / Reports / Labels / Emails modules continue using their own substitution logic.
+3. **All pre-existing deferred items unchanged** – see `docs/refactor/known-limitations.md` for the full inventory, owners, and target milestones.
