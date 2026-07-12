@@ -20,8 +20,11 @@
  * - No cache, no registry, no provider lookup.
  * - Nested `${...}` expressions are not supported.
  *
- * This class exists solely as a **temporary fallback** while teams migrate
- * to the new engine.  It will be removed in PR-10 (Final Rollout).
+ * @deprecated Since PR-10 (Final Rollout) the new Variable Engine
+ * (`IVariableEvaluator` / `VariableEvaluator`) is the default rendering path.
+ * This class is retained only as a rollback safety net and will be removed in
+ * a future cleanup PR once all consumers have migrated.  To trigger the legacy
+ * path set `VARIABLE_ENGINE_V2=false`.
  */
 
 import { createTokenPattern } from '../parser/tokenPattern';
