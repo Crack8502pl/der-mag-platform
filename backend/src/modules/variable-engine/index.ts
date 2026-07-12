@@ -64,6 +64,10 @@ export { VariableEvaluator } from './evaluator';
 // ─── Provider base class (PR-2) ───────────────────────────────────────────────
 export { AbstractVariableProvider } from './providers';
 
+// ─── Hierarchy providers (PR-4) ───────────────────────────────────────────────
+export { HierarchyVariableProvider, TaskRelationshipTraversalService } from './providers';
+export type { IHierarchyTraversalService, HierarchyNode, ITaskRelationshipRepository } from './providers';
+
 // ─── Factory / DI wiring (PR-2) ───────────────────────────────────────────────
 export { VariableEngineFactory } from './factory';
 export type { VariableEngineFactoryOptions, VariableEngineInstance } from './factory';
