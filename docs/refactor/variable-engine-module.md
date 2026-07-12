@@ -313,8 +313,8 @@ ${count}           ← no-dot, namespace == "count"
 | **PR-2** | Provider Contract + Auto Registration | ✅ **Done** |
 | **PR-3** | Template Integration Adapter | ✅ **Done** |
 | **PR-4** | Hierarchy Providers | ✅ **Done** |
-| PR-5 | CCTV/Network/Fiber Providers | ⏳ Pending |
-| PR-6 | Contract/Warehouse/Task/AI Providers | ⏳ Pending |
+| **PR-5** | CCTV/Network/Fiber Providers | ✅ **Done** |
+| **PR-6** | Contract/Warehouse/Task/AI/User Providers | ✅ **Done** |
 | PR-7 | Error Policy + Observability | ⏳ Pending |
 | PR-8 | Function Registry (MVP) | ⏳ Pending |
 | PR-9 | Performance & Stabilization | ⏳ Pending |
@@ -379,3 +379,126 @@ ${count}           ← no-dot, namespace == "count"
 3. **MAX_DEPTH cap (100)** – Cycle detection uses a `visited` Set.  As a secondary safety net, traversal is also capped at 100 levels.  Legitimate hierarchies deeper than 100 will be truncated silently.
 4. **`hierarchy.children` returns a count, not a list** – Because `VariableValue` is a scalar type, the count of direct children is exposed, not the IDs themselves.  A separate `hierarchy.children.count` alias was not added to keep the API surface minimal.
 5. **entityType is passed to the traversal service but not used by `TaskRelationshipTraversalService`** – The current implementation ignores `entityType` because `TaskRelationship` entities are task-specific.  Future adapters for other entity types (contracts, warehouses) can honour `entityType` to route to the correct repository.
+
+---
+
+## Test Coverage (PR-5)
+
+| Metric | Result |
+|---|---|
+| Tests (variable-engine suite) | 233 passing (158 PR-1…4 + 75 PR-5) |
+
+### New test files (PR-5)
+
+| File | Covers |
+|---|---|
+| `CameraVariableProvider.test.ts` | `camera.*` fields, soft-fail, edge cases |
+| `SwitchVariableProvider.test.ts` | `switch.*` fields, soft-fail, edge cases |
+| `FiberVariableProvider.test.ts` | `fiber.*` fields, soft-fail, edge cases |
+| `IpVariableProvider.test.ts` | `ip.*` fields, soft-fail, edge cases |
+
+### New files (PR-5)
+
+| File | Purpose |
+|---|---|
+| `providers/camera/ICameraDataService.ts` | DI interface for camera-domain data |
+| `providers/camera/CameraVariableProvider.ts` | `camera.*` variable provider |
+| `providers/camera/index.ts` | Barrel export |
+| `providers/switch/ISwitchDataService.ts` | DI interface for network-switch data |
+| `providers/switch/SwitchVariableProvider.ts` | `switch.*` variable provider |
+| `providers/switch/index.ts` | Barrel export |
+| `providers/fiber/IFiberDataService.ts` | DI interface for fiber-optic data |
+| `providers/fiber/FiberVariableProvider.ts` | `fiber.*` variable provider |
+| `providers/fiber/index.ts` | Barrel export |
+| `providers/ip/IIpDataService.ts` | DI interface for IP-network data |
+| `providers/ip/IpVariableProvider.ts` | `ip.*` variable provider |
+| `providers/ip/index.ts` | Barrel export |
+
+---
+
+## Limitations and Possible Errors (PR-5 Scope)
+
+1. **No unit conversion** – `fiber.length.total` is returned in kilometres as provided by the data service.  If the domain service stores data in metres, the adapter layer must convert before returning.  The engine itself is unit-agnostic.
+2. **No aggregation across subsystems** – Each provider resolves data for a single `entityId`.  Aggregating values across multiple subsystems (e.g. total cameras per contract) requires a data service that performs that aggregation; the variable engine does not compose results from multiple entities.
+3. **Missing/partial data is `undefined`** – If a data service returns `undefined` for a subset of fields in the data snapshot, the provider returns `undefined` for those expressions.  This is by design (soft-fail), but callers should handle empty string rendering of those placeholders.
+
+---
+
+## Test Coverage (PR-6)
+
+| Metric | Result |
+|---|---|
+| Tests (variable-engine suite) | 314 passing across 22 test files (228 PR-1…5 + 86 PR-6) |
+
+### New test files (PR-6)
+
+| File | Covers |
+|---|---|
+| `ContractVariableProvider.test.ts` | `contract.*` fields, soft-fail, edge cases |
+| `WarehouseVariableProvider.test.ts` | `warehouse.*` fields, soft-fail, edge cases |
+| `TaskVariableProvider.test.ts` | `task.*` fields, soft-fail, edge cases |
+| `AiVariableProvider.test.ts` | `ai.*` fields, soft-fail, edge cases |
+| `UserVariableProvider.test.ts` | `user.*` fields, soft-fail, edge cases |
+
+### New files (PR-6)
+
+| File | Purpose |
+|---|---|
+| `providers/contract/IContractDataService.ts` | DI interface for contract-domain data |
+| `providers/contract/ContractVariableProvider.ts` | `contract.*` variable provider |
+| `providers/contract/index.ts` | Barrel export |
+| `providers/warehouse/IWarehouseDataService.ts` | DI interface for warehouse-domain data |
+| `providers/warehouse/WarehouseVariableProvider.ts` | `warehouse.*` variable provider |
+| `providers/warehouse/index.ts` | Barrel export |
+| `providers/task/ITaskDataService.ts` | DI interface for task-domain data |
+| `providers/task/TaskVariableProvider.ts` | `task.*` variable provider |
+| `providers/task/index.ts` | Barrel export |
+| `providers/ai/IAiDataService.ts` | DI interface for AI-generated insight data |
+| `providers/ai/AiVariableProvider.ts` | `ai.*` variable provider |
+| `providers/ai/index.ts` | Barrel export |
+| `providers/user/IUserDataService.ts` | DI interface for user-domain data |
+| `providers/user/UserVariableProvider.ts` | `user.*` variable provider |
+| `providers/user/index.ts` | Barrel export |
+
+### Variable namespace reference (PR-6)
+
+| Namespace | Expression | Type | Description |
+|---|---|---|---|
+| `contract` | `contract.number` | string | Contract number / identifier |
+| `contract` | `contract.status` | string | Contract status (e.g. `"active"`, `"closed"`) |
+| `contract` | `contract.customer.name` | string | Customer full name |
+| `contract` | `contract.customer.nip` | string | Customer tax ID (NIP) |
+| `contract` | `contract.value.net` | number | Net contract value |
+| `contract` | `contract.value.gross` | number | Gross contract value |
+| `contract` | `contract.date.start` | string | Contract start date (ISO 8601) |
+| `contract` | `contract.date.end` | string | Contract end date (ISO 8601) |
+| `warehouse` | `warehouse.items.total` | number | Total item count |
+| `warehouse` | `warehouse.items.reserved` | number | Reserved item count |
+| `warehouse` | `warehouse.items.available` | number | Available item count |
+| `warehouse` | `warehouse.value.total` | number | Total value of items |
+| `warehouse` | `warehouse.location` | string | Warehouse location descriptor |
+| `task` | `task.number` | string | Task number / identifier |
+| `task` | `task.status` | string | Task status (e.g. `"open"`, `"done"`) |
+| `task` | `task.title` | string | Task title |
+| `task` | `task.priority` | string | Task priority level |
+| `task` | `task.assignee.name` | string | Assignee full name |
+| `task` | `task.due.date` | string | Due date (ISO 8601) |
+| `task` | `task.progress` | number | Completion progress (0–100) |
+| `ai` | `ai.summary` | string | AI-generated entity summary |
+| `ai` | `ai.recommendation` | string | AI-generated recommendation |
+| `ai` | `ai.risk.level` | string | Risk level label (e.g. `"low"`, `"high"`) |
+| `ai` | `ai.risk.score` | number | Numeric risk score (0–100) |
+| `user` | `user.name` | string | User full display name |
+| `user` | `user.email` | string | User email address |
+| `user` | `user.role` | string | User role (e.g. `"admin"`, `"technician"`) |
+
+---
+
+## Limitations and Possible Errors (PR-6 Scope)
+
+1. **No domain coupling** – All five providers operate through injected data-service interfaces (`IContractDataService`, `IWarehouseDataService`, etc.).  Concrete implementations that query actual DB repositories must be written outside the variable-engine module and injected via DI.
+2. **Nullability in relational data** – Contract and task entities often have optional related data (e.g. a contract with no assigned customer, a task with no assignee).  Data service implementations must translate database `null` to `undefined` in the snapshot; the providers then return `undefined` and the engine renders an empty string by default.
+3. **Status drift** – Business statuses (`contract.status`, `task.status`, `task.priority`) are returned as plain strings from the data service.  If the domain status enum evolves (e.g. new values are added), the variable engine is unaffected; callers rendering templates must be aware of the possible values.
+4. **AI data availability** – `ai.*` variables depend on a pre-computed AI analysis.  If the AI service has not processed an entity yet, the data service returns `undefined` and all `ai.*` expressions render as empty strings.  No fallback text is injected automatically.
+5. **`user.*` represents a single associated user** – The `user.*` namespace models one user per entity (e.g. the contract creator or primary task assignee).  Multi-user scenarios (e.g. teams) require additional namespaces or dedicated providers.
+6. **Warehouse data is entity-scoped** – `warehouse.*` resolves inventory data for a single entity ID.  Cross-entity or aggregated warehouse reports are not supported by this provider; they require a dedicated aggregation service.
