@@ -88,10 +88,29 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [crossingConnections, setCrossingConnections] = useState<Set<string>>(new Set());
 
+  // Canvas size state — dynamically computed from nodes bounding box
+  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 500 });
+
   const dragRef = useRef<DragState | null>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   // Unique ID prefix for SVG markers to avoid collisions across multiple instances
   const svgPrefix = `topo-${contractId}-${subsystemIndex}`;
+
+  // Recompute canvas bounding box whenever nodes change
+  useEffect(() => {
+    if (nodes.length === 0) {
+      setCanvasSize({ width: 800, height: 500 });
+      return;
+    }
+    const padding = 60;
+    const width = nodes.reduce((m, n) => Math.max(m, n.position.x + NODE_WIDTH), 0) + padding;
+    const height = nodes.reduce((m, n) => Math.max(m, n.position.y + 80), 0) + padding;
+    setCanvasSize({
+      width: Math.max(800, width),
+      height: Math.max(500, height),
+    });
+  }, [nodes]);
 
   // Load topology on mount
   useEffect(() => {
@@ -528,116 +547,133 @@ export const NetworkTopologyEditor: React.FC<NetworkTopologyEditorProps> = ({
         </div>
       )}
 
-      {/* Canvas */}
+      {/* Canvas — scrollable wrapper with dynamic bounding box */}
       <div
-        className={`topology-canvas${connectingMode ? ' topology-canvas--connecting' : ''}`}
-        onClick={handleCanvasClick}
+        style={{ overflow: 'auto', position: 'relative' }}
       >
-        {/* Empty state — shown when no nodes exist */}
-        {nodes.length === 0 && (
-          <div className="topology-empty-state">
-            <div className="topology-empty-icon">🌐</div>
-            <p>Brak węzłów w topologii</p>
-            {!readOnly && (
-              <button
-                className="btn btn-primary"
-                onClick={e => {
-                  e.stopPropagation();
-                  setShowAddNodeModal(true);
-                }}
+        <div
+          ref={canvasRef}
+          className={`topology-canvas${connectingMode ? ' topology-canvas--connecting' : ''}`}
+          style={{
+            position: 'relative',
+            width: canvasSize.width,
+            height: canvasSize.height,
+            minWidth: canvasSize.width,
+            minHeight: canvasSize.height,
+          }}
+          onClick={handleCanvasClick}
+        >
+          {/* Empty state — shown when no nodes exist */}
+          {nodes.length === 0 && (
+            <div className="topology-empty-state">
+              <div className="topology-empty-icon">🌐</div>
+              <p>Brak węzłów w topologii</p>
+              {!readOnly && (
+                <button
+                  className="btn btn-primary"
+                  onClick={e => {
+                    e.stopPropagation();
+                    setShowAddNodeModal(true);
+                  }}
+                >
+                  ➕ Utwórz topologię
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* SVG overlay for connection lines — MUST match canvas size exactly */}
+          <svg
+            className="topology-connections-svg"
+            width={canvasSize.width}
+            height={canvasSize.height}
+            style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
+          >
+            <defs>
+              <marker
+                id={`${svgPrefix}-arrow-fiber`}
+                markerWidth="8"
+                markerHeight="6"
+                refX="7"
+                refY="3"
+                orient="auto"
               >
-                ➕ Utwórz topologię
-              </button>
-            )}
-          </div>
-        )}
+                <polygon points="0 0, 8 3, 0 6" fill="var(--primary-color)" />
+              </marker>
+              <marker
+                id={`${svgPrefix}-arrow-lan`}
+                markerWidth="8"
+                markerHeight="6"
+                refX="7"
+                refY="3"
+                orient="auto"
+              >
+                <polygon points="0 0, 8 3, 0 6" fill="#3b82f6" />
+              </marker>
+            </defs>
 
-        {/* SVG overlay for connection lines */}
-        <svg className="topology-connections-svg">
-          <defs>
-            <marker
-              id={`${svgPrefix}-arrow-fiber`}
-              markerWidth="8"
-              markerHeight="6"
-              refX="7"
-              refY="3"
-              orient="auto"
-            >
-              <polygon points="0 0, 8 3, 0 6" fill="var(--primary-color)" />
-            </marker>
-            <marker
-              id={`${svgPrefix}-arrow-lan`}
-              markerWidth="8"
-              markerHeight="6"
-              refX="7"
-              refY="3"
-              orient="auto"
-            >
-              <polygon points="0 0, 8 3, 0 6" fill="#3b82f6" />
-            </marker>
-          </defs>
+            {connections.map(conn => {
+              const src = nodes.find(n => n.id === conn.source);
+              const tgt = nodes.find(n => n.id === conn.target);
+              if (!src || !tgt) return null;
+              const { sourcePoint, targetPoint } = getConnectionEndpoints(src, tgt);
+              const x1 = sourcePoint.x;
+              const y1 = sourcePoint.y;
+              const x2 = targetPoint.x;
+              const y2 = targetPoint.y;
+              const isSelected = conn.id === selectedId;
+              const isCrossing = crossingConnections.has(conn.id);
+              const techClass = (conn.technology ?? 'fiber').toLowerCase();
 
-          {connections.map(conn => {
-            const src = nodes.find(n => n.id === conn.source);
-            const tgt = nodes.find(n => n.id === conn.target);
-            if (!src || !tgt) return null;
-            const { sourcePoint, targetPoint } = getConnectionEndpoints(src, tgt);
-            const x1 = sourcePoint.x;
-            const y1 = sourcePoint.y;
-            const x2 = targetPoint.x;
-            const y2 = targetPoint.y;
-            const isSelected = conn.id === selectedId;
-            const isCrossing = crossingConnections.has(conn.id);
-            const techClass = (conn.technology ?? 'fiber').toLowerCase();
-
-            return (
-              <g key={conn.id}>
-                {/* Invisible wide stroke for easier click targeting */}
-                {!readOnly && (
+              return (
+                <g key={conn.id}>
+                  {/* Invisible wide stroke for easier click targeting */}
+                  {!readOnly && (
+                    <line
+                      x1={x1}
+                      y1={y1}
+                      x2={x2}
+                      y2={y2}
+                      stroke="transparent"
+                      strokeWidth="16"
+                      style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+                      onClick={e => {
+                        e.stopPropagation();
+                        handleConnectionClick(conn.id);
+                      }}
+                    />
+                  )}
+                  {/* Visible line */}
                   <line
                     x1={x1}
                     y1={y1}
                     x2={x2}
                     y2={y2}
-                    stroke="transparent"
-                    strokeWidth="16"
-                    style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
-                    onClick={e => {
-                      e.stopPropagation();
-                      handleConnectionClick(conn.id);
-                    }}
+                    className={`topology-conn topology-conn--${techClass}${isSelected ? ' topology-conn--selected' : ''}${isCrossing ? ' topology-conn--crossing' : ''}`}
+                    style={{ pointerEvents: 'none' }}
+                    markerEnd={`url(#${svgPrefix}-arrow-${techClass})`}
                   />
-                )}
-                {/* Visible line */}
-                <line
-                  x1={x1}
-                  y1={y1}
-                  x2={x2}
-                  y2={y2}
-                  className={`topology-conn topology-conn--${techClass}${isSelected ? ' topology-conn--selected' : ''}${isCrossing ? ' topology-conn--crossing' : ''}`}
-                  style={{ pointerEvents: 'none' }}
-                  markerEnd={`url(#${svgPrefix}-arrow-${techClass})`}
-                />
-              </g>
-            );
-          })}
-        </svg>
+                </g>
+              );
+            })}
+          </svg>
 
-        {/* Nodes */}
-        {nodes.map(node => (
-          <CustomNode
-            key={node.id}
-            node={node}
-            isSelected={node.id === selectedId}
-            isConnectingSource={connectingSource === node.id}
-            isConnectingTargetHint={
-              connectingMode && !!connectingSource && connectingSource !== node.id
-            }
-            style={{ left: node.position.x, top: node.position.y, width: NODE_WIDTH }}
-            onMouseDown={e => handleNodeMouseDown(e, node.id)}
-            onClick={e => handleNodeClick(e, node.id)}
-          />
-        ))}
+          {/* Nodes */}
+          {nodes.map(node => (
+            <CustomNode
+              key={node.id}
+              node={node}
+              isSelected={node.id === selectedId}
+              isConnectingSource={connectingSource === node.id}
+              isConnectingTargetHint={
+                connectingMode && !!connectingSource && connectingSource !== node.id
+              }
+              style={{ left: node.position.x, top: node.position.y, width: NODE_WIDTH }}
+              onMouseDown={e => handleNodeMouseDown(e, node.id)}
+              onClick={e => handleNodeClick(e, node.id)}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Version info bar */}
