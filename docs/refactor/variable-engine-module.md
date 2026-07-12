@@ -1,6 +1,6 @@
 # Variable Engine – Module Documentation
 
-> **Status:** PR-2 – Provider Contract + Auto Registration (implemented)  
+> **Status:** PR-3 – Template Integration Adapter / BOM path (implemented)  
 > **Location:** `backend/src/modules/variable-engine/`
 
 ---
@@ -39,6 +39,9 @@ AbstractVariableProvider  ← PR-2: convenience base class for providers
 | `VariableEvaluator` | `evaluator/VariableEvaluator.ts` | Orchestrates parse → resolve → render pipeline |
 | `AbstractVariableProvider` | `providers/AbstractVariableProvider.ts` | Base class for domain providers (PR-2) |
 | `VariableEngineFactory` | `factory/VariableEngineFactory.ts` | DI-friendly factory; auto-registers providers (PR-2) |
+| `LegacyVariableResolver` | `adapter/LegacyVariableResolver.ts` | Simple flat-map `${...}` substitution (PR-3 fallback) |
+| `BomTemplateRenderingAdapter` | `adapter/BomTemplateRenderingAdapter.ts` | Connects engine to BOM rendering; feature-flagged (PR-3) |
+| `readFeatureFlags` | `config/featureFlags.ts` | Reads `VARIABLE_ENGINE_V2` env var (PR-3) |
 | Error classes | `errors/index.ts` | Typed engine-specific errors |
 
 ---
@@ -97,6 +100,74 @@ export class CameraProvider extends AbstractVariableProvider {
 ```
 
 Add the provider to the DI container's list – the engine picks it up automatically.
+
+---
+
+## BOM Template Rendering Adapter (PR-3)
+
+The `BomTemplateRenderingAdapter` is the integration point between the Variable Engine and the BOM domain.  It is the **only** public-facing way for BOM code to use the engine; BOM services should not call `IVariableEvaluator.evaluate()` directly.
+
+### Feature flag
+
+| Env var | Values | Effect |
+|---|---|---|
+| `VARIABLE_ENGINE_V2` | `true` | New engine is used (async, provider-based) |
+| `VARIABLE_ENGINE_V2` | anything else / unset | Legacy flat-map resolver is used (default, safe fallback) |
+
+### Usage
+
+```ts
+import {
+  BomTemplateRenderingAdapter,
+  LegacyVariableResolver,
+  VariableEngineFactory,
+  readFeatureFlags,
+} from '@/modules/variable-engine';
+
+// 1. Build the engine with providers (injected via DI in production):
+const { engine } = new VariableEngineFactory([ /* …providers… */ ]).create();
+
+// 2. Construct the adapter (once per request or as a singleton):
+const adapter = new BomTemplateRenderingAdapter(
+  engine,
+  new LegacyVariableResolver(),
+  readFeatureFlags(),          // reads VARIABLE_ENGINE_V2 from process.env
+);
+
+// 3. Render a BOM template string:
+const rendered = await adapter.render(
+  'Total cameras: ${camera.total}',
+  { entityId: taskId, entityType: 'task' },
+);
+// → New engine path:   'Total cameras: 5'  (provider resolves camera.total)
+// → Legacy path:       'Total cameras: ${camera.total}'  (no params → kept as-is)
+```
+
+### Legacy path: flat-map resolution
+
+When `variableEngineV2 = false`, the adapter uses `LegacyVariableResolver` with
+the values supplied in `context.params`:
+
+```ts
+const rendered = await adapter.render(
+  'Cameras: ${camera.total}, days: ${retention.days}',
+  {
+    params: {
+      'camera.total': 5,
+      'retention.days': 14,
+    },
+  },
+);
+// → 'Cameras: 5, days: 14'
+```
+
+Unknown placeholders (not present in `params`) are preserved verbatim to prevent
+silent data loss.
+
+### Rollback
+
+To roll back to the legacy resolver, set `VARIABLE_ENGINE_V2=false` (or remove
+the env var entirely).  No code change is required.
 
 ---
 
@@ -214,13 +285,33 @@ ${count}           ← no-dot, namespace == "count"
 
 ---
 
+## Test Coverage (PR-3)
+
+| Metric | Result |
+|---|---|
+| Statements | 100 % |
+| Branches | 97 % |
+| Functions | 100 % |
+| Lines | 100 % |
+| Tests (variable-engine suite) | 124 passing (89 PR-1/2 + 35 PR-3) |
+
+### New test files (PR-3)
+
+| File | Covers |
+|---|---|
+| `LegacyVariableResolver.test.ts` | Flat-map substitution, unknown placeholders, edge cases |
+| `BomTemplateRenderingAdapter.test.ts` | Flag-based routing, context forwarding, evaluator delegation |
+| `featureFlags.test.ts` | Env-var reading, default value, runtime change detection |
+
+---
+
 ## PR Roadmap Status
 
 | PR | Title | Status |
 |---|---|---|
 | **PR-1** | Variable Engine Foundation | ✅ **Done** |
 | **PR-2** | Provider Contract + Auto Registration | ✅ **Done** |
-| PR-3 | Template Integration Adapter | ⏳ Pending |
+| **PR-3** | Template Integration Adapter | ✅ **Done** |
 | PR-4 | Hierarchy Providers | ⏳ Pending |
 | PR-5 | CCTV/Network/Fiber Providers | ⏳ Pending |
 | PR-6 | Contract/Warehouse/Task/AI Providers | ⏳ Pending |
@@ -228,8 +319,6 @@ ${count}           ← no-dot, namespace == "count"
 | PR-8 | Function Registry (MVP) | ⏳ Pending |
 | PR-9 | Performance & Stabilization | ⏳ Pending |
 | PR-10 | Final Rollout | ⏳ Pending |
-
----
 
 ## Limitations and Possible Errors (PR-1 Scope)
 
@@ -247,3 +336,12 @@ ${count}           ← no-dot, namespace == "count"
 3. **No hot-reload of providers** – The `VariableRegistry` does not support unregistering or replacing a provider at runtime without conflict (unless `overwrite: true`).  Dynamic provider management is out of scope for this PR.
 4. **Duplicate key detection is namespace-level only** – Two providers can register overlapping *expressions* (e.g. both handle `camera.total`) as long as they use *different* namespace prefixes (impossible by design) or the same namespace is deduplicated by the registry's single-key-per-namespace model.  In practice a given expression maps to exactly one provider.
 5. **No NestJS / IoC container integration** – PR-2 implements the factory/DI pattern for a plain Express app.  Integration with a full IoC container (e.g. `tsyringe`, NestJS) is a future concern; the factory can be wrapped trivially when needed.
+
+## Limitations and Possible Errors (PR-3 Scope)
+
+1. **Legacy resolver uses flat params only** – The `LegacyVariableResolver` resolves variables solely from `context.params`.  Variables that require database or service calls (e.g. `camera.total` resolved by a provider) are NOT available on the legacy path; callers must pre-compute and pass them in `params`.
+2. **Null/undefined params are excluded** – If a param value is `null` or `undefined`, the placeholder is preserved verbatim on the legacy path.  This matches legacy behaviour but may cause surprises if callers forget to pass a required variable.
+3. **Semantic difference: null vs. empty string** – The new engine returns `''` (empty string) for unresolved variables by default; the legacy path returns the original `${...}` placeholder.  Code consuming rendered output must be tolerant of both forms during the transition period.
+4. **Feature flag is read at adapter construction time** – The `FeatureFlags` object is captured in the adapter constructor.  If `VARIABLE_ENGINE_V2` is changed after the adapter is instantiated, the running instance is unaffected.  Restart the process (or construct a new adapter) to pick up the new value.
+5. **No BOM-specific provider is wired yet** – PR-3 provides the adapter plumbing only.  The concrete BOM providers (camera counts, fiber lengths, etc.) are PR-4/PR-5/PR-6 scope.  Until those are implemented, the new engine path will return empty strings for BOM-specific expressions.
+6. **Engine → BOM dependency constraint** – The engine module must never import BOM entities or services.  The `BomRenderContext` type alias (= `VariableContext`) is intentionally defined inside the adapter to satisfy this constraint.
