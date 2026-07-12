@@ -1,6 +1,7 @@
 // src/services/BomDependencyService.ts
 // Service for BOM Dependency Rules
 
+import { evaluate } from 'mathjs';
 import { AppDataSource } from '../config/database';
 import { BomDependencyRule, DependencyCondition, DependencyAction } from '../entities/BomDependencyRule';
 
@@ -253,30 +254,20 @@ export class BomDependencyService {
 
   private static evaluateFormula(formula: string, context: Record<string, any>): number {
     try {
-      // Simple formula evaluation - replace variables with values
       let evalFormula = formula;
-      
-      // Replace variable names with values
+
       Object.keys(context).forEach(key => {
         const regex = new RegExp(`\\b${key}\\b`, 'g');
         evalFormula = evalFormula.replace(regex, String(context[key]));
       });
 
-      // Safe evaluation (only allow numbers and basic math operators)
-      // This is a simplified evaluator - for production, use a proper math parser library
-      // like mathjs or create a custom AST-based parser
-      if (!/^[\d\s+\-*/().Math]+$/.test(evalFormula)) {
-        console.warn('Invalid formula:', formula);
+      if (!/^[\d\s+\-*/().]+$/.test(evalFormula)) {
+        console.warn('Invalid formula after variable substitution:', formula);
         return 0;
       }
 
-      // TODO: Replace with mathjs or custom parser for production
-      // For now, using eval with strict validation
-      // Example: npm install mathjs, then: import { evaluate } from 'mathjs';
-      // return Math.round(evaluate(evalFormula));
-      
-      // eslint-disable-next-line no-eval
-      return eval(evalFormula);
+      const result = evaluate(evalFormula);
+      return typeof result === 'number' ? result : 0;
     } catch (error) {
       console.error('Error evaluating formula:', formula, error);
       return 0;

@@ -25,38 +25,13 @@
 - ✅ File size limits via multer configuration
 
 ### 4. Formula Evaluation
-⚠️ **IMPORTANT NOTE FOR PRODUCTION:**
+✅ **IMPLEMENTED**
 
-The dependency rule formula evaluation currently uses `eval()` with strict validation:
-- Regex checks limit input to: `[\d\s+\-*/().Math]+`
-- This is a simplified implementation
-
-**Recommended for Production:**
-```bash
-cd backend
-npm install mathjs
-```
-
-Then update `BomDependencyService.ts`:
-```typescript
-import { evaluate } from 'mathjs';
-
-private static evaluateFormula(formula: string, context: Record<string, any>): number {
-  try {
-    let evalFormula = formula;
-    Object.keys(context).forEach(key => {
-      const regex = new RegExp(`\\b${key}\\b`, 'g');
-      evalFormula = evalFormula.replace(regex, String(context[key]));
-    });
-    
-    // Use mathjs for safe evaluation
-    return Math.round(evaluate(evalFormula));
-  } catch (error) {
-    console.error('Error evaluating formula:', formula, error);
-    return 0;
-  }
-}
-```
+The dependency rule formula evaluation now uses `mathjs.evaluate()` instead of `eval()`:
+- Variables are substituted with numeric values before evaluation
+- Regex validation limits input to digits, whitespace, parentheses, and arithmetic operators: `[\d\s+\-*/().]+`
+- Invalid expressions and evaluation errors still return `0`, preserving the existing fallback behavior
+- `mathjs` provides safe arithmetic parsing without executing JavaScript code
 
 ### 5. CSRF Protection
 - ✅ API uses JWT tokens
@@ -74,9 +49,9 @@ private static evaluateFormula(formula: string, context: Record<string, any>): n
 ### Code Review Issues Addressed
 
 1. **Formula Evaluation Security** ✅
-   - Added TODO comment and documentation
-   - Provided mathjs migration guide
-   - Documented security concerns
+   - Replaced `eval()` with `mathjs.evaluate()`
+   - Kept strict post-substitution validation for arithmetic-only expressions
+   - Preserved error fallback behavior by returning `0` on invalid formulas
 
 2. **Cross-Platform File Upload** ✅
    - Changed from hardcoded `/tmp/uploads/`
@@ -155,9 +130,9 @@ Before deploying to production:
 
 ## Conclusion
 
-The BOM Management Module implementation follows security best practices and has passed all automated security scans. The only remaining concern is the formula evaluation, which should be upgraded to use a dedicated math expression library before production deployment.
+The BOM Management Module implementation follows security best practices and has passed all automated security scans. Formula evaluation has been hardened by replacing `eval()` with `mathjs.evaluate()` while keeping the existing error fallback behavior.
 
-All other security measures are in place and working correctly.
+All documented security measures are in place and working correctly.
 
 ---
 
