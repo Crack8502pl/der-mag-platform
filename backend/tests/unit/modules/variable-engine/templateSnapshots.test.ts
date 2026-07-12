@@ -29,6 +29,9 @@ import type { IHierarchyTraversalService } from '../../../../src/modules/variabl
 const CAMERA_DATA = {
   total: 24,
   totalIp: 20,
+  totalIpOgolna: 14,
+  totalIpLpr: 4,
+  totalIpSkp: 2,
   totalAnalog: 4,
   storageTb: 12.5,
   recordingDays: 30,
