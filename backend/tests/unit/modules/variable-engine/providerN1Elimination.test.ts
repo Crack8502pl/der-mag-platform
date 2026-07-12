@@ -16,7 +16,7 @@ import { TaskVariableProvider } from '../../../../src/modules/variable-engine/pr
 import { AiVariableProvider } from '../../../../src/modules/variable-engine/providers/ai/AiVariableProvider';
 import { UserVariableProvider } from '../../../../src/modules/variable-engine/providers/user/UserVariableProvider';
 import type { VariableContext } from '../../../../src/modules/variable-engine/contracts';
-import type { ICameraDataService } from '../../../../src/modules/variable-engine/providers/camera/ICameraDataService';
+import type { ICameraDataService, CameraData } from '../../../../src/modules/variable-engine/providers/camera/ICameraDataService';
 import type { IFiberDataService } from '../../../../src/modules/variable-engine/providers/fiber/IFiberDataService';
 import type { ISwitchDataService } from '../../../../src/modules/variable-engine/providers/switch/ISwitchDataService';
 import type { IIpDataService } from '../../../../src/modules/variable-engine/providers/ip/IIpDataService';
@@ -32,10 +32,8 @@ describe('Provider N+1 elimination', () => {
   // ── CameraVariableProvider ────────────────────────────────────────────────────
 
   it('CameraVariableProvider: concurrent field resolution issues ONE data-service call', async () => {
-    let resolveData!: (v: { total: number; totalIp: number; totalAnalog: number; storageTb: number; recordingDays: number; bitrateMbps: number }) => void;
-    const pending = new Promise<{ total: number; totalIp: number; totalAnalog: number; storageTb: number; recordingDays: number; bitrateMbps: number }>(
-      (r) => { resolveData = r; }
-    );
+    let resolveData!: (v: CameraData) => void;
+    const pending = new Promise<CameraData>((r) => { resolveData = r; });
     const svc: ICameraDataService = { getCameraData: jest.fn().mockReturnValue(pending) };
     const provider = new CameraVariableProvider(svc);
 
@@ -222,7 +220,7 @@ describe('Provider N+1 elimination', () => {
   // ── Different entities are NOT deduplicated ───────────────────────────────────
 
   it('separate entity contexts each trigger their own data-service call', async () => {
-    const cameraData = { total: 5, totalIp: 3, totalAnalog: 2, storageTb: 4.0, recordingDays: 14, bitrateMbps: 2 };
+    const cameraData: CameraData = { total: 5, totalIp: 3, totalAnalog: 2, storageTb: 4.0, recordingDays: 14, bitrateMbps: 2 };
     const svc: ICameraDataService = { getCameraData: jest.fn().mockResolvedValue(cameraData) };
     const provider = new CameraVariableProvider(svc);
 
@@ -241,7 +239,7 @@ describe('Provider N+1 elimination', () => {
   // ── Sequential calls after settle start fresh ─────────────────────────────────
 
   it('sequential calls after first settles issue a second data-service call', async () => {
-    const cameraData = { total: 5, totalIp: 3, totalAnalog: 2, storageTb: 4.0, recordingDays: 14, bitrateMbps: 2 };
+    const cameraData: CameraData = { total: 5, totalIp: 3, totalAnalog: 2, storageTb: 4.0, recordingDays: 14, bitrateMbps: 2 };
     const svc: ICameraDataService = { getCameraData: jest.fn().mockResolvedValue(cameraData) };
     const provider = new CameraVariableProvider(svc);
 
