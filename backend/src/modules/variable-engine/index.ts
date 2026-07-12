@@ -68,6 +68,19 @@ export { AbstractVariableProvider } from './providers';
 export { HierarchyVariableProvider, TaskRelationshipTraversalService } from './providers';
 export type { IHierarchyTraversalService, HierarchyNode, ITaskRelationshipRepository } from './providers';
 
+// ─── CCTV/Network/Fiber/IP providers (PR-5) ──────────────────────────────────
+export { CameraVariableProvider } from './providers';
+export type { ICameraDataService, CameraData } from './providers';
+
+export { SwitchVariableProvider } from './providers';
+export type { ISwitchDataService, SwitchData } from './providers';
+
+export { FiberVariableProvider } from './providers';
+export type { IFiberDataService, FiberData } from './providers';
+
+export { IpVariableProvider } from './providers';
+export type { IIpDataService, IpData } from './providers';
+
 // ─── Factory / DI wiring (PR-2) ───────────────────────────────────────────────
 export { VariableEngineFactory } from './factory';
 export type { VariableEngineFactoryOptions, VariableEngineInstance } from './factory';
