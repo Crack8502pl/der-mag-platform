@@ -567,6 +567,12 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
     return 'disabled';
   };
 
+  const getNextButtonLabel = (): string => {
+    if (resolving) return '⏳ Obliczam BOM...';
+    if (currentStep === WizardStep.CAMERAS) return 'Oblicz BOM →';
+    return 'Dalej →';
+  };
+
   // ── Render ────────────────────────────────────────────────────
 
   return (
@@ -696,11 +702,7 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
                   onClick={handleNext}
                   disabled={resolving || saving}
                 >
-                  {resolving
-                    ? '⏳ Obliczam BOM...'
-                    : currentStep === WizardStep.CAMERAS
-                      ? 'Oblicz BOM →'
-                      : 'Dalej →'}
+                  {getNextButtonLabel()}
                 </button>
               )}
               {currentStep === WizardStep.SUMMARY && (

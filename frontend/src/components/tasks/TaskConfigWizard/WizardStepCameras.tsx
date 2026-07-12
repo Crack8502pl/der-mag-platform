@@ -94,7 +94,7 @@ export const WizardStepCameras: React.FC<WizardStepCamerasProps> = ({
                     <input
                       className="input"
                       type="number"
-                      min="0"
+                      min="1"
                       aria-label={`${row.type} ilość na słupie`}
                       value={row.quantityPerPole}
                       style={{ width: '120px', textAlign: 'center' }}
