@@ -4,6 +4,21 @@ import { describe, expect, it, vi } from 'vitest';
 import type { BomTemplateDependencyRule } from '../../services/bomTemplateDependencyRule.service';
 import type { BomSubsystemTemplateItem } from '../../services/bomSubsystemTemplate.service';
 import { TemplateDependencyRuleModal } from './TemplateDependencyRuleModal';
+import variableEngineService from '../../services/variableEngine.service';
+
+vi.mock('../../services/variableEngine.service', () => ({
+  default: {
+    listVariables: vi.fn().mockResolvedValue([
+      {
+        expression: 'camera.total.ip.lpr',
+        type: 'number',
+        description: 'Kamery IP LPR',
+        provider: 'camera',
+        usableInBom: true
+      }
+    ])
+  }
+}));
 
 const templateItems: BomSubsystemTemplateItem[] = [
   {
@@ -69,5 +84,27 @@ describe('TemplateDependencyRuleModal CONFIG_PARAM onlyIfSelected behavior', () 
     fireEvent.change(typeSelect, { target: { value: 'ITEM' } });
     const checkboxAfter = container.querySelector('#onlyIfSelected-0') as HTMLInputElement;
     expect(checkboxAfter.checked).toBe(false);
+  });
+
+  it('loads variable engine suggestions for CONFIG_PARAM input', async () => {
+    const { container } = render(
+      <TemplateDependencyRuleModal
+        templateId={1}
+        templateItems={templateItems}
+        existingRules={[]}
+        rule={baseRule}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />
+    );
+
+    const typeSelect = container.querySelector('select') as HTMLSelectElement;
+    fireEvent.change(typeSelect, { target: { value: 'CONFIG_PARAM' } });
+
+    const input = await screen.findByPlaceholderText('np. cameraCount lub camera.total.ip.lpr');
+    expect(input).toBeInTheDocument();
+    expect(variableEngineService.listVariables).toHaveBeenCalled();
+    expect(container.querySelector('datalist option[value="camera.total.ip.lpr"]')).toBeTruthy();
+    expect(screen.getByText(/Wpisz nazwę parametru Wizarda/)).toBeInTheDocument();
   });
 });

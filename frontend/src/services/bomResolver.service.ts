@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // frontend/src/services/bomResolver.service.ts
 import api from './api';
+import type { CameraBreakdown } from '../types/cameraBreakdown';
 
 export interface BomResolveRequest {
   subsystemType: string;
@@ -11,6 +12,7 @@ export interface BomResolveRequest {
   selectedRecorderId?: number | null;
   retentionDays?: number;
   cameraCount?: number;
+  cameraBreakdown?: CameraBreakdown;
 }
 
 export interface ResolvedBomItem {
@@ -77,6 +79,7 @@ export interface BomResolveResult {
   isConfigured: boolean;
   resolvedAt: string;
   warnings: string[];
+  cameraBreakdown?: CameraBreakdown;
 }
 
 export const bomResolverService = {

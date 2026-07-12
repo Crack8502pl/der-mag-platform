@@ -16,6 +16,13 @@ import { DiskSpecification } from '../entities/DiskSpecification';
 const DEFAULT_GROUP_NAME = 'Inne';
 const DEFAULT_RECORDING_DAYS = 14;
 
+export interface CameraBreakdown {
+  total: number;
+  ogolna: number;
+  lpr: number;
+  skp: number;
+}
+
 export interface BomResolveRequest {
   /** Subsystem type, e.g. 'CCTV', 'SMOKIP_A' */
   subsystemType: SubsystemType;
@@ -37,6 +44,8 @@ export interface BomResolveRequest {
   isStandaloneNastawnia?: boolean;
   /** Optional recorder selected by user */
   selectedRecorderId?: number | null;
+  /** Optional camera type breakdown propagated from the Wizard */
+  cameraBreakdown?: CameraBreakdown;
 }
 
 export interface ResolvedBomItem {
@@ -95,6 +104,7 @@ export interface BomResolveResult {
   isConfigured: boolean;
   resolvedAt: string;
   warnings: string[];
+  cameraBreakdown?: CameraBreakdown;
 }
 
 // Subsystem types that involve a recorder + disk storage selection
@@ -143,12 +153,19 @@ export class BomResolverService {
       subsystemType,
       taskType = '',
       taskVariant = null,
-      cameraCount = 0,
+      cameraCount: requestedCameraCount = 0,
       recordingDays: requestRecordingDays,
       bitrateMbps = 4.0,
       configParams: callerConfigParams = {},
-      isStandaloneNastawnia = false
+      isStandaloneNastawnia = false,
+      cameraBreakdown: requestedCameraBreakdown
     } = request;
+    const cameraBreakdown = BomResolverService.normalizeCameraBreakdown(
+      requestedCameraBreakdown,
+      requestedCameraCount
+    );
+    const cameraCount = requestedCameraCount > 0 ? requestedCameraCount : cameraBreakdown.total;
+    const totalIpCameras = BomResolverService.sumCameraTypes(cameraBreakdown);
     const recordingDays = requestRecordingDays ?? request.retentionDays ?? DEFAULT_RECORDING_DAYS;
     const needsRecorder = BomResolverService.needsRecorder(subsystemType, taskType, isStandaloneNastawnia);
 
@@ -173,7 +190,8 @@ export class BomResolverService {
       retentionDays: recordingDays,
       isConfigured: false,
       resolvedAt: new Date().toISOString(),
-      warnings: []
+      warnings: [],
+      cameraBreakdown
     };
 
     if (!template) {
@@ -224,6 +242,13 @@ export class BomResolverService {
       cameraCount,
       recordingDays,
       bitrateMbps,
+      'camera.total': cameraCount,
+      'camera.total.ip': totalIpCameras,
+      'camera.total.ip.ogolna': cameraBreakdown.ogolna,
+      'camera.total.ip.lpr': cameraBreakdown.lpr,
+      'camera.total.ip.skp': cameraBreakdown.skp,
+      'camera.recording.days': recordingDays,
+      'camera.bitrate.mbps': bitrateMbps,
       lcsConfig: {
         ...existingLcsConfig,
         iloscKamer: cameraCount
@@ -237,7 +262,10 @@ export class BomResolverService {
         recorderWarehouseStockId: recorder.warehouseStockId,
         diskSlots: recorder.diskSlots
       }),
-      ...(requiredStorageTb !== null && { requiredStorageTb })
+      ...(requiredStorageTb !== null && {
+        requiredStorageTb,
+        'camera.storage.tb': requiredStorageTb
+      })
     };
 
     // ── 4. Resolve item quantities ───────────────────────────────────────────
@@ -353,7 +381,8 @@ export class BomResolverService {
         totalCapacityTb: totalDiskCapacityTb,
         requiredTb: requiredStorageTb ?? 0,
         isAdequate: totalDiskCapacityTb >= (requiredStorageTb ?? 0)
-      } : null
+      } : null,
+      cameraBreakdown
     };
   }
 
@@ -376,5 +405,32 @@ export class BomResolverService {
       case '-': return base - operand;
       default:  return base;
     }
+  }
+
+  private static normalizeCameraBreakdown(
+    cameraBreakdown: CameraBreakdown | undefined,
+    fallbackTotal: number
+  ): CameraBreakdown {
+    const ogolna = BomResolverService.toPositiveInt(cameraBreakdown?.ogolna);
+    const lpr = BomResolverService.toPositiveInt(cameraBreakdown?.lpr);
+    const skp = BomResolverService.toPositiveInt(cameraBreakdown?.skp);
+    const sum = BomResolverService.sumCameraTypes({ ogolna, lpr, skp });
+    const total = sum > 0
+      ? sum
+      : Math.max(
+          BomResolverService.toPositiveInt(cameraBreakdown?.total),
+          BomResolverService.toPositiveInt(fallbackTotal)
+        );
+
+    return { total, ogolna, lpr, skp };
+  }
+
+  private static toPositiveInt(value: unknown): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 0;
+  }
+
+  private static sumCameraTypes(cameraBreakdown: Pick<CameraBreakdown, 'ogolna' | 'lpr' | 'skp'>): number {
+    return cameraBreakdown.ogolna + cameraBreakdown.lpr + cameraBreakdown.skp;
   }
 }

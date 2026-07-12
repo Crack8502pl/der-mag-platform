@@ -11,6 +11,11 @@ interface WizardStepBomProps {
 }
 
 export const WizardStepBom: React.FC<WizardStepBomProps> = ({ resolvedBom, bomGroups }) => {
+  const cameraBreakdownTotal =
+    (resolvedBom.cameraBreakdown?.ogolna ?? 0) +
+    (resolvedBom.cameraBreakdown?.lpr ?? 0) +
+    (resolvedBom.cameraBreakdown?.skp ?? 0);
+
   const getGroupStyle = (groupName: string) => {
     const group = bomGroups.find(g => g.name === groupName);
     return {
@@ -81,6 +86,25 @@ export const WizardStepBom: React.FC<WizardStepBomProps> = ({ resolvedBom, bomGr
           {resolvedBom.templateVersion !== null && (
             <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
               v{Number(resolvedBom.templateVersion).toFixed(2)}
+            </div>
+          )}
+          {resolvedBom.cameraBreakdown && cameraBreakdownTotal > 0 && (
+            <div style={{ display: 'flex', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
+              {resolvedBom.cameraBreakdown.ogolna > 0 && (
+                <span style={{ fontSize: '12px', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', padding: '2px 8px', borderRadius: '4px' }}>
+                  Ogólna: {resolvedBom.cameraBreakdown.ogolna}
+                </span>
+              )}
+              {resolvedBom.cameraBreakdown.lpr > 0 && (
+                <span style={{ fontSize: '12px', background: 'rgba(245,158,11,0.1)', color: '#f59e0b', padding: '2px 8px', borderRadius: '4px' }}>
+                  LPR: {resolvedBom.cameraBreakdown.lpr}
+                </span>
+              )}
+              {resolvedBom.cameraBreakdown.skp > 0 && (
+                <span style={{ fontSize: '12px', background: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '2px 8px', borderRadius: '4px' }}>
+                  SKP: {resolvedBom.cameraBreakdown.skp}
+                </span>
+              )}
             </div>
           )}
         </div>

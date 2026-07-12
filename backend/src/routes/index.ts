@@ -74,6 +74,7 @@ import carRoutes from './car.routes';
 import healthRoutes from './health.routes';
 // Railway (PKP PLK) routes
 import railwayRoutes from './railway.routes';
+import variableEngineRoutes from './variableEngine.routes';
 
 // Wizard draft routes
 import wizardDraftController from '../controllers/WizardDraftController';
@@ -173,6 +174,7 @@ router.use('/network-topologies', networkTopologyRoutes);
 
 // Railway (PKP PLK) routes
 router.use('/railway', railwayRoutes);
+router.use('/variable-engine', variableEngineRoutes);
 
 // Health/connection monitoring routes (no auth required - lightweight endpoints)
 router.use('/', healthRoutes);
