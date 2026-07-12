@@ -3,23 +3,14 @@
  *
  * Convenience base class for concrete `IVariableProvider` implementations.
  *
- * Provides a protected helper (`extractField`) for stripping the namespace
- * prefix from an expression so sub-classes can focus on the field logic:
+ * Provides two protected helpers that are shared across all providers:
  *
- * ```ts
- * class CameraProvider extends AbstractVariableProvider {
- *   readonly namespaces = ['camera'] as const;
- *
- *   async resolve(expression: string, context: VariableContext) {
- *     const field = this.extractField(expression); // e.g. "total"
- *     // …
- *   }
- * }
- * ```
+ * 1. **`extractField`** – strips the namespace prefix from an expression so
+ *    sub-classes can focus on the field logic.
+ * 2. **`parseEntityId`** – safely coerces `context.entityId` to a `number`.
  *
  * Extending this class is optional; providers may implement `IVariableProvider`
- * directly.  The base class adds no mandatory state – it is a pure convenience
- * layer that makes sub-class code more readable.
+ * directly.  The base class adds no mandatory state.
  */
 
 import type { IVariableProvider, VariableContext, VariableValue } from '../contracts';
@@ -48,5 +39,21 @@ export abstract class AbstractVariableProvider implements IVariableProvider {
   protected extractField(expression: string): string {
     const dotIndex = expression.indexOf('.');
     return dotIndex === -1 ? '' : expression.slice(dotIndex + 1);
+  }
+
+  /**
+   * Convert `context.entityId` to a finite `number`.
+   *
+   * Returns `undefined` for:
+   * - `undefined` input
+   * - empty strings
+   * - non-numeric strings
+   * - non-finite numbers (`NaN`, `Infinity`, `-Infinity`)
+   */
+  protected parseEntityId(entityId: number | string | undefined): number | undefined {
+    if (entityId === undefined) return undefined;
+    if (typeof entityId === 'number') return Number.isFinite(entityId) ? entityId : undefined;
+    const parsed = Number(entityId);
+    return Number.isFinite(parsed) ? parsed : undefined;
   }
 }

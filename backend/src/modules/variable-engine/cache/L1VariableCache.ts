@@ -1,15 +1,18 @@
 /**
  * Variable Engine – L1 in-process cache
  *
- * A simple `Map`-backed implementation of `IVariableCache`.
+ * A `Map`-backed implementation of `IVariableCache` with **LRU eviction**.
  *
  * Characteristics:
- * - O(1) get/set/delete.
- * - No TTL in PR-1 scope (TTL / L2 Redis cache is a PR-7+ concern).
- * - Optional capacity limit with FIFO eviction to prevent unbounded
- *   memory growth in long-running processes.  The oldest *inserted* key is
- *   dropped when the limit is reached (not the least recently used one –
- *   a true LRU is a future optimisation).
+ * - O(1) get/set/delete (Map guarantees insertion-order iteration).
+ * - LRU eviction: the *least recently used* entry is dropped when the
+ *   capacity limit is reached.  On every `get` the accessed key is
+ *   re-inserted at the tail of the Map so that the Map's natural iteration
+ *   order reflects recency (head = LRU, tail = MRU).
+ * - No TTL (TTL / L2 Redis cache is a future concern).
+ *
+ * PR-9: upgraded from FIFO to LRU to improve cache hit rates when the same
+ * "hot" variables are resolved across many consecutive template evaluations.
  */
 
 import type { IVariableCache, VariableValue } from '../contracts';
@@ -38,15 +41,25 @@ export class L1VariableCache implements IVariableCache {
   }
 
   get(key: string): VariableValue | undefined {
-    return this.store.get(key);
+    const value = this.store.get(key);
+    if (value === undefined) {
+      return undefined;
+    }
+    // LRU: re-insert at the tail so the Map's head stays the least recently used.
+    this.store.delete(key);
+    this.store.set(key, value);
+    return value;
   }
 
   set(key: string, value: VariableValue): void {
-    if (this.store.size >= this.maxSize && !this.store.has(key)) {
-      // Remove the oldest entry (first key in insertion order).
-      const firstKey = this.store.keys().next().value;
-      if (firstKey !== undefined) {
-        this.store.delete(firstKey);
+    if (this.store.has(key)) {
+      // Re-insert at tail to update recency position.
+      this.store.delete(key);
+    } else if (this.store.size >= this.maxSize) {
+      // Evict the least recently used entry (head = first key in Map order).
+      const lruKey = this.store.keys().next().value;
+      if (lruKey !== undefined) {
+        this.store.delete(lruKey);
       }
     }
     this.store.set(key, value);

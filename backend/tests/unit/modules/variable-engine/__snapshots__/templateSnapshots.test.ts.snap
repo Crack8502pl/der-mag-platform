@@ -1,0 +1,46 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Variable Engine – template snapshot tests camera provider renders a full camera summary template 1`] = `"Kamery: 24 (IP: 20, analog: 4). Zapis: 12.5 TB / 30 dni. Bitrate: 4 Mbps."`;
+
+exports[`Variable Engine – template snapshot tests camera provider renders partial camera template when some fields are missing from context 1`] = `"Total cameras: N/A"`;
+
+exports[`Variable Engine – template snapshot tests contract provider renders a contract header template 1`] = `
+"Umowa nr K/2024/001 (active)
+Klient: Firma Budowlana Sp. z o.o. NIP: 1234567890
+Wartość: 250000 PLN netto / 307500 PLN brutto
+Okres: 2024-01-01 – 2024-12-31"
+`;
+
+exports[`Variable Engine – template snapshot tests fallback behaviour renders a template with no placeholders unchanged 1`] = `"Brak zmiennych – tekst statyczny."`;
+
+exports[`Variable Engine – template snapshot tests fallback behaviour renders duplicate placeholders correctly (deduplication) 1`] = `"Umowa K/2024/001 – potwierdzam umowę K/2024/001 z klientem Firma Budowlana Sp. z o.o.."`;
+
+exports[`Variable Engine – template snapshot tests fallback behaviour renders missing providers with custom fallback string 1`] = `"Kamery: –, Umowa: –"`;
+
+exports[`Variable Engine – template snapshot tests fallback behaviour renders missing providers with empty fallback (default) 1`] = `"Kamery: , Umowa: "`;
+
+exports[`Variable Engine – template snapshot tests fiber provider renders a fiber infrastructure summary 1`] = `"Kabel: 3.2 km, 48 włókien. Połączenia: 12 (duplex: 8, WDM: 4)"`;
+
+exports[`Variable Engine – template snapshot tests multi-provider templates renders a combined task + contract template 1`] = `
+"Zlecenie ZAD-2024-042 dla Firma Budowlana Sp. z o.o.
+Umowa: K/2024/001 | Wartość: 307500 PLN brutto
+Wykonawca: Anna Nowak (technician)"
+`;
+
+exports[`Variable Engine – template snapshot tests multi-provider templates renders a full technical report template 1`] = `
+"Raport techniczny – umowa K/2024/001
+CCTV: 24 kamer (20 IP)
+Magazynowanie: 12.5 TB przez 30 dni
+Infrastruktura: kabel 3.2 km, 48 włókien"
+`;
+
+exports[`Variable Engine – template snapshot tests multi-provider templates renders a hierarchy-aware template 1`] = `"Zadanie ZAD-2024-042 – poziom: 2, elementy podrzędne: 3, ścieżka: 1/10/42"`;
+
+exports[`Variable Engine – template snapshot tests task provider renders a task status template 1`] = `
+"[ZAD-2024-042] Montaż systemu CCTV
+Status: in_progress | Priorytet: high
+Przypisany: Jan Kowalski | Termin: 2024-06-30
+Postęp: 65%"
+`;
+
+exports[`Variable Engine – template snapshot tests user provider renders a user info template 1`] = `"Anna Nowak <a.nowak@firma.pl> – rola: technician"`;

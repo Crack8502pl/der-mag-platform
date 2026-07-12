@@ -27,6 +27,7 @@
 import { AbstractVariableProvider } from '../AbstractVariableProvider';
 import type { VariableContext, VariableValue } from '../../contracts';
 import type { IFiberDataService, FiberData } from './IFiberDataService';
+import { DataFetchDeduplicator } from '../DataFetchDeduplicator';
 
 /** All field paths exposed under the `fiber` namespace. */
 type FiberField =
@@ -48,6 +49,7 @@ export class FiberVariableProvider extends AbstractVariableProvider {
   readonly namespaces = ['fiber'] as const;
 
   private readonly fiberService: IFiberDataService;
+  private readonly deduplicator = new DataFetchDeduplicator<FiberData>();
 
   /**
    * @param fiberService – Injected fiber data service (DI, not static singleton).
@@ -70,7 +72,10 @@ export class FiberVariableProvider extends AbstractVariableProvider {
     }
 
     const entityType = context.entityType ?? '';
-    const data = await this.fiberService.getFiberData(entityId, entityType);
+    const entityKey = `${entityId}:${entityType}`;
+    const data = await this.deduplicator.fetch(entityKey, () =>
+      this.fiberService.getFiberData(entityId, entityType)
+    );
 
     if (data === undefined) {
       return undefined;
@@ -98,14 +103,5 @@ export class FiberVariableProvider extends AbstractVariableProvider {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
-  /**
-   * Convert `context.entityId` to a `number`.
-   * Returns `undefined` for `undefined`, empty strings, or non-numeric strings.
-   */
-  private parseEntityId(entityId: number | string | undefined): number | undefined {
-    if (entityId === undefined) return undefined;
-    if (typeof entityId === 'number') return Number.isFinite(entityId) ? entityId : undefined;
-    const parsed = Number(entityId);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
+  // parseEntityId is inherited from AbstractVariableProvider.
 }

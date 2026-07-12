@@ -28,6 +28,7 @@
 import { AbstractVariableProvider } from '../AbstractVariableProvider';
 import type { VariableContext, VariableValue } from '../../contracts';
 import type { ICameraDataService, CameraData } from './ICameraDataService';
+import { DataFetchDeduplicator } from '../DataFetchDeduplicator';
 
 /** All field paths exposed under the `camera` namespace. */
 type CameraField =
@@ -51,6 +52,7 @@ export class CameraVariableProvider extends AbstractVariableProvider {
   readonly namespaces = ['camera'] as const;
 
   private readonly cameraService: ICameraDataService;
+  private readonly deduplicator = new DataFetchDeduplicator<CameraData>();
 
   /**
    * @param cameraService – Injected camera data service (DI, not static singleton).
@@ -73,7 +75,10 @@ export class CameraVariableProvider extends AbstractVariableProvider {
     }
 
     const entityType = context.entityType ?? '';
-    const data = await this.cameraService.getCameraData(entityId, entityType);
+    const entityKey = `${entityId}:${entityType}`;
+    const data = await this.deduplicator.fetch(entityKey, () =>
+      this.cameraService.getCameraData(entityId, entityType)
+    );
 
     if (data === undefined) {
       return undefined;
@@ -103,14 +108,5 @@ export class CameraVariableProvider extends AbstractVariableProvider {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
-  /**
-   * Convert `context.entityId` to a `number`.
-   * Returns `undefined` for `undefined`, empty strings, or non-numeric strings.
-   */
-  private parseEntityId(entityId: number | string | undefined): number | undefined {
-    if (entityId === undefined) return undefined;
-    if (typeof entityId === 'number') return Number.isFinite(entityId) ? entityId : undefined;
-    const parsed = Number(entityId);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
+  // parseEntityId is inherited from AbstractVariableProvider.
 }

@@ -191,6 +191,23 @@ describe('VariableResolver', () => {
     expect(logger.trace).toHaveBeenCalledWith('No provider found', { expression: 'unknown.metric' });
   });
 
+  it('includes durationMs in the provider-resolved trace log (PR-9 profiling)', async () => {
+    const logger = makeMockLogger();
+    const provider = makeProvider(100);
+    const registry = makeRegistry(provider);
+    const resolver = new VariableResolver(registry, cache, { logger });
+
+    await resolver.resolve('camera.total', ctx);
+
+    const providerResolvedCall = logger.trace.mock.calls.find(
+      ([msg]) => msg === 'Provider resolved'
+    );
+    expect(providerResolvedCall).toBeDefined();
+    const meta = providerResolvedCall![1] as Record<string, unknown>;
+    expect(typeof meta.durationMs).toBe('number');
+    expect(meta.durationMs).toBeGreaterThanOrEqual(0);
+  });
+
   it('VariableEngineLogger does not emit console.error output when provider throws (stack trace suppressed)', async () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
     const logger = new VariableEngineLogger(); // default: includeStackTrace=false

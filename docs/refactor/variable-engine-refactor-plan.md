@@ -126,4 +126,14 @@ src/modules/variable-engine/
 - `ai.*`
 - `user.*`
 
-Finalna lista publiczna zostanie zatwierdzona po inwentaryzacji i decyzji biznesowej.
+## 11. Status implementacji (PR-9 – Performance & Stabilization)
+
+### Zrealizowane (PR-9)
+
+- **LRU Cache**: Ulepszono `L1VariableCache` z FIFO na LRU – często używane wpisy nie są eksmitowane.
+- **N+1 Elimination**: Dodano `DataFetchDeduplicator` – każdy provider używa deduplikacji, dzięki czemu współbieżne wywołania dla tych samych danych (np. `camera.total` i `camera.storage.tb`) korzystają z jednego zapytania do serwisu danych.
+- **Profiling**: `VariableResolver` teraz loguje `durationMs` przy każdym wywołaniu providera, co ułatwia profilowanie slow providerów.
+- **Refaktoryzacja**: `parseEntityId` przeniesiono do `AbstractVariableProvider` – eliminacja duplikacji w 9 providerach.
+- **Snapshot tests**: 13 snapshot testów pokrywa renderowanie templatek we wszystkich scenariuszach (camera, contract, fiber, task, user, hierarchy, multi-provider, fallback).
+- **Publiczne API zmiennych bez zmian** – zachowana kompatybilność wsteczna.
+
