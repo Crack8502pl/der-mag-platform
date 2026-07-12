@@ -1,15 +1,18 @@
 /**
- * Variable Engine – VariableEvaluator
+ * Variable Engine – VariableEvaluator (post-PR-10 hardening)
  *
  * Top-level orchestrator that performs the full parse → resolve → render
  * pipeline for a template string.
  *
  * Algorithm:
- * 1. Parse the template for `${...}` tokens.
+ * 1. Parse the template for `${...}` tokens (stack-based parser handles
+ *    nested braces, L-02 + L-06).
  * 2. Resolve each unique expression (deduplication avoids redundant provider
  *    calls when the same variable appears multiple times).
  * 3. Build a replacement map: `raw → resolvedString`.
  * 4. Walk through the template once and substitute every token.
+ *
+ * ## Fallback policy
  *
  * A token that resolves to `undefined` is replaced according to the
  * configured `FallbackMode`:
@@ -19,22 +22,28 @@
  *   useful for debugging or two-pass rendering.
  * - `CUSTOM` – replaced with the static string from `options.fallback`.
  *
- * The evaluator itself never throws.  Individual resolution failures are
- * handled inside `VariableResolver` (soft-fail).
+ * ## Strict mode (L-04 / L-17)
+ *
+ * When `undefinedPolicy: UndefinedPolicy.STRICT` is set in `EvaluateOptions`,
+ * any expression that resolves to `undefined` causes the evaluator to throw
+ * `VariableResolutionError`.  This propagates from the resolver naturally.
+ *
+ * The evaluator itself never throws in soft-fail mode.  Individual resolution
+ * failures are handled inside `VariableResolver` (soft-fail).
  */
 
 import type {
   IVariableEvaluator,
   IVariableParser,
-  IVariableResolver,
   IVariableLogger,
   VariableContext,
   EvaluateOptions,
   VariableValue,
   VariableToken
 } from '../contracts';
-import { FallbackMode } from '../contracts';
+import { FallbackMode, UndefinedPolicy } from '../contracts';
 import { NullVariableLogger } from '../logger';
+import type { IVariableResolver } from '../contracts';
 
 /** Coerce a resolved value to its string representation. */
 function toDisplayString(value: VariableValue, fallback: string): string {
@@ -80,6 +89,7 @@ export class VariableEvaluator implements IVariableEvaluator {
     options: EvaluateOptions = {}
   ): Promise<string> {
     const fallback = options.fallback ?? '';
+    const isStrict = options.undefinedPolicy === UndefinedPolicy.STRICT;
 
     // ── 1. Parse ──────────────────────────────────────────────────────────────
     const tokens = this.parser.parse(template);
@@ -93,11 +103,13 @@ export class VariableEvaluator implements IVariableEvaluator {
     const uniqueExpressions = [...new Set(tokens.map((t) => t.expression))];
     const resolvedMap = new Map<string, VariableValue>();
 
+    // In strict mode, let resolver errors propagate out of Promise.all.
+    // In soft-fail mode, resolver never throws so no special handling is needed.
     await Promise.all(
       uniqueExpressions.map(async (expr) => {
         const value = await this.resolver.resolve(expr, context);
         resolvedMap.set(expr, value);
-        if (value === undefined) {
+        if (value === undefined && !isStrict) {
           this.logger.trace('Expression resolved to undefined – fallback will apply', {
             expression: expr,
             fallbackMode: options.fallbackMode ?? 'default',

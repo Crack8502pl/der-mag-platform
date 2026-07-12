@@ -1,23 +1,38 @@
 /**
- * Variable Engine – VariableResolver
+ * Variable Engine – VariableResolver (post-PR-10 hardening)
  *
  * Resolves a single variable expression to its runtime value by:
  * 1. Checking the cache (unless `bypassCache` is set).
- * 2. Detecting whether the expression is a function call (PR-8).
+ * 2. Resolving any nested `${...}` sub-expressions inside the expression
+ *    before further processing (L-02).
+ * 3. Detecting whether the expression is a function call (PR-8 + L-20/L-21).
  *    When a function call is detected and the function is registered the
- *    argument expression is resolved recursively and the function applied.
- * 3. Finding the matching provider in the registry.
- * 4. Calling `provider.resolve(expression, context)`.
- * 5. Storing the result in the cache.
- * 6. Returning the result (or `undefined` on soft-fail).
+ *    argument expressions are resolved recursively and the function applied.
+ *    Multi-argument calls are supported via `IVariableFunction.callMulti`
+ *    (L-21).
+ * 4. Finding the matching provider in the registry.
+ * 5. Calling `provider.resolve(expression, context)`.
+ * 6. Storing the result in the cache.
+ * 7. Returning the result (or `undefined` / throwing on soft/strict-fail).
  *
- * The resolver never throws.  All provider errors are caught and forwarded
- * to the injected `IVariableLogger` so that a broken provider does not crash
- * the evaluation of a whole template.  Stack traces are stripped from the
- * log payload unless the logger was configured for dev/trace mode, preventing
- * internal implementation details from leaking into production logs.
+ * ## Strict mode (L-04 / L-17)
+ *
+ * When `strictMode: true` is set in `ResolverOptions`, the resolver throws
+ * `VariableResolutionError` for any expression that resolves to `undefined`
+ * instead of returning `undefined` silently.  This is useful in development
+ * or for templates where every variable must be present.
+ *
+ * ## Monotonic clock (L-26)
+ *
+ * `performance.now()` (monotonic) is used instead of `Date.now()` (wall
+ * clock) for `durationMs` measurements so that clock adjustments do not
+ * produce negative durations.
+ *
+ * The resolver never throws in soft-fail mode.  All provider errors are
+ * caught and forwarded to the injected `IVariableLogger`.
  */
 
+import { performance } from 'perf_hooks';
 import type {
   IVariableResolver,
   IVariableRegistry,
@@ -28,7 +43,9 @@ import type {
   VariableValue
 } from '../contracts';
 import { NullVariableLogger } from '../logger';
+import { VariableResolutionError } from '../errors';
 import { parseFunctionCall } from '../functions/parseFunctionCall';
+import { VariableParser } from '../parser/VariableParser';
 
 /** Build the cache key for a given expression + context. */
 function buildCacheKey(expression: string, context: VariableContext): string {
@@ -59,7 +76,18 @@ export interface ResolverOptions {
    * function registry is enabled (PR-8).
    */
   readonly functionRegistry?: IFunctionRegistry;
+
+  /**
+   * When `true`, the resolver throws `VariableResolutionError` for any
+   * expression that resolves to `undefined` (L-04/L-17 strict mode).
+   *
+   * Default: `false` (soft-fail – unresolved expressions return `undefined`).
+   */
+  readonly strictMode?: boolean;
 }
+
+// Internal parser used to detect and resolve nested `${...}` sub-expressions.
+const _nestedParser = new VariableParser();
 
 export class VariableResolver implements IVariableResolver {
   private readonly registry: IVariableRegistry;
@@ -67,6 +95,7 @@ export class VariableResolver implements IVariableResolver {
   private readonly options: ResolverOptions;
   private readonly logger: IVariableLogger;
   private readonly functionRegistry: IFunctionRegistry | undefined;
+  private readonly strictMode: boolean;
 
   constructor(
     registry: IVariableRegistry,
@@ -78,12 +107,13 @@ export class VariableResolver implements IVariableResolver {
     this.options = options;
     this.logger = options.logger ?? new NullVariableLogger();
     this.functionRegistry = options.functionRegistry;
+    this.strictMode = options.strictMode === true;
   }
 
   async resolve(expression: string, context: VariableContext): Promise<VariableValue> {
     const cacheKey = buildCacheKey(expression, context);
     const bypass = this.options.bypassCache === true;
-    const startMs = Date.now();
+    const startNs = performance.now(); // monotonic clock (L-26)
 
     // ── 1. Cache hit ──────────────────────────────────────────────────────────
     if (!bypass) {
@@ -94,59 +124,92 @@ export class VariableResolver implements IVariableResolver {
       }
     }
 
-    // ── 2. Function call detection (PR-8) ─────────────────────────────────────
+    // ── 2. Resolve nested ${...} sub-expressions inside the expression (L-02) ─
+    //
+    // If the expression itself contains `${inner}` patterns (e.g. from a
+    // nested expression like `fn(${inner})`), resolve those first and
+    // substitute their values before continuing.
+    let resolvedExpression = expression;
+    const nestedTokens = _nestedParser.parse(expression);
+    if (nestedTokens.length > 0) {
+      // Walk tokens right-to-left to preserve character offsets after substitution.
+      const sortedDesc = [...nestedTokens].sort((a, b) => b.offset - a.offset);
+      for (const token of sortedDesc) {
+        const innerValue = await this.resolve(token.expression, context);
+        const replacement =
+          innerValue === undefined || innerValue === null ? '' : String(innerValue);
+        resolvedExpression =
+          resolvedExpression.slice(0, token.offset) +
+          replacement +
+          resolvedExpression.slice(token.offset + token.raw.length);
+      }
+      this.logger.trace('Nested expressions resolved', {
+        original: expression,
+        resolved: resolvedExpression,
+      });
+    }
+
+    // ── 3. Function call detection (PR-8, L-20/L-21) ──────────────────────────
     if (this.functionRegistry !== undefined) {
-      const funcCall = parseFunctionCall(expression);
+      const funcCall = parseFunctionCall(resolvedExpression);
       if (funcCall !== null) {
         const fn = this.functionRegistry.find(funcCall.funcName);
         if (fn !== undefined) {
           this.logger.trace('Function call detected', {
-            expression,
+            expression: resolvedExpression,
             funcName: funcCall.funcName,
-            argExpression: funcCall.argExpression,
+            argExpressions: funcCall.argExpressions,
           });
-          // Resolve the argument first (uses same cache/provider pipeline).
-          const argValue = await this.resolve(funcCall.argExpression, context);
-          const result = fn.call(argValue);
+
+          // Resolve all argument expressions in parallel (L-21).
+          const argValues = await Promise.all(
+            funcCall.argExpressions.map((argExpr) => this.resolve(argExpr, context))
+          );
+
+          // Invoke `callMulti` when present and multiple args; fall back to `call`.
+          let result: VariableValue;
+          if (typeof fn.callMulti === 'function' && argValues.length !== 1) {
+            result = fn.callMulti(argValues);
+          } else {
+            result = fn.call(argValues[0]);
+          }
+
           // Cache the function result under the full expression key.
           if (!bypass && result !== undefined) {
             this.cache.set(cacheKey, result);
           }
-          return result;
+
+          return this.applyStrictCheck(result, expression);
         }
         // Function name is not registered – log a warning and soft-fail.
         this.logger.warn('Unknown function in expression – soft-fail applied', {
-          expression,
+          expression: resolvedExpression,
           funcName: funcCall.funcName,
         });
-        return undefined;
+        return this.applyStrictCheck(undefined, expression);
       }
     }
 
-    // ── 3. Find provider ──────────────────────────────────────────────────────
-    const provider = this.registry.find(expression);
+    // ── 4. Find provider ──────────────────────────────────────────────────────
+    const provider = this.registry.find(resolvedExpression);
     if (!provider) {
-      this.logger.trace('No provider found', { expression });
-      return undefined;
+      this.logger.trace('No provider found', { expression: resolvedExpression });
+      return this.applyStrictCheck(undefined, expression);
     }
 
-    // ── 4. Invoke provider (soft-fail) ────────────────────────────────────────
+    // ── 5. Invoke provider (soft-fail) ────────────────────────────────────────
     let value: VariableValue;
     try {
-      value = await provider.resolve(expression, context);
-      const durationMs = Date.now() - startMs;
+      value = await provider.resolve(resolvedExpression, context);
+      const durationMs = performance.now() - startNs;
       this.logger.trace('Provider resolved', {
-        expression,
+        expression: resolvedExpression,
         provider: provider.constructor.name,
         durationMs,
       });
     } catch (err) {
-      // Providers must not crash the engine – log structured error and return
-      // undefined.  Stack trace is intentionally excluded from the meta
-      // payload; the logger decides whether to include it based on its own
-      // configuration (e.g. includeStackTrace=true only in dev mode).
       const meta: Record<string, unknown> = {
-        expression,
+        expression: resolvedExpression,
         provider: provider.constructor.name,
       };
       if (err instanceof Error) {
@@ -155,14 +218,27 @@ export class VariableResolver implements IVariableResolver {
         meta.stack = err.stack;
       }
       this.logger.error('Provider threw during resolution – soft-fail applied', meta);
-      return undefined;
+      return this.applyStrictCheck(undefined, expression);
     }
 
-    // ── 5. Store in cache ─────────────────────────────────────────────────────
+    // ── 6. Store in cache ─────────────────────────────────────────────────────
     if (!bypass && value !== undefined) {
       this.cache.set(cacheKey, value);
     }
 
+    return this.applyStrictCheck(value, expression);
+  }
+
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+  /**
+   * In strict mode, throw when the value is `undefined`.
+   * In soft-fail mode, return the value unchanged.
+   */
+  private applyStrictCheck(value: VariableValue, expression: string): VariableValue {
+    if (this.strictMode && value === undefined) {
+      throw new VariableResolutionError(expression, 'expression resolved to undefined (strict mode)');
+    }
     return value;
   }
 }

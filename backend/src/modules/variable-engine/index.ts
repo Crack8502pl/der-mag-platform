@@ -37,6 +37,7 @@ export type {
   IVariableProvider,
   IVariableRegistry,
   IVariableCache,
+  IL2VariableCache,
   IVariableParser,
   IVariableResolver,
   IVariableEvaluator,
@@ -46,7 +47,7 @@ export type {
   IFunctionRegistry,
   FunctionCallExpression
 } from './contracts';
-export { FallbackMode } from './contracts';
+export { FallbackMode, UndefinedPolicy } from './contracts';
 
 // ─── Errors ───────────────────────────────────────────────────────────────────
 export {
@@ -59,9 +60,12 @@ export {
 // ─── Implementations ──────────────────────────────────────────────────────────
 export { VariableParser } from './parser';
 export { VariableRegistry } from './registry';
-export type { RegistryOptions } from './registry';
+export type { RegistryOptions, OverwritePolicy } from './registry';
 export { L1VariableCache } from './cache';
 export type { L1CacheOptions } from './cache';
+export { NullL2VariableCache } from './cache';
+export { CompositeVariableCache } from './cache';
+export type { CompositeVariableCacheOptions } from './cache';
 export { VariableResolver } from './resolver';
 export type { ResolverOptions } from './resolver';
 export { VariableEvaluator } from './evaluator';
@@ -96,10 +100,25 @@ export { CountFunction, RoundFunction, UppercaseFunction } from './functions';
 
 // ─── Factory / DI wiring (PR-2) ───────────────────────────────────────────────
 export { VariableEngineFactory } from './factory';
-export type { VariableEngineFactoryOptions, VariableEngineInstance } from './factory';
+export type { VariableEngineFactoryOptions, VariableEngineInstance, VariableEngineFactoryCacheOptions } from './factory';
 
-// ─── Template Integration Adapter + Feature Flags (PR-3) ─────────────────────
-export { LegacyVariableResolver, BomTemplateRenderingAdapter } from './adapter';
-export type { BomRenderContext, LegacyVariableValue } from './adapter';
+// ─── Template Integration Adapters + Feature Flags ───────────────────────────
+export {
+  LegacyVariableResolver,
+  BomTemplateRenderingAdapter,
+  PdfTemplateRenderingAdapter,
+  ReportsTemplateRenderingAdapter,
+  LabelsTemplateRenderingAdapter,
+  EmailsTemplateRenderingAdapter,
+} from './adapter';
+export type {
+  BomRenderContext,
+  LegacyVariableValue,
+  PdfRenderContext,
+  ReportsRenderContext,
+  LabelsRenderContext,
+  EmailsRenderContext,
+} from './adapter';
 export { readFeatureFlags } from './config';
 export type { FeatureFlags } from './config';
+

@@ -1,5 +1,5 @@
 /**
- * Variable Engine – core contracts and interfaces (PR-1 scope)
+ * Variable Engine – core contracts and interfaces (post-PR-10 hardening)
  *
  * These are the foundational types used across every layer of the engine.
  * No concrete implementations are placed here – only pure TypeScript
@@ -73,6 +73,19 @@ export interface IVariableProvider {
    * @returns Resolved value, or `undefined` if not available.
    */
   resolve(expression: string, context: VariableContext): Promise<VariableValue>;
+
+  /**
+   * Optional async initialisation hook (L-07).
+   *
+   * When present, `VariableEngineFactory.createAsync()` awaits this method
+   * for every provider **in registration order** before the engine is used.
+   * This guarantees that a provider relying on async setup (e.g. DB schema
+   * loading, remote config fetch) is fully ready before the first call.
+   *
+   * Implementations MUST NOT throw – signal initialisation failures via
+   * their own error tracking or logging.
+   */
+  initialize?(): Promise<void>;
 }
 
 // ─── Registry ─────────────────────────────────────────────────────────────────
@@ -125,6 +138,28 @@ export interface IVariableCache {
 
   /** Purge all cached entries. */
   clear(): void;
+}
+
+/**
+ * Async L2 cache contract (L-01).
+ *
+ * An L2 cache (e.g. Redis, Memcached) sits behind the in-process L1 cache.
+ * All operations are async because L2 caches typically require network I/O.
+ *
+ * Implementations MUST NOT throw – return `undefined` on error.
+ */
+export interface IL2VariableCache {
+  /** Return the cached value, or `undefined` on miss / error. */
+  get(key: string): Promise<VariableValue | undefined>;
+
+  /** Store a resolved value with an optional TTL in milliseconds. */
+  set(key: string, value: VariableValue, ttlMs?: number): Promise<void>;
+
+  /** Remove a single entry. */
+  delete(key: string): Promise<void>;
+
+  /** Purge all cached entries (use with care in production). */
+  clear(): Promise<void>;
 }
 
 // ─── Parser ───────────────────────────────────────────────────────────────────
@@ -211,23 +246,44 @@ export interface IVariableLogger {
   trace(message: string, meta?: Record<string, unknown>): void;
 }
 
-// ─── Functions (PR-8) ────────────────────────────────────────────────────────
+// ─── Functions (PR-8, post-PR-10) ─────────────────────────────────────────────
 
 /**
- * A single callable function that transforms one resolved variable value.
+ * A single callable function that transforms resolved variable value(s).
  *
  * Implementations must be pure (no side effects, no async I/O).
- * They receive the already-resolved argument value and return the
- * transformed result.  Returning `undefined` signals a soft-fail (no output).
+ *
+ * ## Single-argument form (backward-compatible)
+ * `call(arg)` – original PR-8 signature; always present.
+ *
+ * ## Multi-argument form (L-21)
+ * `callMulti(args)` – optional; called when the expression contains more than
+ * one argument (e.g. `pad(x, 5)`).  When present and the call site has
+ * multiple args, the resolver invokes `callMulti` instead of `call`.
+ * When absent, the resolver falls back to `call(args[0])` for backward compat.
+ *
+ * Both forms return `undefined` to signal a soft-fail (no output).
  */
 export interface IVariableFunction {
   /**
-   * Apply the function to `arg`.
+   * Apply the function to a single argument.
    *
    * @param arg – The already-resolved value of the function argument.
    * @returns The transformed value, or `undefined` on soft-fail.
    */
   call(arg: VariableValue): VariableValue;
+
+  /**
+   * Apply the function to multiple arguments (L-21).
+   *
+   * When present, this method is preferred over `call` when the call site
+   * provides more than one argument.  Implementations that support only a
+   * single arg do not need to implement this method.
+   *
+   * @param args – All resolved argument values (may be empty).
+   * @returns The transformed value, or `undefined` on soft-fail.
+   */
+  callMulti?(args: readonly VariableValue[]): VariableValue;
 }
 
 /**
@@ -254,15 +310,24 @@ export interface IFunctionRegistry {
 
 /**
  * Parsed representation of a function-call expression such as
- * `count(children)` or `round(fiber.length.total)`.
+ * `count(children)`, `round(fiber.length.total)`, or `pad(x, 5)`.
  *
  * Produced by `parseFunctionCall()` in the `functions` module.
  */
 export interface FunctionCallExpression {
   /** The function name, e.g. `count`. */
   readonly funcName: string;
-  /** The argument expression passed to the function, e.g. `children`. */
+  /**
+   * The first argument expression (backward compat alias for `argExpressions[0]`).
+   * Empty string when no arguments are present.
+   * @deprecated Prefer `argExpressions` for multi-argument functions (L-21).
+   */
   readonly argExpression: string;
+  /**
+   * All argument expressions in call order (L-21).
+   * Empty array when no arguments are present.
+   */
+  readonly argExpressions: readonly string[];
 }
 
 // ─── Fallback policy ──────────────────────────────────────────────────────────
@@ -286,6 +351,29 @@ export const FallbackMode = {
 
 export type FallbackMode = (typeof FallbackMode)[keyof typeof FallbackMode];
 
+/**
+ * Undefined-value policy (L-17).
+ *
+ * Controls how the engine handles expressions that resolve to `undefined`
+ * (i.e. the provider returned no data for that variable).
+ *
+ * - `SOFT_FAIL` (default) – unresolved variables are silently replaced
+ *   according to `FallbackMode`.  The renderer never throws.
+ * - `STRICT` – unresolved variables throw `VariableResolutionError` so
+ *   callers can detect missing data explicitly.
+ *
+ * Use `STRICT` to surface missing-data bugs early (e.g. during development
+ * or for templates where every variable must be present).
+ */
+export const UndefinedPolicy = {
+  /** Silently apply fallback; never throw on missing data (default). */
+  SOFT_FAIL: 'SOFT_FAIL',
+  /** Throw `VariableResolutionError` for any expression that resolves to `undefined`. */
+  STRICT: 'STRICT',
+} as const;
+
+export type UndefinedPolicy = (typeof UndefinedPolicy)[keyof typeof UndefinedPolicy];
+
 /** Options controlling evaluator behaviour. */
 export interface EvaluateOptions {
   /**
@@ -306,6 +394,9 @@ export interface EvaluateOptions {
    *
    * When omitted, behaviour is backward-compatible: the `fallback` string
    * (defaulting to `''`) is used.
+   *
+   * Only applied when `undefinedPolicy` is `SOFT_FAIL` (the default).
+   * In `STRICT` mode an error is thrown instead of applying a fallback.
    */
   readonly fallbackMode?: FallbackMode;
 
@@ -314,4 +405,14 @@ export interface EvaluateOptions {
    * Useful in test / debug contexts.
    */
   readonly bypassCache?: boolean;
+
+  /**
+   * Policy for expressions that resolve to `undefined` (L-04/L-17).
+   *
+   * - `SOFT_FAIL` (default) – apply `fallbackMode` silently.
+   * - `STRICT` – throw `VariableResolutionError`.
+   *
+   * @default UndefinedPolicy.SOFT_FAIL
+   */
+  readonly undefinedPolicy?: UndefinedPolicy;
 }
