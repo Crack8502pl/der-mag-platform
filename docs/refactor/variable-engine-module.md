@@ -312,7 +312,7 @@ ${count}           ← no-dot, namespace == "count"
 | **PR-1** | Variable Engine Foundation | ✅ **Done** |
 | **PR-2** | Provider Contract + Auto Registration | ✅ **Done** |
 | **PR-3** | Template Integration Adapter | ✅ **Done** |
-| PR-4 | Hierarchy Providers | ⏳ Pending |
+| **PR-4** | Hierarchy Providers | ✅ **Done** |
 | PR-5 | CCTV/Network/Fiber Providers | ⏳ Pending |
 | PR-6 | Contract/Warehouse/Task/AI Providers | ⏳ Pending |
 | PR-7 | Error Policy + Observability | ⏳ Pending |
@@ -345,3 +345,37 @@ ${count}           ← no-dot, namespace == "count"
 4. **Feature flag is read at adapter construction time** – The `FeatureFlags` object is captured in the adapter constructor.  If `VARIABLE_ENGINE_V2` is changed after the adapter is instantiated, the running instance is unaffected.  Restart the process (or construct a new adapter) to pick up the new value.
 5. **No BOM-specific provider is wired yet** – PR-3 provides the adapter plumbing only.  The concrete BOM providers (camera counts, fiber lengths, etc.) are PR-4/PR-5/PR-6 scope.  Until those are implemented, the new engine path will return empty strings for BOM-specific expressions.
 6. **Engine → BOM dependency constraint** – The engine module must never import BOM entities or services.  The `BomRenderContext` type alias (= `VariableContext`) is intentionally defined inside the adapter to satisfy this constraint.
+
+---
+
+## Test Coverage (PR-4)
+
+| Metric | Result |
+|---|---|
+| Tests (variable-engine suite) | 158 passing (126 PR-1/2/3 + 32 PR-4) |
+
+### New test files (PR-4)
+
+| File | Covers |
+|---|---|
+| `TaskRelationshipTraversalService.test.ts` | getParentId (root, parent), getChildrenIds, getDepth (0/1/N), getAncestorPath (chain, cycle detection) |
+| `HierarchyVariableProvider.test.ts` | hierarchy.parent/children/depth/path, soft-fail (unknown field, missing entityId, non-numeric), edge cases (entityId=0, no entityType) |
+
+### New files (PR-4)
+
+| File | Purpose |
+|---|---|
+| `providers/hierarchy/IHierarchyTraversalService.ts` | DI interface – domain-agnostic hierarchy traversal contract |
+| `providers/hierarchy/TaskRelationshipTraversalService.ts` | Adapts `TaskRelationshipService` to the traversal interface; adds depth/path + cycle guard |
+| `providers/hierarchy/HierarchyVariableProvider.ts` | `hierarchy.*` variable provider (`parent`, `children`, `depth`, `path`) |
+| `providers/hierarchy/index.ts` | Barrel export for the hierarchy providers sub-module |
+
+---
+
+## Limitations and Possible Errors (PR-4 Scope)
+
+1. **One primary parent only** – `TaskRelationshipTraversalService.getParentId` returns the *first* parent from `TaskRelationshipService.getParents()`.  If a task has multiple parents (DAG rather than a tree), only the first is used for depth/path calculations.  Multi-parent traversal is out of scope.
+2. **N+1 queries per level** – `getDepth` and `getAncestorPath` issue one DB query per hierarchy level.  For a chain of depth N this is N round-trips.  Callers are encouraged to call `getAncestorPath` once and derive depth from its length.  The engine's L1 cache prevents re-querying the same entity within a single evaluation pass.
+3. **MAX_DEPTH cap (100)** – Cycle detection uses a `visited` Set.  As a secondary safety net, traversal is also capped at 100 levels.  Legitimate hierarchies deeper than 100 will be truncated silently.
+4. **`hierarchy.children` returns a count, not a list** – Because `VariableValue` is a scalar type, the count of direct children is exposed, not the IDs themselves.  A separate `hierarchy.children.count` alias was not added to keep the API surface minimal.
+5. **entityType is passed to the traversal service but not used by `TaskRelationshipTraversalService`** – The current implementation ignores `entityType` because `TaskRelationship` entities are task-specific.  Future adapters for other entity types (contracts, warehouses) can honour `entityType` to route to the correct repository.
