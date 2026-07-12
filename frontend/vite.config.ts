@@ -60,7 +60,41 @@ export default defineConfig({
     assetsDir: 'assets', // Ensure assets are in /assets/
     rollupOptions: {
       output: {
-        manualChunks: undefined, // Single bundle for better mobile performance
+        manualChunks(id) {
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'vendor-react'
+          }
+          if (id.includes('node_modules/react-router')) {
+            return 'vendor-router'
+          }
+          if (id.includes('node_modules/leaflet') || id.includes('node_modules/react-leaflet')) {
+            return 'vendor-maps'
+          }
+          if (id.includes('node_modules/xlsx') || id.includes('node_modules/exceljs')) {
+            return 'vendor-excel'
+          }
+          if (id.includes('node_modules/pdf') || id.includes('node_modules/jspdf') || id.includes('node_modules/pdfmake')) {
+            return 'vendor-pdf'
+          }
+          if (id.includes('node_modules/')) {
+            return 'vendor-misc'
+          }
+          if (id.includes('/src/components/contracts/') || id.includes('/src/pages/contracts')) {
+            return 'module-contracts'
+          }
+          if (id.includes('/src/components/bom/') || id.includes('/src/components/admin/BOM') || id.includes('/src/components/admin/bom')) {
+            return 'module-bom'
+          }
+          if (id.includes('/src/components/network') || id.includes('/src/components/topology')) {
+            return 'module-network'
+          }
+          if (id.includes('/src/components/admin/')) {
+            return 'module-admin'
+          }
+          if (id.includes('/src/components/reports/') || id.includes('/src/pages/reports')) {
+            return 'module-reports'
+          }
+        },
         // Proper asset naming for consistent structure
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
