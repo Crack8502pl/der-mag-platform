@@ -58,14 +58,14 @@ describe('L1VariableCache', () => {
     expect(cache.size).toBe(1);
   });
 
-  // ── Capacity / eviction ───────────────────────────────────────────────────────
+  // ── Capacity / eviction (LRU) ─────────────────────────────────────────────────
 
-  it('evicts the oldest entry when maxSize is reached', () => {
+  it('evicts the LRU entry when maxSize is reached (no prior gets)', () => {
     const c = new L1VariableCache({ maxSize: 3 });
     c.set('a', 1);
     c.set('b', 2);
     c.set('c', 3);
-    // Inserting 'd' should evict 'a' (oldest).
+    // Inserting 'd' should evict 'a' (least recently used – never accessed).
     c.set('d', 4);
     expect(c.get('a')).toBeUndefined();
     expect(c.get('d')).toBe(4);
@@ -81,5 +81,34 @@ describe('L1VariableCache', () => {
     expect(c.get('a')).toBe(99);
     expect(c.get('b')).toBe(2);
     expect(c.size).toBe(2);
+  });
+
+  it('promotes a recently read entry to MRU position – it is not evicted first', () => {
+    const c = new L1VariableCache({ maxSize: 3 });
+    c.set('a', 1);
+    c.set('b', 2);
+    c.set('c', 3);
+    // Read 'a' → moves 'a' to MRU; 'b' is now LRU.
+    expect(c.get('a')).toBe(1);
+    // Adding 'd' should evict 'b' (LRU), NOT 'a' (recently used).
+    c.set('d', 4);
+    expect(c.get('b')).toBeUndefined();
+    expect(c.get('a')).toBe(1);
+    expect(c.get('c')).toBe(3);
+    expect(c.get('d')).toBe(4);
+    expect(c.size).toBe(3);
+  });
+
+  it('updating a key via set promotes it to MRU position', () => {
+    const c = new L1VariableCache({ maxSize: 3 });
+    c.set('a', 1);
+    c.set('b', 2);
+    c.set('c', 3);
+    // Re-set 'a' → moves 'a' to MRU; 'b' becomes LRU.
+    c.set('a', 10);
+    c.set('d', 4);
+    expect(c.get('b')).toBeUndefined();
+    expect(c.get('a')).toBe(10);
+    expect(c.size).toBe(3);
   });
 });

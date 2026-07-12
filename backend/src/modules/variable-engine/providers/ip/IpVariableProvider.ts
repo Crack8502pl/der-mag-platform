@@ -30,6 +30,7 @@
 import { AbstractVariableProvider } from '../AbstractVariableProvider';
 import type { VariableContext, VariableValue } from '../../contracts';
 import type { IIpDataService, IpData } from './IIpDataService';
+import { DataFetchDeduplicator } from '../DataFetchDeduplicator';
 
 /** All field paths exposed under the `ip` namespace. */
 type IpField =
@@ -57,6 +58,7 @@ export class IpVariableProvider extends AbstractVariableProvider {
   readonly namespaces = ['ip'] as const;
 
   private readonly ipService: IIpDataService;
+  private readonly deduplicator = new DataFetchDeduplicator<IpData>();
 
   /**
    * @param ipService – Injected IP data service (DI, not static singleton).
@@ -79,7 +81,10 @@ export class IpVariableProvider extends AbstractVariableProvider {
     }
 
     const entityType = context.entityType ?? '';
-    const data = await this.ipService.getIpData(entityId, entityType);
+    const entityKey = `${entityId}:${entityType}`;
+    const data = await this.deduplicator.fetch(entityKey, () =>
+      this.ipService.getIpData(entityId, entityType)
+    );
 
     if (data === undefined) {
       return undefined;
@@ -113,14 +118,5 @@ export class IpVariableProvider extends AbstractVariableProvider {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
-  /**
-   * Convert `context.entityId` to a `number`.
-   * Returns `undefined` for `undefined`, empty strings, or non-numeric strings.
-   */
-  private parseEntityId(entityId: number | string | undefined): number | undefined {
-    if (entityId === undefined) return undefined;
-    if (typeof entityId === 'number') return Number.isFinite(entityId) ? entityId : undefined;
-    const parsed = Number(entityId);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
+  // parseEntityId is inherited from AbstractVariableProvider.
 }

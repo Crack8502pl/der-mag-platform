@@ -30,6 +30,7 @@
 import { AbstractVariableProvider } from '../AbstractVariableProvider';
 import type { VariableContext, VariableValue } from '../../contracts';
 import type { IContractDataService, ContractData } from './IContractDataService';
+import { DataFetchDeduplicator } from '../DataFetchDeduplicator';
 
 /** All field paths exposed under the `contract` namespace. */
 type ContractField =
@@ -57,6 +58,7 @@ export class ContractVariableProvider extends AbstractVariableProvider {
   readonly namespaces = ['contract'] as const;
 
   private readonly contractService: IContractDataService;
+  private readonly deduplicator = new DataFetchDeduplicator<ContractData>();
 
   /**
    * @param contractService – Injected contract data service (DI, not static singleton).
@@ -79,7 +81,10 @@ export class ContractVariableProvider extends AbstractVariableProvider {
     }
 
     const entityType = context.entityType ?? '';
-    const data = await this.contractService.getContractData(entityId, entityType);
+    const entityKey = `${entityId}:${entityType}`;
+    const data = await this.deduplicator.fetch(entityKey, () =>
+      this.contractService.getContractData(entityId, entityType)
+    );
 
     if (data === undefined) {
       return undefined;
@@ -113,14 +118,5 @@ export class ContractVariableProvider extends AbstractVariableProvider {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
-  /**
-   * Convert `context.entityId` to a `number`.
-   * Returns `undefined` for `undefined`, empty strings, or non-numeric strings.
-   */
-  private parseEntityId(entityId: number | string | undefined): number | undefined {
-    if (entityId === undefined) return undefined;
-    if (typeof entityId === 'number') return Number.isFinite(entityId) ? entityId : undefined;
-    const parsed = Number(entityId);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
+  // parseEntityId is inherited from AbstractVariableProvider.
 }

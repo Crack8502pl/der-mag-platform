@@ -1,4 +1,5 @@
 export { AbstractVariableProvider } from './AbstractVariableProvider';
+export { DataFetchDeduplicator } from './DataFetchDeduplicator';
 
 // ─── Hierarchy providers (PR-4) ───────────────────────────────────────────────
 export { HierarchyVariableProvider, TaskRelationshipTraversalService } from './hierarchy';

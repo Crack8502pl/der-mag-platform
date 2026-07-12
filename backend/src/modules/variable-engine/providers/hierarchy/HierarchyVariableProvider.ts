@@ -108,15 +108,5 @@ export class HierarchyVariableProvider extends AbstractVariableProvider {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
-  /**
-   * Convert `context.entityId` to a `number`.
-   *
-   * Returns `undefined` for `undefined`, empty strings, or non-numeric strings.
-   */
-  private parseEntityId(entityId: number | string | undefined): number | undefined {
-    if (entityId === undefined) return undefined;
-    if (typeof entityId === 'number') return Number.isFinite(entityId) ? entityId : undefined;
-    const parsed = Number(entityId);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
+  // parseEntityId is inherited from AbstractVariableProvider.
 }

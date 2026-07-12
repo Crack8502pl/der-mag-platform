@@ -83,6 +83,7 @@ export class VariableResolver implements IVariableResolver {
   async resolve(expression: string, context: VariableContext): Promise<VariableValue> {
     const cacheKey = buildCacheKey(expression, context);
     const bypass = this.options.bypassCache === true;
+    const startMs = Date.now();
 
     // ── 1. Cache hit ──────────────────────────────────────────────────────────
     if (!bypass) {
@@ -133,7 +134,12 @@ export class VariableResolver implements IVariableResolver {
     let value: VariableValue;
     try {
       value = await provider.resolve(expression, context);
-      this.logger.trace('Provider resolved', { expression, provider: provider.constructor.name });
+      const durationMs = Date.now() - startMs;
+      this.logger.trace('Provider resolved', {
+        expression,
+        provider: provider.constructor.name,
+        durationMs,
+      });
     } catch (err) {
       // Providers must not crash the engine – log structured error and return
       // undefined.  Stack trace is intentionally excluded from the meta

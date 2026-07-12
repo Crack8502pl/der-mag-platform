@@ -26,6 +26,7 @@
 import { AbstractVariableProvider } from '../AbstractVariableProvider';
 import type { VariableContext, VariableValue } from '../../contracts';
 import type { IAiDataService, AiData } from './IAiDataService';
+import { DataFetchDeduplicator } from '../DataFetchDeduplicator';
 
 /** All field paths exposed under the `ai` namespace. */
 type AiField =
@@ -45,6 +46,7 @@ export class AiVariableProvider extends AbstractVariableProvider {
   readonly namespaces = ['ai'] as const;
 
   private readonly aiService: IAiDataService;
+  private readonly deduplicator = new DataFetchDeduplicator<AiData>();
 
   /**
    * @param aiService – Injected AI data service (DI, not static singleton).
@@ -67,7 +69,10 @@ export class AiVariableProvider extends AbstractVariableProvider {
     }
 
     const entityType = context.entityType ?? '';
-    const data = await this.aiService.getAiData(entityId, entityType);
+    const entityKey = `${entityId}:${entityType}`;
+    const data = await this.deduplicator.fetch(entityKey, () =>
+      this.aiService.getAiData(entityId, entityType)
+    );
 
     if (data === undefined) {
       return undefined;
@@ -93,14 +98,5 @@ export class AiVariableProvider extends AbstractVariableProvider {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
-  /**
-   * Convert `context.entityId` to a `number`.
-   * Returns `undefined` for `undefined`, empty strings, or non-numeric strings.
-   */
-  private parseEntityId(entityId: number | string | undefined): number | undefined {
-    if (entityId === undefined) return undefined;
-    if (typeof entityId === 'number') return Number.isFinite(entityId) ? entityId : undefined;
-    const parsed = Number(entityId);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
+  // parseEntityId is inherited from AbstractVariableProvider.
 }

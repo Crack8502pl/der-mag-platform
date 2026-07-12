@@ -27,6 +27,7 @@
 import { AbstractVariableProvider } from '../AbstractVariableProvider';
 import type { VariableContext, VariableValue } from '../../contracts';
 import type { IWarehouseDataService, WarehouseData } from './IWarehouseDataService';
+import { DataFetchDeduplicator } from '../DataFetchDeduplicator';
 
 /** All field paths exposed under the `warehouse` namespace. */
 type WarehouseField =
@@ -48,6 +49,7 @@ export class WarehouseVariableProvider extends AbstractVariableProvider {
   readonly namespaces = ['warehouse'] as const;
 
   private readonly warehouseService: IWarehouseDataService;
+  private readonly deduplicator = new DataFetchDeduplicator<WarehouseData>();
 
   /**
    * @param warehouseService – Injected warehouse data service (DI, not static singleton).
@@ -70,7 +72,10 @@ export class WarehouseVariableProvider extends AbstractVariableProvider {
     }
 
     const entityType = context.entityType ?? '';
-    const data = await this.warehouseService.getWarehouseData(entityId, entityType);
+    const entityKey = `${entityId}:${entityType}`;
+    const data = await this.deduplicator.fetch(entityKey, () =>
+      this.warehouseService.getWarehouseData(entityId, entityType)
+    );
 
     if (data === undefined) {
       return undefined;
@@ -98,14 +103,5 @@ export class WarehouseVariableProvider extends AbstractVariableProvider {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
-  /**
-   * Convert `context.entityId` to a `number`.
-   * Returns `undefined` for `undefined`, empty strings, or non-numeric strings.
-   */
-  private parseEntityId(entityId: number | string | undefined): number | undefined {
-    if (entityId === undefined) return undefined;
-    if (typeof entityId === 'number') return Number.isFinite(entityId) ? entityId : undefined;
-    const parsed = Number(entityId);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
+  // parseEntityId is inherited from AbstractVariableProvider.
 }
