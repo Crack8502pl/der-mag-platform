@@ -1082,9 +1082,9 @@ Code
 3.1	Pojedyncze pola	poleQuantity: number, poleType: string, poleProductInfo: string	poles: PoleConfig[] (tablica obiektów)	✅ Zaimplementowane	✅ OK
 3.2	Backward compatibility	Brak	Backend wspiera oba formaty (legacy + nowy)	✅ Dodane	✅ OK
 4	Krok 7 - BOM/Kamery				
-4.1	Istnienie kroku	✅ Wymagany (Krok 7)	❌ Brak implementacji	❌ Brakuje	🔴 Wysoki
-4.2	Tabela kamer	cameras: [{ type, quantity, quantityPerPole }]	❌ Brak	❌ Brakuje	🔴 Wysoki
-4.3	Ilość dni zapisu	recordingDays: number	❌ Brak	❌ Brakuje	🔴 Wysoki
+4.1	Istnienie kroku	✅ Wymagany (Krok 7)	✅ WizardStepCameras.tsx	✅ Zaimplementowane	🟢 Niski
+4.2	Tabela kamer	cameras: [{ type, quantity, quantityPerPole }]	✅ Ogólna / LPR / SKP	✅ Zaimplementowane	🟢 Niski
+4.3	Ilość dni zapisu	recordingDays: number	✅ Krok kamer + retencja	✅ Zaimplementowane	🟢 Niski
 4.4	Filtrowanie zadań	Tylko Przejazd KAT A i SKP	N/A	❌ Brakuje	🔴 Wysoki
 5	PreviewStep - podsumowanie				
 5.1	Podsumowanie infrastruktury	Typy szaf i ich liczba	❌ Brak	⚠️ Częściowe	🟡 Średni
@@ -1195,18 +1195,22 @@ Trzy kolumny: **Typ kamery** | **Ilość** | **Ilość na słupie (punkcie kamer
 #### Ilość dni zapisu
 Pole liczbowe. Domyślna wartość z szablonu BOM (np. `30`).
 
-Implementacja:
+Implementacja (Etap 2):
 
-    ❌ BRAK KROKU 7
-    ❌ Brak komponentu BomCameraConfigStep.tsx
-    ❌ Brak pola cameraConfig w TaskDetail
+✅ WizardStepCameras.tsx — tabela typów kamer (Ogólna/LPR/SKP)
+✅ Pole retencji przeniesione do kroku kamer
+✅ Kalkulacja szacowanej liczby słupów
+✅ Kalkulacja szacowanego storage w TB
+✅ Integracja z CameraBreakdown → BomResolverService
+✅ Zapis cameraRows w task.metadata.configParams
+✅ Podsumowanie w WizardStepSummary
 
 Wpływ:
 
-    🔴 WYSOKI - kluczowa funkcjonalność z specyfikacji
-    ❌ Brak możliwości konfiguracji kamer per zadanie
-    ❌ Brak kalkulacji liczby słupów na podstawie kamer
-    ❌ Brak integracji z BOM Templates
+    ✅ Krok 7 zaimplementowany w TaskConfigWizard
+    ✅ Konfiguracja kamer per zadanie jest dostępna
+    ✅ Kalkulacja liczby słupów jest dostępna
+    ✅ Integracja z BOM Templates działa przez CameraBreakdown
 
 Istniejące komponenty BOM: ✅ System MA już infrastrukturę BOM:
 
@@ -2223,11 +2227,11 @@ Interfejsy TypeScript	20+
 Komponent główny	ContractWizardModal.tsx (830+ linii)
 Hook główny	useWizardState.ts (590+ linii)
 Zgodność ze specyfikacją	~95%
-Brakujące funkcje	Krok 7 (BOM/Kamery)
+Brakujące funkcje	Brak krytycznych braków dla Krok 7 (BOM/Kamery)
 Priorytetyzacja działań:
 🔴 MUST HAVE (7-11 dni):
 
-    ❌ Zaimplementować Krok 7 - BOM/Kamery (4-5 dni)
+    ✅ Krok 7 - BOM/Kamery zaimplementowany
     ⚠️ Rozszerzyć PreviewStep o pełne podsumowanie (1-2 dni)
     ⚠️ Backend - zapisywanie konfiguracji kamer (1-2 dni)
     ✅ Testy (1-2 dni)

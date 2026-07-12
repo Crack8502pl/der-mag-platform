@@ -82,6 +82,38 @@ export const WizardStepSummary: React.FC<WizardStepSummaryProps> = ({
         </div>
       </div>
 
+      {resolvedBom.cameraBreakdown && resolvedBom.cameraBreakdown.total > 0 && (
+        <div className="wizard-section">
+          <h3 className="wizard-section-title">📷 Konfiguracja kamer</h3>
+          <div className="wizard-stat-grid">
+            {resolvedBom.cameraBreakdown.ogolna > 0 && (
+              <div className="wizard-stat-card">
+                <div className="stat-label">Kamery ogólne</div>
+                <div className="stat-value" style={{ color: '#3b82f6' }}>
+                  {resolvedBom.cameraBreakdown.ogolna}
+                </div>
+              </div>
+            )}
+            {resolvedBom.cameraBreakdown.lpr > 0 && (
+              <div className="wizard-stat-card">
+                <div className="stat-label">Kamery LPR</div>
+                <div className="stat-value" style={{ color: '#f59e0b' }}>
+                  {resolvedBom.cameraBreakdown.lpr}
+                </div>
+              </div>
+            )}
+            {resolvedBom.cameraBreakdown.skp > 0 && (
+              <div className="wizard-stat-card">
+                <div className="stat-label">Kamery SKP</div>
+                <div className="stat-value" style={{ color: '#10b981' }}>
+                  {resolvedBom.cameraBreakdown.skp}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Recorder */}
       {resolvedBom.needsRecorder && resolvedBom.recorderRecommendation && (
         <div className="wizard-section">

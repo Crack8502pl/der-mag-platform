@@ -12,6 +12,7 @@ import type { BomSubsystemTemplate, BomSubsystemTemplateItem } from '../../../se
 import type { BomGroup } from '../../../services/bomGroup.service';
 import type { BomResolveResult } from '../../../services/bomResolver.service';
 import type { Task, TaskMetadata } from '../../../types/task.types';
+import type { CameraBreakdown, CameraRow } from '../../../types/cameraBreakdown';
 import { extractCameraBreakdown, extractCameraCount } from '../../../utils/cameraCountUtils';
 import {
   mergeLcsConfigToMetadata,
@@ -19,6 +20,7 @@ import {
   readLcsConfig,
   readNastawniConfig,
 } from '../../../utils/metadataMerge';
+import { WizardStepCameras } from './WizardStepCameras';
 import { WizardStepParams } from './WizardStepParams';
 import { WizardStepBom } from './WizardStepBom';
 import { WizardStepRecorder } from './WizardStepRecorder';
@@ -46,11 +48,20 @@ export interface ConfigGroup {
 
 const WizardStep = {
   PARAMS: 0,
-  BOM: 1,
-  RECORDER: 2,
-  SUMMARY: 3,
+  CAMERAS: 1,
+  BOM: 2,
+  RECORDER: 3,
+  SUMMARY: 4,
 } as const;
 type WizardStep = (typeof WizardStep)[keyof typeof WizardStep];
+
+const DEFAULT_CAMERA_ROWS: CameraRow[] = [
+  { type: 'Ogólna', quantity: 0, quantityPerPole: 2 },
+  { type: 'LPR', quantity: 0, quantityPerPole: 1 },
+  { type: 'SKP', quantity: 0, quantityPerPole: 1 },
+];
+
+const createDefaultCameraRows = (): CameraRow[] => DEFAULT_CAMERA_ROWS.map(row => ({ ...row }));
 
 interface TaskConfigWizardProps {
   task: Task;
@@ -85,6 +96,7 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
   const [currentStep, setCurrentStep] = useState<WizardStep>(WizardStep.PARAMS);
   const [configValues, setConfigValues] = useState<Record<string, any>>({});
   const [selectedModels, setSelectedModels] = useState<Record<string, { checked: boolean; quantity: number }>>({});
+  const [cameraRows, setCameraRows] = useState<CameraRow[]>(createDefaultCameraRows());
   const [retentionDays, setRetentionDays] = useState<number>(30);
   const [selectedRecorderId, setSelectedRecorderId] = useState<number | null>(null);
   const [cameraCount, setCameraCount] = useState<number>(0);
@@ -114,6 +126,48 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
     };
   };
 
+  const buildCameraBreakdownFromRows = (rows: CameraRow[]): CameraBreakdown => ({
+    total: rows.reduce((sum, row) => sum + Math.max(0, row.quantity || 0), 0),
+    ogolna: rows.find(row => row.type === 'Ogólna')?.quantity ?? 0,
+    lpr: rows.find(row => row.type === 'LPR')?.quantity ?? 0,
+    skp: rows.find(row => row.type === 'SKP')?.quantity ?? 0,
+  });
+
+  const buildRowsFromBreakdown = (breakdown: Partial<CameraBreakdown>): CameraRow[] => [
+    { type: 'Ogólna', quantity: Number(breakdown.ogolna) || 0, quantityPerPole: 2 },
+    { type: 'LPR', quantity: Number(breakdown.lpr) || 0, quantityPerPole: 1 },
+    { type: 'SKP', quantity: Number(breakdown.skp) || 0, quantityPerPole: 1 },
+  ];
+
+  const syncCameraRowsToConfigValues = (
+    sourceConfigValues: Record<string, any>,
+    rows: CameraRow[]
+  ): Record<string, any> => {
+    const nextConfigValues = { ...sourceConfigValues };
+    const rowValues = {
+      ogolna: rows.find(row => row.type === 'Ogólna')?.quantity ?? 0,
+      lpr: rows.find(row => row.type === 'LPR')?.quantity ?? 0,
+      skp: rows.find(row => row.type === 'SKP')?.quantity ?? 0,
+    };
+
+    Object.keys(nextConfigValues).forEach(key => {
+      const lower = key.toLowerCase();
+      if (lower.includes('ilosckamerogolnych') || lower.includes('kamerogolnych')) {
+        nextConfigValues[key] = rowValues.ogolna;
+      } else if (lower.includes('ilosckamerlpr') || lower.includes('kamerlpr')) {
+        nextConfigValues[key] = rowValues.lpr;
+      } else if (
+        lower.includes('ilosckamerskp') ||
+        lower.includes('kamerskp') ||
+        lower.includes('iloscskp')
+      ) {
+        nextConfigValues[key] = rowValues.skp;
+      }
+    });
+
+    return nextConfigValues;
+  };
+
   const initWizard = async () => {
     try {
       setLoading(true);
@@ -134,6 +188,15 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
           ),
         })
       );
+      const initialCameraCount = extractCameraCount({
+        taskTypeCode: task.taskType?.code || '',
+        subsystemType: String(normalizedMetadata.subsystemType || task.taskType?.code || ''),
+        configValues: existingConfig as Record<string, unknown>,
+        metadata: normalizedMetadata,
+        isStandaloneNastawnia: Boolean(
+          normalizedMetadata.isStandaloneNastawnia ?? task.metadata?.isStandaloneNastawnia
+        ),
+      });
 
       if (existingConfig.retentionDays) {
         setRetentionDays(Number(existingConfig.retentionDays) || 30);
@@ -156,6 +219,32 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
           }
         }
         setSelectedModels(migrated);
+      }
+
+      if (Array.isArray(existingConfig.cameraRows)) {
+        setCameraRows(existingConfig.cameraRows as CameraRow[]);
+      } else if (existingConfig.cameraBreakdown && typeof existingConfig.cameraBreakdown === 'object') {
+        setCameraRows(buildRowsFromBreakdown(existingConfig.cameraBreakdown as CameraBreakdown));
+      } else {
+        const configBreakdown = extractCameraBreakdown({
+          taskTypeCode: task.taskType?.code || '',
+          subsystemType: String(normalizedMetadata.subsystemType || task.taskType?.code || ''),
+          configValues: existingConfig as Record<string, unknown>,
+          metadata: normalizedMetadata,
+          isStandaloneNastawnia: Boolean(
+            normalizedMetadata.isStandaloneNastawnia ?? task.metadata?.isStandaloneNastawnia
+          ),
+        });
+
+        if (configBreakdown.ogolna > 0 || configBreakdown.lpr > 0 || configBreakdown.skp > 0) {
+          setCameraRows(buildRowsFromBreakdown(configBreakdown));
+        } else if (initialCameraCount > 0) {
+          setCameraRows([
+            { type: 'Ogólna', quantity: initialCameraCount, quantityPerPole: 2 },
+            { type: 'LPR', quantity: 0, quantityPerPole: 1 },
+            { type: 'SKP', quantity: 0, quantityPerPole: 1 },
+          ]);
+        }
       }
 
       // Load BOM groups
@@ -305,21 +394,17 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
       const subsystemType = metadata.subsystemType || task.taskType?.code || '';
       const taskType = task.taskType?.code || subsystemType;
       const taskVariant = metadata.taskVariant || null;
-      const count = getCameraCount();
-      const breakdown = extractCameraBreakdown({
-        taskTypeCode: task.taskType?.code || '',
-        subsystemType: String(metadata.subsystemType || task.taskType?.code || ''),
-        configValues,
-        metadata,
-        isStandaloneNastawnia,
-      });
+      const breakdown = buildCameraBreakdownFromRows(cameraRows);
+      const count = breakdown.total;
+      const syncedConfigValues = syncCameraRowsToConfigValues(configValues, cameraRows);
+      setConfigValues(syncedConfigValues);
       setCameraCount(count);
 
       const result = await bomResolverService.resolve({
         subsystemType,
         taskType,
         taskVariant,
-        configParams: { ...configValues, selectedModels },
+        configParams: { ...syncedConfigValues, selectedModels, cameraRows, cameraBreakdown: breakdown },
         isStandaloneNastawnia,
         selectedRecorderId: selectedRecorderId || null,
         retentionDays,
@@ -344,12 +429,17 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
     setSaving(true);
     setError('');
     try {
+      const syncedConfigValues = syncCameraRowsToConfigValues(configValues, cameraRows);
+      const cameraBreakdown = buildCameraBreakdownFromRows(cameraRows);
       const newConfigParams = {
         ...(task.metadata?.configParams || {}),
-        ...configValues,
+        ...syncedConfigValues,
+        cameraCount: cameraBreakdown.total,
         selectedModels,
         retentionDays,
         selectedRecorderId: selectedRecorderId || null,
+        cameraRows,
+        cameraBreakdown,
         appliedBomTemplateId: resolvedBom.templateId || null,
         wizardResolvedAt: resolvedBom.resolvedAt || new Date().toISOString(),
       };
@@ -379,7 +469,7 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
           await bomSubsystemTemplateService.applyToTask(
             resolvedBom.templateId,
             task.id,
-            { ...configValues, selectedModels }
+            { ...syncedConfigValues, selectedModels, cameraRows, cameraBreakdown }
           );
         }
       }
@@ -396,6 +486,30 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
 
   const handleNext = async () => {
     if (currentStep === WizardStep.PARAMS) {
+      if (buildCameraBreakdownFromRows(cameraRows).total === 0) {
+        const metadata = getNormalizedMetadata();
+        const liveBreakdown = extractCameraBreakdown({
+          taskTypeCode: task.taskType?.code || '',
+          subsystemType: String(metadata.subsystemType || task.taskType?.code || ''),
+          configValues,
+          metadata,
+          isStandaloneNastawnia,
+        });
+        if (liveBreakdown.ogolna > 0 || liveBreakdown.lpr > 0 || liveBreakdown.skp > 0) {
+          setCameraRows(buildRowsFromBreakdown(liveBreakdown));
+        } else {
+          const liveCount = getCameraCount();
+          if (liveCount > 0) {
+            setCameraRows([
+              { type: 'Ogólna', quantity: liveCount, quantityPerPole: 2 },
+              { type: 'LPR', quantity: 0, quantityPerPole: 1 },
+              { type: 'SKP', quantity: 0, quantityPerPole: 1 },
+            ]);
+          }
+        }
+      }
+      setCurrentStep(WizardStep.CAMERAS);
+    } else if (currentStep === WizardStep.CAMERAS) {
       const ok = await handleResolve();
       if (ok) setCurrentStep(WizardStep.BOM);
     } else if (currentStep === WizardStep.BOM) {
@@ -410,8 +524,10 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
   };
 
   const handleBack = () => {
-    if (currentStep === WizardStep.BOM) {
+    if (currentStep === WizardStep.CAMERAS) {
       setCurrentStep(WizardStep.PARAMS);
+    } else if (currentStep === WizardStep.BOM) {
+      setCurrentStep(WizardStep.CAMERAS);
     } else if (currentStep === WizardStep.RECORDER) {
       setCurrentStep(WizardStep.BOM);
     } else if (currentStep === WizardStep.SUMMARY) {
@@ -428,6 +544,7 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
 
   const steps = [
     { step: WizardStep.PARAMS, label: 'Parametry' },
+    { step: WizardStep.CAMERAS, label: 'Kamery' },
     { step: WizardStep.BOM, label: 'BOM' },
     ...(resolvedBom?.needsRecorder ? [{ step: WizardStep.RECORDER, label: 'Rejestrator' }] : []),
     { step: WizardStep.SUMMARY, label: 'Podsumowanie' },
@@ -488,14 +605,24 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
               configGroups={configGroups}
               configValues={configValues}
               selectedModels={selectedModels}
-              retentionDays={retentionDays}
               bomGroups={bomGroups}
               onConfigChange={(paramName, value) =>
                 setConfigValues(prev => ({ ...prev, [paramName]: value }))
               }
               onSelectedModelsChange={setSelectedModels}
-              onRetentionDaysChange={setRetentionDays}
             />
+          )}
+
+          {!loading && currentStep === WizardStep.CAMERAS && (
+            <>
+              {error && <div className="alert alert-error" style={{ marginBottom: '16px' }}>{error}</div>}
+              <WizardStepCameras
+                cameraRows={cameraRows}
+                retentionDays={retentionDays}
+                onCameraRowsChange={setCameraRows}
+                onRetentionDaysChange={setRetentionDays}
+              />
+            </>
           )}
 
           {!loading && currentStep === WizardStep.BOM && resolvedBom && (
@@ -558,7 +685,11 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
                   onClick={handleNext}
                   disabled={resolving || saving}
                 >
-                  {resolving ? '⏳ Obliczam BOM...' : currentStep === WizardStep.PARAMS ? 'Oblicz BOM →' : 'Dalej →'}
+                  {resolving
+                    ? '⏳ Obliczam BOM...'
+                    : currentStep === WizardStep.CAMERAS
+                      ? 'Oblicz BOM →'
+                      : 'Dalej →'}
                 </button>
               )}
               {currentStep === WizardStep.SUMMARY && (
