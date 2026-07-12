@@ -61,28 +61,44 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+          // WAŻNE: React + ReactDOM + React Router muszą być w JEDNYM chunku
+          // aby uniknąć circular dependency (forwardRef undefined)
+          if (
+            id.includes('node_modules/react/') ||
+            id.includes('node_modules/react-dom/') ||
+            id.includes('node_modules/react-router') ||
+            id.includes('node_modules/scheduler/')
+          ) {
             return 'vendor-react'
           }
-          if (id.includes('node_modules/react-router')) {
-            return 'vendor-router'
-          }
+          // Mapy (leaflet) — duże, rzadko używane
           if (id.includes('node_modules/leaflet') || id.includes('node_modules/react-leaflet')) {
             return 'vendor-maps'
           }
+          // Excel/PDF — duże, tylko do eksportu
           if (id.includes('node_modules/xlsx') || id.includes('node_modules/exceljs')) {
             return 'vendor-excel'
           }
-          if (id.includes('node_modules/pdf') || id.includes('node_modules/jspdf') || id.includes('node_modules/pdfmake')) {
+          if (
+            id.includes('node_modules/pdf') ||
+            id.includes('node_modules/jspdf') ||
+            id.includes('node_modules/pdfmake')
+          ) {
             return 'vendor-pdf'
           }
+          // Pozostałe node_modules
           if (id.includes('node_modules/')) {
             return 'vendor-misc'
           }
+          // App chunks — moduły biznesowe
           if (id.includes('/src/components/contracts/') || id.includes('/src/pages/contracts')) {
             return 'module-contracts'
           }
-          if (id.includes('/src/components/bom/') || id.includes('/src/components/admin/BOM') || id.includes('/src/components/admin/bom')) {
+          if (
+            id.includes('/src/components/bom/') ||
+            id.includes('/src/components/admin/BOM') ||
+            id.includes('/src/components/admin/bom')
+          ) {
             return 'module-bom'
           }
           if (id.includes('/src/components/network') || id.includes('/src/components/topology')) {
