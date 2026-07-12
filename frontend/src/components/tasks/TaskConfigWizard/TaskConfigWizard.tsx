@@ -63,6 +63,12 @@ const DEFAULT_CAMERA_ROWS: CameraRow[] = [
 
 const createDefaultCameraRows = (): CameraRow[] => DEFAULT_CAMERA_ROWS.map(row => ({ ...row }));
 
+const CAMERA_VALUE_PATTERNS = {
+  Ogólna: ['ilosckamerogolnych', 'kamerogolnych'],
+  LPR: ['ilosckamerlpr', 'kamerlpr'],
+  SKP: ['ilosckamerskp', 'kamerskp', 'iloscskp'],
+} as const;
+
 interface TaskConfigWizardProps {
   task: Task;
   onClose: () => void;
@@ -134,9 +140,18 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
   });
 
   const buildRowsFromBreakdown = (breakdown: Partial<CameraBreakdown>): CameraRow[] => [
-    { type: 'Ogólna', quantity: Number(breakdown.ogolna) || 0, quantityPerPole: 2 },
-    { type: 'LPR', quantity: Number(breakdown.lpr) || 0, quantityPerPole: 1 },
-    { type: 'SKP', quantity: Number(breakdown.skp) || 0, quantityPerPole: 1 },
+    {
+      ...DEFAULT_CAMERA_ROWS[0],
+      quantity: Number(breakdown.ogolna) || 0,
+    },
+    {
+      ...DEFAULT_CAMERA_ROWS[1],
+      quantity: Number(breakdown.lpr) || 0,
+    },
+    {
+      ...DEFAULT_CAMERA_ROWS[2],
+      quantity: Number(breakdown.skp) || 0,
+    },
   ];
 
   const syncCameraRowsToConfigValues = (
@@ -152,15 +167,11 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
 
     Object.keys(nextConfigValues).forEach(key => {
       const lower = key.toLowerCase();
-      if (lower.includes('ilosckamerogolnych') || lower.includes('kamerogolnych')) {
+      if (CAMERA_VALUE_PATTERNS.Ogólna.some(pattern => lower.includes(pattern))) {
         nextConfigValues[key] = rowValues.ogolna;
-      } else if (lower.includes('ilosckamerlpr') || lower.includes('kamerlpr')) {
+      } else if (CAMERA_VALUE_PATTERNS.LPR.some(pattern => lower.includes(pattern))) {
         nextConfigValues[key] = rowValues.lpr;
-      } else if (
-        lower.includes('ilosckamerskp') ||
-        lower.includes('kamerskp') ||
-        lower.includes('iloscskp')
-      ) {
+      } else if (CAMERA_VALUE_PATTERNS.SKP.some(pattern => lower.includes(pattern))) {
         nextConfigValues[key] = rowValues.skp;
       }
     });

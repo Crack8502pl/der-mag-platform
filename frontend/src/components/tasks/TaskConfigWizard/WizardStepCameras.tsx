@@ -15,6 +15,10 @@ const CAMERA_META: Record<CameraRow['type'], { icon: string; color: string }> = 
 };
 
 const BITRATE_MBPS = 4;
+const BITS_PER_MEGABIT = 1_000_000;
+const SECONDS_PER_DAY = 86_400;
+const BITS_PER_BYTE = 8;
+const BYTES_PER_TERABYTE = 1e12;
 
 export const WizardStepCameras: React.FC<WizardStepCamerasProps> = ({
   cameraRows,
@@ -49,9 +53,9 @@ export const WizardStepCameras: React.FC<WizardStepCamerasProps> = ({
     totalCameras *
     retentionDays *
     BITRATE_MBPS *
-    1_000_000 *
-    86_400
-  ) / (8 * 1e12);
+    BITS_PER_MEGABIT *
+    SECONDS_PER_DAY
+  ) / (BITS_PER_BYTE * BYTES_PER_TERABYTE);
 
   return (
     <div className="wizard-section">
