@@ -11,6 +11,16 @@ jest.mock('../../../src/config/database', () => ({
   },
 }));
 
+jest.mock('bcrypt', () => ({
+  __esModule: true,
+  default: {
+    hash: jest.fn(),
+    compare: jest.fn(),
+  },
+  hash: jest.fn(),
+  compare: jest.fn(),
+}));
+
 jest.mock('fs', () => ({
   ...jest.requireActual('fs'),
   readFileSync: jest.fn(),
