@@ -1,5 +1,5 @@
 /**
- * Unit tests – parseFunctionCall utility (PR-8)
+ * Unit tests – parseFunctionCall utility (post-PR-10: L-20/L-21)
  */
 
 import { parseFunctionCall } from '../../../../src/modules/variable-engine/functions/parseFunctionCall';
@@ -27,27 +27,27 @@ describe('parseFunctionCall', () => {
 
   it('parses count(children)', () => {
     const result = parseFunctionCall('count(children)');
-    expect(result).toEqual({ funcName: 'count', argExpression: 'children' });
+    expect(result).toEqual({ funcName: 'count', argExpression: 'children', argExpressions: ['children'] });
   });
 
   it('parses round(fiber.length.total)', () => {
     const result = parseFunctionCall('round(fiber.length.total)');
-    expect(result).toEqual({ funcName: 'round', argExpression: 'fiber.length.total' });
+    expect(result).toEqual({ funcName: 'round', argExpression: 'fiber.length.total', argExpressions: ['fiber.length.total'] });
   });
 
   it('parses uppercase(contract.customer.name)', () => {
     const result = parseFunctionCall('uppercase(contract.customer.name)');
-    expect(result).toEqual({ funcName: 'uppercase', argExpression: 'contract.customer.name' });
+    expect(result).toEqual({ funcName: 'uppercase', argExpression: 'contract.customer.name', argExpressions: ['contract.customer.name'] });
   });
 
   it('trims whitespace from the argument expression', () => {
     const result = parseFunctionCall('count( children )');
-    expect(result).toEqual({ funcName: 'count', argExpression: 'children' });
+    expect(result).toEqual({ funcName: 'count', argExpression: 'children', argExpressions: ['children'] });
   });
 
   it('parses function call with leading/trailing whitespace around the whole expression', () => {
     const result = parseFunctionCall('  count(children)  ');
-    expect(result).toEqual({ funcName: 'count', argExpression: 'children' });
+    expect(result).toEqual({ funcName: 'count', argExpression: 'children', argExpressions: ['children'] });
   });
 
   // ── Edge cases ────────────────────────────────────────────────────────────────
@@ -70,11 +70,45 @@ describe('parseFunctionCall', () => {
 
   it('parses function name with underscore prefix', () => {
     const result = parseFunctionCall('_fn(x)');
-    expect(result).toEqual({ funcName: '_fn', argExpression: 'x' });
+    expect(result).toEqual({ funcName: '_fn', argExpression: 'x', argExpressions: ['x'] });
   });
 
   it('parses function call with empty argument', () => {
     const result = parseFunctionCall('count()');
-    expect(result).toEqual({ funcName: 'count', argExpression: '' });
+    expect(result).toEqual({ funcName: 'count', argExpression: '', argExpressions: [] });
+  });
+
+  // ── Nested function calls (L-03/L-20) ─────────────────────────────────────────
+
+  it('parses nested function call: count(round(x))', () => {
+    const result = parseFunctionCall('count(round(x))');
+    expect(result).toEqual({ funcName: 'count', argExpression: 'round(x)', argExpressions: ['round(x)'] });
+  });
+
+  it('parses deeply nested function call: fn(count(round(x)))', () => {
+    const result = parseFunctionCall('fn(count(round(x)))');
+    expect(result).toEqual({ funcName: 'fn', argExpression: 'count(round(x))', argExpressions: ['count(round(x))'] });
+  });
+
+  // ── Multi-argument functions (L-21) ───────────────────────────────────────────
+
+  it('parses two-argument function: pad(x, 5)', () => {
+    const result = parseFunctionCall('pad(x, 5)');
+    expect(result).toEqual({ funcName: 'pad', argExpression: 'x', argExpressions: ['x', '5'] });
+  });
+
+  it('parses three-argument function: format(date, "ISO", "UTC")', () => {
+    const result = parseFunctionCall('format(date, "ISO", "UTC")');
+    expect(result).toEqual({ funcName: 'format', argExpression: 'date', argExpressions: ['date', '"ISO"', '"UTC"'] });
+  });
+
+  it('does not split commas inside nested parens: fn(nested(a, b), c)', () => {
+    const result = parseFunctionCall('fn(nested(a, b), c)');
+    expect(result).toEqual({ funcName: 'fn', argExpression: 'nested(a, b)', argExpressions: ['nested(a, b)', 'c'] });
+  });
+
+  it('returns null when there are trailing chars after closing paren', () => {
+    expect(parseFunctionCall('count(x) extra')).toBeNull();
   });
 });
+

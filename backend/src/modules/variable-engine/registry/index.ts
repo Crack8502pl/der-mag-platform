@@ -1,2 +1,2 @@
 export { VariableRegistry } from './VariableRegistry';
-export type { RegistryOptions } from './VariableRegistry';
+export type { RegistryOptions, OverwritePolicy } from './VariableRegistry';

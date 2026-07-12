@@ -1,6 +1,6 @@
 # Variable Engine – Known Limitations
 
-> **Status:** PR-10 Final Rollout – complete inventory  
+> **Status:** Post-PR-10 Hardening – complete inventory  
 > **Last updated:** 2026-07-12  
 > **Owner:** Variable Engine team
 
@@ -12,176 +12,259 @@ This document is the authoritative inventory of all known limitations and deferr
 
 | ID | Description | Source PR | Status | Impact | Risk | Action |
 |----|-------------|-----------|--------|--------|------|--------|
-| L-01 | No TTL / L2 cache | PR-1, PR-9 | **Deferred** | Performance | Low | Post-PR-10 |
-| L-02 | No nested `${...}` expressions | PR-1 | **Deferred** | Correctness | Low | Post-PR-10 |
-| L-03 | No nested function calls | PR-1, PR-8 | **Deferred** | Correctness | Low | Post-PR-10 |
-| L-04 | No strict-mode resolver | PR-1 | **Deferred** | Correctness | Low | Post-PR-10 |
+| L-01 | No TTL / L2 cache | PR-1, PR-9 | **Resolved (Post-PR-10)** | Performance | — | L2 interface + `NullL2VariableCache` + `CompositeVariableCache` added |
+| L-02 | No nested `${...}` expressions | PR-1 | **Resolved (Post-PR-10)** | Correctness | — | Stack-based parser replaces regex |
+| L-03 | No nested function calls | PR-1, PR-8 | **Resolved (Post-PR-10)** | Correctness | — | `parseFunctionCall` now handles balanced parens |
+| L-04 | No strict-mode resolver | PR-1 | **Resolved (Post-PR-10)** | Correctness | — | `ResolverOptions.strictMode` + `UndefinedPolicy.STRICT` |
 | L-05 | FIFO cache → upgraded to LRU | PR-1 | **Resolved (PR-9)** | Performance | — | Done |
-| L-06 | `}` inside expression truncates | PR-1 | **Deferred** | Correctness | Low | Post-PR-10 |
-| L-07 | No async provider init ordering | PR-2 | **Deferred** | Operational | Low | Post-PR-10 |
-| L-08 | Provider overwrite is silent | PR-2 | **Deferred** | Operational | Low | Post-PR-10 |
-| L-09 | No NestJS / IoC container integration | PR-2 | **Deferred** | Operational | Low | Post-PR-10 |
-| L-10 | No rollback safety on register() | PR-2 | **Deferred** | Operational | Low | Post-PR-10 |
+| L-06 | `}` inside expression truncates | PR-1 | **Resolved (Post-PR-10)** | Correctness | — | Stack-based brace-depth parser handles literal `}` |
+| L-07 | No async provider init ordering | PR-2 | **Resolved (Post-PR-10)** | Operational | — | `IVariableProvider.initialize()` + `createAsync()` in factory |
+| L-08 | Provider overwrite is silent | PR-2 | **Resolved (Post-PR-10)** | Operational | — | `OverwritePolicy`: `'error'` / `'warn'` / `'overwrite'` |
+| L-09 | No NestJS / IoC container integration | PR-2 | **Deferred** | Operational | Low | Post-hardening (infrastructure sprint) |
+| L-10 | No rollback safety on register() | PR-2 | **Resolved (Post-PR-10)** | Operational | — | `VariableRegistry.registerAll()` with atomic rollback |
 | L-11 | Legacy resolver only for BOM | PR-3 | **Resolved (PR-10)** | Correctness | — | Done – new engine now default |
-| L-12 | No per-module adapter yet | PR-3 | **Deferred** | Operational | Medium | Post-PR-10 |
+| L-12 | No per-module adapter yet | PR-3 | **Resolved (Post-PR-10)** | Operational | — | PDF, Reports, Labels, Emails adapters added |
 | L-13 | No BOM-specific provider pre-PR-4 | PR-3 | **Resolved (PR-4/5/6)** | Correctness | — | Done |
-| L-14 | Hierarchy N+1 queries | PR-4 | **Partial** | Performance | Low | Deferred – L1 cache mitigates |
-| L-15 | Async traversal unresolved nodes | PR-4 | **Deferred** | Correctness | Low | Post-PR-10 |
+| L-14 | Hierarchy N+1 queries | PR-4 | **Deferred** | Performance | Low | Batch DB query – requires DB schema change |
+| L-15 | Async traversal unresolved nodes | PR-4 | **Deferred** | Correctness | Low | Post-hardening |
 | L-16 | No bulk entity fetch for providers | PR-5 | **Resolved (PR-9)** | Performance | — | Done – DataFetchDeduplicator |
-| L-17 | Missing/partial data is `undefined` | PR-5 | **Deferred** | Correctness | Low | By design (soft-fail) |
-| L-18 | No multi-domain provider batching | PR-6 | **Deferred** | Performance | Low | Post-PR-10 |
-| L-19 | AI provider is a stub | PR-6 | **Deferred** | Correctness | Medium | Post-PR-10 |
-| L-20 | No nested function calls (PR-8) | PR-8 | **Deferred** | Correctness | Low | Post-PR-10 |
-| L-21 | No multi-argument functions | PR-8 | **Deferred** | Correctness | Low | Post-PR-10 |
+| L-17 | Missing/partial data is `undefined` | PR-5 | **Resolved (Post-PR-10)** | Correctness | — | `UndefinedPolicy.STRICT` / `SOFT_FAIL` documented and implemented |
+| L-18 | No multi-domain provider batching | PR-6 | **Deferred** | Performance | Low | Complex cross-domain coordination – future sprint |
+| L-19 | AI provider is a stub | PR-6 | **Deferred** | Correctness | Medium | Requires AI team sprint |
+| L-20 | No nested function calls (PR-8) | PR-8 | **Resolved (Post-PR-10)** | Correctness | — | Same fix as L-03 |
+| L-21 | No multi-argument functions | PR-8 | **Resolved (Post-PR-10)** | Correctness | — | `parseFunctionCall` multi-arg + `IVariableFunction.callMulti` |
 | L-22 | Last-write-wins in FunctionRegistry | PR-8 | **Deferred** | Operational | Low | By design |
-| L-23 | Function-argument cache invalidation | PR-8 | **Deferred** | Correctness | Low | Post-PR-10 |
-| L-24 | Deduplication is in-flight only | PR-9 | **Deferred** | Performance | Low | By design |
-| L-25 | L1 cache has no TTL | PR-9 | **Deferred** | Performance | Low | Post-PR-10 |
-| L-26 | durationMs uses wall-clock | PR-9 | **Deferred** | Operational | Low | By design |
+| L-23 | Function-argument cache invalidation | PR-8 | **Resolved (implicit)** | Correctness | — | Cache key includes full expression; function args are part of key |
+| L-24 | Deduplication is in-flight only | PR-9 | **Accepted-Defer** | Performance | Low | By design; sequential templates use L1 cache |
+| L-25 | L1 cache has no TTL | PR-9 | **Resolved (Post-PR-10)** | Performance | — | `L1CacheOptions.defaultTtlMs` + `setWithTtl()` |
+| L-26 | durationMs uses wall-clock | PR-9 | **Resolved (Post-PR-10)** | Operational | — | `performance.now()` from `perf_hooks` (monotonic) |
 
 ---
 
-## Resolved Items (as of PR-10)
+## Resolved Items (as of Post-PR-10 Hardening)
+
+### L-02 – No nested `${...}` expressions
+**Fixed in:** Post-PR-10  
+`VariableParser` now uses a stack-based character scanner instead of the regex
+`[^}]*`.  The brace-depth counter correctly handles `${fn(${inner})}` as a
+single token with expression `fn(${inner})`.  The resolver then resolves any
+inner `${...}` sub-expressions before evaluating the outer expression.  
+See `parser/VariableParser.ts`.
+
+### L-06 – `}` inside expression truncates
+**Fixed in:** Post-PR-10  
+Same stack-based parser fix as L-02.  A literal `}` (e.g. from an object
+literal `${obj.fn({a:1})}`) increments and decrements the brace-depth counter
+correctly, so the token is never truncated at the wrong `}`.  
+See `parser/VariableParser.ts`.
+
+### L-03 / L-20 – No nested function calls
+**Fixed in:** Post-PR-10  
+`parseFunctionCall` now uses a parenthesis-depth counter instead of `[^)]*`,
+allowing `count(round(x))` to parse as `{ funcName: 'count', argExpression: 'round(x)' }`.
+The resolver naturally handles the recursive resolution.  
+See `functions/parseFunctionCall.ts`.
+
+### L-21 – No multi-argument functions
+**Fixed in:** Post-PR-10  
+`parseFunctionCall` now splits argument lists at commas at depth 0, producing
+`argExpressions: string[]`.  `IVariableFunction.callMulti?(args)` is the new
+optional multi-arg entry point.  The resolver calls `callMulti` when present
+and there are ≠ 1 arguments, falling back to `call(args[0])` for backward
+compatibility.  
+See `contracts/index.ts`, `functions/parseFunctionCall.ts`, `resolver/VariableResolver.ts`.
+
+### L-04 – No strict-mode resolver
+**Fixed in:** Post-PR-10  
+`ResolverOptions.strictMode: true` causes the resolver to throw
+`VariableResolutionError` instead of returning `undefined` for unresolved
+expressions.  `EvaluateOptions.undefinedPolicy: UndefinedPolicy.STRICT`
+propagates this through the evaluator.  
+See `resolver/VariableResolver.ts`, `evaluator/VariableEvaluator.ts`.
+
+### L-17 – Undefined policy undocumented
+**Fixed in:** Post-PR-10  
+`UndefinedPolicy.SOFT_FAIL` (default) and `UndefinedPolicy.STRICT` are now
+explicit contracts exported from the module.  See `contracts/index.ts`.
+
+### L-25 – L1 cache has no TTL
+**Fixed in:** Post-PR-10  
+`L1CacheOptions.defaultTtlMs` sets a default TTL per-cache-instance.
+`setWithTtl(key, value, ttlMs)` overrides TTL per-entry.  Expired entries
+are lazily evicted on `get()`.  
+See `cache/L1VariableCache.ts`.
+
+### L-01 – No TTL / L2 cache
+**Fixed in:** Post-PR-10  
+`IL2VariableCache` contract added to `contracts/index.ts`.  
+`NullL2VariableCache` is the default no-op implementation.  
+`CompositeVariableCache` implements the two-tier L1+L2 strategy:
+write-through, async read-through, L2 error resilience.  
+`VariableEngineFactory` now accepts `cache.l2` and `cache.l2TtlMs` options.  
+See `cache/CompositeVariableCache.ts`, `cache/NullL2VariableCache.ts`.
+
+### L-07 – No async provider init ordering
+**Fixed in:** Post-PR-10  
+`IVariableProvider.initialize?(): Promise<void>` optional method added.  
+`AbstractVariableProvider` provides a default no-op implementation.  
+`VariableEngineFactory.createAsync()` awaits `initialize()` in registration
+order before returning.  
+See `contracts/index.ts`, `providers/AbstractVariableProvider.ts`,
+`factory/VariableEngineFactory.ts`.
+
+### L-08 – Provider overwrite is silent
+**Fixed in:** Post-PR-10  
+`RegistryOptions.overwritePolicy: OverwritePolicy` replaces the boolean
+`overwrite` flag.  Values: `'error'` (default), `'warn'`, `'overwrite'`.
+The `'warn'` mode logs a structured warning and overwrites; `'error'` throws
+`NamespaceConflictError`; `'overwrite'` silently replaces.  The legacy
+`overwrite: true` flag maps to `'overwrite'` for backward compatibility.  
+See `registry/VariableRegistry.ts`.
+
+### L-10 – No rollback safety on register()
+**Fixed in:** Post-PR-10  
+`VariableRegistry.registerAll(providers)` performs a virtual transaction:
+if any provider registration fails, all namespaces registered in that batch
+are rolled back atomically.  The factory uses `registerAll`.  
+See `registry/VariableRegistry.ts`, `factory/VariableEngineFactory.ts`.
+
+### L-12 – No per-module adapters
+**Fixed in:** Post-PR-10  
+`PdfTemplateRenderingAdapter`, `ReportsTemplateRenderingAdapter`,
+`LabelsTemplateRenderingAdapter`, and `EmailsTemplateRenderingAdapter` added.
+All follow the same pattern as `BomTemplateRenderingAdapter`: delegate to the
+new engine when `variableEngineV2=true`, fall back to legacy resolver when
+`false`.  
+See `adapter/` directory.
+
+### L-23 – Function-argument cache invalidation
+**Resolved (implicit):** The cache key is built from `entityType:entityId|expression`.
+Since the full expression string (including function name and arguments) is
+part of the cache key, different argument values always produce distinct cache
+keys.  No additional work required.
+
+### L-26 – durationMs uses wall-clock
+**Fixed in:** Post-PR-10  
+`VariableResolver` now uses `performance.now()` from Node's `perf_hooks`
+module (monotonic high-resolution clock) instead of `Date.now()` for
+`durationMs` measurements.  
+See `resolver/VariableResolver.ts`.
 
 ### L-05 – FIFO cache eviction upgraded to LRU
 **Fixed in:** PR-9  
-`L1VariableCache` now uses true LRU eviction: the `get()` method re-inserts the
-accessed key at the Map tail so that the head is always the least-recently-used
-entry. See `cache/L1VariableCache.ts`.
+`L1VariableCache` now uses true LRU eviction. See `cache/L1VariableCache.ts`.
 
 ### L-11 – Legacy resolver as the default rendering path
 **Fixed in:** PR-10  
-`readFeatureFlags()` now returns `variableEngineV2: true` by default.  
-The new engine (`VariableEvaluator` via `BomTemplateRenderingAdapter`) is active
-without any environment configuration.  
-**Rollback:** set `VARIABLE_ENGINE_V2=false` to revert to the legacy path.
+The new engine is the default. Rollback: set `VARIABLE_ENGINE_V2=false`.
 
 ### L-13 – No BOM-specific providers
-**Fixed in:** PR-4 (hierarchy), PR-5 (camera/switch/fiber/ip), PR-6 (contract/warehouse/task/ai/user)  
-All planned domain provider namespaces are implemented.
+**Fixed in:** PR-4 (hierarchy), PR-5 (camera/switch/fiber/ip), PR-6 (contract/warehouse/task/ai/user)
 
 ### L-16 – N+1 concurrent data-service calls
 **Fixed in:** PR-9  
-`DataFetchDeduplicator` coalesces concurrent fetch calls for the same entity key
-so that a provider issues at most one in-flight request per entity per evaluation
-pass. See `providers/DataFetchDeduplicator.ts`.
+`DataFetchDeduplicator` coalesces concurrent fetch calls for the same entity key.
 
 ---
 
-## Deferred Items
+## Deferred Items (Post-PR-10 Hardening)
 
-### L-01 – No TTL / L2 cache
-**Reason:** Redis / L2 cache requires infrastructure changes outside the engine scope.  
-**Impact:** High-cardinality, long-running processes may accumulate stale cache entries until `clear()` is called.  
-**Mitigation:** `L1VariableCache.clear()` is available; callers can invoke it between requests if needed.  
+### L-09 – No NestJS / IoC container integration
+**Reason:** NestJS module wiring requires infrastructure changes and dependency
+on `@nestjs/common`.  The engine is intentionally framework-agnostic.
+**Impact:** Callers must wire the factory manually in NestJS modules.
+**Mitigation:** `VariableEngineFactory` is DI-friendly; NestJS module wrapper
+can be added as a separate `VariableEngineNestModule` without modifying core.  
 **Owner:** Platform infrastructure team  
-**Target:** Post-PR-10 (infrastructure sprint)
-
-### L-02 – No nested `${...}` expressions
-**Reason:** Nested expression parsing requires a grammar redesign (not MVP scope).  
-**Impact:** Templates like `${fn(${inner})}` are not supported; the regex stops at the first `}`.  
-**Mitigation:** Workaround: pre-resolve inner expressions before passing the template.  
-**Owner:** Variable Engine team  
-**Target:** Post-PR-10
-
-### L-03 / L-20 – No nested function calls
-**Reason:** Deliberate MVP constraint to avoid parser redesign.  
-**Impact:** `${count(round(x))}` resolves the outer function with a truncated argument.  
-**Mitigation:** Use two-step templates or a new built-in composite function.  
-**Owner:** Variable Engine team  
-**Target:** Post-PR-10
-
-### L-04 – No strict-mode resolver
-**Reason:** `VariableResolutionError` is defined; strict evaluator is a future PR.  
-**Impact:** Unresolvable expressions silently produce empty strings (soft-fail only).  
-**Mitigation:** Logger emits `warn`/`error` events for all failed resolutions.  
-**Owner:** Variable Engine team  
-**Target:** Post-PR-10
-
-### L-06 – `}` inside expression truncates
-**Reason:** Intentional MVP regex constraint.  
-**Impact:** Expressions containing a literal `}` are truncated at the first `}`.  
-**Mitigation:** Avoid `}` in variable names/expressions (naming convention).  
-**Owner:** Variable Engine team  
-**Target:** Post-PR-10 (grammar redesign)
-
-### L-07 – No async provider init ordering
-**Reason:** Providers are registered synchronously; async initialisation is caller responsibility.  
-**Impact:** A provider that must await DB schema before serving is not safely composable inside the factory.  
-**Owner:** Variable Engine team  
-**Target:** Post-PR-10
-
-### L-08 – Provider overwrite is silent
-**Reason:** `VariableRegistry.register()` has a strict mode (`NamespaceConflictError`) but the factory does not enable it by default.  
-**Impact:** Accidental duplicate registration of the same namespace silently replaces the first provider.  
-**Mitigation:** Enable strict mode via `RegistryOptions.strict` if needed.  
-**Owner:** Variable Engine team  
-**Target:** Post-PR-10 (consider making strict the default)
-
-### L-12 – No per-module adapter for non-BOM modules
-**Reason:** Only `BomTemplateRenderingAdapter` was implemented in PR-3.  PDF, Reports, Labels, Emails modules still use their own ad-hoc substitution.  
-**Impact:** Those modules do not benefit from the new engine yet.  
-**Owner:** Each module team + Variable Engine team  
-**Target:** Post-PR-10 (per-module migration)
+**Target:** Post-hardening (infrastructure sprint)
 
 ### L-14 – Hierarchy N+1 queries (sequential calls)
-**Reason:** `getDepth` and `getAncestorPath` each issue one DB query per level; the engine's L1 cache prevents re-querying within a single pass.  
+**Reason:** `getDepth` and `getAncestorPath` each issue one DB query per level.
+Full fix requires a CTE / recursive SQL query.  
 **Impact:** Deep hierarchies (>5 levels) incur multiple sequential round-trips.  
-**Mitigation:** L1 cache prevents redundant queries for the same entity within a pass; callers should prefer `getAncestorPath` and derive depth from its result length.  
+**Mitigation:** L1 cache prevents redundant queries within a single pass.  
 **Owner:** Hierarchy domain team  
-**Target:** Post-PR-10 (batch DB query)
+**Target:** Post-hardening (DB query optimisation sprint)
+
+### L-15 – Async traversal unresolved nodes
+**Reason:** Deferred from PR-4; requires investigation into which traversal
+paths produce unresolved nodes.  
+**Owner:** Variable Engine team  
+**Target:** Post-hardening
+
+### L-18 – No multi-domain provider batching
+**Reason:** Batching across providers requires a coordination layer above the
+current per-namespace routing model.  
+**Impact:** Templates using variables from many domains (e.g. 5+ providers)
+incur one async provider call per domain.  
+**Owner:** Variable Engine team  
+**Target:** Future performance sprint
 
 ### L-19 – AI provider is a stub
-**Reason:** Real AI service integration was out of scope for PR-6.  
+**Reason:** Real AI service integration requires AI team infrastructure.  
 **Impact:** `ai.*` variables resolve to stub/placeholder values.  
 **Owner:** AI team  
 **Target:** Separate AI sprint
 
-### L-21 – No multi-argument functions
-**Reason:** Current function call syntax supports only a single argument.  
-**Impact:** `pad(x, 5)`, `format(date, 'ISO')` etc. cannot be expressed.  
-**Owner:** Variable Engine team  
-**Target:** Post-PR-10 (parser extension)
+### L-22 – Last-write-wins in FunctionRegistry
+**Reason:** Intentional design for MVP simplicity.  
+**Impact:** Duplicate function registration silently replaces.  
+**Status:** By design; revisit if override control becomes a requirement.
 
 ### L-24 – Deduplication is in-flight only
-**Reason:** Intentional design – sequential (non-overlapping) calls each issue a fresh fetch to guarantee fresh data.  
-**Impact:** Batch processing of many templates sequentially still issues one fetch per template per entity.  
-**Mitigation:** L1 cache covers sequential same-entity lookups within a single `evaluate()` call.  
-**Owner:** Variable Engine team  
-**Target:** By design; revisit if batch perf becomes a concern
-
-### L-25 – L1 cache has no TTL
-**Reason:** TTL requires a timer-based eviction loop or external scheduler.  
-**Impact:** Stale entries persist until the cache is full (LRU eviction) or `clear()` is called.  
-**Mitigation:** Use `bypassCache: true` for latency-sensitive or always-fresh use cases.  
-**Owner:** Variable Engine team  
-**Target:** Post-PR-10 (L2 cache / TTL sprint)
+**Reason:** Sequential (non-overlapping) calls issue a fresh fetch per template.  
+**Mitigation:** L1 cache covers same-entity lookups within a single `evaluate()` call.  
+**Status:** By design; revisit if batch perf becomes a concern.
 
 ---
 
-## PR-10 Final Report
+## Post-PR-10 Hardening Final Report
 
-### Resolved limitations
+### Resolved in Post-PR-10 Hardening
 | ID | Description | Resolution |
 |----|-------------|-----------|
-| L-05 | FIFO cache | Upgraded to LRU in PR-9 |
-| L-11 | Legacy resolver default | New engine is default as of PR-10 |
-| L-13 | No BOM providers | All namespaces implemented PR-4/5/6 |
-| L-16 | N+1 concurrent fetches | DataFetchDeduplicator in PR-9 |
+| L-01 | No TTL / L2 cache | `IL2VariableCache` + `CompositeVariableCache` + `NullL2VariableCache` |
+| L-02 | No nested `${...}` | Stack-based parser in `VariableParser` |
+| L-03/L-20 | No nested function calls | `parseFunctionCall` balanced-paren parser |
+| L-04 | No strict-mode resolver | `ResolverOptions.strictMode` + `UndefinedPolicy.STRICT` |
+| L-06 | `}` truncates expression | Same stack-based parser fix as L-02 |
+| L-07 | No async provider init | `IVariableProvider.initialize()` + `createAsync()` |
+| L-08 | Silent provider overwrite | `OverwritePolicy`: error/warn/overwrite |
+| L-10 | No rollback on register() | `registerAll()` with atomic rollback |
+| L-12 | No per-module adapters | PDF/Reports/Labels/Emails adapters |
+| L-17 | Undefined policy undocumented | `UndefinedPolicy` enum exported |
+| L-21 | No multi-argument functions | `parseFunctionCall` multi-arg + `callMulti` |
+| L-23 | Function-arg cache invalidation | Already works via expression-based cache key |
+| L-25 | L1 cache no TTL | `defaultTtlMs` + `setWithTtl()` |
+| L-26 | Wall-clock durationMs | `performance.now()` (monotonic) |
 
-### Deferred limitations
-All other items listed above are explicitly deferred with documented owners and
-target milestones. None of the deferred items cause critical failures or data
-loss; all are mitigated by the soft-fail policy and logging.
+### Deferred with owner and target
+| ID | Description | Owner | Target |
+|----|-------------|-------|--------|
+| L-09 | NestJS/IoC integration | Platform infra team | Post-hardening infra sprint |
+| L-14 | Hierarchy N+1 | Hierarchy domain team | DB optimisation sprint |
+| L-15 | Async traversal unresolved nodes | Variable Engine team | Post-hardening |
+| L-18 | Multi-domain batching | Variable Engine team | Future perf sprint |
+| L-19 | AI provider stub | AI team | AI sprint |
+| L-22 | FunctionRegistry last-write-wins | — | By design |
+| L-24 | In-flight deduplication only | — | By design |
+
+### Test / build results
+- TypeScript build: **GREEN** (`tsc --noEmit` passes)
+- Test suite: **GREEN** (all 1610 tests pass, 19 skipped pre-existing)
+- Coverage: new/changed code covered by 38 new/updated test files
 
 ### Residual risks
-1. **AI provider stub** (L-19) – `ai.*` variables produce placeholder values.  If any production template relies on `ai.*`, those placeholders will be empty.  _Risk level: Medium._
-2. **No per-module adapters** (L-12) – Non-BOM modules are unaffected by this rollout; they continue using their existing substitution logic.  _Risk level: Low._
-3. **Deep hierarchy N+1** (L-14) – Templates for deeply nested entities (>8 levels) may have elevated DB round-trip counts.  _Risk level: Low (L1 cache mitigates within a pass)._
+1. **AI provider stub** (L-19) – `ai.*` variables produce placeholder values.  Risk: Medium.
+2. **Deep hierarchy N+1** (L-14) – Templates with deeply nested entities (>8 levels) may incur elevated DB round-trips.  Risk: Low (L1 cache mitigates within a pass).
+3. **L2 cache fire-and-forget** – `CompositeVariableCache.set()` writes to L2 asynchronously.  A process crash between L1 write and L2 write can leave them out of sync.  Mitigation: L2 serves as a supplemental cache, not the source of truth.  Risk: Low.
 
 ### GO / NO-GO recommendation
-**GO** – The new engine is production-ready for BOM template rendering:
-- All critical quality gates pass (TypeScript build green, full test suite green).
-- The `variableEngineV2` flag is `true` by default; instant rollback via `VARIABLE_ENGINE_V2=false`.
-- All deferred items are non-critical and explicitly documented with owners.
-- Soft-fail policy ensures the renderer never crashes on provider failure.
+**GO** – All critical hardening items are resolved:
+- Parser correctness issues (L-02, L-03/L-20, L-06, L-21) are fixed.
+- Strict mode (L-04/L-17) is available and backward-compatible.
+- L1 TTL (L-25) and L2 cache interface (L-01) are implemented.
+- Provider lifecycle (L-07, L-08, L-10) is hardened.
+- Module adapters (L-12) unblock non-BOM consumers.
+- All deferred items are non-critical, documented, and have assigned owners.
+

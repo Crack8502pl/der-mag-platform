@@ -1,11 +1,15 @@
 /**
  * Variable Engine – shared token pattern (internal)
  *
- * Single source of truth for the `${...}` placeholder regex used by both
- * `VariableParser` and `LegacyVariableResolver`.
+ * Single source of truth for the `${...}` placeholder regex used by
+ * `LegacyVariableResolver` (legacy path only).
  *
- * Both consumers create their own `RegExp` instance from this source string
- * so that the mutable `lastIndex` state is never shared between callers.
+ * **Note:** `VariableParser` no longer uses this regex.  It uses a
+ * stack-based parser (L-02, L-06 fix) that correctly handles nested
+ * `${...}` expressions and literal `}` characters inside placeholders.
+ *
+ * The regex is retained here for the legacy resolver which does not need
+ * nested-brace support (it performs simple flat-map substitution).
  *
  * @internal – not part of the public module API.
  */
