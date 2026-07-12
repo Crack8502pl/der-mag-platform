@@ -1,3 +1,5 @@
+import type { CameraBreakdown } from '../types/cameraBreakdown';
+
 /**
  * cameraCountUtils.ts
  * Centralny moduł obliczania liczby kamer dla BOM Wizarda.
@@ -42,13 +44,6 @@ export interface ExtractCameraCountParams {
   configValues: Record<string, unknown>;
   metadata: Record<string, unknown>;
   isStandaloneNastawnia: boolean;
-}
-
-export interface CameraBreakdown {
-  total: number;
-  ogolna: number;
-  lpr: number;
-  skp: number;
 }
 
 /**

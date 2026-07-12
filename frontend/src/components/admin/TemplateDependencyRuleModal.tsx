@@ -38,7 +38,7 @@ const WIZARD_PARAM_SUGGESTIONS: VariableEngineVariable[] = [
     type: 'number',
     description: 'Łączna liczba kamer z konfiguracji Wizarda',
     provider: 'wizard',
-    usableInBom: true
+    usableInBom: true,
   },
   {
     expression: 'recordingDays',

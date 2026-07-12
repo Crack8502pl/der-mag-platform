@@ -165,6 +165,7 @@ export class BomResolverService {
       requestedCameraCount
     );
     const cameraCount = requestedCameraCount > 0 ? requestedCameraCount : cameraBreakdown.total;
+    const totalIpCameras = BomResolverService.sumCameraTypes(cameraBreakdown);
     const recordingDays = requestRecordingDays ?? request.retentionDays ?? DEFAULT_RECORDING_DAYS;
     const needsRecorder = BomResolverService.needsRecorder(subsystemType, taskType, isStandaloneNastawnia);
 
@@ -242,7 +243,7 @@ export class BomResolverService {
       recordingDays,
       bitrateMbps,
       'camera.total': cameraCount,
-      'camera.total.ip': cameraBreakdown.ogolna + cameraBreakdown.lpr + cameraBreakdown.skp,
+      'camera.total.ip': totalIpCameras,
       'camera.total.ip.ogolna': cameraBreakdown.ogolna,
       'camera.total.ip.lpr': cameraBreakdown.lpr,
       'camera.total.ip.skp': cameraBreakdown.skp,
@@ -413,7 +414,7 @@ export class BomResolverService {
     const ogolna = BomResolverService.toPositiveInt(cameraBreakdown?.ogolna);
     const lpr = BomResolverService.toPositiveInt(cameraBreakdown?.lpr);
     const skp = BomResolverService.toPositiveInt(cameraBreakdown?.skp);
-    const sum = ogolna + lpr + skp;
+    const sum = BomResolverService.sumCameraTypes({ ogolna, lpr, skp });
     const total = sum > 0
       ? sum
       : Math.max(
@@ -427,5 +428,9 @@ export class BomResolverService {
   private static toPositiveInt(value: unknown): number {
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 0;
+  }
+
+  private static sumCameraTypes(cameraBreakdown: Pick<CameraBreakdown, 'ogolna' | 'lpr' | 'skp'>): number {
+    return cameraBreakdown.ogolna + cameraBreakdown.lpr + cameraBreakdown.skp;
   }
 }

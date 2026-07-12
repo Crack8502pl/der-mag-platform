@@ -1,13 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // frontend/src/services/bomResolver.service.ts
 import api from './api';
-
-export interface CameraBreakdown {
-  total: number;
-  ogolna: number;
-  lpr: number;
-  skp: number;
-}
+import type { CameraBreakdown } from '../types/cameraBreakdown';
 
 export interface BomResolveRequest {
   subsystemType: string;

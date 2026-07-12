@@ -164,10 +164,21 @@ function normalizeCameraBreakdown(
     return undefined;
   }
 
-  return {
+  const normalized = {
     total: Number(cameraBreakdown.total) || 0,
     ogolna: Number(cameraBreakdown.ogolna) || 0,
     lpr: Number(cameraBreakdown.lpr) || 0,
     skp: Number(cameraBreakdown.skp) || 0
   };
+
+  if (
+    normalized.total === 0 &&
+    normalized.ogolna === 0 &&
+    normalized.lpr === 0 &&
+    normalized.skp === 0
+  ) {
+    return undefined;
+  }
+
+  return normalized;
 }
