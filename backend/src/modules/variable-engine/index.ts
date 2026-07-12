@@ -41,7 +41,10 @@ export type {
   IVariableResolver,
   IVariableEvaluator,
   IVariableLogger,
-  EvaluateOptions
+  EvaluateOptions,
+  IVariableFunction,
+  IFunctionRegistry,
+  FunctionCallExpression
 } from './contracts';
 export { FallbackMode } from './contracts';
 
@@ -86,6 +89,10 @@ export type { IFiberDataService, FiberData } from './providers';
 
 export { IpVariableProvider } from './providers';
 export type { IIpDataService, IpData } from './providers';
+
+// ─── Function Registry (PR-8) ─────────────────────────────────────────────────
+export { FunctionRegistry, parseFunctionCall, createBuiltinFunctionRegistry } from './functions';
+export { CountFunction, RoundFunction, UppercaseFunction } from './functions';
 
 // ─── Factory / DI wiring (PR-2) ───────────────────────────────────────────────
 export { VariableEngineFactory } from './factory';

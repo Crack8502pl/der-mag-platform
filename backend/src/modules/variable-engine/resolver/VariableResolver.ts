@@ -3,10 +3,13 @@
  *
  * Resolves a single variable expression to its runtime value by:
  * 1. Checking the cache (unless `bypassCache` is set).
- * 2. Finding the matching provider in the registry.
- * 3. Calling `provider.resolve(expression, context)`.
- * 4. Storing the result in the cache.
- * 5. Returning the result (or `undefined` on soft-fail).
+ * 2. Detecting whether the expression is a function call (PR-8).
+ *    When a function call is detected and the function is registered the
+ *    argument expression is resolved recursively and the function applied.
+ * 3. Finding the matching provider in the registry.
+ * 4. Calling `provider.resolve(expression, context)`.
+ * 5. Storing the result in the cache.
+ * 6. Returning the result (or `undefined` on soft-fail).
  *
  * The resolver never throws.  All provider errors are caught and forwarded
  * to the injected `IVariableLogger` so that a broken provider does not crash
@@ -20,10 +23,12 @@ import type {
   IVariableRegistry,
   IVariableCache,
   IVariableLogger,
+  IFunctionRegistry,
   VariableContext,
   VariableValue
 } from '../contracts';
 import { NullVariableLogger } from '../logger';
+import { parseFunctionCall } from '../functions/parseFunctionCall';
 
 /** Build the cache key for a given expression + context. */
 function buildCacheKey(expression: string, context: VariableContext): string {
@@ -41,6 +46,19 @@ export interface ResolverOptions {
    * Defaults to a no-op logger when not supplied.
    */
   readonly logger?: IVariableLogger;
+
+  /**
+   * Optional function registry used to evaluate function-call expressions
+   * such as `count(children)` or `round(fiber.length.total)`.
+   *
+   * When omitted, function-call expressions are treated as plain variable
+   * expressions (which will typically resolve to `undefined` because no
+   * provider claims a namespace that includes parentheses).
+   *
+   * Injected by `VariableEngineFactory` automatically when the built-in
+   * function registry is enabled (PR-8).
+   */
+  readonly functionRegistry?: IFunctionRegistry;
 }
 
 export class VariableResolver implements IVariableResolver {
@@ -48,6 +66,7 @@ export class VariableResolver implements IVariableResolver {
   private readonly cache: IVariableCache;
   private readonly options: ResolverOptions;
   private readonly logger: IVariableLogger;
+  private readonly functionRegistry: IFunctionRegistry | undefined;
 
   constructor(
     registry: IVariableRegistry,
@@ -58,6 +77,7 @@ export class VariableResolver implements IVariableResolver {
     this.cache = cache;
     this.options = options;
     this.logger = options.logger ?? new NullVariableLogger();
+    this.functionRegistry = options.functionRegistry;
   }
 
   async resolve(expression: string, context: VariableContext): Promise<VariableValue> {
@@ -73,14 +93,43 @@ export class VariableResolver implements IVariableResolver {
       }
     }
 
-    // ── 2. Find provider ──────────────────────────────────────────────────────
+    // ── 2. Function call detection (PR-8) ─────────────────────────────────────
+    if (this.functionRegistry !== undefined) {
+      const funcCall = parseFunctionCall(expression);
+      if (funcCall !== null) {
+        const fn = this.functionRegistry.find(funcCall.funcName);
+        if (fn !== undefined) {
+          this.logger.trace('Function call detected', {
+            expression,
+            funcName: funcCall.funcName,
+            argExpression: funcCall.argExpression,
+          });
+          // Resolve the argument first (uses same cache/provider pipeline).
+          const argValue = await this.resolve(funcCall.argExpression, context);
+          const result = fn.call(argValue);
+          // Cache the function result under the full expression key.
+          if (!bypass && result !== undefined) {
+            this.cache.set(cacheKey, result);
+          }
+          return result;
+        }
+        // Function name is not registered – log a warning and soft-fail.
+        this.logger.warn('Unknown function in expression – soft-fail applied', {
+          expression,
+          funcName: funcCall.funcName,
+        });
+        return undefined;
+      }
+    }
+
+    // ── 3. Find provider ──────────────────────────────────────────────────────
     const provider = this.registry.find(expression);
     if (!provider) {
       this.logger.trace('No provider found', { expression });
       return undefined;
     }
 
-    // ── 3. Invoke provider (soft-fail) ────────────────────────────────────────
+    // ── 4. Invoke provider (soft-fail) ────────────────────────────────────────
     let value: VariableValue;
     try {
       value = await provider.resolve(expression, context);
@@ -103,7 +152,7 @@ export class VariableResolver implements IVariableResolver {
       return undefined;
     }
 
-    // ── 4. Store in cache ─────────────────────────────────────────────────────
+    // ── 5. Store in cache ─────────────────────────────────────────────────────
     if (!bypass && value !== undefined) {
       this.cache.set(cacheKey, value);
     }
