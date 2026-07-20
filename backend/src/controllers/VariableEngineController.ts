@@ -63,10 +63,10 @@ const VARIABLE_ENGINE_VARIABLES: VariableEngineVariable[] = [
   { expression: 'ai.recommendation', type: 'string', description: 'Rekomendacja wygenerowana przez AI', provider: 'ai', usableInBom: false },
   { expression: 'ai.risk.level', type: 'string', description: 'Poziom ryzyka AI', provider: 'ai', usableInBom: false },
   { expression: 'ai.risk.score', type: 'number', description: 'Wynik ryzyka AI', provider: 'ai', usableInBom: false },
-  { expression: 'hierarchy.parent', type: 'number', description: 'ID bezpośredniego rodzica', provider: 'hierarchy', usableInBom: false },
-  { expression: 'hierarchy.children', type: 'number', description: 'Liczba bezpośrednich dzieci', provider: 'hierarchy', usableInBom: false },
-  { expression: 'hierarchy.depth', type: 'number', description: 'Głębokość w hierarchii', provider: 'hierarchy', usableInBom: false },
-  { expression: 'hierarchy.path', type: 'string', description: 'Ścieżka przodków rozdzielona slashami', provider: 'hierarchy', usableInBom: false }
+  { expression: 'hierarchy.parent', type: 'number', description: 'ID bezpośredniego rodzica', provider: 'hierarchy', usableInBom: true },
+  { expression: 'hierarchy.children', type: 'number', description: 'Liczba bezpośrednich dzieci', provider: 'hierarchy', usableInBom: true },
+  { expression: 'hierarchy.depth', type: 'number', description: 'Głębokość w hierarchii', provider: 'hierarchy', usableInBom: true },
+  { expression: 'hierarchy.path', type: 'string', description: 'Ścieżka przodków rozdzielona slashami', provider: 'hierarchy', usableInBom: true }
 ];
 
 export class VariableEngineController {
