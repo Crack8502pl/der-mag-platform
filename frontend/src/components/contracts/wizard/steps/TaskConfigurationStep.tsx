@@ -116,7 +116,7 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
         // Inject hierarchy.* variables when the template uses them.
         const usesHierarchy = template.items.some(
           (item) =>
-            item.configParamName?.includes('hierarchy.') ||
+            item.configParamName?.startsWith('hierarchy.') ||
             item.dependencyFormula?.includes('hierarchy.')
         );
 

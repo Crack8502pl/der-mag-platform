@@ -61,7 +61,8 @@ export const wizardHierarchyService = {
       const ctx = response.data.data as WizardHierarchyContext;
       cache.set(cacheKey, ctx);
       return ctx;
-    } catch {
+    } catch (err) {
+      console.error('[wizardHierarchyService] resolveHierarchy failed for', params.taskKey, err);
       return null;
     }
   },
