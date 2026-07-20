@@ -647,3 +647,100 @@ const factory = new VariableEngineFactory(providers, {
 1. **`LegacyVariableResolver` is not removed** – it is deprecated and retained as a rollback path.  It will be removed in a future cleanup PR once all modules have migrated.
 2. **No per-module adapters** – only `BomTemplateRenderingAdapter` is updated.  PDF / Reports / Labels / Emails modules continue using their own substitution logic.
 3. **All pre-existing deferred items unchanged** – see `docs/refactor/known-limitations.md` for the full inventory, owners, and target milestones.
+
+---
+
+## WizardHierarchyResolver – In-Memory Hierarchy Traversal (PR-11)
+
+### Purpose
+
+`WizardHierarchyResolver` implements `IHierarchyTraversalService` entirely in memory, using wizard relationship data passed directly from the frontend. It is used when tasks do not yet exist in the database (new contract wizard) and the hierarchy is only available in `wizardData.taskRelationships`.
+
+**File:** `backend/src/modules/variable-engine/providers/hierarchy/WizardHierarchyResolver.ts`
+
+### How it differs from `TaskRelationshipTraversalService`
+
+| Aspect | `TaskRelationshipTraversalService` | `WizardHierarchyResolver` |
+|---|---|---|
+| Data source | PostgreSQL via TypeORM | In-memory `WizardRelationshipEntry[]` |
+| Task ID type | Numeric DB `id` | String wizard key mapped to sequential `number` |
+| Use case | Existing contracts (post-save) | New contracts / extend-wizard (pre-save) |
+| Async queries | Yes (DB round-trip per level) | No (pure synchronous Map lookups, async interface kept for compatibility) |
+
+### String → number mapping
+
+`IHierarchyTraversalService` uses `number` for `entityId`. `WizardHierarchyResolver` assigns sequential numeric IDs to string wizard keys as it processes the relationships array. Two helper methods expose the mapping:
+
+```typescript
+resolver.getIdForKey(wizardKey)  // string → number | undefined
+resolver.getKeyForId(numericId)  // number → string | undefined
+```
+
+### Cycle protection
+
+Identical to `TaskRelationshipTraversalService`: `getAncestorPath` uses a `visited` Set and stops traversal if a node is encountered twice or if the safety cap (`MAX_DEPTH = 100`) is reached.
+
+### New endpoint: `POST /api/bom-subsystem-templates/resolve-wizard-hierarchy`
+
+Added to `BomSubsystemTemplateController` and registered in `bomSubsystemTemplate.routes.ts`.
+
+**Request body:**
+
+```typescript
+{
+  taskKey: string;              // wizardId (UUID) or taskNumber
+  taskNumber?: string;          // non-empty → DB mode (extend contract)
+  wizardRelationships?: Array<{
+    parentWizardId: string;
+    parentType: string;         // 'LCS' | 'NASTAWNIA'
+    childTaskKeys: string[];
+  }>;
+}
+```
+
+**Response:**
+
+```typescript
+{
+  success: true,
+  data: {
+    depth: number;              // 0 = root (LCS / standalone task)
+    parentKey: string | null;   // wizardId or taskNumber of direct parent
+    childrenCount: number;
+    path: string;               // "rootKey/.../taskKey" slash-separated
+    isChildOfLcs: boolean;      // true when direct parent is of type LCS
+  }
+}
+```
+
+**Mode selection:**
+
+- `taskNumber` supplied and non-empty → **DB mode**: uses `TaskRelationshipTraversalService` with a live TypeORM `TaskRelationshipService` instance.
+- `taskNumber` absent or empty-string → **in-memory mode**: uses `WizardHierarchyResolver` with `wizardRelationships`.
+- Task not found in DB or not in any relationship → returns `depth: 0` (standalone root) without error.
+
+### Frontend integration
+
+The endpoint is consumed by `wizardHierarchy.service.ts` (frontend service) which:
+- Caches results per `taskKey` for the wizard session lifetime to avoid redundant API calls.
+- Exposes `wizardHierarchyService.resolveHierarchy({ taskKey, taskNumber?, wizardRelationships? })`.
+
+`TaskConfigurationStep.tsx` calls this service after loading a BOM template, but **only** when at least one template item references `hierarchy.*` (checked via `configParamName` or `dependencyFormula`). The resolved context is then injected into `configParams`:
+
+```typescript
+configParams['hierarchy.depth']        = hierarchyCtx.depth;
+configParams['hierarchy.parent']       = hierarchyCtx.parentKey ?? '';
+configParams['hierarchy.children']     = hierarchyCtx.childrenCount;
+configParams['hierarchy.path']         = hierarchyCtx.path;
+configParams['hierarchy.isChildOfLcs'] = hierarchyCtx.isChildOfLcs;
+```
+
+### `usableInBom` flag
+
+All four `hierarchy.*` variables in `VariableEngineController.ts` were updated from `usableInBom: false` to `usableInBom: true`:
+
+- `hierarchy.parent`
+- `hierarchy.children`
+- `hierarchy.depth`
+- `hierarchy.path`
+

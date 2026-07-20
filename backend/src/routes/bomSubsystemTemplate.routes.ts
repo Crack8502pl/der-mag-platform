@@ -56,6 +56,13 @@ router.post(
   BomSubsystemTemplateController.importTemplate
 );
 
+// Resolve wizard hierarchy context for a task (must be before /:id)
+router.post(
+  '/resolve-wizard-hierarchy',
+  checkPermission('bom', 'read'),
+  BomSubsystemTemplateController.resolveWizardHierarchy
+);
+
 // Get specific template by ID
 router.get(
   '/:id',

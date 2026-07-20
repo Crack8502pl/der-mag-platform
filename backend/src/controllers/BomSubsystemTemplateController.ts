@@ -2,8 +2,15 @@
 // Controller for BOM subsystem templates
 
 import { Request, Response } from 'express';
+import { In } from 'typeorm';
 import { BomSubsystemTemplateService } from '../services/BomSubsystemTemplateService';
 import { SubsystemType } from '../entities/BomSubsystemTemplate';
+import { AppDataSource } from '../config/database';
+import { SubsystemTask } from '../entities/SubsystemTask';
+import { TaskRelationshipService } from '../services/TaskRelationshipService';
+import { TaskRelationshipTraversalService } from '../modules/variable-engine/providers/hierarchy/TaskRelationshipTraversalService';
+import { WizardHierarchyResolver } from '../modules/variable-engine/providers/hierarchy/WizardHierarchyResolver';
+import type { WizardRelationshipEntry } from '../modules/variable-engine/providers/hierarchy/WizardHierarchyResolver';
 
 export class BomSubsystemTemplateController {
   /**
@@ -405,6 +412,116 @@ export class BomSubsystemTemplateController {
         success: false,
         message: 'Błąd stosowania szablonu',
         error: error.message
+      });
+    }
+  }
+
+  /**
+   * Resolve wizard hierarchy context for a task.
+   * POST /api/bom-subsystem-templates/resolve-wizard-hierarchy
+   *
+   * - When `taskNumber` is provided (non-empty) → DB mode (extend contract):
+   *   looks up the task in DB and uses TaskRelationshipTraversalService.
+   * - When `taskNumber` is absent or empty → in-memory mode (new contract):
+   *   builds hierarchy from the supplied `wizardRelationships` array.
+   */
+  static async resolveWizardHierarchy(req: Request, res: Response): Promise<void> {
+    const { taskKey, taskNumber, wizardRelationships } = req.body as {
+      taskKey?: string;
+      taskNumber?: string;
+      wizardRelationships?: WizardRelationshipEntry[];
+    };
+
+    if (!taskKey) {
+      res.status(400).json({ success: false, message: 'taskKey jest wymagany' });
+      return;
+    }
+
+    try {
+      let depth = 0;
+      let parentKey: string | null = null;
+      let childrenCount = 0;
+      let path = taskKey;
+      let isChildOfLcs = false;
+
+      const useDb = typeof taskNumber === 'string' && taskNumber.trim() !== '';
+
+      if (useDb) {
+        // ── DB mode (extend contract) ────────────────────────────────────────
+        const taskRepo = AppDataSource.getRepository(SubsystemTask);
+        const task = await taskRepo.findOne({ where: { taskNumber } });
+
+        if (task) {
+          const relService = new TaskRelationshipService();
+          const traversal = new TaskRelationshipTraversalService(relService);
+
+          const pathIds = await traversal.getAncestorPath(task.id, 'task');
+          depth = Math.max(0, pathIds.length - 1);
+
+          const childrenIds = await traversal.getChildrenIds(task.id, 'task');
+          childrenCount = childrenIds.length;
+
+          const parentId = await traversal.getParentId(task.id, 'task');
+          if (parentId !== undefined) {
+            // Map parent numeric ID back to task number
+            const parentTask = await taskRepo.findOne({
+              where: { id: parentId },
+              select: ['id', 'taskNumber'],
+            });
+            parentKey = parentTask?.taskNumber ?? String(parentId);
+
+            // Determine parentType from the relationship record
+            const parentRels = await relService.getParents(task.id);
+            isChildOfLcs = parentRels.length > 0 && parentRels[0].parentType === 'LCS';
+          }
+
+          // Build path string: map each numeric ID to task number
+          if (pathIds.length > 0) {
+            const pathTaskEntities = await taskRepo.find({
+              where: { id: In(pathIds) },
+              select: ['id', 'taskNumber'],
+            });
+            const pathMap = new Map(pathTaskEntities.map((t) => [t.id, t.taskNumber]));
+            path = pathIds.map((id) => pathMap.get(id) ?? String(id)).join('/');
+          }
+        }
+        // If task not found in DB, return depth=0 defaults (already set above).
+      } else {
+        // ── In-memory mode (new contract) ────────────────────────────────────
+        const relationships: WizardRelationshipEntry[] = wizardRelationships ?? [];
+        const resolver = new WizardHierarchyResolver(relationships);
+        const entityId = resolver.getIdForKey(taskKey);
+
+        if (entityId !== undefined) {
+          const pathIds = await resolver.getAncestorPath(entityId, 'task');
+          depth = Math.max(0, pathIds.length - 1);
+
+          const childrenIds = await resolver.getChildrenIds(entityId, 'task');
+          childrenCount = childrenIds.length;
+
+          const parentId = await resolver.getParentId(entityId, 'task');
+          if (parentId !== undefined) {
+            parentKey = resolver.getKeyForId(parentId) ?? null;
+            isChildOfLcs = resolver.getParentType(entityId) === 'LCS';
+          }
+
+          path = pathIds
+            .map((id) => resolver.getKeyForId(id) ?? String(id))
+            .join('/');
+        }
+        // If taskKey not in any relationship → standalone root (depth=0 defaults).
+      }
+
+      res.json({
+        success: true,
+        data: { depth, parentKey, childrenCount, path, isChildOfLcs },
+      });
+    } catch (error: any) {
+      console.error('Error resolving wizard hierarchy:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Błąd rozwiązywania hierarchii zadania',
+        error: error.message,
       });
     }
   }

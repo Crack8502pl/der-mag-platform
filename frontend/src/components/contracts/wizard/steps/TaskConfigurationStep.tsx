@@ -7,6 +7,7 @@ import { generateAllTasks } from '../utils/taskGenerator';
 import { resolveTaskVariant } from '../utils/taskGenerator';
 import bomSubsystemTemplateService from '../../../../services/bomSubsystemTemplate.service';
 import type { BomSubsystemTemplate } from '../../../../services/bomSubsystemTemplate.service';
+import { wizardHierarchyService } from '../../../../services/wizardHierarchy.service';
 import './TaskConfigurationStep.css';
 
 interface Props {
@@ -87,6 +88,10 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
   const taskConfigsRef = useRef(taskConfigs);
   taskConfigsRef.current = taskConfigs;
 
+  // Ref for wizardData – keeps loadTemplate stable while still reading latest state.
+  const wizardDataRef = useRef(wizardData);
+  wizardDataRef.current = wizardData;
+
   const activeTask = taskEntries.find((t) => t.key === activeTaskKey);
   const activeConfig = activeTaskKey ? taskConfigs[activeTaskKey] : undefined;
 
@@ -106,7 +111,42 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
 
         // Read the latest configs via ref to avoid stale closure
         const currentConfigs = taskConfigsRef.current;
-        const configParams = currentConfigs[task.key]?.configParams || {};
+        const configParams: Record<string, unknown> = { ...(currentConfigs[task.key]?.configParams || {}) };
+
+        // Inject hierarchy.* variables when the template uses them.
+        const usesHierarchy = template.items.some(
+          (item) =>
+            item.configParamName?.startsWith('hierarchy.') ||
+            item.dependencyFormula?.includes('hierarchy.')
+        );
+
+        if (usesHierarchy) {
+          const currentWizardData = wizardDataRef.current;
+          const wizardRels = currentWizardData.taskRelationships
+            ? Object.values(currentWizardData.taskRelationships)
+            : [];
+
+          // Use taskWizardId as the primary key (matches relationship parentWizardId /
+          // childTaskKeys); fall back to task.key for tasks without a wizardId.
+          const taskKey = task.taskWizardId ?? task.key;
+          const taskNumber =
+            task.taskNumber && task.taskNumber !== task.key ? task.taskNumber : undefined;
+
+          const hierarchyCtx = await wizardHierarchyService.resolveHierarchy({
+            taskKey,
+            taskNumber,
+            wizardRelationships: wizardRels,
+          });
+
+          if (hierarchyCtx) {
+            configParams['hierarchy.depth'] = hierarchyCtx.depth;
+            configParams['hierarchy.parent'] = hierarchyCtx.parentKey ?? '';
+            configParams['hierarchy.children'] = hierarchyCtx.childrenCount;
+            configParams['hierarchy.path'] = hierarchyCtx.path;
+            configParams['hierarchy.isChildOfLcs'] = hierarchyCtx.isChildOfLcs;
+          }
+        }
+
         const materials: ResolvedMaterial[] = template.items
           .filter((item) => item.id !== undefined)
           .map((item, itemIdx) => ({
