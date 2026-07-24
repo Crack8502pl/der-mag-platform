@@ -4,6 +4,7 @@
  * Covers:
  * - camera.total
  * - camera.total.ip
+ * - camera.ip.total (legacy alias)
  * - camera.total.ip.ogolna
  * - camera.total.ip.lpr
  * - camera.total.ip.skp
@@ -90,6 +91,13 @@ describe('CameraVariableProvider', () => {
     it('returns IP camera count', async () => {
       const provider = new CameraVariableProvider(makeService());
       expect(await provider.resolve('camera.total.ip', ctx(1))).toBe(8);
+    });
+  });
+
+  describe('camera.ip.total', () => {
+    it('returns IP camera count for legacy alias', async () => {
+      const provider = new CameraVariableProvider(makeService());
+      expect(await provider.resolve('camera.ip.total', ctx(1))).toBe(8);
     });
   });
 

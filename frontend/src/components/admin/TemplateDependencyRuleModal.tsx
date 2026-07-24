@@ -41,6 +41,13 @@ const WIZARD_PARAM_SUGGESTIONS: VariableEngineVariable[] = [
     usableInBom: true,
   },
   {
+    expression: 'camera.ip.total',
+    type: 'number',
+    description: 'Legacy alias: liczba kamer IP (to samo co camera.total.ip)',
+    provider: 'wizard',
+    usableInBom: true
+  },
+  {
     expression: 'recordingDays',
     type: 'number',
     description: 'Dni retencji z Wizarda',

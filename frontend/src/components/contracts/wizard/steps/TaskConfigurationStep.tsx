@@ -6,7 +6,7 @@ import type { WizardData, TaskConfiguration, ResolvedMaterial } from '../types/w
 import { generateAllTasks } from '../utils/taskGenerator';
 import { resolveTaskVariant } from '../utils/taskGenerator';
 import bomSubsystemTemplateService from '../../../../services/bomSubsystemTemplate.service';
-import type { BomSubsystemTemplate } from '../../../../services/bomSubsystemTemplate.service';
+import bomResolverService from '../../../../services/bomResolver.service';
 import { wizardHierarchyService } from '../../../../services/wizardHierarchy.service';
 import './TaskConfigurationStep.css';
 
@@ -22,31 +22,61 @@ interface TaskEntry {
   taskName: string;
   taskType: string;
   subsystemType: string;
+  subsystemParams: Record<string, unknown>;
   taskVariant?: string | null;
 }
 
-/**
- * Resolve material quantities from a BOM template item using config params.
- */
-function resolveMaterialQuantity(
-  item: BomSubsystemTemplate['items'][0],
-  configParams: Record<string, unknown>
+function readNumericConfigParam(
+  configParams: Record<string, unknown>,
+  paramPath: string
 ): number {
-  switch (item.quantitySource) {
-    case 'FIXED':
-      return item.defaultQuantity;
-    case 'FROM_CONFIG': {
-      const v = item.configParamName ? configParams[item.configParamName] : undefined;
-      return typeof v === 'number' ? v : item.defaultQuantity;
+  const direct = configParams[paramPath];
+  if (typeof direct === 'number' && Number.isFinite(direct) && direct > 0) {
+    return direct;
+  }
+
+  const keys = paramPath.split('.');
+  let current: unknown = configParams;
+  for (const key of keys) {
+    if (current && typeof current === 'object') {
+      current = (current as Record<string, unknown>)[key];
+    } else {
+      return 0;
     }
-    case 'PER_UNIT': {
-      const u = item.configParamName ? configParams[item.configParamName] : undefined;
-      return item.defaultQuantity * (typeof u === 'number' ? u : 1);
-    }
-    case 'DEPENDENT':
-      return item.defaultQuantity; // formula evaluation not supported in frontend wizard
-    default:
-      return item.defaultQuantity;
+  }
+
+  return typeof current === 'number' && Number.isFinite(current) && current > 0 ? current : 0;
+}
+
+function createBomResolverRequest(
+  task: TaskEntry,
+  configParams: Record<string, unknown>
+) {
+  const cameraCount = Math.max(
+    readNumericConfigParam(configParams, 'cameraCount'),
+    readNumericConfigParam(configParams, 'camera.total'),
+    readNumericConfigParam(configParams, 'camera.total.ip'),
+    readNumericConfigParam(configParams, 'camera.ip.total'),
+    readNumericConfigParam(configParams, 'lcsConfig.iloscKamer'),
+    readNumericConfigParam(configParams, 'nastawniConfig.iloscKamer')
+  );
+
+  const cameraBreakdown = {
+    total: cameraCount,
+    ogolna: readNumericConfigParam(configParams, 'camera.total.ip.ogolna'),
+    lpr: readNumericConfigParam(configParams, 'camera.total.ip.lpr'),
+    skp: readNumericConfigParam(configParams, 'camera.total.ip.skp')
+  };
+
+  const hasCameraBreakdown = cameraBreakdown.total > 0 || cameraBreakdown.ogolna > 0 || cameraBreakdown.lpr > 0 || cameraBreakdown.skp > 0;
+
+  return {
+    subsystemType: task.subsystemType,
+    taskType: task.taskType,
+    taskVariant: task.taskVariant ?? null,
+    configParams,
+    ...(cameraCount > 0 && { cameraCount }),
+    ...(hasCameraBreakdown && { cameraBreakdown })
   }
 }
 
@@ -71,6 +101,10 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
         taskName: gen.name,
         taskType: gen.type,
         subsystemType: sub.type,
+        subsystemParams:
+          sub.params && typeof sub.params === 'object' && !Array.isArray(sub.params)
+            ? (sub.params as Record<string, unknown>)
+            : {},
         taskVariant: detail ? resolveTaskVariant(detail.taskType, detail) : null,
       });
     });
@@ -111,7 +145,10 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
 
         // Read the latest configs via ref to avoid stale closure
         const currentConfigs = taskConfigsRef.current;
-        const configParams: Record<string, unknown> = { ...(currentConfigs[task.key]?.configParams || {}) };
+        const configParams: Record<string, unknown> = {
+          ...task.subsystemParams,
+          ...(currentConfigs[task.key]?.configParams || {})
+        };
 
         // Inject hierarchy.* variables when the template uses them.
         const usesHierarchy = template.items.some(
@@ -147,19 +184,18 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           }
         }
 
-        const materials: ResolvedMaterial[] = template.items
-          .filter((item) => item.id !== undefined)
-          .map((item, itemIdx) => ({
-            id: item.id ?? itemIdx,
-            materialName: item.materialName,
-            catalogNumber: item.catalogNumber,
-            quantity: resolveMaterialQuantity(item, configParams),
-            unit: item.unit,
-            quantitySource: item.quantitySource,
-            groupName: item.groupName || 'Inne',
-            requiresIp: item.requiresIp,
-            isSelected: item.isRequired,
-          }));
+        const resolved = await bomResolverService.resolve(createBomResolverRequest(task, configParams));
+        const materials: ResolvedMaterial[] = resolved.items.map((item) => ({
+          id: item.templateItemId,
+          materialName: item.materialName,
+          catalogNumber: item.catalogNumber ?? undefined,
+          quantity: item.resolvedQuantity,
+          unit: item.unit,
+          quantitySource: item.quantitySource,
+          groupName: item.groupName || 'Inne',
+          requiresIp: item.requiresIp,
+          isSelected: item.isRequired || item.resolvedQuantity > 0,
+        }));
 
         const updatedConfig: TaskConfiguration = {
           taskId: task.key,
@@ -168,8 +204,8 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           taskType: task.taskType,
           subsystemType: task.subsystemType,
           taskVariant: task.taskVariant,
-          bomTemplateId: template.id,
-          bomTemplateVersion: template.version,
+          bomTemplateId: resolved.templateId ?? template.id,
+          bomTemplateVersion: resolved.templateVersion ?? template.version,
           materials,
           configParams,
           isConfigured: false,

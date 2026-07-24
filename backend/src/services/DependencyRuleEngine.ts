@@ -121,16 +121,7 @@ export class DependencyRuleEngine {
         // Get value from previous rule result
         value = ruleResults.get(input.sourceRuleId) || 0;
       } else if (input.inputType === InputType.CONFIG_PARAM && input.sourceParamName) {
-        const keys = input.sourceParamName.split('.');
-        let raw: unknown = configParams;
-        for (const key of keys) {
-          if (raw && typeof raw === 'object') {
-            raw = (raw as Record<string, unknown>)[key];
-          } else {
-            raw = undefined;
-            break;
-          }
-        }
+        const raw = this.readConfigParam(configParams, input.sourceParamName);
         const parsedValue = raw !== undefined ? Number(raw) : 0;
         value = Number.isFinite(parsedValue) ? parsedValue : 0;
       }
@@ -154,6 +145,46 @@ export class DependencyRuleEngine {
     // In a real implementation, you'd need to map itemId to model key
     // For simplicity, if any model is checked, we consider items selected
     return Object.values(selectedModels).some(model => model.checked);
+  }
+
+  private static readConfigParam(
+    configParams: Record<string, unknown> | undefined,
+    sourceParamName: string
+  ): unknown {
+    if (!configParams) {
+      return undefined;
+    }
+
+    if (configParams[sourceParamName] !== undefined) {
+      return configParams[sourceParamName];
+    }
+
+    const alias = this.getConfigParamAlias(sourceParamName);
+    if (alias && configParams[alias] !== undefined) {
+      return configParams[alias];
+    }
+
+    const keys = sourceParamName.split('.');
+    let raw: unknown = configParams;
+    for (const key of keys) {
+      if (raw && typeof raw === 'object') {
+        raw = (raw as Record<string, unknown>)[key];
+      } else {
+        return undefined;
+      }
+    }
+
+    return raw;
+  }
+
+  private static getConfigParamAlias(sourceParamName: string): string | null {
+    if (sourceParamName === 'camera.ip.total') {
+      return 'camera.total.ip';
+    }
+    if (sourceParamName === 'camera.total.ip') {
+      return 'camera.ip.total';
+    }
+    return null;
   }
 
   /**

@@ -504,6 +504,50 @@ describe('DependencyRuleEngine', () => {
       expect(result.get(117)).toBe(8);
     });
 
+    it('should read dotted flat config key camera.total.ip', async () => {
+      const rule: any = {
+        id: 181,
+        evaluationOrder: 0,
+        isActive: true,
+        aggregationType: AggregationType.FIRST,
+        mathOperation: MathOperation.NONE,
+        mathOperand: null,
+        targetItemId: 181,
+        inputs: [
+          { inputType: InputType.CONFIG_PARAM, sourceParamName: 'camera.total.ip', inputMultiplier: 1, sortOrder: 0, onlyIfSelected: false }
+        ],
+        conditions: []
+      };
+
+      const result = await DependencyRuleEngine.evaluate([rule], new Map(), undefined, {
+        'camera.total.ip': 7
+      });
+
+      expect(result.get(181)).toBe(7);
+    });
+
+    it('should resolve legacy alias camera.ip.total from camera.total.ip key', async () => {
+      const rule: any = {
+        id: 182,
+        evaluationOrder: 0,
+        isActive: true,
+        aggregationType: AggregationType.FIRST,
+        mathOperation: MathOperation.NONE,
+        mathOperand: null,
+        targetItemId: 182,
+        inputs: [
+          { inputType: InputType.CONFIG_PARAM, sourceParamName: 'camera.ip.total', inputMultiplier: 1, sortOrder: 0, onlyIfSelected: false }
+        ],
+        conditions: []
+      };
+
+      const result = await DependencyRuleEngine.evaluate([rule], new Map(), undefined, {
+        'camera.total.ip': 11
+      });
+
+      expect(result.get(182)).toBe(11);
+    });
+
     it('should return 0 when config param is missing', async () => {
       const rule: any = {
         id: 19,

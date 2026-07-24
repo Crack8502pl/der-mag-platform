@@ -5,6 +5,27 @@
 
 Dzięki temu reguły nie muszą bazować wyłącznie na pozycjach BOM (`ITEM`) albo wynikach innych reguł (`RULE_RESULT`).
 
+## Diagnoza problemu `camera.ip.total` vs `camera.total.ip`
+
+Root cause:
+- część historycznych reguł BOM używała klucza `camera.ip.total`,
+- nowsze ścieżki przekazywały `camera.total.ip`,
+- dodatkowo `CONFIG_PARAM` w silniku reguł najpierw próbował odczytu wyłącznie po ścieżce zagnieżdżonej (`a.b.c`), więc płaskie klucze z kropkami mogły zostać pominięte.
+
+Rozwiązanie:
+1. `CONFIG_PARAM` najpierw odczytuje dokładny klucz (`configParams['camera.total.ip']`), a potem fallback ścieżki zagnieżdżonej.
+2. Dodano aliasowanie wsteczne `camera.ip.total` ↔ `camera.total.ip`.
+3. Resolver BOM przekazuje oba klucze (`camera.total.ip` i `camera.ip.total`) oraz nadal wspiera `camera.total.ip.{ogolna,lpr,skp}`.
+
+## Mapowanie aliasów parametrów kamer
+
+| Canonical key | Alias legacy | Opis |
+|---|---|---|
+| `camera.total.ip` | `camera.ip.total` | Łączna liczba kamer IP |
+| `camera.total.ip.ogolna` | — | Kamery IP ogólne |
+| `camera.total.ip.lpr` | — | Kamery IP LPR |
+| `camera.total.ip.skp` | — | Kamery IP SKP |
+
 ## Dostępne parametry Wizarda (UI)
 
 ### 📷 Kamery i rejestratory
