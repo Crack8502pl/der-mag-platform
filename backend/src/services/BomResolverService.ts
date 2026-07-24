@@ -160,12 +160,22 @@ export class BomResolverService {
       isStandaloneNastawnia = false,
       cameraBreakdown: requestedCameraBreakdown
     } = request;
-    const cameraBreakdown = BomResolverService.normalizeCameraBreakdown(
+    let cameraBreakdown = BomResolverService.normalizeCameraBreakdown(
       requestedCameraBreakdown,
       requestedCameraCount
     );
-    const cameraCount = requestedCameraCount > 0 ? requestedCameraCount : cameraBreakdown.total;
-    const totalIpCameras = BomResolverService.sumCameraTypes(cameraBreakdown);
+    const fallbackCameraCount = BomResolverService.getFallbackCameraCount(callerConfigParams);
+    const cameraCount =
+      requestedCameraCount > 0
+        ? requestedCameraCount
+        : (cameraBreakdown.total > 0 ? cameraBreakdown.total : fallbackCameraCount);
+
+    cameraBreakdown = BomResolverService.mergeCameraBreakdownFromConfig(
+      cameraBreakdown,
+      callerConfigParams,
+      cameraCount
+    );
+    const totalIpCameras = BomResolverService.resolveTotalIpCameras(cameraBreakdown, callerConfigParams);
     const recordingDays = requestRecordingDays ?? request.retentionDays ?? DEFAULT_RECORDING_DAYS;
     const needsRecorder = BomResolverService.needsRecorder(subsystemType, taskType, isStandaloneNastawnia);
 
@@ -244,6 +254,7 @@ export class BomResolverService {
       bitrateMbps,
       'camera.total': cameraCount,
       'camera.total.ip': totalIpCameras,
+      'camera.ip.total': totalIpCameras,
       'camera.total.ip.ogolna': cameraBreakdown.ogolna,
       'camera.total.ip.lpr': cameraBreakdown.lpr,
       'camera.total.ip.skp': cameraBreakdown.skp,
@@ -432,5 +443,74 @@ export class BomResolverService {
 
   private static sumCameraTypes(cameraBreakdown: Pick<CameraBreakdown, 'ogolna' | 'lpr' | 'skp'>): number {
     return cameraBreakdown.ogolna + cameraBreakdown.lpr + cameraBreakdown.skp;
+  }
+
+  private static getFallbackCameraCount(configParams: Record<string, unknown>): number {
+    return Math.max(
+      BomResolverService.readNumericConfigParam(configParams, 'cameraCount'),
+      BomResolverService.readNumericConfigParam(configParams, 'camera.total'),
+      BomResolverService.readNumericConfigParam(configParams, 'camera.total.ip'),
+      BomResolverService.readNumericConfigParam(configParams, 'camera.ip.total'),
+      BomResolverService.readNumericConfigParam(configParams, 'lcsConfig.iloscKamer'),
+      BomResolverService.readNumericConfigParam(configParams, 'nastawniConfig.iloscKamer')
+    );
+  }
+
+  private static mergeCameraBreakdownFromConfig(
+    cameraBreakdown: CameraBreakdown,
+    configParams: Record<string, unknown>,
+    fallbackTotal: number
+  ): CameraBreakdown {
+    const ogolna =
+      cameraBreakdown.ogolna > 0
+        ? cameraBreakdown.ogolna
+        : BomResolverService.readNumericConfigParam(configParams, 'camera.total.ip.ogolna');
+    const lpr =
+      cameraBreakdown.lpr > 0
+        ? cameraBreakdown.lpr
+        : BomResolverService.readNumericConfigParam(configParams, 'camera.total.ip.lpr');
+    const skp =
+      cameraBreakdown.skp > 0
+        ? cameraBreakdown.skp
+        : BomResolverService.readNumericConfigParam(configParams, 'camera.total.ip.skp');
+    const sum = ogolna + lpr + skp;
+    const total = sum > 0 ? sum : Math.max(cameraBreakdown.total, fallbackTotal);
+
+    return { total, ogolna, lpr, skp };
+  }
+
+  private static resolveTotalIpCameras(
+    cameraBreakdown: CameraBreakdown,
+    configParams: Record<string, unknown>
+  ): number {
+    const breakdownTotal = BomResolverService.sumCameraTypes(cameraBreakdown);
+    if (breakdownTotal > 0) {
+      return breakdownTotal;
+    }
+
+    return Math.max(
+      BomResolverService.readNumericConfigParam(configParams, 'camera.total.ip'),
+      BomResolverService.readNumericConfigParam(configParams, 'camera.ip.total')
+    );
+  }
+
+  private static readNumericConfigParam(configParams: Record<string, unknown>, paramPath: string): number {
+    const direct = configParams[paramPath];
+    if (direct !== undefined) {
+      return BomResolverService.toPositiveInt(direct);
+    }
+
+    const keys = paramPath.split('.');
+    let current: unknown = configParams;
+    for (const key of keys) {
+      if (current && typeof current === 'object') {
+        current = (current as Record<string, unknown>)[key];
+      } else {
+        current = undefined;
+        break;
+      }
+    }
+
+    return BomResolverService.toPositiveInt(current);
   }
 }

@@ -10,6 +10,7 @@
  * |------------------------|--------|----------------------------------------------------|
  * | `camera.total`            | number | Total number of cameras (all types).             |
  * | `camera.total.ip`         | number | Number of IP cameras.                            |
+ * | `camera.ip.total`         | number | Legacy alias for number of IP cameras.           |
  * | `camera.total.ip.ogolna`  | number | Number of general-purpose IP cameras.            |
  * | `camera.total.ip.lpr`     | number | Number of LPR IP cameras.                        |
  * | `camera.total.ip.skp`     | number | Number of SKP IP cameras.                        |
@@ -37,6 +38,7 @@ import { DataFetchDeduplicator } from '../DataFetchDeduplicator';
 type CameraField =
   | 'total'
   | 'total.ip'
+  | 'ip.total'
   | 'total.ip.ogolna'
   | 'total.ip.lpr'
   | 'total.ip.skp'
@@ -48,6 +50,7 @@ type CameraField =
 const SUPPORTED_FIELDS: ReadonlySet<string> = new Set<CameraField>([
   'total',
   'total.ip',
+  'ip.total',
   'total.ip.ogolna',
   'total.ip.lpr',
   'total.ip.skp',
@@ -103,6 +106,7 @@ export class CameraVariableProvider extends AbstractVariableProvider {
       case 'total':
         return data.total;
       case 'total.ip':
+      case 'ip.total':
         return data.totalIp;
       case 'total.ip.ogolna':
         return data.totalIpOgolna;

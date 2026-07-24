@@ -127,6 +127,7 @@ describe('BomResolverService', () => {
     expect(mergedConfigParams.cameraCount).toBe(6);
     expect(mergedConfigParams['camera.total']).toBe(6);
     expect(mergedConfigParams['camera.total.ip']).toBe(6);
+    expect(mergedConfigParams['camera.ip.total']).toBe(6);
     expect(mergedConfigParams['camera.total.ip.ogolna']).toBe(4);
     expect(mergedConfigParams['camera.total.ip.lpr']).toBe(1);
     expect(mergedConfigParams['camera.total.ip.skp']).toBe(1);
@@ -141,6 +142,23 @@ describe('BomResolverService', () => {
       standalone: true,
       iloscKamer: 6
     });
+  });
+
+  it('uses legacy camera.ip.total alias from config params when request camera data is missing', async () => {
+    (BomTemplateDependencyRuleService.getRulesForTemplate as jest.Mock).mockResolvedValue([{ id: 1 }]);
+
+    await BomResolverService.resolve({
+      subsystemType: SubsystemType.SMOKIP_A,
+      taskType: 'LCS',
+      configParams: {
+        'camera.ip.total': 9
+      }
+    });
+
+    expect(RecorderSelectionService.selectRecorder).toHaveBeenCalledWith(9);
+    const mergedConfigParams = (DependencyRuleEngine.evaluate as jest.Mock).mock.calls[0][3];
+    expect(mergedConfigParams['camera.total.ip']).toBe(9);
+    expect(mergedConfigParams['camera.ip.total']).toBe(9);
   });
 
   it('uses cameraBreakdown total when cameraCount is not provided', async () => {
