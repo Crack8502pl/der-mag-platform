@@ -4,6 +4,7 @@ import type { CameraRow } from '../../../types/cameraBreakdown';
 interface WizardStepCamerasProps {
   cameraRows: CameraRow[];
   retentionDays: number;
+  userEditedRows?: boolean;
   onCameraRowsChange: (rows: CameraRow[]) => void;
   onRetentionDaysChange: (days: number) => void;
 }
@@ -23,6 +24,7 @@ const BYTES_PER_TERABYTE = 1e12;
 export const WizardStepCameras: React.FC<WizardStepCamerasProps> = ({
   cameraRows,
   retentionDays,
+  userEditedRows = false,
   onCameraRowsChange,
   onRetentionDaysChange,
 }) => {
@@ -60,6 +62,12 @@ export const WizardStepCameras: React.FC<WizardStepCamerasProps> = ({
   return (
     <div className="wizard-section">
       <h3 className="wizard-section-title">📷 Konfiguracja kamer</h3>
+
+      {totalCameras > 0 && !userEditedRows && (
+        <div className="alert alert-info" style={{ marginBottom: '16px' }}>
+          ℹ️ Liczba kamer wczytana automatycznie z konfiguracji. Sprawdź i ewentualnie skoryguj podział przed obliczeniem BOM.
+        </div>
+      )}
 
       <div className="data-table-container" style={{ marginBottom: '16px' }}>
         <table className="data-table data-table--compact">

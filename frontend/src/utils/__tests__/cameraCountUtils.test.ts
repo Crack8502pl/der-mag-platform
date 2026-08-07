@@ -155,5 +155,61 @@ describe('cameraCountUtils', () => {
         skp: 0,
       });
     });
+
+    it('matches singular iloscKameraOgolna key (issue #605)', () => {
+      const breakdown = extractCameraBreakdown({
+        taskTypeCode: 'LCS',
+        subsystemType: 'SMOKIP_A',
+        configValues: { iloscKameraOgolna: 8 },
+        metadata: {},
+        isStandaloneNastawnia: false,
+      });
+      expect(breakdown).toEqual({ total: 8, ogolna: 8, lpr: 0, skp: 0 });
+    });
+
+    it('matches case-insensitive IloscKamerOgolnych key (issue #605)', () => {
+      const breakdown = extractCameraBreakdown({
+        taskTypeCode: 'LCS',
+        subsystemType: 'SMOKIP_A',
+        configValues: { IloscKamerOgolnych: 12 },
+        metadata: {},
+        isStandaloneNastawnia: false,
+      });
+      expect(breakdown).toEqual({ total: 12, ogolna: 12, lpr: 0, skp: 0 });
+    });
+
+    it('matches iloscKlpr LPR pattern (issue #605)', () => {
+      const breakdown = extractCameraBreakdown({
+        taskTypeCode: 'LCS',
+        subsystemType: 'SMOKIP_A',
+        configValues: { iloscKlpr: 4 },
+        metadata: {},
+        isStandaloneNastawnia: false,
+      });
+      expect(breakdown).toEqual({ total: 4, ogolna: 0, lpr: 4, skp: 0 });
+    });
+
+    it('matches iloscKamerasSKP pattern (issue #605)', () => {
+      const breakdown = extractCameraBreakdown({
+        taskTypeCode: 'LCS',
+        subsystemType: 'SMOKIP_A',
+        configValues: { iloscKamerasSKP: 3 },
+        metadata: {},
+        isStandaloneNastawnia: false,
+      });
+      expect(breakdown).toEqual({ total: 3, ogolna: 0, lpr: 0, skp: 3 });
+    });
+
+    it('fallback total from lcsConfig.iloscKamer when configValues empty (issue #604)', () => {
+      const breakdown = extractCameraBreakdown({
+        taskTypeCode: 'LCS',
+        subsystemType: 'SMOKIP_A',
+        configValues: {},
+        metadata: { lcsConfig: { iloscKamer: 20 } },
+        isStandaloneNastawnia: false,
+      });
+      expect(breakdown.total).toBe(20);
+      expect(breakdown.ogolna).toBe(0);
+    });
   });
 });

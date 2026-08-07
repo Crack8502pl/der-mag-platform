@@ -64,9 +64,18 @@ const DEFAULT_CAMERA_ROWS: CameraRow[] = [
 const createDefaultCameraRows = (): CameraRow[] => DEFAULT_CAMERA_ROWS.map(row => ({ ...row }));
 
 const CAMERA_VALUE_PATTERNS = {
-  Ogólna: ['ilosckamerogolnych', 'kamerogolnych'],
-  LPR: ['ilosckamerlpr', 'kamerlpr'],
-  SKP: ['ilosckamerskp', 'kamerskp', 'iloscskp'],
+  Ogólna: [
+    'ilosckamerogolnych', 'kamerogolnych',
+    'kameraogolna', 'ilosckameraogolna', 'kamerogolna',
+  ],
+  LPR: [
+    'ilosckamerlpr', 'kamerlpr',
+    'iloscklpr',
+  ],
+  SKP: [
+    'ilosckamerskp', 'kamerskp', 'iloscskp',
+    'ilosckamerasskp',
+  ],
 } as const;
 
 interface TaskConfigWizardProps {
@@ -115,6 +124,7 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
   const [resolving, setResolving] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [userEditedRows, setUserEditedRows] = useState(false);
 
   useEffect(() => {
     initWizard();
@@ -250,11 +260,13 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
         if (configBreakdown.ogolna > 0 || configBreakdown.lpr > 0 || configBreakdown.skp > 0) {
           setCameraRows(buildRowsFromBreakdown(configBreakdown));
         } else if (initialCameraCount > 0) {
+          // Fallback #605: wszystkie kamery do wiersza Ogólna + warning
           setCameraRows([
             { type: 'Ogólna', quantity: initialCameraCount, quantityPerPole: 2 },
             { type: 'LPR', quantity: 0, quantityPerPole: 1 },
             { type: 'SKP', quantity: 0, quantityPerPole: 1 },
           ]);
+          console.warn(`[TaskConfigWizard] cameraRows z fallback cameraCount=${initialCameraCount} — wszystkie do 'Ogólna'`);
         }
       }
 
@@ -405,9 +417,29 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
       const subsystemType = metadata.subsystemType || task.taskType?.code || '';
       const taskType = task.taskType?.code || subsystemType;
       const taskVariant = metadata.taskVariant || null;
-      const breakdown = buildCameraBreakdownFromRows(cameraRows);
+      let breakdown = buildCameraBreakdownFromRows(cameraRows);
+      let effectiveRows = cameraRows;
+
+      // FALLBACK #604: gdy cameraRows puste (async setState), pobierz z configValues
+      if (breakdown.total === 0) {
+        const fallbackBreakdown = extractCameraBreakdown({
+          taskTypeCode: task.taskType?.code || '',
+          subsystemType: String(metadata.subsystemType || task.taskType?.code || ''),
+          configValues,
+          metadata,
+          isStandaloneNastawnia,
+        });
+
+        if (fallbackBreakdown.total > 0) {
+          breakdown = fallbackBreakdown;
+          effectiveRows = buildRowsFromBreakdown(fallbackBreakdown);
+          setCameraRows(effectiveRows); // sync stanu
+          setUserEditedRows(true);
+        }
+      }
+
       const count = breakdown.total;
-      const syncedConfigValues = syncCameraRowsToConfigValues(configValues, cameraRows);
+      const syncedConfigValues = syncCameraRowsToConfigValues(configValues, effectiveRows);
       setConfigValues(syncedConfigValues);
       setCameraCount(count);
 
@@ -415,7 +447,7 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
         subsystemType,
         taskType,
         taskVariant,
-        configParams: { ...syncedConfigValues, selectedModels, cameraRows, cameraBreakdown: breakdown },
+        configParams: { ...syncedConfigValues, selectedModels, cameraRows: effectiveRows, cameraBreakdown: breakdown },
         isStandaloneNastawnia,
         selectedRecorderId: selectedRecorderId || null,
         retentionDays,
@@ -636,7 +668,8 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
               <WizardStepCameras
                 cameraRows={cameraRows}
                 retentionDays={retentionDays}
-                onCameraRowsChange={setCameraRows}
+                userEditedRows={userEditedRows}
+                onCameraRowsChange={rows => { setCameraRows(rows); setUserEditedRows(true); }}
                 onRetentionDaysChange={setRetentionDays}
               />
             </>
