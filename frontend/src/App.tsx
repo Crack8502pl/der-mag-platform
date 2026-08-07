@@ -58,6 +58,13 @@ import { ConnectionStatusBanner } from './components/common/ConnectionStatusBann
 import { initConnectionMonitor } from './services/connectionMonitor';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { getSafeRedirectPath } from './utils/authRedirect';
+import { useGroverUniverse } from './hooks/useGroverUniverse';
+import { useGroverSpeech } from './hooks/useGroverSpeech';
+import { GroverModal } from './components/grover/GroverModal';
+import { AdminModal } from './components/grover/AdminModal';
+import { PawOverlay } from './components/grover/PawOverlay';
+import { AportBall } from './components/grover/AportBall';
+import './styles/grover-anim.css';
 import './styles/grover-theme.css';
 import './styles/husky-theme.css';
 
@@ -100,6 +107,15 @@ function App() {
     refreshError
   } = useTokenExpirationWarning();
   usePermissionRefresh();
+  useGroverSpeech();
+  const {
+    activeModal,
+    closeModal,
+    paws,
+    pawsActive,
+    showBall,
+    handleBallClick,
+  } = useGroverUniverse();
 
   useEffect(() => {
     // Initialize connection monitor on app startup
@@ -125,6 +141,12 @@ function App() {
         />
       )}
       
+      {/* Grover Universe Easter Eggs */}
+      {activeModal === 'grover' && <GroverModal onClose={closeModal} />}
+      {activeModal === 'admin' && <AdminModal onClose={closeModal} />}
+      <PawOverlay paws={paws} active={pawsActive} />
+      {showBall && <AportBall onClick={handleBallClick} />}
+
       <Routes>
         {/* Public Routes */}
         <Route
