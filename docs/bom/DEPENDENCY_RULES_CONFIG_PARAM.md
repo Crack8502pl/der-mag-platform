@@ -53,6 +53,7 @@ Rozwiązanie:
 1. `SELECT_RECORDER`
    - wejście: `CONFIG_PARAM -> cameraCount`
    - cel: pozycja rejestratora
+   - alternatywnie dla reguł IP-only: `CONFIG_PARAM -> camera.total.ip`
 
 2. `SELECT_DISKS`
    - wejście #1: wynik reguły pojemności (np. `CALCULATE_STORAGE`)

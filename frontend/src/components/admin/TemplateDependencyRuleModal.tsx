@@ -604,7 +604,7 @@ export const TemplateDependencyRuleModal: React.FC<TemplateDependencyRuleModalPr
                             className="input"
                             value={input.sourceParamName || ''}
                             onChange={(e) => handleUpdateInput(idx, 'sourceParamName', e.target.value)}
-                            placeholder="np. cameraCount lub camera.total.ip.lpr"
+                            placeholder="np. cameraCount, camera.total, camera.total.ip, camera.total.ip.lpr, lcsConfig.iloscKamer"
                             style={{ fontSize: '13px', padding: '6px' }}
                           />
                           <datalist id="variable-engine-vars">

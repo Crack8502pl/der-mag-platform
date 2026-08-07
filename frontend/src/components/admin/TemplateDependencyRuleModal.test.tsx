@@ -101,7 +101,7 @@ describe('TemplateDependencyRuleModal CONFIG_PARAM onlyIfSelected behavior', () 
     const typeSelect = container.querySelector('select') as HTMLSelectElement;
     fireEvent.change(typeSelect, { target: { value: 'CONFIG_PARAM' } });
 
-    const input = await screen.findByPlaceholderText('np. cameraCount lub camera.total.ip.lpr');
+    const input = await screen.findByPlaceholderText('np. cameraCount, camera.total, camera.total.ip, camera.total.ip.lpr, lcsConfig.iloscKamer');
     expect(input).toBeInTheDocument();
     expect(variableEngineService.listVariables).toHaveBeenCalled();
     expect(container.querySelector('datalist option[value="camera.total.ip.lpr"]')).toBeTruthy();
