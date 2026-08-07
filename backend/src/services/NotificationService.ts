@@ -101,7 +101,8 @@ export class NotificationService {
           assignedTo: order.assignedTo.username,
           itemCount: order.items?.length || 0,
           createdAt: order.createdAt
-        }
+        },
+        automation: { automated: true }
       });
 
       console.log(`✅ Wysłano powiadomienie o nowym zadaniu kompletacji #${completionOrderId}`);
@@ -141,7 +142,8 @@ export class NotificationService {
           missingItems,
           missingItemsCount: missingItems.length
         },
-        priority: 'high'
+        priority: 'high',
+        automation: { automated: true }
       });
 
       console.log(`✅ Wysłano powiadomienie o brakach materiałowych dla zlecenia #${completionOrderId}`);
@@ -189,7 +191,8 @@ export class NotificationService {
           completedItems,
           totalItems: order.items.length,
           completedAt: order.completedAt
-        }
+        },
+        automation: { automated: true }
       });
 
       console.log(`✅ Wysłano powiadomienie o zakończeniu kompletacji #${completionOrderId}`);
@@ -233,7 +236,8 @@ export class NotificationService {
           assignedTo: task.assignedTo.username,
           completionOrderId: task.completionOrderId,
           createdAt: task.createdAt
-        }
+        },
+        automation: { automated: true }
       });
 
       console.log(`✅ Wysłano powiadomienie o nowym zadaniu prefabrykacji #${prefabTaskId}`);
@@ -276,7 +280,8 @@ export class NotificationService {
           contractNumber: task.subsystem.contract.contractNumber,
           deviceCount: task.devices?.length || 0,
           completedAt: task.completedAt
-        }
+        },
+        automation: { automated: true }
       });
 
       SlackWebhookService.notifyPrefabricationCompleted({
@@ -311,7 +316,8 @@ export class NotificationService {
         template: 'installation-new-task',
         context: {
           taskId
-        }
+        },
+        automation: { automated: true }
       });
 
       console.log(`✅ Wysłano powiadomienie o zadaniu instalacji #${taskId}`);
@@ -422,7 +428,8 @@ export class NotificationService {
           notes: notes || null,
           approvalUrl: `${appUrl}/completion`
         },
-        priority: 'high'
+        priority: 'high',
+        automation: { automated: true }
       });
 
       console.log(`✅ Wysłano powiadomienie o prośbie o częściowe wydanie #${completionOrderId}`);
@@ -466,7 +473,8 @@ export class NotificationService {
           approvedAt: new Date().toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
           notes: notes || null,
           orderUrl: `${appUrl}/completion`
-        }
+        },
+        automation: { automated: true, recipientUserId: order.assignedTo.id }
       });
 
       console.log(`✅ Wysłano powiadomienie o akceptacji częściowego wydania #${completionOrderId}`);

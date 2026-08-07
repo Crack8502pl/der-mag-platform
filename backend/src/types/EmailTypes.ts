@@ -21,6 +21,10 @@ export interface EmailOptions {
   context: Record<string, any>;
   attachments?: EmailAttachment[];
   priority?: 'high' | 'normal' | 'low';
+  automation?: {
+    automated: boolean;
+    recipientUserId?: number | null;
+  };
 }
 
 /**

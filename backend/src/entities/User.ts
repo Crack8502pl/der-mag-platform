@@ -80,6 +80,18 @@ export class User {
   @Column({ name: 'deletion_reason', type: 'varchar', length: 500, nullable: true })
   deletionReason: string | null;
 
+  @Column({ name: 'email_automation_paused', type: 'boolean', default: false })
+  emailAutomationPaused: boolean;
+
+  @Column({ name: 'email_automation_pause_reason', type: 'text', nullable: true })
+  emailAutomationPauseReason: string | null;
+
+  @Column({ name: 'email_automation_paused_at', type: 'timestamp', nullable: true })
+  emailAutomationPausedAt: Date | null;
+
+  @Column({ name: 'email_automation_paused_by', type: 'int', nullable: true })
+  emailAutomationPausedBy: number | null;
+
   // Hashowanie hasła przed zapisem
   @BeforeInsert()
   @BeforeUpdate()

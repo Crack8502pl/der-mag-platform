@@ -105,7 +105,8 @@ export class ContractNotificationService {
             projectManager: `${contract.projectManager.firstName} ${contract.projectManager.lastName}`,
             createdBy: `${createdBy.firstName} ${createdBy.lastName}`,
             contractUrl: `${process.env.FRONTEND_URL}/contracts/${contractId}`,
-          }
+          },
+          automation: { automated: true }
         });
       }
 
@@ -147,7 +148,8 @@ export class ContractNotificationService {
             approvedBy: `${approvedBy.firstName} ${approvedBy.lastName}`,
             contractUrl: `${process.env.FRONTEND_URL}/contracts/${contractId}`,
           },
-          priority: 'high'
+          priority: 'high',
+          automation: { automated: true }
         });
       }
 
@@ -190,7 +192,8 @@ export class ContractNotificationService {
             reason: reason || 'Nie podano przyczyny',
             contractUrl: `${process.env.FRONTEND_URL}/contracts/${contractId}`,
           },
-          priority: 'high'
+          priority: 'high',
+          automation: { automated: true }
         });
       }
 
@@ -227,7 +230,8 @@ export class ContractNotificationService {
           daysRemaining,
           contractUrl: `${process.env.FRONTEND_URL}/contracts/${contractId}`,
         },
-        priority: daysRemaining <= 3 ? 'high' : 'normal'
+        priority: daysRemaining <= 3 ? 'high' : 'normal',
+        automation: { automated: true }
       });
 
       SlackWebhookService.notifyContractDeadline({

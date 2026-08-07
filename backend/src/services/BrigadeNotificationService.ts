@@ -146,6 +146,7 @@ export class BrigadeNotificationService {
             platformName: 'Grover Platform',
             currentYear: new Date().getFullYear(),
           },
+          automation: { automated: true, recipientUserId: member.user.id },
         });
       }
 
@@ -185,6 +186,7 @@ export class BrigadeNotificationService {
             platformName: 'Grover Platform',
             currentYear: new Date().getFullYear(),
           },
+          automation: { automated: true, recipientUserId: member.user.id },
         });
       }
 
@@ -229,6 +231,7 @@ export class BrigadeNotificationService {
             platformName: 'Grover Platform',
             currentYear: new Date().getFullYear(),
           },
+          automation: { automated: true, recipientUserId: member.user.id },
         });
       }
 
@@ -258,6 +261,7 @@ export class BrigadeNotificationService {
             platformName: 'Grover Platform',
             currentYear: new Date().getFullYear(),
           },
+          automation: { automated: true, recipientUserId: member.user.id },
         });
       }
 
@@ -308,6 +312,7 @@ export class BrigadeNotificationService {
             platformName: 'Grover Platform',
             currentYear: new Date().getFullYear(),
           },
+          automation: { automated: true, recipientUserId: member.user.id },
         });
       }
 
@@ -356,6 +361,7 @@ export class BrigadeNotificationService {
           platformName: 'Grover Platform',
           currentYear: new Date().getFullYear(),
         },
+        automation: { automated: true, recipientUserId: user.id },
       });
 
       console.log(`✅ Wysłano powiadomienie o dodaniu członka ${userId} do brygady ${brigadeId}`);
@@ -398,6 +404,7 @@ export class BrigadeNotificationService {
           platformName: 'Grover Platform',
           currentYear: new Date().getFullYear(),
         },
+        automation: { automated: true, recipientUserId: user.id },
       });
 
       console.log(`✅ Wysłano powiadomienie o usunięciu członka ${userId} z brygady ${brigadeId}`);

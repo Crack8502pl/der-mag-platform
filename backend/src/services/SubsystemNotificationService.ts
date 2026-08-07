@@ -97,7 +97,8 @@ export class SubsystemNotificationService {
           projectManager: `${subsystem.contract.projectManager.firstName} ${subsystem.contract.projectManager.lastName}`,
           createdBy: `${createdBy.firstName} ${createdBy.lastName}`,
           subsystemUrl: `${process.env.FRONTEND_URL}/subsystems/${subsystemId}`,
-        }
+        },
+        automation: { automated: true }
       });
 
       console.log(`✅ Powiadomienie o utworzeniu podsystemu ${subsystem.subsystemNumber} wysłane`);
@@ -133,7 +134,8 @@ export class SubsystemNotificationService {
           projectManager: `${subsystem.contract.projectManager.firstName} ${subsystem.contract.projectManager.lastName}`,
           changedBy: `${changedBy.firstName} ${changedBy.lastName}`,
           subsystemUrl: `${process.env.FRONTEND_URL}/subsystems/${subsystemId}`,
-        }
+        },
+        automation: { automated: true }
       });
 
       console.log(`✅ Powiadomienie o zmianie statusu podsystemu ${subsystem.subsystemNumber} wysłane`);
@@ -166,7 +168,8 @@ export class SubsystemNotificationService {
             contractName: subsystem.contract.customName,
             projectManager: `${subsystem.contract.projectManager.firstName} ${subsystem.contract.projectManager.lastName}`,
             subsystemUrl: `${process.env.FRONTEND_URL}/subsystems/${subsystemId}`,
-          }
+          },
+          automation: { automated: true }
         });
       }
 

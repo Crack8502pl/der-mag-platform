@@ -19,6 +19,10 @@ export interface User {
   forcePasswordChange: boolean;
   lastLogin?: string;
   passwordChangedAt?: string;
+  emailAutomationPaused?: boolean;
+  emailAutomationPauseReason?: string | null;
+  emailAutomationPausedAt?: string | null;
+  emailAutomationPausedBy?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -57,6 +61,10 @@ export interface SmtpConfig {
 
 export interface PortalConfig {
   url: string;
+}
+
+export interface EmailAutomationSettings {
+  enabled: boolean;
 }
 
 export interface SmtpTestResult {

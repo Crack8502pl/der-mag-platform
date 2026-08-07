@@ -11,6 +11,7 @@ import { RoleController } from '../controllers/RoleController';
 import { AdminController } from '../controllers/AdminController';
 import { CompletionController } from '../controllers/CompletionController';
 import { AdminSessionsController } from '../controllers/AdminSessionsController';
+import { EmailAutomationAdminController } from '../controllers/EmailAutomationAdminController';
 import cronConfigRouter from './cronConfig.routes';
 
 const router = Router();
@@ -31,6 +32,10 @@ router.post('/config/smtp/test', SystemConfigController.testSmtpConnection);
 // Portal Configuration
 router.get('/config/portal', SystemConfigController.getPortalUrl);
 router.put('/config/portal', SystemConfigController.setPortalUrl);
+
+// Email automation controls
+router.get('/settings/email-automation', EmailAutomationAdminController.getGlobalSetting);
+router.patch('/settings/email-automation', EmailAutomationAdminController.updateGlobalSetting);
 
 // Serial Number Patterns Configuration
 router.get('/config/serial-patterns', CompletionController.getSerialPatterns);
@@ -55,6 +60,7 @@ router.post('/users/:id/deactivate', UserController.deactivate);
 
 // Reset user password (generates new OTP)
 router.post('/users/:id/reset-password', UserController.resetPassword);
+router.patch('/users/:id/email-automation', EmailAutomationAdminController.updateUserPause);
 
 // ============================================
 // Role Management Routes
