@@ -98,9 +98,18 @@ export function extractCameraCount(params: ExtractCameraCountParams): number {
 export function extractCameraBreakdown(params: ExtractCameraCountParams): CameraBreakdown {
   try {
     const { configValues } = params;
-    const ogolna = sumMatchingConfigValues(configValues, ['kamerogolnych', 'kameraogolna', 'ogolna']);
-    const lpr = sumMatchingConfigValues(configValues, ['kamerlpr', 'lpr']);
-    const skp = sumMatchingConfigValues(configValues, ['kamerskp', 'ilosckamerskp', 'iloscskp', 'skp']);
+    const ogolna = sumMatchingConfigValues(configValues, [
+      'kamerogolnych', 'kameraogolna', 'ogolna',
+      'ilosckameraogolna', 'kamerogolna',
+    ]);
+    const lpr = sumMatchingConfigValues(configValues, [
+      'kamerlpr', 'lpr',
+      'iloscklpr',
+    ]);
+    const skp = sumMatchingConfigValues(configValues, [
+      'kamerskp', 'ilosckamerskp', 'iloscskp', 'skp',
+      'ilosckamerasskp',
+    ]);
     const sum = ogolna + lpr + skp;
 
     return {
