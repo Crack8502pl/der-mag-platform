@@ -42,6 +42,7 @@ jest.mock('../../../src/services/EmailAutomationGuardService', () => ({
 describe('EmailService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.resetModules();
   });
 
   it('initializes a nodemailer transporter and verifies the SMTP connection', async () => {
