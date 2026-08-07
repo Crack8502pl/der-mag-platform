@@ -166,7 +166,8 @@ export class StockNotificationService {
           category: stock.category || 'Brak kategorii',
           stockUrl: `${process.env.FRONTEND_URL}/warehouse-stock/${stockId}`,
         },
-        priority: 'high'
+        priority: 'high',
+        automation: { automated: true }
       });
 
       SlackWebhookService.notifyStockLow({
@@ -222,7 +223,8 @@ export class StockNotificationService {
           supplier: stock.supplier || 'Nie określono',
           stockUrl: `${process.env.FRONTEND_URL}/warehouse-stock/${stockId}`,
         },
-        priority: 'high'
+        priority: 'high',
+        automation: { automated: true }
       });
 
       SlackWebhookService.notifyStockCritical({
@@ -270,7 +272,8 @@ export class StockNotificationService {
           totalProcessed,
           successRate,
           warehouseUrl: `${process.env.FRONTEND_URL}/warehouse-stock`,
-        }
+        },
+        automation: { automated: true, recipientUserId: user.id }
       });
 
       SlackWebhookService.notifyImportCompleted({

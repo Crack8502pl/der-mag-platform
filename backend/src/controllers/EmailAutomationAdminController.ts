@@ -36,8 +36,16 @@ export class EmailAutomationAdminController {
       return;
     }
 
-    const data = await EmailAutomationAdminService.getGlobalSetting();
-    res.json({ success: true, data });
+    try {
+      const data = await EmailAutomationAdminService.getGlobalSetting();
+      res.json({ success: true, data });
+    } catch (error) {
+      console.error('Błąd pobierania ustawienia email automation:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Nie udało się pobrać ustawienia',
+      });
+    }
   }
 
   static async updateGlobalSetting(req: Request, res: Response): Promise<void> {

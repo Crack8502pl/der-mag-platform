@@ -49,7 +49,8 @@ export class UserNotificationService {
           newRole: newRole.name,
           changedBy: changedBy ? `${changedBy.firstName} ${changedBy.lastName}` : 'Administrator',
           loginUrl: `${process.env.FRONTEND_URL}/login`,
-        }
+        },
+        automation: { automated: true, recipientUserId: user.id }
       });
 
       console.log(`✅ Powiadomienie o zmianie roli wysłane do ${user.email}`);
@@ -83,7 +84,8 @@ export class UserNotificationService {
           reason: reason || 'Nie podano przyczyny',
           supportEmail: process.env.SUPPORT_EMAIL || 'support@grover.pl',
         },
-        priority: 'high'
+        priority: 'high',
+        automation: { automated: true, recipientUserId: user.id }
       });
 
       // Powiadomienie do adminów
@@ -98,7 +100,8 @@ export class UserNotificationService {
             blockedBy: blockedBy ? `${blockedBy.firstName} ${blockedBy.lastName}` : 'Administrator',
             reason: reason || 'Nie podano przyczyny',
             supportEmail: process.env.SUPPORT_EMAIL || 'support@grover.pl',
-          }
+          },
+          automation: { automated: true }
         });
       }
 
@@ -128,7 +131,8 @@ export class UserNotificationService {
           userName: `${user.firstName} ${user.lastName}`,
           unblockedBy: unblockedBy ? `${unblockedBy.firstName} ${unblockedBy.lastName}` : 'Administrator',
           loginUrl: `${process.env.FRONTEND_URL}/login`,
-        }
+        },
+        automation: { automated: true, recipientUserId: user.id }
       });
 
       console.log(`✅ Powiadomienie o odblokowaniu konta ${user.email} wysłane`);

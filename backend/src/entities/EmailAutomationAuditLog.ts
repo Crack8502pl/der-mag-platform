@@ -1,8 +1,8 @@
-import { Entity, PrimaryColumn, Column, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 
 @Entity('email_automation_audit_log')
 export class EmailAutomationAuditLog {
-  @PrimaryColumn({ type: 'uuid', default: () => 'gen_random_uuid()' })
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ name: 'actor_admin_id', type: 'int', nullable: true })

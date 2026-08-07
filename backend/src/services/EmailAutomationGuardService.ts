@@ -104,9 +104,16 @@ export class EmailAutomationGuardService {
       return [];
     }
 
-    if (recipientUserId) {
-      const canSend = await this.canSendAutomatedEmail(String(recipientUserId));
-      return canSend ? normalizedRecipients : [];
+    if (recipientUserId !== null && recipientUserId !== undefined) {
+      try {
+        const isPaused = await this.isUserPaused(String(recipientUserId));
+        return isPaused ? [] : normalizedRecipients;
+      } catch (error) {
+        if (error instanceof EmailAutomationUserNotFoundError) {
+          return [];
+        }
+        throw error;
+      }
     }
 
     const users = await this.userRepository.find({
@@ -120,6 +127,14 @@ export class EmailAutomationGuardService {
     const usersByEmail = new Map(
       users.map(user => [user.email.toLowerCase(), user]),
     );
+
+    const cacheExpiresAt = Date.now() + CACHE_TTL_MS;
+    for (const user of users) {
+      this.userPauseCache.set(user.id, {
+        value: Boolean(user.emailAutomationPaused),
+        expiresAt: cacheExpiresAt,
+      });
+    }
 
     const allowedRecipients: string[] = [];
     for (const recipient of normalizedRecipients) {
@@ -137,7 +152,7 @@ export class EmailAutomationGuardService {
   }
 
   invalidateUserCache(userId?: number): void {
-    if (userId) {
+    if (userId !== undefined) {
       this.userPauseCache.delete(userId);
       return;
     }

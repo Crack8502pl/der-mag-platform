@@ -36,4 +36,35 @@ describe('EmailAutomationSettingsPage', () => {
     await waitFor(() => expect(updateEmailAutomationSettings).toHaveBeenCalledWith(false));
     expect(await screen.findByText('Automatyczne e-maile: wyłączone.')).toBeInTheDocument();
   });
+
+  it('shows a retry toast when the initial settings request fails', async () => {
+    getEmailAutomationSettings.mockRejectedValue(new Error('load failed'));
+
+    render(
+      <MemoryRouter>
+        <EmailAutomationSettingsPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Nie udało się pobrać ustawień automatycznych e-maili.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ponów' })).toBeInTheDocument();
+  });
+
+  it('rolls back optimistic state and shows an error toast when save fails', async () => {
+    getEmailAutomationSettings.mockResolvedValue({ enabled: true });
+    updateEmailAutomationSettings.mockRejectedValue(new Error('save failed'));
+
+    render(
+      <MemoryRouter>
+        <EmailAutomationSettingsPage />
+      </MemoryRouter>,
+    );
+
+    await screen.findByText('Włączone');
+
+    fireEvent.click(screen.getByRole('button', { name: /Wyłącz automat/i }));
+
+    expect(await screen.findByText('Nie udało się zapisać ustawienia. Możesz spróbować ponownie.')).toBeInTheDocument();
+    expect(await screen.findByText('Włączone')).toBeInTheDocument();
+  });
 });

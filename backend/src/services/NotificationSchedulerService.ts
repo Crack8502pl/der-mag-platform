@@ -176,7 +176,8 @@ export class NotificationSchedulerService {
             totalBrigades: brigades.length,
             totalTasks: reportData.reduce((sum, b) => sum + b.activeTasks, 0),
             dashboardUrl: `${process.env.FRONTEND_URL}/brigades`,
-          }
+          },
+          automation: { automated: true }
         });
       }
 
@@ -217,7 +218,8 @@ export class NotificationSchedulerService {
             brigades: brigadeStats,
             stock: stockStats,
             dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
-          }
+          },
+          automation: { automated: true }
         });
       }
 
@@ -260,7 +262,8 @@ export class NotificationSchedulerService {
             tasks: taskStats,
             weeklyProgress,
             dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
-          }
+          },
+          automation: { automated: true }
         });
       }
 
@@ -302,7 +305,8 @@ export class NotificationSchedulerService {
             tasks: taskStats,
             metrics: monthlyMetrics,
             dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
-          }
+          },
+          automation: { automated: true }
         });
       }
 
@@ -566,7 +570,8 @@ export class NotificationSchedulerService {
             alerts: alertsData,
             warehouseUrl: `${process.env.FRONTEND_URL}/warehouse-stock`,
           },
-          priority: 'high'
+          priority: 'high',
+          automation: { automated: true }
         });
       }
 

@@ -312,6 +312,7 @@ export class TaskController {
               location: task.location || 'Nie określono',
               url: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/tasks/${task.taskNumber}`,
             },
+            automation: { automated: true },
           });
         }
       } catch (emailError) {
@@ -505,6 +506,7 @@ export class TaskController {
                   status: 'Zakończone',
                   url: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/tasks/${fullTask.taskNumber}`,
                 },
+                automation: { automated: true },
               });
             }
           }
@@ -724,6 +726,7 @@ export class TaskController {
                 priority: task.priority || 0,
                 url: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/tasks/${task.taskNumber}`,
               },
+              automation: { automated: true, recipientUserId: user.id },
             });
           }
         }
@@ -1068,4 +1071,3 @@ export class TaskController {
     }
   }
 }
-

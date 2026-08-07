@@ -86,7 +86,7 @@ export const EmailAutomationSettingsPage: React.FC = () => {
       </div>
 
       {toast && (
-        <div className={`email-automation-toast ${toast.type}`} role="status">
+        <div className={`email-automation-toast ${toast.type}`} role={toast.type === 'error' ? 'alert' : 'status'}>
           <span>{toast.message}</span>
           <div className="email-automation-toast-actions">
             {toast.retry && (

@@ -107,7 +107,7 @@ class EmailQueueService {
   async addToQueue(emailOptions: EmailOptions, delay = 0): Promise<void> {
     const normalizedEmailOptions: EmailOptions = {
       ...emailOptions,
-      automation: emailOptions.automation ?? { automated: true },
+      automation: emailOptions.automation ?? { automated: false },
     };
 
     if (!this.queue) {
