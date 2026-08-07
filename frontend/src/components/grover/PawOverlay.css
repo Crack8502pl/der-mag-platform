@@ -1,0 +1,22 @@
+/* src/components/grover/PawOverlay.css */
+
+.paw-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.paw-overlay__paw {
+  position: absolute;
+  color: rgba(255, 165, 0, 0.7);
+  animation: paw-fade-out 2s ease-out forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes paw-fade-out {
+  0%   { opacity: 1; }
+  70%  { opacity: 0.6; }
+  100% { opacity: 0; }
+}

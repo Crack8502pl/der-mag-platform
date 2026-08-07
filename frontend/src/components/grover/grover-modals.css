@@ -1,0 +1,81 @@
+/* src/components/grover/grover-modals.css */
+/* Modal styles for Grover Easter Eggs — works with grover-theme (dark) and husky-theme (light) */
+
+.grover-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+  animation: grover-fade-in 0.2s ease forwards;
+}
+
+.grover-modal {
+  position: relative;
+  background: var(--bg-secondary, #1e1e2e);
+  border: 1px solid var(--border-color, #3d3d5c);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 480px;
+  width: 90%;
+  text-align: center;
+  animation: grover-slide-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.grover-modal__close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--text-secondary, #aaa);
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.grover-modal__close:hover {
+  color: var(--text-primary, #fff);
+  background: var(--bg-tertiary, #2a2a40);
+}
+
+.grover-modal__img {
+  max-width: 100%;
+  max-height: 360px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.grover-modal__caption {
+  margin-top: 12px;
+  color: var(--text-primary, #fff);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+@keyframes grover-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes grover-slide-in {
+  from { transform: translateY(30px) scale(0.9); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* Light theme overrides */
+:root[data-theme="husky"] .grover-modal {
+  background: var(--bg-secondary, #f5f5f5);
+  border-color: var(--border-color, #ddd);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+:root[data-theme="husky"] .grover-modal__caption {
+  color: var(--text-primary, #111);
+}
