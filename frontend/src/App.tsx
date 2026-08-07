@@ -14,6 +14,7 @@ import { CompletionScannerPage } from './components/completion/CompletionScanner
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { UserManagementPage } from './components/admin/UserManagementPage';
 import { SMTPConfigPage } from './components/admin/SMTPConfigPage';
+import { EmailAutomationSettingsPage } from './components/admin/EmailAutomationSettingsPage';
 import { PortalConfigPage } from './components/admin/PortalConfigPage';
 import { AdminPasswordChange } from './components/admin/AdminPasswordChange';
 import { MaterialImportPage } from './components/admin/MaterialImportPage';
@@ -440,6 +441,16 @@ function App() {
             <ProtectedRoute>
               <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
                 <SMTPConfigPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/email-automation"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
+                <EmailAutomationSettingsPage />
               </RoleBasedRoute>
             </ProtectedRoute>
           }

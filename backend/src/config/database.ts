@@ -95,6 +95,7 @@ import { NetworkTopology } from '../entities/NetworkTopology.entity';
 import { RailwayLine } from '../entities/RailwayLine.entity';
 import { RailwayStation } from '../entities/RailwayStation.entity';
 import { WebhookConfig } from '../entities/WebhookConfig.entity';
+import { EmailAutomationAuditLog } from '../entities/EmailAutomationAuditLog';
 // Migrations
 import { BackfillWizardTaskMetadata1714080000000 } from '../migrations/1714080000000-BackfillWizardTaskMetadata';
 import { CreateNetworkTopologies20260430 } from '../migrations/20260430_create_network_topologies';
@@ -102,6 +103,9 @@ import { AddDeletedAtToNetworkTopologies20260430 } from '../migrations/20260430_
 import { CreateRailwayTables20260517 } from '../migrations/20260517_create_railway_tables';
 import { CreateWebhookConfigs20260517 } from '../migrations/20260517_create_webhook_configs';
 import { AddGpsToServiceTask1779574500000 } from '../migrations/1779574500000-AddGpsToServiceTask';
+import { AddEmailAutomationSystemSetting20260807 } from '../migrations/20260807_add_email_automation_system_setting';
+import { AddEmailAutomationPausedToUsers20260807 } from '../migrations/20260807_add_email_automation_paused_to_users';
+import { AddEmailAutomationAuditTable20260807 } from '../migrations/20260807_add_email_automation_audit_table';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -225,6 +229,7 @@ export const AppDataSource = new DataSource({
     RailwayLine,
     RailwayStation,
     WebhookConfig,
+    EmailAutomationAuditLog,
   ],
   subscribers: [],
   migrations: [
@@ -234,6 +239,9 @@ export const AppDataSource = new DataSource({
     CreateRailwayTables20260517,
     CreateWebhookConfigs20260517,
     AddGpsToServiceTask1779574500000,
+    AddEmailAutomationSystemSetting20260807,
+    AddEmailAutomationPausedToUsers20260807,
+    AddEmailAutomationAuditTable20260807,
   ],
 });
 

@@ -105,10 +105,15 @@ class EmailQueueService {
    * Dodaje email do kolejki
    */
   async addToQueue(emailOptions: EmailOptions, delay = 0): Promise<void> {
+    const normalizedEmailOptions: EmailOptions = {
+      ...emailOptions,
+      automation: emailOptions.automation ?? { automated: true },
+    };
+
     if (!this.queue) {
       console.warn('⚠️  Email nie został dodany do kolejki - kolejka nie jest zainicjalizowana');
-      console.log(`   Próba wysłania do: ${emailOptions.to}`);
-      console.log(`   Temat: ${emailOptions.subject}`);
+      console.log(`   Próba wysłania do: ${normalizedEmailOptions.to}`);
+      console.log(`   Temat: ${normalizedEmailOptions.subject}`);
       return;
     }
 
@@ -124,15 +129,15 @@ class EmailQueueService {
       // Zwiększ licznik rate limiting
       await this.incrementRateLimitCounter();
 
-      const job = await this.queue.add(emailOptions, {
+      const job = await this.queue.add(normalizedEmailOptions, {
         delay,
-        priority: emailOptions.priority === 'high' ? 1 : emailOptions.priority === 'low' ? 3 : 2,
+        priority: normalizedEmailOptions.priority === 'high' ? 1 : normalizedEmailOptions.priority === 'low' ? 3 : 2,
       });
       
       if (rateLimitDelay > 0) {
-        console.log(`📧 Email dodany do kolejki z opóźnieniem [Job ${job.id}]: ${emailOptions.subject}`);
+        console.log(`📧 Email dodany do kolejki z opóźnieniem [Job ${job.id}]: ${normalizedEmailOptions.subject}`);
       } else {
-        console.log(`📧 Email dodany do kolejki [Job ${job.id}]: ${emailOptions.subject}`);
+        console.log(`📧 Email dodany do kolejki [Job ${job.id}]: ${normalizedEmailOptions.subject}`);
       }
     } catch (error) {
       console.error('❌ Błąd dodawania emaila do kolejki:', error);

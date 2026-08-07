@@ -6,6 +6,7 @@ import handlebars, { TemplateDelegate } from 'handlebars';
 import fs from 'fs/promises';
 import path from 'path';
 import { emailConfig, isEmailConfigured } from '../config/email';
+import EmailAutomationGuardService from './EmailAutomationGuardService';
 import { 
   EmailOptions, 
   EmailTemplate,
@@ -76,11 +77,24 @@ class EmailService {
     }
 
     try {
+      let recipients = Array.isArray(options.to) ? options.to : [options.to];
+      if (options.automation?.automated) {
+        recipients = await EmailAutomationGuardService.filterAutomatedRecipients(
+          recipients,
+          options.automation.recipientUserId,
+        );
+
+        if (recipients.length === 0) {
+          console.log(`⏭️  Pominięto automatyczny email przez guard: ${options.subject}`);
+          return;
+        }
+      }
+
       const html = await this.renderTemplate(options.template, options.context);
       
       await this.transporter.sendMail({
         from: `"${emailConfig.from.name}" <${emailConfig.from.address}>`,
-        to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
+        to: recipients.join(', '),
         subject: options.subject,
         html,
         attachments: options.attachments,
@@ -150,6 +164,7 @@ class EmailService {
       template: EmailTemplate.TASK_CREATED,
       context,
       priority: context.priority && context.priority > 5 ? 'high' : 'normal',
+      automation: { automated: true },
     });
   }
 
@@ -166,6 +181,7 @@ class EmailService {
       template: EmailTemplate.TASK_ASSIGNED,
       context,
       priority: context.priority && context.priority > 5 ? 'high' : 'normal',
+      automation: { automated: true },
     });
   }
 
@@ -181,6 +197,7 @@ class EmailService {
       subject: `Zadanie zakończone: ${context.taskName} (#${context.taskNumber})`,
       template: EmailTemplate.TASK_COMPLETED,
       context,
+      automation: { automated: true },
     });
   }
 
@@ -197,6 +214,7 @@ class EmailService {
       template: EmailTemplate.TASK_OVERDUE,
       context,
       priority: 'high',
+      automation: { automated: true },
     });
   }
 

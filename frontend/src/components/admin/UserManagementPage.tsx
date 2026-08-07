@@ -16,6 +16,9 @@ export const UserManagementPage: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [automationModalUser, setAutomationModalUser] = useState<User | null>(null);
+  const [automationReason, setAutomationReason] = useState('');
+  const [automationSaving, setAutomationSaving] = useState(false);
   
   const [newUser, setNewUser] = useState<CreateUserDto>({
     username: '',
@@ -103,6 +106,41 @@ export const UserManagementPage: React.FC = () => {
     }
   };
 
+  const handleOpenPauseModal = (user: User) => {
+    setAutomationModalUser(user);
+    setAutomationReason(user.emailAutomationPauseReason || '');
+  };
+
+  const handleClosePauseModal = () => {
+    setAutomationModalUser(null);
+    setAutomationReason('');
+    setAutomationSaving(false);
+  };
+
+  const handleUpdateEmailAutomation = async (user: User, paused: boolean, reason?: string) => {
+    try {
+      setAutomationSaving(true);
+      setError('');
+      setSuccess('');
+
+      await adminService.updateUserEmailAutomation(user.id, {
+        paused,
+        reason: paused ? reason?.trim() : undefined,
+      });
+
+      setSuccess(
+        paused
+          ? `Automat e-mail został wstrzymany dla ${user.username}.`
+          : `Automat e-mail został wznowiony dla ${user.username}.`,
+      );
+      handleClosePauseModal();
+      await loadData();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Nie udało się zaktualizować automatu e-mail');
+      setAutomationSaving(false);
+    }
+  };
+
   const filteredUsers = users.filter(user =>
     user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -147,6 +185,7 @@ export const UserManagementPage: React.FC = () => {
               <th>Email</th>
               <th>Rola</th>
               <th>Status</th>
+              <th>Automat e-mail</th>
               <th>Ostatnie logowanie</th>
               <th>Akcje</th>
             </tr>
@@ -174,6 +213,18 @@ export const UserManagementPage: React.FC = () => {
                   )}
                 </td>
                 <td>
+                  <span className={`status ${user.emailAutomationPaused ? 'inactive' : 'active'}`}>
+                    {user.emailAutomationPaused ? 'Wstrzymany' : 'Aktywny'}
+                  </span>
+                  {user.emailAutomationPauseReason && (
+                    <div className="meta-text" title={user.emailAutomationPauseReason}>
+                      {user.emailAutomationPauseReason.length > 48
+                        ? `${user.emailAutomationPauseReason.slice(0, 48)}…`
+                        : user.emailAutomationPauseReason}
+                    </div>
+                  )}
+                </td>
+                <td>
                   {user.lastLogin ? new Date(user.lastLogin).toLocaleString('pl-PL') : 'Nigdy'}
                 </td>
                 <td>
@@ -189,6 +240,18 @@ export const UserManagementPage: React.FC = () => {
                       onClick={() => handleToggleActive(user)}
                     >
                       {user.active ? 'Dezaktywuj' : 'Aktywuj'}
+                    </button>
+                    <button
+                      className={`btn-small ${user.emailAutomationPaused ? 'btn-success' : 'btn-secondary'}`}
+                      onClick={() => {
+                        if (user.emailAutomationPaused) {
+                          void handleUpdateEmailAutomation(user, false);
+                          return;
+                        }
+                        handleOpenPauseModal(user);
+                      }}
+                    >
+                      {user.emailAutomationPaused ? 'Wznów automat' : 'Wstrzymaj automat'}
                     </button>
                   </div>
                 </td>
@@ -284,6 +347,43 @@ export const UserManagementPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {automationModalUser && (
+        <div className="modal-overlay" onClick={handleClosePauseModal}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Wstrzymaj automat e-mail</h2>
+            <p className="modal-description">
+              Wprowadź opcjonalny powód wstrzymania dla użytkownika <strong>{automationModalUser.username}</strong>.
+            </p>
+            <div className="form-group">
+              <label htmlFor="automation-reason">Powód wstrzymania</label>
+              <textarea
+                id="automation-reason"
+                className="form-control"
+                rows={4}
+                maxLength={500}
+                value={automationReason}
+                onChange={(e) => setAutomationReason(e.target.value)}
+                placeholder="Np. urlop, testy, tymczasowe wyłączenie"
+              />
+              <small className="helper-text">{automationReason.length}/500 znaków</small>
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="btn btn-secondary" onClick={handleClosePauseModal} disabled={automationSaving}>
+                Anuluj
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => void handleUpdateEmailAutomation(automationModalUser, true, automationReason)}
+                disabled={automationSaving}
+              >
+                {automationSaving ? 'Zapisywanie...' : 'Wstrzymaj automat'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -385,6 +485,13 @@ export const UserManagementPage: React.FC = () => {
           background: #fff3cd;
           color: #856404;
           margin-left: 5px;
+        }
+
+        .meta-text {
+          margin-top: 6px;
+          font-size: 12px;
+          color: var(--text-secondary);
+          max-width: 220px;
         }
 
         .status {
@@ -489,6 +596,11 @@ export const UserManagementPage: React.FC = () => {
           color: #2c3e50;
         }
 
+        .modal-description {
+          margin: 0 0 16px;
+          color: var(--text-secondary);
+        }
+
         .form-group {
           margin-bottom: 15px;
         }
@@ -512,6 +624,17 @@ export const UserManagementPage: React.FC = () => {
           outline: none;
           border-color: #3498db;
           box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        textarea.form-control {
+          resize: vertical;
+        }
+
+        .helper-text {
+          display: block;
+          margin-top: 6px;
+          font-size: 12px;
+          color: var(--text-secondary);
         }
 
         .form-row {

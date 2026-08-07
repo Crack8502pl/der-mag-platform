@@ -48,6 +48,13 @@ export const AdminDashboard: React.FC = () => {
       adminOnly: true,
     },
     {
+      title: 'Automatyczne e‑maile',
+      description: 'Włączaj lub wyłączaj automat oraz przejdź do blokad per użytkownik',
+      icon: '📨',
+      path: '/admin/email-automation',
+      adminOnly: true,
+    },
+    {
       title: 'Konfiguracja portalu',
       description: 'Ustaw URL portalu używany w emailach',
       icon: '🌐',

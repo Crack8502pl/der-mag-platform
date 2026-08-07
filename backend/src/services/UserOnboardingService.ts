@@ -87,6 +87,7 @@ export class UserOnboardingService {
             portalUrl: portalUrl,
             expiresIn: '24 godziny',
           },
+          automation: { automated: false },
         });
       } catch (emailError) {
         console.error('Error sending OTP email:', emailError);
@@ -142,6 +143,7 @@ export class UserOnboardingService {
             portalUrl: portalUrl,
             expiresIn: '24 godziny',
           },
+          automation: { automated: false },
         });
       } catch (emailError) {
         console.error('Error sending password reset email:', emailError);
@@ -205,6 +207,7 @@ export class UserOnboardingService {
             username: user.username,
             portalUrl: portalUrl,
           },
+          automation: { automated: false },
         });
       } catch (emailError) {
         console.error('Error sending password change confirmation:', emailError);

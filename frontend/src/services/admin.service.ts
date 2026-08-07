@@ -11,6 +11,7 @@ import type {
   SmtpTestResult,
   ChangePasswordDto,
   Role,
+  EmailAutomationSettings,
 } from '../types/admin.types';
 import type { AdminSession, SessionStats, SessionHistoryResponse } from '../types/sessions.types';
 import { FALLBACK_ROLES } from '../constants/roles';
@@ -167,6 +168,21 @@ export class AdminService {
    */
   async setPortalUrl(url: string): Promise<void> {
     await api.put('/admin/config/portal', { url });
+  }
+
+  async getEmailAutomationSettings(): Promise<EmailAutomationSettings> {
+    const response = await api.get('/admin/settings/email-automation');
+    return response.data.data;
+  }
+
+  async updateEmailAutomationSettings(enabled: boolean): Promise<EmailAutomationSettings> {
+    const response = await api.patch('/admin/settings/email-automation', { enabled });
+    return response.data.data;
+  }
+
+  async updateUserEmailAutomation(userId: number, payload: { paused: boolean; reason?: string }): Promise<User> {
+    const response = await api.patch(`/admin/users/${userId}/email-automation`, payload);
+    return response.data.data;
   }
 
   // ============================================

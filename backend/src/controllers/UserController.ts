@@ -166,12 +166,16 @@ export class UserController {
             firstName: u.firstName,
             lastName: u.lastName,
             employeeCode: u.employeeCode,
-            role: u.role?.name,
+            role: u.role ? { id: u.role.id, name: u.role.name, description: u.role.description } : null,
             active: u.active,
             createdAt: u.createdAt,
             lastLogin: u.lastLogin,
             deletedAt: u.deletedAt,
-            deletionReason: u.deletionReason
+            deletionReason: u.deletionReason,
+            emailAutomationPaused: u.emailAutomationPaused,
+            emailAutomationPauseReason: u.emailAutomationPauseReason,
+            emailAutomationPausedAt: u.emailAutomationPausedAt,
+            emailAutomationPausedBy: u.emailAutomationPausedBy,
           })),
           pagination: {
             page: pageNum,
