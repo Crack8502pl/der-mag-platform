@@ -41,15 +41,16 @@ jest.mock('../../../src/services/EmailAutomationGuardService', () => ({
 
 describe('EmailService', () => {
   beforeEach(() => {
-    jest.resetModules();
     jest.clearAllMocks();
   });
 
   it('initializes a nodemailer transporter and verifies the SMTP connection', async () => {
     const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-    const { default: emailService } = await import('../../../src/services/EmailService');
-
-    await emailService.initialize();
+    
+    await jest.isolateModulesAsync(async () => {
+      const { default: emailService } = await import('../../../src/services/EmailService');
+      await emailService.initialize();
+    });
 
     expect(mockCreateTransport).toHaveBeenCalledWith({
       host: 'smtp.example.com',
@@ -67,18 +68,21 @@ describe('EmailService', () => {
 
   it('sends email using the initialized transporter', async () => {
     const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-    const { default: emailService } = await import('../../../src/services/EmailService');
-    const { EmailTemplate } = await import('../../../src/types/EmailTypes');
+    
+    await jest.isolateModulesAsync(async () => {
+      const { default: emailService } = await import('../../../src/services/EmailService');
+      const { EmailTemplate } = await import('../../../src/types/EmailTypes');
 
-    await emailService.initialize();
-    jest.spyOn(emailService as any, 'renderTemplate').mockResolvedValue('<p>Rendered</p>');
+      await emailService.initialize();
+      jest.spyOn(emailService as any, 'renderTemplate').mockResolvedValue('<p>Rendered</p>');
 
-    await emailService.sendEmail({
-      to: ['user1@example.com', 'user2@example.com'],
-      subject: 'Test subject',
-      template: EmailTemplate.USER_WELCOME,
-      context: { firstName: 'Jan' },
-      priority: 'high',
+      await emailService.sendEmail({
+        to: ['user1@example.com', 'user2@example.com'],
+        subject: 'Test subject',
+        template: EmailTemplate.USER_WELCOME,
+        context: { firstName: 'Jan' },
+        priority: 'high',
+      });
     });
 
     expect(mockSendMail).toHaveBeenCalledWith({
