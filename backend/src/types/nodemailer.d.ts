@@ -13,9 +13,15 @@ declare module 'nodemailer' {
     [key: string]: unknown;
   }
 
+  export interface SentMessageInfo {
+    messageId: string;
+    response?: string;
+    [key: string]: unknown;
+  }
+
   export interface Transporter {
     verify(): Promise<boolean>;
-    sendMail(mailOptions: SendMailOptions): Promise<unknown>;
+    sendMail(mailOptions: SendMailOptions): Promise<SentMessageInfo>;
   }
 
   export function createTransport(options: TransportOptions): Transporter;
