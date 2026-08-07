@@ -50,6 +50,27 @@ export class BomSubsystemTemplateController {
   }
 
   /**
+   * Get BOM template diagnostics for all subsystem types
+   * GET /api/bom-subsystem-templates/diagnostics
+   */
+  static async getDiagnostics(req: Request, res: Response): Promise<void> {
+    try {
+      const diagnostics = await BomSubsystemTemplateService.getTemplateDiagnostics();
+      res.json({
+        success: true,
+        data: diagnostics
+      });
+    } catch (error: any) {
+      console.error('Error fetching template diagnostics:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Błąd pobierania diagnostyki szablonów BOM',
+        error: error.message
+      });
+    }
+  }
+
+  /**
    * Get a specific template by ID
    * GET /api/bom-subsystem-templates/:id
    */

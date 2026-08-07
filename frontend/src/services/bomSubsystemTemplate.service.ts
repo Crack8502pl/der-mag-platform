@@ -72,6 +72,12 @@ export interface ImportAllResult {
   errors: string[];
 }
 
+export interface BomTemplateDiagnostics {
+  subsystemType: string;
+  hasActiveTemplate: boolean;
+  templateId: number | null;
+}
+
 const bomSubsystemTemplateService = {
   /**
    * Get all templates with optional filters
@@ -85,6 +91,11 @@ const bomSubsystemTemplateService = {
     if (filters?.isActive !== undefined) params.isActive = filters.isActive;
 
     const response = await api.get('/bom-subsystem-templates', { params });
+    return response.data.data;
+  },
+
+  async getDiagnostics(): Promise<BomTemplateDiagnostics[]> {
+    const response = await api.get('/bom-subsystem-templates/diagnostics');
     return response.data.data;
   },
 

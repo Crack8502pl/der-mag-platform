@@ -3,6 +3,7 @@
 
 import type { SubsystemType, SmwWizardData } from '../../../../config/subsystemWizardConfig';
 import type { Contract } from '../../../../services/contract.service';
+import type { RecorderRecommendation } from '../../../../services/bomResolver.service';
 import type { FiberConnection } from '../../../../types/fiber.types';
 import type { TopologyNode, TopologyConnection } from '../../../../types/network-topology.types';
 
@@ -149,6 +150,8 @@ export interface TaskConfiguration {
   bomTemplateVersion?: number;
   materials: ResolvedMaterial[];
   configParams?: Record<string, unknown>;
+  templateMissing?: boolean;
+  recorderRecommendation?: RecorderRecommendation | null;
   isConfigured: boolean;
   lastModified?: Date;
 }
@@ -234,4 +237,3 @@ export type WizardTaskRelationships = Record<string, WizardTaskRelationship>;
 
 /** @deprecated Use WizardTaskRelationship instead */
 export type WizardLCSRelationship = WizardTaskRelationship;
-
