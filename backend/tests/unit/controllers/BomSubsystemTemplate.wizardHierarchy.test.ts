@@ -12,6 +12,7 @@
 
 import { Request, Response } from 'express';
 import { BomSubsystemTemplateController } from '../../../src/controllers/BomSubsystemTemplateController';
+import { BomSubsystemTemplateService } from '../../../src/services/BomSubsystemTemplateService';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -64,6 +65,32 @@ function makeMockRes() {
 describe('BomSubsystemTemplateController.resolveWizardHierarchy', () => {
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('BomSubsystemTemplateController.getDiagnostics', () => {
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('returns diagnostics payload from service', async () => {
+      jest.spyOn(BomSubsystemTemplateService, 'getTemplateDiagnostics').mockResolvedValue([
+        { subsystemType: 'SMOKIP_A' as any, hasActiveTemplate: false, templateId: null },
+        { subsystemType: 'CCTV' as any, hasActiveTemplate: true, templateId: 12 },
+      ]);
+
+      const req = {} as Request;
+      const { res, json } = makeMockRes();
+
+      await BomSubsystemTemplateController.getDiagnostics(req, res);
+
+      expect(json).toHaveBeenCalledWith({
+        success: true,
+        data: [
+          { subsystemType: 'SMOKIP_A', hasActiveTemplate: false, templateId: null },
+          { subsystemType: 'CCTV', hasActiveTemplate: true, templateId: 12 },
+        ],
+      });
+    });
   });
 
   // ── Input validation ──────────────────────────────────────────────────────────

@@ -67,9 +67,11 @@ export interface DiskRecommendation {
 }
 
 export interface BomResolveResult {
+  subsystemType: string;
   templateId: number | null;
   templateName: string | null;
   templateVersion: number | null;
+  templateMissing: boolean;
   items: ResolvedBomItem[];
   needsRecorder: boolean;
   cameraCount: number;

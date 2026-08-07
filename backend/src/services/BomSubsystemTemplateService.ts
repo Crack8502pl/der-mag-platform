@@ -143,6 +143,12 @@ export interface BomImportStats {
   errors: string[];
 }
 
+export interface BomTemplateDiagnosticsRow {
+  subsystemType: SubsystemType;
+  hasActiveTemplate: boolean;
+  templateId: number | null;
+}
+
 export class BomSubsystemTemplateService {
   /**
    * Get all templates with optional filters
@@ -212,6 +218,44 @@ export class BomSubsystemTemplateService {
     });
     
     return templates;
+  }
+
+  static async getTemplateDiagnostics(): Promise<BomTemplateDiagnosticsRow[]> {
+    const templateRepository = AppDataSource.getRepository(BomSubsystemTemplate);
+
+    const rows = await templateRepository
+      .createQueryBuilder('template')
+      .select('template.subsystemType', 'subsystemType')
+      .addSelect('MAX(CASE WHEN template.isActive = true THEN template.id END)', 'templateId')
+      .addSelect(
+        'COUNT(CASE WHEN template.isActive = true THEN 1 END) > 0',
+        'hasActiveTemplate'
+      )
+      .groupBy('template.subsystemType')
+      .getRawMany<{
+        subsystemType: SubsystemType;
+        templateId: string | null;
+        hasActiveTemplate: boolean | string | number;
+      }>();
+
+    const diagnosticsMap = new Map(
+      rows.map((row) => [
+        row.subsystemType,
+        {
+          subsystemType: row.subsystemType,
+          hasActiveTemplate: row.hasActiveTemplate === true || row.hasActiveTemplate === 'true' || row.hasActiveTemplate === 't' || row.hasActiveTemplate === 1 || row.hasActiveTemplate === '1',
+          templateId: row.templateId === null ? null : Number(row.templateId),
+        } satisfies BomTemplateDiagnosticsRow,
+      ])
+    );
+
+    return Object.values(SubsystemType).map((subsystemType) => (
+      diagnosticsMap.get(subsystemType) ?? {
+        subsystemType,
+        hasActiveTemplate: false,
+        templateId: null,
+      }
+    ));
   }
 
   /**

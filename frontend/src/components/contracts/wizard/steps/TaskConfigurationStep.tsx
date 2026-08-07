@@ -5,7 +5,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { WizardData, TaskConfiguration, ResolvedMaterial } from '../types/wizard.types';
 import { generateAllTasks } from '../utils/taskGenerator';
 import { resolveTaskVariant } from '../utils/taskGenerator';
-import bomSubsystemTemplateService from '../../../../services/bomSubsystemTemplate.service';
 import bomResolverService from '../../../../services/bomResolver.service';
 import { wizardHierarchyService } from '../../../../services/wizardHierarchy.service';
 import './TaskConfigurationStep.css';
@@ -70,11 +69,14 @@ function createBomResolverRequest(
 
   const hasCameraBreakdown = cameraBreakdown.total > 0 || cameraBreakdown.ogolna > 0 || cameraBreakdown.lpr > 0 || cameraBreakdown.skp > 0;
 
+  const configParamsWithCameraCount =
+    cameraCount > 0 ? { ...configParams, cameraCount } : configParams;
+
   return {
     subsystemType: task.subsystemType,
     taskType: task.taskType,
     taskVariant: task.taskVariant ?? null,
-    configParams,
+    configParams: configParamsWithCameraCount,
     ...(cameraCount > 0 && { cameraCount }),
     ...(hasCameraBreakdown && { cameraBreakdown })
   }
@@ -134,15 +136,6 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
       setLoadingTemplate(true);
       setTemplateError('');
       try {
-        const template = await bomSubsystemTemplateService.getTemplateFor(
-          task.subsystemType,
-          task.taskVariant ?? null
-        );
-        if (!template) {
-          setTemplateError('Brak szablonu BOM dla tego zadania.');
-          return;
-        }
-
         // Read the latest configs via ref to avoid stale closure
         const currentConfigs = taskConfigsRef.current;
         const configParams: Record<string, unknown> = {
@@ -150,25 +143,18 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           ...(currentConfigs[task.key]?.configParams || {})
         };
 
-        // Inject hierarchy.* variables when the template uses them.
-        const usesHierarchy = template.items.some(
-          (item) =>
-            item.configParamName?.startsWith('hierarchy.') ||
-            item.dependencyFormula?.includes('hierarchy.')
-        );
+        const currentWizardData = wizardDataRef.current;
+        const wizardRels = currentWizardData.taskRelationships
+          ? Object.values(currentWizardData.taskRelationships)
+          : [];
 
-        if (usesHierarchy) {
-          const currentWizardData = wizardDataRef.current;
-          const wizardRels = currentWizardData.taskRelationships
-            ? Object.values(currentWizardData.taskRelationships)
-            : [];
+        // Use taskWizardId as the primary key (matches relationship parentWizardId /
+        // childTaskKeys); fall back to task.key for tasks without a wizardId.
+        const taskKey = task.taskWizardId ?? task.key;
+        const taskNumber =
+          task.taskNumber && task.taskNumber !== task.key ? task.taskNumber : undefined;
 
-          // Use taskWizardId as the primary key (matches relationship parentWizardId /
-          // childTaskKeys); fall back to task.key for tasks without a wizardId.
-          const taskKey = task.taskWizardId ?? task.key;
-          const taskNumber =
-            task.taskNumber && task.taskNumber !== task.key ? task.taskNumber : undefined;
-
+        if (wizardRels.length > 0 || taskNumber) {
           const hierarchyCtx = await wizardHierarchyService.resolveHierarchy({
             taskKey,
             taskNumber,
@@ -204,9 +190,11 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           taskType: task.taskType,
           subsystemType: task.subsystemType,
           taskVariant: task.taskVariant,
-          bomTemplateId: resolved.templateId ?? template.id,
-          bomTemplateVersion: resolved.templateVersion ?? template.version,
+          bomTemplateId: resolved.templateId ?? undefined,
+          bomTemplateVersion: resolved.templateVersion ?? undefined,
           materials,
+          templateMissing: resolved.templateMissing,
+          recorderRecommendation: resolved.recorderRecommendation,
           configParams,
           isConfigured: false,
         };
@@ -363,73 +351,89 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
                 )}
               </div>
 
-              {Object.entries(groupedMaterials(activeConfig.materials)).map(([group, items]) => (
-                <div key={group} className="bom-group">
-                  <div className="bom-group-title">
-                    {group} ({items.length})
-                  </div>
-                  <table className="bom-table">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>Materiał</th>
-                        <th>Ilość</th>
-                        <th>J.</th>
-                        <th>Źródło</th>
-                        <th>IP</th>
-                        <th>✓</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((material, mIdx) => (
-                        <tr
-                          key={material.id}
-                          className={material.isSelected ? 'bom-row-selected' : 'bom-row-deselected'}
-                        >
-                          <td className="bom-cell-num">{mIdx + 1}</td>
-                          <td>
-                            <div className="bom-material-name">{material.materialName}</div>
-                            {material.catalogNumber && (
-                              <div className="bom-catalog-num">{material.catalogNumber}</div>
-                            )}
-                          </td>
-                          <td>
-                            <input
-                              type="number"
-                              className="bom-qty-input"
-                              value={material.quantity}
-                              min={0}
-                              onChange={(e) =>
-                                updateMaterial(activeTaskKey, material.id, {
-                                  quantity: parseFloat(e.target.value) || 0,
-                                })
-                              }
-                            />
-                          </td>
-                          <td className="bom-cell-unit">{material.unit}</td>
-                          <td>
-                            <span className={`bom-source-badge bom-source-${material.quantitySource.toLowerCase()}`}>
-                              {material.quantitySource}
-                            </span>
-                          </td>
-                          <td>{material.requiresIp ? '🌐' : '—'}</td>
-                          <td>
-                            <input
-                              type="checkbox"
-                              checked={material.isSelected}
-                              onChange={(e) =>
-                                updateMaterial(activeTaskKey, material.id, {
-                                  isSelected: e.target.checked,
-                                })
-                              }
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {activeConfig.recorderRecommendation && (
+                <div className="alert alert-info" style={{ marginBottom: '16px' }}>
+                  <strong>🖥️ Rekomendowany rejestrator:</strong>{' '}
+                  {activeConfig.recorderRecommendation.recorder.modelName}{' '}
+                  ({activeConfig.recorderRecommendation.recorder.manufacturer}) —{' '}
+                  {activeConfig.recorderRecommendation.recorder.minCameras}
+                  –{activeConfig.recorderRecommendation.recorder.maxCameras} kamer
                 </div>
-              ))}
+              )}
+
+              {activeConfig.templateMissing ? (
+                <div className="alert alert-error" style={{ marginBottom: '16px' }}>
+                  ⚠️ Brak szablonu BOM dla tego zadania.
+                </div>
+              ) : (
+                Object.entries(groupedMaterials(activeConfig.materials)).map(([group, items]) => (
+                  <div key={group} className="bom-group">
+                    <div className="bom-group-title">
+                      {group} ({items.length})
+                    </div>
+                    <table className="bom-table">
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th>Materiał</th>
+                          <th>Ilość</th>
+                          <th>J.</th>
+                          <th>Źródło</th>
+                          <th>IP</th>
+                          <th>✓</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items.map((material, mIdx) => (
+                          <tr
+                            key={material.id}
+                            className={material.isSelected ? 'bom-row-selected' : 'bom-row-deselected'}
+                          >
+                            <td className="bom-cell-num">{mIdx + 1}</td>
+                            <td>
+                              <div className="bom-material-name">{material.materialName}</div>
+                              {material.catalogNumber && (
+                                <div className="bom-catalog-num">{material.catalogNumber}</div>
+                              )}
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                className="bom-qty-input"
+                                value={material.quantity}
+                                min={0}
+                                onChange={(e) =>
+                                  updateMaterial(activeTaskKey, material.id, {
+                                    quantity: parseFloat(e.target.value) || 0,
+                                  })
+                                }
+                              />
+                            </td>
+                            <td className="bom-cell-unit">{material.unit}</td>
+                            <td>
+                              <span className={`bom-source-badge bom-source-${material.quantitySource.toLowerCase()}`}>
+                                {material.quantitySource}
+                              </span>
+                            </td>
+                            <td>{material.requiresIp ? '🌐' : '—'}</td>
+                            <td>
+                              <input
+                                type="checkbox"
+                                checked={material.isSelected}
+                                onChange={(e) =>
+                                  updateMaterial(activeTaskKey, material.id, {
+                                    isSelected: e.target.checked,
+                                  })
+                                }
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))
+              )}
 
               <div className="bom-apply-section">
                 <button

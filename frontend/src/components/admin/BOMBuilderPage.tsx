@@ -12,7 +12,8 @@ import bomTemplateDependencyRuleService from '../../services/bomTemplateDependen
 import type { WarehouseStock } from '../../types/warehouseStock.types';
 import type {
   BomSubsystemTemplate,
-  BomSubsystemTemplateItem
+  BomSubsystemTemplateItem,
+  BomTemplateDiagnostics
 } from '../../services/bomSubsystemTemplate.service';
 import type { BomGroup } from '../../services/bomGroup.service';
 import type { BomTemplateDependencyRule } from '../../services/bomTemplateDependencyRule.service';
@@ -437,6 +438,7 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
   const [editingItem, setEditingItem] = useState<BomSubsystemTemplateItem | null>(null);
   const [creatingTemplate, setCreatingTemplate] = useState(false);
   const [bomGroups, setBomGroups] = useState<BomGroup[]>([]);
+  const [templateDiagnostics, setTemplateDiagnostics] = useState<Record<string, BomTemplateDiagnostics>>({});
 
   // Dependency rules state
   const [dependencyRules, setDependencyRules] = useState<BomTemplateDependencyRule[]>([]);
@@ -455,6 +457,22 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
       }
     };
     loadGroups();
+  }, []);
+
+  useEffect(() => {
+    const loadDiagnostics = async () => {
+      try {
+        const diagnostics = await bomSubsystemTemplateService.getDiagnostics();
+        const map = diagnostics.reduce<Record<string, BomTemplateDiagnostics>>((acc, item) => {
+          acc[item.subsystemType] = item;
+          return acc;
+        }, {});
+        setTemplateDiagnostics(map);
+      } catch (err) {
+        console.error('Error loading template diagnostics:', err);
+      }
+    };
+    loadDiagnostics();
   }, []);
 
   // Define subsystem structure
@@ -788,9 +806,14 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
       <div style={{ display: 'flex', gap: '20px', height: 'calc(100vh - 250px)' }}>
         {/* Left Panel - Subsystem Tree */}
         <div className="card" style={{ width: '280px', padding: '15px', overflowY: 'auto' }}>
-          <h3 style={{ color: 'var(--text-primary)', marginBottom: '15px', fontSize: '16px' }}>
-            Podsystemy
-          </h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+            <h3 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '16px' }}>
+              Podsystemy
+            </h3>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '12px', alignSelf: 'center' }}>
+              Status
+            </span>
+          </div>
           
           {subsystemStructure.map(subsystem => (
             <div key={subsystem.type} style={{ marginBottom: '15px' }}>
@@ -805,6 +828,9 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
               }}>
                 <span>{subsystem.icon}</span>
                 <span>{subsystem.type}</span>
+                <span style={{ marginLeft: 'auto', fontSize: '12px' }}>
+                  {templateDiagnostics[subsystem.type]?.hasActiveTemplate ? '🟢' : '🔴'}
+                </span>
               </div>
               
               <div style={{ marginLeft: '24px', display: 'flex', flexDirection: 'column', gap: '4px' }}>

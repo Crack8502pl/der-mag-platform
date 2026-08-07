@@ -589,6 +589,41 @@ describe('BomSubsystemTemplateService', () => {
     });
   });
 
+  describe('getTemplateDiagnostics', () => {
+    it('returns active status per subsystem and defaults to missing=false', async () => {
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        groupBy: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockResolvedValue([
+          { subsystemType: 'SMOKIP_A', templateId: null, hasActiveTemplate: false },
+          { subsystemType: 'CCTV', templateId: '12', hasActiveTemplate: true },
+        ]),
+      };
+
+      mockTemplateRepository.createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder);
+
+      const result = await BomSubsystemTemplateService.getTemplateDiagnostics();
+
+      expect(mockQueryBuilder.groupBy).toHaveBeenCalledWith('template.subsystemType');
+      expect(result.find((row) => row.subsystemType === 'SMOKIP_A')).toEqual({
+        subsystemType: 'SMOKIP_A',
+        hasActiveTemplate: false,
+        templateId: null,
+      });
+      expect(result.find((row) => row.subsystemType === 'CCTV')).toEqual({
+        subsystemType: 'CCTV',
+        hasActiveTemplate: true,
+        templateId: 12,
+      });
+      expect(result.find((row) => row.subsystemType === 'SMW')).toEqual({
+        subsystemType: 'SMW',
+        hasActiveTemplate: false,
+        templateId: null,
+      });
+    });
+  });
+
   describe('getTemplateById', () => {
     it('should return template when found', async () => {
       const mockTemplate = { id: 1, templateName: 'Template 1', items: [] };

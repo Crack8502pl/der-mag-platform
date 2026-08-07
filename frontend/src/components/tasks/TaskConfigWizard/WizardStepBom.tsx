@@ -11,6 +11,16 @@ interface WizardStepBomProps {
 }
 
 export const WizardStepBom: React.FC<WizardStepBomProps> = ({ resolvedBom, bomGroups }) => {
+  if (resolvedBom.templateMissing) {
+    return (
+      <div className="alert alert-error">
+        ⚠️ <strong>Brak szablonu BOM dla tego zadania</strong>
+        <p>Nie znaleziono aktywnego szablonu dla podsystemu <code>{resolvedBom.subsystemType}</code>.</p>
+        <p>Skontaktuj się z administratorem systemu.</p>
+      </div>
+    );
+  }
+
   const cameraBreakdownTotal =
     (resolvedBom.cameraBreakdown?.ogolna ?? 0) +
     (resolvedBom.cameraBreakdown?.lpr ?? 0) +

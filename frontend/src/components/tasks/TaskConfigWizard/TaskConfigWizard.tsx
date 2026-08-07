@@ -556,6 +556,10 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
       const ok = await handleResolve();
       if (ok) setCurrentStep(WizardStep.BOM);
     } else if (currentStep === WizardStep.BOM) {
+      if (resolvedBom?.templateMissing) {
+        setError('Nie można kontynuować — brak szablonu BOM.');
+        return;
+      }
       if (resolvedBom?.needsRecorder) {
         setCurrentStep(WizardStep.RECORDER);
       } else {
@@ -733,7 +737,7 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
                 <button
                   className="btn btn-primary"
                   onClick={handleNext}
-                  disabled={resolving || saving}
+                  disabled={resolving || saving || (currentStep === WizardStep.BOM && !!resolvedBom?.templateMissing)}
                 >
                   {getNextButtonLabel()}
                 </button>

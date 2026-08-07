@@ -27,6 +27,13 @@ router.get(
   BomSubsystemTemplateController.getTemplateFor
 );
 
+// Get diagnostics for all subsystem templates (must be before /:id)
+router.get(
+  '/diagnostics',
+  checkPermission('bom', 'read'),
+  BomSubsystemTemplateController.getDiagnostics
+);
+
 // Get empty CSV template (must be before /:id)
 router.get(
   '/csv-template',
