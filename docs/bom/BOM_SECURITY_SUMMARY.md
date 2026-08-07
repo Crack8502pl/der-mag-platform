@@ -31,7 +31,8 @@ The dependency rule formula evaluation now uses `mathjs.evaluate()` instead of `
 - Variables are substituted with numeric values before evaluation
 - Regex validation limits input to digits, whitespace, parentheses, and arithmetic operators: `[\d\s+\-*/().]+`
 - Invalid expressions and evaluation errors still return `0`, preserving the existing fallback behavior
-- `mathjs` provides safe arithmetic parsing without executing JavaScript code
+- `mathjs` (≥15.2.0) provides safe arithmetic parsing without executing JavaScript code
+- Upgraded from `^13.0.0` to `^15.2.0` to address CVE GHSA-29qv-4j9f-fjw5 and GHSA-jvff-x2qm-6286 (prototype pollution)
 
 ### 5. CSRF Protection
 - ✅ API uses JWT tokens
