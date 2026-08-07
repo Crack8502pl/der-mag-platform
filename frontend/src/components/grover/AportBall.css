@@ -1,24 +1,21 @@
 /* src/components/grover/AportBall.css */
+/* Uses the shared pulse animation from grover-anim.css (imported by App.tsx) */
 
 .aport-ball {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  margin: auto;
+  width: fit-content;
+  height: fit-content;
   background: none;
   border: none;
   cursor: pointer;
   z-index: 10000;
   padding: 0;
-  animation: ball-pulse 0.8s ease-in-out infinite;
+  animation: pulse 0.8s ease-in-out infinite;
   filter: drop-shadow(0 4px 16px rgba(229, 62, 62, 0.6));
 }
 
 .aport-ball:hover {
   filter: drop-shadow(0 4px 24px rgba(229, 62, 62, 0.9));
-}
-
-@keyframes ball-pulse {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); }
-  50%       { transform: translate(-50%, -50%) scale(1.15); }
 }

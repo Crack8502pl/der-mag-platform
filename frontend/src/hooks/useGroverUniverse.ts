@@ -27,7 +27,7 @@ export function useGroverUniverse() {
     let id = 0;
     intervalRef.current = setInterval(() => {
       setPaws(prev => [
-        ...prev.slice(-20),
+        ...prev.slice(-19), // keep last 19 + 1 new = max 20
         {
           x: typeof window !== 'undefined' ? Math.random() * window.innerWidth : 0,
           y: typeof window !== 'undefined' ? Math.random() * window.innerHeight : 0,

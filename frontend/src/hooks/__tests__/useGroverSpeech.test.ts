@@ -68,7 +68,10 @@ describe('useGroverSpeech', () => {
     renderHook(() => useGroverSpeech());
 
     if (onresultCapture) {
-      (onresultCapture as any)({ results: [[{ transcript: 'głos psa' }]] });
+      (onresultCapture as any)({
+        resultIndex: 0,
+        results: [[{ transcript: 'głos psa' }]],
+      });
     }
 
     expect(playMock).toHaveBeenCalled();

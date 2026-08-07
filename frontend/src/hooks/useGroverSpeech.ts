@@ -23,7 +23,7 @@ export function useGroverSpeech() {
     recognition.interimResults = false;
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      const transcript = event.results[event.results.length - 1][0].transcript
+      const transcript = event.results[event.resultIndex][0].transcript
         .trim()
         .toLowerCase();
 
