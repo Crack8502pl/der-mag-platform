@@ -52,9 +52,9 @@ Grover Platform to zaawansowany system zarządzania zadaniami infrastrukturalnym
 - **ORM**: TypeORM 0.3
 - **Baza danych**: PostgreSQL 15
 - **Uwierzytelnianie**: JWT + Bcrypt
-- **Email**: Nodemailer + Bull Queue (Redis)
+- **Email**: Nodemailer 9.x + Bull Queue (Redis)
 - **Upload plików**: Multer
-- **Przetwarzanie obrazów**: Sharp
+- **Przetwarzanie obrazów**: Sharp 0.35.x
 - **EXIF**: exifr
 - **Walidacja**: class-validator
 - **Security**: Helmet, CORS, Rate Limiting

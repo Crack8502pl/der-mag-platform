@@ -1,7 +1,8 @@
 // src/services/EmailService.ts
 // Serwis do wysyłania emaili z użyciem Nodemailer i Handlebars
 
-import nodemailer, { Transporter } from 'nodemailer';
+import nodemailer from 'nodemailer';
+import type { Transporter } from 'nodemailer';
 import handlebars, { TemplateDelegate } from 'handlebars';
 import fs from 'fs/promises';
 import path from 'path';
