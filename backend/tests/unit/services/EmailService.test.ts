@@ -50,18 +50,17 @@ describe('EmailService', () => {
     await jest.isolateModulesAsync(async () => {
       const { default: emailService } = await import('../../../src/services/EmailService');
       await emailService.initialize();
+      expect(mockCreateTransport).toHaveBeenCalledWith({
+        host: 'smtp.example.com',
+        port: 587,
+        secure: false,
+        auth: {
+          user: 'smtp-user',
+          pass: 'smtp-pass',
+        },
+      });
+      expect(mockVerify).toHaveBeenCalledTimes(1);
     });
-
-    expect(mockCreateTransport).toHaveBeenCalledWith({
-      host: 'smtp.example.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: 'smtp-user',
-        pass: 'smtp-pass',
-      },
-    });
-    expect(mockVerify).toHaveBeenCalledTimes(1);
 
     logSpy.mockRestore();
   });
@@ -83,15 +82,15 @@ describe('EmailService', () => {
         context: { firstName: 'Jan' },
         priority: 'high',
       });
-    });
 
-    expect(mockSendMail).toHaveBeenCalledWith({
-      from: '"Grover Platform" <noreply@example.com>',
-      to: 'user1@example.com, user2@example.com',
-      subject: 'Test subject',
-      html: '<p>Rendered</p>',
-      attachments: undefined,
-      priority: 'high',
+      expect(mockSendMail).toHaveBeenCalledWith({
+        from: '"Grover Platform" <noreply@example.com>',
+        to: 'user1@example.com, user2@example.com',
+        subject: 'Test subject',
+        html: '<p>Rendered</p>',
+        attachments: undefined,
+        priority: 'high',
+      });
     });
 
     logSpy.mockRestore();
