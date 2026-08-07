@@ -79,7 +79,7 @@
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.3",
     "lodash": "^4.17.21",
-    "mathjs": "^13.0.0",
+    "mathjs": "^15.2.0",
     "morgan": "^1.10.0",
     "mssql": "^12.2.0",
     "multer": "^1.4.5-lts.1",
