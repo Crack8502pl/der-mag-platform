@@ -147,18 +147,20 @@ Namespace: `ai`
 | `ai.risk.level` | string | Poziom ryzyka (`low/medium/high`) | ✅ |
 | `ai.risk.score` | number | Wynik ryzyka (0–100) | ✅ |
 
-## Mapowanie BOM `configParams` → Variable Engine
+## Obsługiwane klucze `CONFIG_PARAM` w regułach BOM
 
-| `configParams` | Variable Engine | Uwagi |
+| Klucz w regule | Opis | Typ |
 |---|---|---|
-| `cameraCount` | `camera.total` | Aktualny odpowiednik dla liczby kamer używanej przez dobór rejestratora |
-| `recordingDays` | `camera.recording.days` | Parametr retencji używany przy doborze dysków |
-| `bitrateMbps` | `camera.bitrate.mbps` | Parametr bitrate do obliczeń pojemności |
-| `requiredStorageTb` | `camera.storage.tb` | Wynikowa pojemność dla konfiguracji zapisu |
-| `cameraIpCount` | `camera.total.ip` | Przydatne przy przyszłym rozszerzaniu reguł BOM |
-| `cameraIpGeneralCount` | `camera.total.ip.ogolna` | Przygotowane pod przyszłe reguły dla kamer ogólnych |
-| `cameraIpLprCount` | `camera.total.ip.lpr` | Przygotowane pod przyszłe reguły dla kamer LPR |
-| `cameraIpSkpCount` | `camera.total.ip.skp` | Przygotowane pod przyszłe reguły dla kamer SKP |
+| `cameraCount` | Łączna liczba kamer (prosty fallback) | `number` |
+| `camera.total` | Łączna liczba kamer | `number` |
+| `camera.total.ip` | Liczba kamer IP | `number` |
+| `camera.total.ip.ogolna` | Kamery IP ogólne | `number` |
+| `camera.total.ip.lpr` | Kamery IP LPR | `number` |
+| `camera.total.ip.skp` | Kamery IP SKP | `number` |
+| `lcsConfig.iloscKamer` | Kamery w konfiguracji LCS (nested path) | `number` |
+| `nastawniConfig.iloscKamer` | Kamery w konfiguracji nastawni (nested path) | `number` |
+
+> Klucze z dosłowną kropką (np. `camera.total.ip`) mają priorytet przed zagnieżdżoną ścieżką — patrz `DependencyRuleEngine.collectInputValues()` (naprawione w #603).
 
 ## Uwagi
 
