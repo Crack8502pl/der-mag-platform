@@ -63,7 +63,7 @@ Usunięcie wszystkich pozostałych podatności `npm audit` (backend + frontend),
 | `react-router-dom` | `^7.11.0` | `^7.18.2` | HIGH: GHSA-49rj-9fvp-4h2h, GHSA-8x6r-g9mw-2r78, GHSA-rxv8-25v2-qmq8, GHSA-84g9-w2xq-vcv6, GHSA-wrjc-x8rr-h8h6, GHSA-h8fp-f39c-q6mh, GHSA-337j-9hxr-rhxg, GHSA-chx6-hx7r-mcp5, GHSA-2j2x-hqr9-3h42, GHSA-qwww-vcr4-c8h2 |
 | overrides `brace-expansion` | `^5.0.5` | `^5.0.9` | HIGH: GHSA-3jxr-9vmj-r5cp, GHSA-mh99-v99m-4gvg, GHSA-rgw5-rvv9-x895 |
 | `axios` (via npm audit fix) | 1.0.0–1.17.0 | >=1.17.1 | HIGH: GHSA-42h9-826w-cgv3, GHSA-pmv8-rq9r-6j72, GHSA-jqh4-m9w3-8hp9, GHSA-mmx7-hfxf-jppx, GHSA-f4gw-2p7v-4548 i inne |
-| `@babel/core` (via npm audit fix) | <=7.29.0 | >=7.30.0 | LOW: GHSA-4x5r-pxfx-6jf8 |
+| `@babel/core` (via npm audit fix) | <=7.29.0 | >=7.26.10 (patched build) | LOW: GHSA-4x5r-pxfx-6jf8 — resolved via `@vitejs/plugin-react` update |
 | `dompurify` (via npm audit fix) | <=3.4.12 | >=3.4.13 | MODERATE: GHSA-hpcv-96wg-7vj8, GHSA-r47g-fvhr-h676, GHSA-rp9w-3fw7-7cwq i inne |
 | `js-yaml` (via npm audit fix) | <=3.15.0 | >=3.15.1 | HIGH: GHSA-h67p-54hq-rp68, GHSA-52cp-r559-cp3m, GHSA-5p4m-2wfm-xmqj |
 | `nanoid` (via npm audit fix) | <=3.3.16 | >=3.3.17 | HIGH: GHSA-28wg-ghj8-5hjv, GHSA-2v37-7h3g-55p8 |
