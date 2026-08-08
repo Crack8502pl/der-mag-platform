@@ -124,4 +124,57 @@ describe('EmailAutomationAdminController', () => {
 
     expect(res.status).toHaveBeenCalledWith(403);
   });
+
+  it('returns 200 for GET global setting as admin', async () => {
+    req = createMockRequest({ userId: 2 });
+    userRepository.findOne.mockResolvedValue({ id: 2, role: { name: 'admin' } });
+    (EmailAutomationAdminService.getGlobalSetting as jest.Mock).mockResolvedValue({ enabled: true });
+
+    await EmailAutomationAdminController.getGlobalSetting(req as Request, res as Response);
+
+    expect(EmailAutomationAdminService.getGlobalSetting).toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith({ success: true, data: { enabled: true } });
+  });
+
+  it('PATCH sets enabled to false (OFF)', async () => {
+    req = createMockRequest({ userId: 2, body: { enabled: false } });
+    userRepository.findOne.mockResolvedValue({ id: 2, role: { name: 'admin' } });
+    (EmailAutomationAdminService.setGlobalSetting as jest.Mock).mockResolvedValue({ enabled: false });
+
+    await EmailAutomationAdminController.updateGlobalSetting(req as Request, res as Response);
+
+    expect(EmailAutomationAdminService.setGlobalSetting).toHaveBeenCalledWith(false, 2);
+    expect(res.json).toHaveBeenCalledWith({ success: true, data: { enabled: false } });
+  });
+
+  it('GET returns false after switch was set to OFF', async () => {
+    req = createMockRequest({ userId: 2 });
+    userRepository.findOne.mockResolvedValue({ id: 2, role: { name: 'admin' } });
+    (EmailAutomationAdminService.getGlobalSetting as jest.Mock).mockResolvedValue({ enabled: false });
+
+    await EmailAutomationAdminController.getGlobalSetting(req as Request, res as Response);
+
+    expect(res.json).toHaveBeenCalledWith({ success: true, data: { enabled: false } });
+  });
+
+  it('returns 400 when enabled is a string instead of boolean', async () => {
+    req = createMockRequest({ userId: 2, body: { enabled: 'false' } });
+    userRepository.findOne.mockResolvedValue({ id: 2, role: { name: 'admin' } });
+
+    await EmailAutomationAdminController.updateGlobalSetting(req as Request, res as Response);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(EmailAutomationAdminService.setGlobalSetting).not.toHaveBeenCalled();
+  });
+
+  it('does not throw unhandled rejection when called as a detached function reference', async () => {
+    // Simulate Express calling the static method as a plain function (this=undefined)
+    const detached = EmailAutomationAdminController.updateGlobalSetting;
+    req = createMockRequest({ userId: 2, body: { enabled: false } });
+    userRepository.findOne.mockResolvedValue({ id: 2, role: { name: 'admin' } });
+    (EmailAutomationAdminService.setGlobalSetting as jest.Mock).mockResolvedValue({ enabled: false });
+
+    await expect(detached(req as Request, res as Response)).resolves.toBeUndefined();
+    expect(EmailAutomationAdminService.setGlobalSetting).toHaveBeenCalledWith(false, 2);
+  });
 });
