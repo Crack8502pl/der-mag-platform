@@ -555,3 +555,65 @@ W przypadku problemów:
 
 **Ostatnia aktualizacja**: 2024-01-15
 **Wersja**: 1.0.0
+
+---
+
+## 🔀 Master Switch — Globalny przełącznik automatyzacji emaili
+
+### Co robi
+
+Master switch to globalny przełącznik, który blokuje **wszystkie** automatyczne emaile w systemie.  
+Gdy jest wyłączony (`enabled: false`), żaden automatyczny email nie zostanie wysłany niezależnie od ustawień per-user.
+
+### Kolejność decyzji
+
+```
+1. Globalny master switch → OFF  =>  BLOKADA wszystkich automatycznych emaili
+2. Blokada per-user (emailAutomationPaused) → true  =>  BLOKADA emaili dla danego użytkownika
+```
+
+### API — Endpointy
+
+#### GET `/api/admin/settings/email-automation`
+
+Odczyt aktualnego stanu przełącznika globalnego.
+
+**Odpowiedź:**
+```json
+{ "success": true, "data": { "enabled": true } }
+```
+
+#### PATCH `/api/admin/settings/email-automation`
+
+Ustawienie przełącznika globalnego.
+
+**Payload:**
+```json
+{ "enabled": false }
+```
+
+- `enabled` musi być wartością `boolean` (`true` lub `false`).
+- Wysłanie stringa (`"false"`, `"true"`, `"0"`, `"1"`) zwraca HTTP **400**.
+
+**Odpowiedź (sukces):**
+```json
+{ "success": true, "data": { "enabled": false } }
+```
+
+**Odpowiedź (zły typ):**
+```json
+{ "success": false, "message": "Pole enabled musi być typu boolean" }
+```
+
+### Implementacja
+
+- `EmailAutomationGuardService.isGlobalEnabled()` — odczyt stanu z DB (z cache 5 s).
+- `EmailAutomationAdminService.setGlobalSetting(enabled, adminId)` — zapis do DB + audit log + invalidacja cache.
+- Każda zmiana jest logowana w tabeli `email_automation_audit_log`.
+
+### Znane regresje i naprawione bugi
+
+**Bug (naprawiony):** Statyczne metody kontrolera używały `this.ensureAdminAccess()`.  
+Gdy Express wywoływał metodę jako callback (oderwany od klasy), `this` był `undefined` w trybie strict,  
+co powodowało `Unhandled Rejection` i zawieszony request (`- - ms - -` w logach).  
+**Fix:** Zmiana na jawne `EmailAutomationAdminController.ensureAdminAccess()`.

@@ -31,7 +31,7 @@ export class EmailAutomationAdminController {
   }
 
   static async getGlobalSetting(req: Request, res: Response): Promise<void> {
-    const actorAdminId = await this.ensureAdminAccess(req, res);
+    const actorAdminId = await EmailAutomationAdminController.ensureAdminAccess(req, res);
     if (!actorAdminId) {
       return;
     }
@@ -49,7 +49,7 @@ export class EmailAutomationAdminController {
   }
 
   static async updateGlobalSetting(req: Request, res: Response): Promise<void> {
-    const actorAdminId = await this.ensureAdminAccess(req, res);
+    const actorAdminId = await EmailAutomationAdminController.ensureAdminAccess(req, res);
     if (!actorAdminId) {
       return;
     }
@@ -76,7 +76,7 @@ export class EmailAutomationAdminController {
   }
 
   static async updateUserPause(req: Request, res: Response): Promise<void> {
-    const actorAdminId = await this.ensureAdminAccess(req, res);
+    const actorAdminId = await EmailAutomationAdminController.ensureAdminAccess(req, res);
     if (!actorAdminId) {
       return;
     }
