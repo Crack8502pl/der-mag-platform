@@ -69,6 +69,7 @@ export interface BomTemplateRuleInputJson {
   inputType: InputType;
   sourceItemRef: BomImportExportRef | null;
   sourceRuleRef: BomImportExportRef | null;
+  sourceParamName: string | null;
   inputMultiplier: number;
   onlyIfSelected: boolean;
   sortOrder: number;
@@ -878,6 +879,7 @@ export class BomSubsystemTemplateService {
                 ruleName: input.sourceRule.ruleName
               }
             : null,
+          sourceParamName: input.sourceParamName ?? null,
           inputMultiplier: Number(input.inputMultiplier),
           onlyIfSelected: input.onlyIfSelected,
           sortOrder: input.sortOrder
@@ -1104,8 +1106,10 @@ export class BomSubsystemTemplateService {
 
     const savedRules: Array<{ ruleId: number; data: BomTemplateRuleJson }> = [];
     for (const ruleData of templateData.rules ?? []) {
+      const AUTO_AGGREGATION_TYPES = ['SELECT_RECORDER', 'SELECT_DISKS'];
+      const isAutoAggregation = AUTO_AGGREGATION_TYPES.includes(ruleData.aggregationType ?? '');
       const targetItemId = this.resolveItemRef(ruleData.targetItemRef, itemIdByStableKey);
-      if (!targetItemId) {
+      if (!targetItemId && !isAutoAggregation) {
         result.errors.push(
           `Szablon ${templateData.subsystemType}/${templateData.taskVariant ?? '_GENERAL'}: nie znaleziono targetItemRef dla reguły ${ruleData.ruleCode || ruleData.ruleName}`
         );
@@ -1167,6 +1171,9 @@ export class BomSubsystemTemplateService {
             inputType: inputData.inputType,
             sourceItemId,
             sourceRuleId,
+            sourceParamName: inputData.inputType === InputType.CONFIG_PARAM
+              ? (inputData.sourceParamName ?? null)
+              : null,
             onlyIfSelected: inputData.onlyIfSelected !== false,
             inputMultiplier: Number(inputData.inputMultiplier ?? 1),
             sortOrder: inputData.sortOrder ?? 0
