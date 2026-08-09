@@ -281,12 +281,14 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           }
 
           // If not found by direct key, search all relationship entries for one
-          // whose children are known tasks and whose parentType matches this task
+          // whose parentType matches this task and all childTaskKeys are known tasks.
+          // Requiring ALL children to be known reduces false positives when multiple
+          // tasks of the same type exist.
           if (!rootRel) {
             for (const [relKey, rel] of Object.entries(relationships)) {
               if (!rel?.childTaskKeys?.length) continue;
-              const hasKnownChild = rel.childTaskKeys.some(ck => taskLookup.has(ck));
-              if (hasKnownChild && rel.parentType === parentTask.taskType) {
+              const allChildrenKnown = rel.childTaskKeys.every(ck => taskLookup.has(ck));
+              if (allChildrenKnown && rel.parentType === parentTask.taskType) {
                 rootRel = rel;
                 rootId = relKey;
                 break;
@@ -363,8 +365,8 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           if (!taskRel) {
             for (const [, rel] of Object.entries(allRels)) {
               if (!rel?.childTaskKeys?.length) continue;
-              const hasKnownChild = rel.childTaskKeys.some(ck => taskLookup.has(ck));
-              if (hasKnownChild && rel.parentType === task.taskType) {
+              const allChildrenKnown = rel.childTaskKeys.every(ck => taskLookup.has(ck));
+              if (allChildrenKnown && rel.parentType === task.taskType) {
                 taskRel = rel;
                 break;
               }
