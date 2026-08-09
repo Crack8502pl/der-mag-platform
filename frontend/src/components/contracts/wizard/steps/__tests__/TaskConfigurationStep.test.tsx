@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useState } from 'react';
 
@@ -230,5 +230,181 @@ describe('TaskConfigurationStep', () => {
 
     expect(materials.find((m: any) => m.quantitySource === 'FIXED')?.quantity).toBe(2);
     expect(materials.find((m: any) => m.quantitySource === 'FROM_CONFIG')?.quantity).toBe(5);
+  });
+
+  it('applies camera quantities from child task config when reloading LCS template', async () => {
+    const wizardData: WizardData = {
+      ...baseWizardData,
+      subsystems: [
+        {
+          type: 'SMOKIP_A',
+          params: {},
+          taskDetails: [
+            { taskType: 'PRZEJAZD_KAT_A', taskWizardId: 'child-1', kategoria: 'KAT A' },
+            { taskType: 'LCS', taskWizardId: 'lcs-1' }
+          ]
+        }
+      ],
+      taskRelationships: {
+        'lcs-1': {
+          parentWizardId: 'lcs-1',
+          parentType: 'LCS',
+          childTaskKeys: ['child-1']
+        }
+      }
+    };
+
+    resolve.mockImplementation(async (request: { taskType: string }) => {
+      if (request.taskType === 'PRZEJAZD_KAT_A') {
+        return {
+          templateId: 101,
+          templateName: 'Przejazd',
+          templateVersion: 1,
+          templateMissing: false,
+          items: [
+            {
+              templateItemId: 3001,
+              materialName: 'Kamera Ogólna',
+              catalogNumber: null,
+              unit: 'szt',
+              resolvedQuantity: 0,
+              quantitySource: 'FIXED',
+              groupName: 'Kamery',
+              isRequired: true,
+              requiresIp: true,
+              sortOrder: 0,
+              defaultQuantity: 0
+            },
+            {
+              templateItemId: 3002,
+              materialName: 'Kamera LPR',
+              catalogNumber: null,
+              unit: 'szt',
+              resolvedQuantity: 0,
+              quantitySource: 'FIXED',
+              groupName: 'Kamery',
+              isRequired: true,
+              requiresIp: true,
+              sortOrder: 1,
+              defaultQuantity: 0
+            }
+          ],
+          needsRecorder: false,
+          cameraCount: 0,
+          recorderRecommendation: null,
+          diskRecommendation: null,
+          retentionDays: 14,
+          isConfigured: false,
+          resolvedAt: new Date().toISOString(),
+          warnings: []
+        };
+      }
+
+      return {
+        templateId: 102,
+        templateName: 'LCS',
+        templateVersion: 1,
+        templateMissing: false,
+        items: [{ ...baseResolvedItem, resolvedQuantity: 0 }],
+        needsRecorder: true,
+        cameraCount: 4,
+        recorderRecommendation: null,
+        diskRecommendation: null,
+        retentionDays: 14,
+        isConfigured: false,
+        resolvedAt: new Date().toISOString(),
+        warnings: []
+      };
+    });
+
+    const StatefulWithHierarchy = () => {
+      const [state, setState] = useState<WizardData>(wizardData);
+      return (
+        <TaskConfigurationStep
+          wizardData={state}
+          onUpdate={(patch) => {
+            setState((prev) => ({
+              ...prev,
+              ...patch,
+              taskConfigurations: {
+                ...(prev.taskConfigurations || {}),
+                ...(patch.taskConfigurations || {})
+              }
+            }));
+          }}
+        />
+      );
+    };
+
+    render(<StatefulWithHierarchy />);
+
+    await waitFor(() =>
+      expect(resolve).toHaveBeenCalledWith(expect.objectContaining({ taskType: 'PRZEJAZD_KAT_A' }))
+    );
+
+    const qtyInputs = await screen.findAllByRole('spinbutton');
+    fireEvent.change(qtyInputs[0], { target: { value: '2' } });
+    fireEvent.change(qtyInputs[1], { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: /Zastosuj BOM do zadania/i }));
+
+    fireEvent.click(screen.getByText((content) => content.includes('LCS') && !content.includes('BOM')));
+    const reloadButton = await screen.findByRole('button', { name: /Przeładuj szablon/i });
+    fireEvent.click(reloadButton);
+
+    await waitFor(() => {
+      const lcsCalls = resolve.mock.calls
+        .map((call) => call[0])
+        .filter((request) => request.taskType === 'LCS');
+      expect(lcsCalls.length).toBeGreaterThan(0);
+      expect(lcsCalls.at(-1)).toEqual(expect.objectContaining({
+        cameraCount: 4,
+        cameraBreakdown: expect.objectContaining({
+          total: 4,
+          ogolna: 2,
+          lpr: 2
+        }),
+        configParams: expect.objectContaining({
+          cameraCount: 4,
+          'camera.total.ip': 4
+        })
+      }));
+    });
+  });
+
+  it('passes isStandaloneNastawnia for standalone NASTAWNIA task', async () => {
+    const standaloneWizardData: WizardData = {
+      ...baseWizardData,
+      subsystems: [
+        {
+          type: 'SMOKIP_A',
+          params: {},
+          taskDetails: [{ taskType: 'NASTAWNIA', taskWizardId: 'nd-1' }]
+        }
+      ]
+    };
+
+    resolve.mockResolvedValue({
+      templateId: 103,
+      templateName: 'ND',
+      templateVersion: 1,
+      templateMissing: false,
+      items: [{ ...baseResolvedItem, resolvedQuantity: 0 }],
+      needsRecorder: true,
+      cameraCount: 0,
+      recorderRecommendation: null,
+      diskRecommendation: null,
+      retentionDays: 14,
+      isConfigured: false,
+      resolvedAt: new Date().toISOString(),
+      warnings: []
+    });
+
+    render(<TaskConfigurationStep wizardData={standaloneWizardData} onUpdate={vi.fn()} />);
+
+    await waitFor(() => expect(resolve).toHaveBeenCalled());
+    expect(resolve).toHaveBeenCalledWith(expect.objectContaining({
+      taskType: 'NASTAWNIA',
+      isStandaloneNastawnia: true
+    }));
   });
 });

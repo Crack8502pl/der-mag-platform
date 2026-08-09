@@ -178,6 +178,14 @@ export class BomResolverService {
     const totalIpCameras = BomResolverService.resolveTotalIpCameras(cameraBreakdown, callerConfigParams);
     const recordingDays = requestRecordingDays ?? request.retentionDays ?? DEFAULT_RECORDING_DAYS;
     const needsRecorder = BomResolverService.needsRecorder(subsystemType, taskType, isStandaloneNastawnia);
+    if (process.env.NODE_ENV !== 'production' && process.env.DEBUG_RECORDER_SELECTION === 'true') {
+      console.log('[BomResolverService.resolve] recorder selection gate', {
+        subsystemType,
+        taskType,
+        needsRecorder,
+        cameraCount
+      });
+    }
 
     // ── 1. Fetch template ────────────────────────────────────────────────────
     const template = await BomSubsystemTemplateService.getTemplate(subsystemType, taskVariant);

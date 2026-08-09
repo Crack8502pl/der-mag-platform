@@ -12,15 +12,28 @@ export class RecorderSelectionService {
    */
   static async selectRecorder(cameraCount: number): Promise<RecorderSpecification | null> {
     const repo = AppDataSource.getRepository(RecorderSpecification);
-
-    const recorder = await repo
+    const baseQuery = repo
       .createQueryBuilder('rs')
       .leftJoinAndSelect('rs.warehouseStock', 'ws')
       .where('rs.is_active = true')
       .andWhere('rs.min_cameras <= :count', { count: cameraCount })
       .andWhere('rs.max_cameras >= :count', { count: cameraCount })
-      .orderBy('rs.max_cameras', 'ASC')
-      .getOne();
+      .orderBy('rs.max_cameras', 'ASC');
+
+    if (process.env.NODE_ENV !== 'production' && process.env.DEBUG_RECORDER_SELECTION === 'true') {
+      const matchingRecorders = await repo
+        .createQueryBuilder('rs')
+        .where('rs.is_active = true')
+        .andWhere('rs.min_cameras <= :count', { count: cameraCount })
+        .andWhere('rs.max_cameras >= :count', { count: cameraCount })
+        .getCount();
+      console.log('[RecorderSelectionService.selectRecorder] selecting recorder', {
+        cameraCount,
+        matchingRecorders
+      });
+    }
+
+    const recorder = await baseQuery.getOne();
 
     return recorder;
   }
