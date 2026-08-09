@@ -265,13 +265,16 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           const parentWizardId = parentTask.taskWizardId ?? parentTask.key;
           const visited = new Set<string>();
 
-          const traverse = (parentId: string): CameraBreakdown => {
+          const traverse = (parentId: string, fallbackKey?: string): CameraBreakdown => {
             if (visited.has(parentId)) {
               return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
             }
             visited.add(parentId);
 
-            const rel = relationships[parentId];
+            const rel =
+              relationships[parentId] ??
+              (fallbackKey ? relationships[fallbackKey] : undefined);
+            if (fallbackKey && !visited.has(fallbackKey)) visited.add(fallbackKey);
             if (!rel?.childTaskKeys?.length) {
               return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
             }
@@ -281,7 +284,10 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
               const childTask = taskLookup.get(childKey);
               if (!childTask) continue;
               const childId = childTask.taskWizardId ?? childTask.key;
-              const nested = traverse(childId);
+              const nested = traverse(
+                childId,
+                childTask.key !== childId ? childTask.key : undefined
+              );
               if (nested.total > 0) {
                 parts.push(nested);
               } else {
@@ -292,7 +298,10 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
             return sumCameraBreakdown(parts);
           };
 
-          return traverse(parentWizardId);
+          return traverse(
+            parentWizardId,
+            parentTask.key !== parentWizardId ? parentTask.key : undefined
+          );
         };
 
         const isHierarchyParentTask = task.taskType === 'LCS' || task.taskType === 'NASTAWNIA';
@@ -301,7 +310,24 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           : resolveCameraBreakdownFromConfig(currentConfigs[task.key]);
 
         if (isHierarchyParentTask && resolvedCameraBreakdown.total === 0) {
-          resolvedCameraBreakdown = resolveCameraBreakdownFromConfig(currentConfigs[task.key]);
+          const allRels = wizardDataRef.current.taskRelationships || {};
+          const taskRel =
+            allRels[task.taskWizardId ?? task.key] ?? allRels[task.key];
+          if (taskRel?.childTaskKeys?.length) {
+            const childBreakdowns: CameraBreakdown[] = [];
+            for (const childKey of taskRel.childTaskKeys) {
+              const childTask = taskLookup.get(childKey);
+              if (childTask) {
+                childBreakdowns.push(
+                  resolveCameraBreakdownFromConfig(currentConfigs[childTask.key])
+                );
+              }
+            }
+            resolvedCameraBreakdown = sumCameraBreakdown(childBreakdowns);
+          }
+          if (resolvedCameraBreakdown.total === 0) {
+            resolvedCameraBreakdown = resolveCameraBreakdownFromConfig(currentConfigs[task.key]);
+          }
         }
 
         if (resolvedCameraBreakdown.total > 0) {
