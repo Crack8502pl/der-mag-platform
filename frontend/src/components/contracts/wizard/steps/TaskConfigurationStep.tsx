@@ -49,7 +49,8 @@ function readNumericConfigParam(
 
 function createBomResolverRequest(
   task: TaskEntry,
-  configParams: Record<string, unknown>
+  configParams: Record<string, unknown>,
+  options?: { isStandaloneNastawnia?: boolean }
 ) {
   const cameraCount = Math.max(
     readNumericConfigParam(configParams, 'cameraCount'),
@@ -78,7 +79,8 @@ function createBomResolverRequest(
     taskVariant: task.taskVariant ?? null,
     configParams: configParamsWithCameraCount,
     ...(cameraCount > 0 && { cameraCount }),
-    ...(hasCameraBreakdown && { cameraBreakdown })
+    ...(hasCameraBreakdown && { cameraBreakdown }),
+    isStandaloneNastawnia: options?.isStandaloneNastawnia ?? false,
   }
 }
 
@@ -154,8 +156,9 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
   const [activeTaskKey, setActiveTaskKey] = useState<string>(taskEntries[0]?.key || '');
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [templateError, setTemplateError] = useState('');
-  // Manual camera count override per LCS task key (fallback when children have no config yet)
-  const [lcsManualCameraCount, setLcsManualCameraCount] = useState<Record<string, number>>({});
+  // Manual camera count override per recorder node key (fallback when children have no config yet)
+  const [recorderNodeManualCameraCount, setRecorderNodeManualCameraCount] =
+    useState<Record<string, number>>({});
 
   const taskConfigs: Record<string, TaskConfiguration> = wizardData.taskConfigurations || {};
   const customOrdersEnabled = !!wizardData.customOrdersEnabled;
@@ -173,22 +176,80 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
   const activeConfig = activeTaskKey ? taskConfigs[activeTaskKey] : undefined;
 
   /**
-   * Resolve total camera count for an LCS task by recursively traversing its
-   * subtree in taskRelationships.
+   * True when a NASTAWNIA task has no LCS parent — it then owns a recorder.
    */
-  const resolveLcsCameraCount = useCallback(
-    (lcsTask: TaskEntry, manualOverride?: number): number => {
-      if (lcsTask.taskType !== 'LCS') return 0;
+  const isStandaloneNastawnia = useCallback(
+    (task: TaskEntry): boolean => {
+      if (task.taskType !== 'NASTAWNIA') return false;
+      const allRels = wizardDataRef.current.taskRelationships ?? {};
+      return !Object.values(allRels).some(
+        (rel) => rel.parentType === 'LCS' && rel.childTaskKeys.includes(task.key)
+      );
+    },
+    []
+  );
+
+  /**
+   * True for tasks that own a recorder: LCS always, NASTAWNIA when standalone.
+   */
+  const isRecorderNode = useCallback(
+    (task: TaskEntry): boolean =>
+      task.taskType === 'LCS' || isStandaloneNastawnia(task),
+    [isStandaloneNastawnia]
+  );
+
+  /**
+   * Resolve total camera count for a recorder node by recursively traversing
+   * its subtree. Only PRZEJAZD_KAT_* and SKP (leaves) carry cameras.
+   * NASTAWNIA children are pass-through nodes.
+   */
+  const resolveRecorderNodeCameraCount = useCallback(
+    (task: TaskEntry, manualOverride?: number): number => {
+      if (!isRecorderNode(task)) return 0;
 
       const allRels = wizardDataRef.current.taskRelationships ?? {};
       const allConfigs = taskConfigsRef.current;
-      const lcsWizardId = lcsTask.taskWizardId ?? lcsTask.key;
-      const fromHierarchy = collectCamerasFromHierarchy(lcsWizardId, allRels, allConfigs, taskEntries);
+
+      const leafCameras = (taskKey: string): number => {
+        const cfg = allConfigs[taskKey];
+        if (!cfg) return 0;
+        const cp = cfg.configParams;
+        if (cp) {
+          const v = Math.max(
+            readNumericConfigParam(cp, 'cameraCount'),
+            readNumericConfigParam(cp, 'camera.total'),
+            readNumericConfigParam(cp, 'camera.total.ip')
+          );
+          if (v > 0) return v;
+        }
+        return cfg.materials
+          .filter((m) => m.isSelected && /kamera/i.test(m.groupName || ''))
+          .reduce((sum, m) => sum + (m.quantity || 0), 0);
+      };
+
+      const collect = (parentWizardId: string): number => {
+        const rel = allRels[parentWizardId];
+        if (!rel) return 0;
+        let total = 0;
+        for (const childKey of rel.childTaskKeys) {
+          const childEntry = taskEntries.find((t) => t.key === childKey);
+          if (!childEntry) continue;
+          if (childEntry.taskType === 'NASTAWNIA' && childEntry.taskWizardId) {
+            total += collect(childEntry.taskWizardId);
+          } else {
+            total += leafCameras(childKey);
+          }
+        }
+        return total;
+      };
+
+      const nodeWizardId = task.taskWizardId ?? task.key;
+      const fromHierarchy = collect(nodeWizardId);
       if (fromHierarchy > 0) return fromHierarchy;
 
-      return manualOverride ?? lcsManualCameraCount[lcsTask.key] ?? 0;
+      return manualOverride ?? recorderNodeManualCameraCount[task.key] ?? 0;
     },
-    [taskEntries, lcsManualCameraCount]
+    [taskEntries, isRecorderNode, recorderNodeManualCameraCount]
   );
 
   const loadTemplate = useCallback(
@@ -203,9 +264,9 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           ...(currentConfigs[task.key]?.configParams || {})
         };
 
-        // For LCS tasks: inject cameraCount summed from all PRZEJAZD/SKP descendants
-        if (task.taskType === 'LCS') {
-          const lcsCameraCount = resolveLcsCameraCount(task, manualCameraCount);
+        // For recorder nodes (LCS or standalone NASTAWNIA): inject cameraCount summed from all PRZEJAZD/SKP descendants
+        if (isRecorderNode(task)) {
+          const lcsCameraCount = resolveRecorderNodeCameraCount(task, manualCameraCount);
           if (lcsCameraCount > 0) {
             configParams['cameraCount'] = lcsCameraCount;
             configParams['lcsConfig.iloscKamer'] = lcsCameraCount;
@@ -246,7 +307,11 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           }
         }
 
-        const resolved = await bomResolverService.resolve(createBomResolverRequest(task, configParams));
+        const resolved = await bomResolverService.resolve(
+          createBomResolverRequest(task, configParams, {
+            isStandaloneNastawnia: isStandaloneNastawnia(task),
+          })
+        );
         const materials: ResolvedMaterial[] = resolved.items.map((item) => ({
           id: item.templateItemId,
           materialName: item.materialName,
@@ -284,7 +349,7 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
         setLoadingTemplate(false);
       }
     },
-    [onUpdate, resolveLcsCameraCount]
+    [onUpdate, isRecorderNode, resolveRecorderNodeCameraCount, isStandaloneNastawnia]
   );
 
   // Auto-load template when switching to a task that has no config yet.
@@ -297,36 +362,78 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
     }
   }, [activeTaskKey, activeTask, loadTemplate]);
 
-  // ── Auto-reload LCS when its PRZEJAZD/SKP descendants camera sum changes ─────
-  const lcsCameraSnapshotRef = useRef<Record<string, number>>({});
+  // ── Auto-reload recorder nodes when leaf camera sum changes ───────────────
+  const recorderNodeCameraSnapshotRef = useRef<Record<string, number>>({});
 
-  const currentLcsCameraSnapshot = useMemo(() => {
+  const currentRecorderNodeCameraSnapshot = React.useMemo(() => {
     const snapshot: Record<string, number> = {};
     const allRels = wizardData.taskRelationships ?? {};
 
+    const leafCameras = (taskKey: string): number => {
+      const cfg = taskConfigs[taskKey];
+      if (!cfg) return 0;
+      const cp = cfg.configParams;
+      if (cp) {
+        const v = Math.max(
+          readNumericConfigParam(cp, 'cameraCount'),
+          readNumericConfigParam(cp, 'camera.total'),
+          readNumericConfigParam(cp, 'camera.total.ip')
+        );
+        if (v > 0) return v;
+      }
+      return cfg.materials
+        .filter((m) => m.isSelected && /kamera/i.test(m.groupName || ''))
+        .reduce((sum, m) => sum + (m.quantity || 0), 0);
+    };
+
+    const collect = (parentWizardId: string): number => {
+      const rel = allRels[parentWizardId];
+      if (!rel) return 0;
+      let total = 0;
+      for (const childKey of rel.childTaskKeys) {
+        const childEntry = taskEntries.find((t) => t.key === childKey);
+        if (!childEntry) continue;
+        if (childEntry.taskType === 'NASTAWNIA' && childEntry.taskWizardId) {
+          total += collect(childEntry.taskWizardId);
+        } else {
+          total += leafCameras(childKey);
+        }
+      }
+      return total;
+    };
+
+    // Keys of all NASTAWNIA tasks that are children of any LCS
+    const lcsChildKeys = new Set(
+      Object.values(allRels)
+        .filter((r) => r.parentType === 'LCS')
+        .flatMap((r) => r.childTaskKeys)
+    );
+
     for (const entry of taskEntries) {
-      if (entry.taskType !== 'LCS') continue;
-      const lcsWizardId = entry.taskWizardId ?? entry.key;
-      snapshot[entry.key] = collectCamerasFromHierarchy(lcsWizardId, allRels, taskConfigs, taskEntries);
+      const isLcs = entry.taskType === 'LCS';
+      const isStandalone =
+        entry.taskType === 'NASTAWNIA' && !lcsChildKeys.has(entry.key);
+      if (!isLcs && !isStandalone) continue;
+      snapshot[entry.key] = collect(entry.taskWizardId ?? entry.key);
     }
     return snapshot;
   }, [taskConfigs, taskEntries, wizardData.taskRelationships]);
 
   useEffect(() => {
-    const prev = lcsCameraSnapshotRef.current;
+    const prev = recorderNodeCameraSnapshotRef.current;
     const toReload: TaskEntry[] = [];
-    for (const [lcsKey, newTotal] of Object.entries(currentLcsCameraSnapshot)) {
-      if (newTotal > 0 && prev[lcsKey] !== newTotal) {
-        const task = taskEntries.find((t) => t.key === lcsKey);
+    for (const [nodeKey, newTotal] of Object.entries(currentRecorderNodeCameraSnapshot)) {
+      if (newTotal > 0 && prev[nodeKey] !== newTotal) {
+        const task = taskEntries.find((t) => t.key === nodeKey);
         if (task) toReload.push(task);
       }
     }
-    lcsCameraSnapshotRef.current = currentLcsCameraSnapshot;
+    recorderNodeCameraSnapshotRef.current = currentRecorderNodeCameraSnapshot;
     if (toReload.length === 0) return;
-    for (const lcsTask of toReload) {
-      loadTemplate(lcsTask);
+    for (const nodeTask of toReload) {
+      loadTemplate(nodeTask);
     }
-  }, [currentLcsCameraSnapshot, taskEntries, loadTemplate]);
+  }, [currentRecorderNodeCameraSnapshot, taskEntries, loadTemplate]);
 
   const updateMaterial = (taskKey: string, materialId: number, patch: Partial<ResolvedMaterial>) => {
     const config = taskConfigs[taskKey];
@@ -385,9 +492,9 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
     return groups;
   };
 
-  // Pre-compute LCS camera count once to avoid calling resolveLcsCameraCount twice in JSX
-  const lcsCameraCountForActive =
-    activeTask?.taskType === 'LCS' ? resolveLcsCameraCount(activeTask) : 0;
+  // Pre-compute recorder node camera count once to avoid calling resolveRecorderNodeCameraCount twice in JSX
+  const recorderNodeCameraCountForActive =
+    activeTask && isRecorderNode(activeTask) ? resolveRecorderNodeCameraCount(activeTask) : 0;
 
   return (
     <div className="wizard-step-content task-config-step">
@@ -485,8 +592,8 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
                 )}
               </div>
 
-              {/* LCS camera count info panel */}
-              {activeTask.taskType === 'LCS' && (
+              {/* Recorder node camera count panel (LCS and standalone NASTAWNIA) */}
+              {activeTask && isRecorderNode(activeTask) && (
                 <div style={{
                   marginBottom: '16px', padding: '14px 16px',
                   background: 'rgba(255,107,53,0.07)',
@@ -496,14 +603,18 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
                 }}>
                   <span style={{ fontSize: '13px', color: 'var(--text-secondary)', flex: '1 1 200px' }}>
                     {'📹 '}
-                    <strong>Kamery w poddrzewie LCS</strong>{' — '}
-                    {lcsCameraCountForActive > 0
+                    <strong>
+                      {activeTask.taskType === 'LCS'
+                        ? 'Kamery w poddrzewie LCS'
+                        : 'Kamery podrzędnych Przejazdów/SKP'}
+                    </strong>
+                    {' — '}
+                    {recorderNodeCameraCountForActive > 0
                       ? <span style={{ color: 'var(--success-color)' }}>
-                          {'auto: '}{lcsCameraCountForActive}
-                          {' (suma kamer z Przejazdów i SKP)'}
+                          {'auto: '}{recorderNodeCameraCountForActive}{' kamer'}
                         </span>
                       : <span style={{ color: 'var(--warning-color)' }}>
-                          {'brak skonfigurowanych przejazdów — wpisz ręcznie lub skonfiguruj Przejazdy/SKP najpierw'}
+                          {'brak skonfigurowanych Przejazdów/SKP — wpisz ręcznie'}
                         </span>
                     }
                   </span>
@@ -515,15 +626,20 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
                         border: '1px solid var(--border-color)', borderRadius: '4px',
                         background: 'var(--bg-tertiary)', color: 'var(--text-primary)', fontSize: '13px'
                       }}
-                      value={lcsManualCameraCount[activeTaskKey] ?? lcsCameraCountForActive}
+                      value={
+                        recorderNodeManualCameraCount[activeTaskKey] ??
+                        recorderNodeCameraCountForActive
+                      }
                       onChange={(e) => {
                         const val = parseInt(e.target.value) || 0;
-                        setLcsManualCameraCount(prev => ({ ...prev, [activeTaskKey]: val }));
+                        setRecorderNodeManualCameraCount(prev => ({ ...prev, [activeTaskKey]: val }));
                       }}
                     />
                     <button
                       className="btn btn-secondary btn-sm"
-                      onClick={() => loadTemplate(activeTask, lcsManualCameraCount[activeTaskKey])}
+                      onClick={() =>
+                        loadTemplate(activeTask, recorderNodeManualCameraCount[activeTaskKey])
+                      }
                     >
                       🔄 Zastosuj
                     </button>
