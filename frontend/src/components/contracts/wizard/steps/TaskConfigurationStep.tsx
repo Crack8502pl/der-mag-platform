@@ -1,7 +1,7 @@
 // src/components/contracts/wizard/steps/TaskConfigurationStep.tsx
 // Step 8: Task Configuration – sidebar with task list + workspace with BOM per task
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import type { WizardData, TaskConfiguration, ResolvedMaterial } from '../types/wizard.types';
 import { generateAllTasks } from '../utils/taskGenerator';
 import { resolveTaskVariant } from '../utils/taskGenerator';
@@ -115,6 +115,8 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
   const [activeTaskKey, setActiveTaskKey] = useState<string>(taskEntries[0]?.key || '');
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [templateError, setTemplateError] = useState('');
+  // Manual camera count override per LCS task key (fallback when children have no config yet)
+  const [lcsManualCameraCount, setLcsManualCameraCount] = useState<Record<string, number>>({});
 
   const taskConfigs: Record<string, TaskConfiguration> = wizardData.taskConfigurations || {};
   const customOrdersEnabled = !!wizardData.customOrdersEnabled;
@@ -131,8 +133,67 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
   const activeTask = taskEntries.find((t) => t.key === activeTaskKey);
   const activeConfig = activeTaskKey ? taskConfigs[activeTaskKey] : undefined;
 
+  /**
+   * Resolve total camera count for an LCS task by recursively traversing its
+   * subtree in taskRelationships.
+   */
+  const resolveLcsCameraCount = useCallback(
+    (lcsTask: TaskEntry, manualOverride?: number): number => {
+      if (lcsTask.taskType !== 'LCS') return 0;
+
+      const allRels = wizardDataRef.current.taskRelationships ?? {};
+      const allConfigs = taskConfigsRef.current;
+
+      const cameraCountFromMaterials = (taskKey: string): number => {
+        const cfg = allConfigs[taskKey];
+        if (!cfg) return 0;
+
+        const cp = cfg.configParams;
+        if (cp) {
+          const fromParams = Math.max(
+            readNumericConfigParam(cp, 'cameraCount'),
+            readNumericConfigParam(cp, 'camera.total'),
+            readNumericConfigParam(cp, 'camera.total.ip')
+          );
+          if (fromParams > 0) return fromParams;
+        }
+
+        return cfg.materials
+          .filter((m) => m.isSelected && /kamera/i.test(m.groupName || ''))
+          .reduce((sum, m) => sum + (m.quantity || 0), 0);
+      };
+
+      const collectCameras = (parentWizardId: string): number => {
+        const rel = allRels[parentWizardId];
+        if (!rel) return 0;
+
+        let total = 0;
+        for (const childKey of rel.childTaskKeys) {
+          const childEntry = taskEntries.find((t) => t.key === childKey);
+          if (!childEntry) continue;
+
+          if (childEntry.taskType === 'NASTAWNIA') {
+            if (childEntry.taskWizardId) {
+              total += collectCameras(childEntry.taskWizardId);
+            }
+          } else {
+            total += cameraCountFromMaterials(childKey);
+          }
+        }
+        return total;
+      };
+
+      const lcsWizardId = lcsTask.taskWizardId ?? lcsTask.key;
+      const fromHierarchy = collectCameras(lcsWizardId);
+      if (fromHierarchy > 0) return fromHierarchy;
+
+      return manualOverride ?? lcsManualCameraCount[lcsTask.key] ?? 0;
+    },
+    [taskEntries, lcsManualCameraCount]
+  );
+
   const loadTemplate = useCallback(
-    async (task: TaskEntry) => {
+    async (task: TaskEntry, manualCameraCount?: number) => {
       setLoadingTemplate(true);
       setTemplateError('');
       try {
@@ -142,6 +203,22 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           ...task.subsystemParams,
           ...(currentConfigs[task.key]?.configParams || {})
         };
+
+        // For LCS tasks: inject cameraCount summed from all PRZEJAZD/SKP descendants
+        if (task.taskType === 'LCS') {
+          const lcsCameraCount = resolveLcsCameraCount(task, manualCameraCount);
+          if (lcsCameraCount > 0) {
+            configParams['cameraCount'] = lcsCameraCount;
+            configParams['lcsConfig.iloscKamer'] = lcsCameraCount;
+            configParams['camera.total'] = lcsCameraCount;
+            configParams['camera.total.ip'] = lcsCameraCount;
+            const existingLcsConfig =
+              configParams['lcsConfig'] && typeof configParams['lcsConfig'] === 'object'
+                ? (configParams['lcsConfig'] as Record<string, unknown>)
+                : {};
+            configParams['lcsConfig'] = { ...existingLcsConfig, iloscKamer: lcsCameraCount };
+          }
+        }
 
         const currentWizardData = wizardDataRef.current;
         const wizardRels = currentWizardData.taskRelationships
@@ -208,7 +285,7 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
         setLoadingTemplate(false);
       }
     },
-    [onUpdate]
+    [onUpdate, resolveLcsCameraCount]
   );
 
   // Auto-load template when switching to a task that has no config yet.
@@ -220,6 +297,70 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
       loadTemplate(activeTask);
     }
   }, [activeTaskKey, activeTask, loadTemplate]);
+
+  // ── Auto-reload LCS when its PRZEJAZD/SKP descendants camera sum changes ─────
+  const lcsCameraSnapshotRef = useRef<Record<string, number>>({});
+
+  const currentLcsCameraSnapshot = useMemo(() => {
+    const snapshot: Record<string, number> = {};
+    const allRels = wizardData.taskRelationships ?? {};
+
+    const leafCameras = (taskKey: string): number => {
+      const cfg = taskConfigs[taskKey];
+      if (!cfg) return 0;
+      const cp = cfg.configParams;
+      if (cp) {
+        const v = Math.max(
+          readNumericConfigParam(cp, 'cameraCount'),
+          readNumericConfigParam(cp, 'camera.total'),
+          readNumericConfigParam(cp, 'camera.total.ip')
+        );
+        if (v > 0) return v;
+      }
+      return cfg.materials
+        .filter((m) => m.isSelected && /kamera/i.test(m.groupName || ''))
+        .reduce((sum, m) => sum + (m.quantity || 0), 0);
+    };
+
+    const collect = (parentWizardId: string): number => {
+      const rel = allRels[parentWizardId];
+      if (!rel) return 0;
+      let total = 0;
+      for (const childKey of rel.childTaskKeys) {
+        const childEntry = taskEntries.find((t) => t.key === childKey);
+        if (!childEntry) continue;
+        if (childEntry.taskType === 'NASTAWNIA' && childEntry.taskWizardId) {
+          total += collect(childEntry.taskWizardId);
+        } else {
+          total += leafCameras(childKey);
+        }
+      }
+      return total;
+    };
+
+    for (const entry of taskEntries) {
+      if (entry.taskType !== 'LCS') continue;
+      const lcsWizardId = entry.taskWizardId ?? entry.key;
+      snapshot[entry.key] = collect(lcsWizardId);
+    }
+    return snapshot;
+  }, [taskConfigs, taskEntries, wizardData.taskRelationships]);
+
+  useEffect(() => {
+    const prev = lcsCameraSnapshotRef.current;
+    const toReload: TaskEntry[] = [];
+    for (const [lcsKey, newTotal] of Object.entries(currentLcsCameraSnapshot)) {
+      if (newTotal > 0 && prev[lcsKey] !== newTotal) {
+        const task = taskEntries.find((t) => t.key === lcsKey);
+        if (task) toReload.push(task);
+      }
+    }
+    lcsCameraSnapshotRef.current = currentLcsCameraSnapshot;
+    if (toReload.length === 0) return;
+    for (const lcsTask of toReload) {
+      loadTemplate(lcsTask);
+    }
+  }, [currentLcsCameraSnapshot, taskEntries, loadTemplate]);
 
   const updateMaterial = (taskKey: string, materialId: number, patch: Partial<ResolvedMaterial>) => {
     const config = taskConfigs[taskKey];
@@ -236,10 +377,33 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
   const applyBOM = (taskKey: string) => {
     const config = taskConfigs[taskKey];
     if (!config) return;
+
+    const LEAF_TASK_TYPES = ['PRZEJAZD_KAT_A', 'PRZEJAZD_KAT_B', 'PRZEJAZD_KAT_C',
+                             'PRZEJAZD_KAT_E', 'PRZEJAZD_KAT_F', 'SKP'];
+    let extraConfigParams: Record<string, unknown> = {};
+    if (LEAF_TASK_TYPES.includes(config.taskType)) {
+      const cameraMaterials = config.materials.filter(
+        (m) => m.isSelected && /kamera/i.test(m.groupName || '')
+      );
+      const cameraTotal = cameraMaterials.reduce((sum, m) => sum + (m.quantity || 0), 0);
+      if (cameraTotal > 0) {
+        extraConfigParams = {
+          cameraCount: cameraTotal,
+          'camera.total': cameraTotal,
+          'camera.total.ip': cameraTotal,
+        };
+      }
+    }
+
     onUpdate({
       taskConfigurations: {
         ...taskConfigs,
-        [taskKey]: { ...config, isConfigured: true, lastModified: new Date() },
+        [taskKey]: {
+          ...config,
+          configParams: { ...(config.configParams ?? {}), ...extraConfigParams },
+          isConfigured: true,
+          lastModified: new Date(),
+        },
       },
     });
   };
@@ -351,19 +515,81 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
                 )}
               </div>
 
+              {/* LCS camera count info panel */}
+              {activeTask.taskType === 'LCS' && (
+                <div style={{
+                  marginBottom: '16px', padding: '14px 16px',
+                  background: 'rgba(255,107,53,0.07)',
+                  border: '1px solid rgba(255,107,53,0.3)',
+                  borderRadius: '8px', display: 'flex', alignItems: 'center',
+                  gap: '12px', flexWrap: 'wrap' as const
+                }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)', flex: '1 1 200px' }}>
+                    {'📹 '}
+                    <strong>Kamery w poddrzewie LCS</strong>{' — '}
+                    {resolveLcsCameraCount(activeTask) > 0
+                      ? <span style={{ color: 'var(--success-color)' }}>
+                          {'auto: '}{resolveLcsCameraCount(activeTask)}
+                          {' (suma kamer z Przejazdów i SKP)'}
+                        </span>
+                      : <span style={{ color: 'var(--warning-color)' }}>
+                          {'brak skonfigurowanych przejazdów — wpisz ręcznie lub skonfiguruj Przejazdy/SKP najpierw'}
+                        </span>
+                    }
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="number" min={0}
+                      style={{
+                        width: '80px', padding: '5px 8px',
+                        border: '1px solid var(--border-color)', borderRadius: '4px',
+                        background: 'var(--bg-tertiary)', color: 'var(--text-primary)', fontSize: '13px'
+                      }}
+                      value={lcsManualCameraCount[activeTaskKey] ?? resolveLcsCameraCount(activeTask)}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || 0;
+                        setLcsManualCameraCount(prev => ({ ...prev, [activeTaskKey]: val }));
+                      }}
+                    />
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => loadTemplate(activeTask, lcsManualCameraCount[activeTaskKey])}
+                    >
+                      🔄 Zastosuj
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {activeConfig.recorderRecommendation && (
-                <div className="alert alert-info" style={{ marginBottom: '16px' }}>
-                  <strong>🖥️ Rekomendowany rejestrator:</strong>{' '}
+                <div style={{ marginBottom: '16px', padding: '12px 16px',
+                  background: 'rgba(72,187,120,0.08)', border: '1px solid rgba(72,187,120,0.3)',
+                  borderRadius: '8px' }}>
+                  <strong style={{ color: 'var(--success-color)' }}>🖥️ Dobrany rejestrator:</strong>{' '}
                   {activeConfig.recorderRecommendation.recorder.modelName}{' '}
                   ({activeConfig.recorderRecommendation.recorder.manufacturer}) —{' '}
                   {activeConfig.recorderRecommendation.recorder.minCameras}
-                  –{activeConfig.recorderRecommendation.recorder.maxCameras} kamer
+                  {'–'}{activeConfig.recorderRecommendation.recorder.maxCameras}{' kamer'}
                 </div>
               )}
 
               {activeConfig.templateMissing ? (
                 <div className="alert alert-error" style={{ marginBottom: '16px' }}>
-                  ⚠️ Brak szablonu BOM dla tego zadania.
+                  ⚠️ Brak szablonu BOM dla zadania {activeTask.subsystemType} / {activeTask.taskType}.
+                  Utwórz go w <strong>Administracja → BOM Builder</strong>.
+                </div>
+              ) : activeConfig.materials.length === 0 ? (
+                <div style={{ marginBottom: '16px', padding: '16px',
+                  background: 'rgba(237,137,54,0.1)', border: '1px solid rgba(237,137,54,0.4)',
+                  borderRadius: '8px' }}>
+                  <div style={{ fontWeight: 700, marginBottom: '6px', color: 'var(--warning-color)' }}>
+                    ⚠️ Szablon BOM nie zawiera pozycji materiałowych
+                  </div>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    Szablon <strong>v{activeConfig.bomTemplateVersion}</strong> dla{' '}
+                    <strong>{activeTask.subsystemType} / {activeTask.taskType}</strong> jest pusty.
+                    Dodaj pozycje w <strong>Administracja → BOM Builder → Pozycje BOM</strong>.
+                  </p>
                 </div>
               ) : (
                 Object.entries(groupedMaterials(activeConfig.materials)).map(([group, items]) => (
@@ -438,6 +664,12 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
               <div className="bom-apply-section">
                 <button
                   className="btn btn-success"
+                  disabled={activeConfig.templateMissing || activeConfig.materials.length === 0}
+                  style={
+                    (activeConfig.templateMissing || activeConfig.materials.length === 0)
+                      ? { opacity: 0.4, cursor: 'not-allowed' }
+                      : undefined
+                  }
                   onClick={() => applyBOM(activeTaskKey)}
                 >
                   ✅ Zastosuj BOM do zadania

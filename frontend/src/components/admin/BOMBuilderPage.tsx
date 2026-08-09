@@ -1560,9 +1560,27 @@ const TemplatesTab: React.FC<{ canCreate: boolean; canUpdate: boolean; canDelete
                                         {targetItem.groupName} • {targetItem.unit}
                                       </div>
                                     </div>
+                                  ) : (rule.aggregationType === 'SELECT_RECORDER' || rule.aggregationType === 'SELECT_DISKS') ? (
+                                    <div style={{
+                                      padding: '10px',
+                                      background: 'rgba(251, 146, 60, 0.08)',
+                                      border: '1px solid rgba(251, 146, 60, 0.3)',
+                                      borderRadius: 'var(--radius-sm)',
+                                      fontSize: '12px'
+                                    }}>
+                                      <div style={{ fontWeight: '600', color: 'var(--primary-color)', marginBottom: '3px' }}>
+                                        {rule.aggregationType === 'SELECT_RECORDER' ? '🖥️ Rejestrator' : '💾 Dyski'}
+                                        {' '}— dobierany automatycznie
+                                      </div>
+                                      <div style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>
+                                        {rule.aggregationType === 'SELECT_RECORDER'
+                                          ? 'Rejestrator dobierany na podstawie liczby kamer (RecorderSelectionService)'
+                                          : 'Dyski dobierane na podstawie wymaganej pojemności i slotów rejestratora'}
+                                      </div>
+                                    </div>
                                   ) : (
-                                    <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: 0 }}>
-                                      Pozycja niedostępna
+                                    <p style={{ color: '#ef4444', fontSize: '12px', margin: 0 }}>
+                                      ⚠️ Pozycja docelowa nie jest przypisana
                                     </p>
                                   )}
                                 </div>
