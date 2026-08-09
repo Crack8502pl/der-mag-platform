@@ -25,6 +25,24 @@ interface TaskEntry {
   taskVariant?: string | null;
 }
 
+interface CameraBreakdown {
+  total: number;
+  ogolna: number;
+  lpr: number;
+  skp: number;
+}
+
+interface BomResolverRequestOptions {
+  cameraCount?: number;
+  cameraBreakdown?: CameraBreakdown;
+  isStandaloneNastawnia?: boolean;
+}
+
+const CAMERA_REGEX = /kamera/i;
+const CAMERA_LPR_REGEX = /lpr/i;
+const CAMERA_SKP_REGEX = /skp/i;
+const CAMERA_OGOLNA_REGEX = /og[oó]ln/i;
+
 function readNumericConfigParam(
   configParams: Record<string, unknown>,
   paramPath: string
@@ -49,9 +67,13 @@ function readNumericConfigParam(
 
 function createBomResolverRequest(
   task: TaskEntry,
-  configParams: Record<string, unknown>
+  configParams: Record<string, unknown>,
+  options: BomResolverRequestOptions = {}
 ) {
+  const explicitBreakdown = options.cameraBreakdown;
+  const explicitCameraCount = Math.max(0, options.cameraCount ?? explicitBreakdown?.total ?? 0);
   const cameraCount = Math.max(
+    explicitCameraCount,
     readNumericConfigParam(configParams, 'cameraCount'),
     readNumericConfigParam(configParams, 'camera.total'),
     readNumericConfigParam(configParams, 'camera.total.ip'),
@@ -61,10 +83,10 @@ function createBomResolverRequest(
   );
 
   const cameraBreakdown = {
-    total: cameraCount,
-    ogolna: readNumericConfigParam(configParams, 'camera.total.ip.ogolna'),
-    lpr: readNumericConfigParam(configParams, 'camera.total.ip.lpr'),
-    skp: readNumericConfigParam(configParams, 'camera.total.ip.skp')
+    total: Math.max(cameraCount, explicitBreakdown?.total ?? 0),
+    ogolna: Math.max(readNumericConfigParam(configParams, 'camera.total.ip.ogolna'), explicitBreakdown?.ogolna ?? 0),
+    lpr: Math.max(readNumericConfigParam(configParams, 'camera.total.ip.lpr'), explicitBreakdown?.lpr ?? 0),
+    skp: Math.max(readNumericConfigParam(configParams, 'camera.total.ip.skp'), explicitBreakdown?.skp ?? 0)
   };
 
   const hasCameraBreakdown = cameraBreakdown.total > 0 || cameraBreakdown.ogolna > 0 || cameraBreakdown.lpr > 0 || cameraBreakdown.skp > 0;
@@ -76,10 +98,70 @@ function createBomResolverRequest(
     subsystemType: task.subsystemType,
     taskType: task.taskType,
     taskVariant: task.taskVariant ?? null,
+    isStandaloneNastawnia: options.isStandaloneNastawnia,
     configParams: configParamsWithCameraCount,
     ...(cameraCount > 0 && { cameraCount }),
     ...(hasCameraBreakdown && { cameraBreakdown })
   }
+}
+
+function materialToCameraBreakdown(material: ResolvedMaterial): CameraBreakdown {
+  if (!material.isSelected) {
+    return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
+  }
+
+  const label = `${material.groupName || ''} ${material.materialName || ''}`.toLowerCase();
+  if (!CAMERA_REGEX.test(label)) {
+    return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
+  }
+
+  const quantity = Number.isFinite(material.quantity) && material.quantity > 0 ? material.quantity : 0;
+  if (quantity <= 0) {
+    return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
+  }
+
+  if (CAMERA_LPR_REGEX.test(label)) {
+    return { total: quantity, ogolna: 0, lpr: quantity, skp: 0 };
+  }
+  if (CAMERA_SKP_REGEX.test(label)) {
+    return { total: quantity, ogolna: 0, lpr: 0, skp: quantity };
+  }
+  if (CAMERA_OGOLNA_REGEX.test(label)) {
+    return { total: quantity, ogolna: quantity, lpr: 0, skp: 0 };
+  }
+
+  return { total: quantity, ogolna: quantity, lpr: 0, skp: 0 };
+}
+
+function sumCameraBreakdown(parts: CameraBreakdown[]): CameraBreakdown {
+  return parts.reduce(
+    (acc, part) => ({
+      total: acc.total + part.total,
+      ogolna: acc.ogolna + part.ogolna,
+      lpr: acc.lpr + part.lpr,
+      skp: acc.skp + part.skp
+    }),
+    { total: 0, ogolna: 0, lpr: 0, skp: 0 }
+  );
+}
+
+function resolveCameraBreakdownFromConfig(config?: TaskConfiguration): CameraBreakdown {
+  if (!config) {
+    return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
+  }
+
+  const fromConfig = {
+    total: readNumericConfigParam(config.configParams || {}, 'cameraCount'),
+    ogolna: readNumericConfigParam(config.configParams || {}, 'camera.total.ip.ogolna'),
+    lpr: readNumericConfigParam(config.configParams || {}, 'camera.total.ip.lpr'),
+    skp: readNumericConfigParam(config.configParams || {}, 'camera.total.ip.skp')
+  };
+  const configTotal = fromConfig.total > 0 ? fromConfig.total : fromConfig.ogolna + fromConfig.lpr + fromConfig.skp;
+  if (configTotal > 0) {
+    return { ...fromConfig, total: configTotal };
+  }
+
+  return sumCameraBreakdown(config.materials.map(materialToCameraBreakdown));
 }
 
 export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
@@ -118,11 +200,8 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
 
   const taskConfigs: Record<string, TaskConfiguration> = wizardData.taskConfigurations || {};
   const customOrdersEnabled = !!wizardData.customOrdersEnabled;
-
-  // Use a ref to always read the latest taskConfigs inside async callbacks without
-  // adding it as a dependency of loadTemplate (which would cause infinite re-renders).
-  const taskConfigsRef = useRef(taskConfigs);
-  taskConfigsRef.current = taskConfigs;
+  const taskEntriesRef = useRef(taskEntries);
+  taskEntriesRef.current = taskEntries;
 
   // Ref for wizardData – keeps loadTemplate stable while still reading latest state.
   const wizardDataRef = useRef(wizardData);
@@ -136,8 +215,7 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
       setLoadingTemplate(true);
       setTemplateError('');
       try {
-        // Read the latest configs via ref to avoid stale closure
-        const currentConfigs = taskConfigsRef.current;
+        const currentConfigs = taskConfigs;
         const configParams: Record<string, unknown> = {
           ...task.subsystemParams,
           ...(currentConfigs[task.key]?.configParams || {})
@@ -170,7 +248,81 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           }
         }
 
-        const resolved = await bomResolverService.resolve(createBomResolverRequest(task, configParams));
+        const relationships = wizardDataRef.current.taskRelationships || {};
+        const taskLookup = new Map<string, TaskEntry>();
+        for (const entry of taskEntriesRef.current) {
+          taskLookup.set(entry.key, entry);
+          if (entry.taskWizardId) {
+            taskLookup.set(entry.taskWizardId, entry);
+          }
+        }
+
+        const collectCameraBreakdownFromHierarchy = (parentTask: TaskEntry): CameraBreakdown => {
+          const parentWizardId = parentTask.taskWizardId ?? parentTask.key;
+          const visited = new Set<string>();
+
+          const traverse = (parentId: string): CameraBreakdown => {
+            if (visited.has(parentId)) {
+              return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
+            }
+            visited.add(parentId);
+
+            const rel = relationships[parentId];
+            if (!rel?.childTaskKeys?.length) {
+              return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
+            }
+
+            const parts: CameraBreakdown[] = [];
+            for (const childKey of rel.childTaskKeys) {
+              const childTask = taskLookup.get(childKey);
+              if (!childTask) continue;
+              const childId = childTask.taskWizardId ?? childTask.key;
+              const nested = traverse(childId);
+              if (nested.total > 0) {
+                parts.push(nested);
+              } else {
+                parts.push(resolveCameraBreakdownFromConfig(currentConfigs[childTask.key]));
+              }
+            }
+
+            return sumCameraBreakdown(parts);
+          };
+
+          return traverse(parentWizardId);
+        };
+
+        const resolvedCameraBreakdown =
+          task.taskType === 'LCS' || task.taskType === 'NASTAWNIA'
+            ? collectCameraBreakdownFromHierarchy(task)
+            : resolveCameraBreakdownFromConfig(currentConfigs[task.key]);
+
+        if (resolvedCameraBreakdown.total > 0) {
+          configParams.cameraCount = resolvedCameraBreakdown.total;
+          configParams['camera.total'] = resolvedCameraBreakdown.total;
+          configParams['camera.total.ip'] = resolvedCameraBreakdown.total;
+          configParams['camera.ip.total'] = resolvedCameraBreakdown.total;
+          configParams['camera.total.ip.ogolna'] = resolvedCameraBreakdown.ogolna;
+          configParams['camera.total.ip.lpr'] = resolvedCameraBreakdown.lpr;
+          configParams['camera.total.ip.skp'] = resolvedCameraBreakdown.skp;
+        }
+
+        const taskIdentity = new Set<string>([task.key, task.taskWizardId].filter(Boolean) as string[]);
+        const isStandaloneNastawnia =
+          task.taskType === 'NASTAWNIA'
+            ? !Object.values(relationships).some(
+                (rel) =>
+                  rel.parentType === 'LCS' &&
+                  rel.childTaskKeys.some((childKey) => taskIdentity.has(childKey))
+              )
+            : undefined;
+
+        const resolved = await bomResolverService.resolve(
+          createBomResolverRequest(task, configParams, {
+            cameraCount: resolvedCameraBreakdown.total,
+            cameraBreakdown: resolvedCameraBreakdown,
+            isStandaloneNastawnia
+          })
+        );
         const materials: ResolvedMaterial[] = resolved.items.map((item) => ({
           id: item.templateItemId,
           materialName: item.materialName,
@@ -208,18 +360,14 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
         setLoadingTemplate(false);
       }
     },
-    [onUpdate]
+    [onUpdate, taskConfigs]
   );
 
-  // Auto-load template when switching to a task that has no config yet.
-  // We intentionally only react to activeTaskKey changes; taskConfigs is read
-  // via taskConfigsRef to avoid stale closures without triggering re-runs.
   useEffect(() => {
-    const current = taskConfigsRef.current;
-    if (activeTask && !current[activeTask.key]) {
+    if (activeTask && !taskConfigs[activeTask.key]) {
       loadTemplate(activeTask);
     }
-  }, [activeTaskKey, activeTask, loadTemplate]);
+  }, [activeTaskKey, activeTask, loadTemplate, taskConfigs]);
 
   const updateMaterial = (taskKey: string, materialId: number, patch: Partial<ResolvedMaterial>) => {
     const config = taskConfigs[taskKey];
@@ -236,10 +384,28 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
   const applyBOM = (taskKey: string) => {
     const config = taskConfigs[taskKey];
     if (!config) return;
+    const cameraBreakdown = resolveCameraBreakdownFromConfig(config);
+    const extraConfigParams: Record<string, unknown> = {
+      cameraCount: cameraBreakdown.total,
+      'camera.total': cameraBreakdown.total,
+      'camera.total.ip': cameraBreakdown.total,
+      'camera.ip.total': cameraBreakdown.total,
+      'camera.total.ip.ogolna': cameraBreakdown.ogolna,
+      'camera.total.ip.lpr': cameraBreakdown.lpr,
+      'camera.total.ip.skp': cameraBreakdown.skp,
+    };
     onUpdate({
       taskConfigurations: {
         ...taskConfigs,
-        [taskKey]: { ...config, isConfigured: true, lastModified: new Date() },
+        [taskKey]: {
+          ...config,
+          isConfigured: true,
+          lastModified: new Date(),
+          configParams: {
+            ...(config.configParams || {}),
+            ...extraConfigParams
+          }
+        },
       },
     });
   };

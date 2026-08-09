@@ -12,6 +12,16 @@ export class RecorderSelectionService {
    */
   static async selectRecorder(cameraCount: number): Promise<RecorderSpecification | null> {
     const repo = AppDataSource.getRepository(RecorderSpecification);
+    const matchingCount = await repo
+      .createQueryBuilder('rs')
+      .where('rs.is_active = true')
+      .andWhere('rs.min_cameras <= :count', { count: cameraCount })
+      .andWhere('rs.max_cameras >= :count', { count: cameraCount })
+      .getCount();
+    console.log('[RecorderSelectionService.selectRecorder] selecting recorder', {
+      cameraCount,
+      matchingRecorders: matchingCount
+    });
 
     const recorder = await repo
       .createQueryBuilder('rs')
