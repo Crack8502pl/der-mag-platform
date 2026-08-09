@@ -41,7 +41,7 @@ interface BomResolverRequestOptions {
 const CAMERA_REGEX = /kamera/i;
 const CAMERA_LPR_REGEX = /lpr/i;
 const CAMERA_SKP_REGEX = /skp/i;
-const CAMERA_OGOLNA_REGEX = /og[oó]ln/i;
+const CAMERA_OGOLNA_REGEX = /ogoln/i;
 
 function readNumericConfigParam(
   configParams: Record<string, unknown>,
@@ -111,7 +111,11 @@ function materialToCameraBreakdown(material: ResolvedMaterial): CameraBreakdown 
   }
 
   const label = `${material.groupName || ''} ${material.materialName || ''}`.toLowerCase();
-  if (!CAMERA_REGEX.test(label)) {
+  const normalizedLabel = label
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[łŁ]/g, 'l');
+  if (!CAMERA_REGEX.test(normalizedLabel)) {
     return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
   }
 
@@ -120,17 +124,17 @@ function materialToCameraBreakdown(material: ResolvedMaterial): CameraBreakdown 
     return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
   }
 
-  if (CAMERA_LPR_REGEX.test(label)) {
+  if (CAMERA_LPR_REGEX.test(normalizedLabel)) {
     return { total: quantity, ogolna: 0, lpr: quantity, skp: 0 };
   }
-  if (CAMERA_SKP_REGEX.test(label)) {
+  if (CAMERA_SKP_REGEX.test(normalizedLabel)) {
     return { total: quantity, ogolna: 0, lpr: 0, skp: quantity };
   }
-  if (CAMERA_OGOLNA_REGEX.test(label)) {
+  if (CAMERA_OGOLNA_REGEX.test(normalizedLabel)) {
     return { total: quantity, ogolna: quantity, lpr: 0, skp: 0 };
   }
 
-  return { total: quantity, ogolna: quantity, lpr: 0, skp: 0 };
+  return { total: quantity, ogolna: 0, lpr: 0, skp: 0 };
 }
 
 function sumCameraBreakdown(parts: CameraBreakdown[]): CameraBreakdown {
@@ -215,7 +219,7 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
       setLoadingTemplate(true);
       setTemplateError('');
       try {
-        const currentConfigs = taskConfigs;
+        const currentConfigs = (wizardDataRef.current.taskConfigurations || {}) as Record<string, TaskConfiguration>;
         const configParams: Record<string, unknown> = {
           ...task.subsystemParams,
           ...(currentConfigs[task.key]?.configParams || {})
@@ -291,10 +295,14 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           return traverse(parentWizardId);
         };
 
-        const resolvedCameraBreakdown =
-          task.taskType === 'LCS' || task.taskType === 'NASTAWNIA'
-            ? collectCameraBreakdownFromHierarchy(task)
-            : resolveCameraBreakdownFromConfig(currentConfigs[task.key]);
+        const isHierarchyParentTask = task.taskType === 'LCS' || task.taskType === 'NASTAWNIA';
+        let resolvedCameraBreakdown = isHierarchyParentTask
+          ? collectCameraBreakdownFromHierarchy(task)
+          : resolveCameraBreakdownFromConfig(currentConfigs[task.key]);
+
+        if (isHierarchyParentTask && resolvedCameraBreakdown.total === 0) {
+          resolvedCameraBreakdown = resolveCameraBreakdownFromConfig(currentConfigs[task.key]);
+        }
 
         if (resolvedCameraBreakdown.total > 0) {
           configParams.cameraCount = resolvedCameraBreakdown.total;
@@ -360,14 +368,15 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
         setLoadingTemplate(false);
       }
     },
-    [onUpdate, taskConfigs]
+    [onUpdate]
   );
 
   useEffect(() => {
-    if (activeTask && !taskConfigs[activeTask.key]) {
+    const currentConfigs = (wizardDataRef.current.taskConfigurations || {}) as Record<string, TaskConfiguration>;
+    if (activeTask && !currentConfigs[activeTask.key]) {
       loadTemplate(activeTask);
     }
-  }, [activeTaskKey, activeTask, loadTemplate, taskConfigs]);
+  }, [activeTaskKey, activeTask, loadTemplate]);
 
   const updateMaterial = (taskKey: string, materialId: number, patch: Partial<ResolvedMaterial>) => {
     const config = taskConfigs[taskKey];
