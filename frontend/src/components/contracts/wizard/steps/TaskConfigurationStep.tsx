@@ -262,19 +262,51 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
         }
 
         const collectCameraBreakdownFromHierarchy = (parentTask: TaskEntry): CameraBreakdown => {
-          const parentWizardId = parentTask.taskWizardId ?? parentTask.key;
+          // Collect all candidate IDs for this task
+          const candidateIds = [
+            parentTask.taskWizardId,
+            parentTask.key,
+            parentTask.taskNumber,
+          ].filter((id): id is string => !!id);
+
+          // Find the relationship entry by direct key lookup first
+          let rootRel: { childTaskKeys: string[]; parentType?: string } | undefined;
+          let rootId: string | undefined;
+          for (const id of candidateIds) {
+            if (relationships[id]?.childTaskKeys?.length) {
+              rootRel = relationships[id];
+              rootId = id;
+              break;
+            }
+          }
+
+          // If not found by direct key, search all relationship entries for one
+          // whose children are known tasks and whose parentType matches this task
+          if (!rootRel) {
+            for (const [relKey, rel] of Object.entries(relationships)) {
+              if (!rel?.childTaskKeys?.length) continue;
+              const hasKnownChild = rel.childTaskKeys.some(ck => taskLookup.has(ck));
+              if (hasKnownChild && rel.parentType === parentTask.taskType) {
+                rootRel = rel;
+                rootId = relKey;
+                break;
+              }
+            }
+          }
+
+          if (!rootRel?.childTaskKeys?.length) {
+            return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
+          }
+
           const visited = new Set<string>();
 
-          const traverse = (parentId: string, fallbackKey?: string): CameraBreakdown => {
-            if (visited.has(parentId)) {
+          const traverse = (relId: string): CameraBreakdown => {
+            if (visited.has(relId)) {
               return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
             }
-            visited.add(parentId);
+            visited.add(relId);
 
-            const rel =
-              relationships[parentId] ??
-              (fallbackKey ? relationships[fallbackKey] : undefined);
-            if (fallbackKey && !visited.has(fallbackKey)) visited.add(fallbackKey);
+            const rel = relationships[relId];
             if (!rel?.childTaskKeys?.length) {
               return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
             }
@@ -283,11 +315,20 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
             for (const childKey of rel.childTaskKeys) {
               const childTask = taskLookup.get(childKey);
               if (!childTask) continue;
-              const childId = childTask.taskWizardId ?? childTask.key;
-              const nested = traverse(
-                childId,
-                childTask.key !== childId ? childTask.key : undefined
+
+              // Find the relationship entry for this child using all candidate IDs
+              const childCandidates = [
+                childTask.taskWizardId,
+                childTask.key,
+                childTask.taskNumber,
+              ].filter((id): id is string => !!id);
+              const childRelId = childCandidates.find(
+                id => relationships[id]?.childTaskKeys?.length
               );
+
+              const nested = childRelId
+                ? traverse(childRelId)
+                : { total: 0, ogolna: 0, lpr: 0, skp: 0 };
               if (nested.total > 0) {
                 parts.push(nested);
               } else {
@@ -298,10 +339,7 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
             return sumCameraBreakdown(parts);
           };
 
-          return traverse(
-            parentWizardId,
-            parentTask.key !== parentWizardId ? parentTask.key : undefined
-          );
+          return traverse(rootId!);
         };
 
         const isHierarchyParentTask = task.taskType === 'LCS' || task.taskType === 'NASTAWNIA';
@@ -311,8 +349,27 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
 
         if (isHierarchyParentTask && resolvedCameraBreakdown.total === 0) {
           const allRels = wizardDataRef.current.taskRelationships || {};
-          const taskRel =
-            allRels[task.taskWizardId ?? task.key] ?? allRels[task.key];
+          const allTaskIds = [task.taskWizardId, task.key, task.taskNumber].filter(
+            Boolean
+          ) as string[];
+          let taskRel: { childTaskKeys: string[] } | undefined;
+          for (const tid of allTaskIds) {
+            if (allRels[tid]?.childTaskKeys?.length) {
+              taskRel = allRels[tid];
+              break;
+            }
+          }
+          // If still not found, scan all relationship entries
+          if (!taskRel) {
+            for (const [, rel] of Object.entries(allRels)) {
+              if (!rel?.childTaskKeys?.length) continue;
+              const hasKnownChild = rel.childTaskKeys.some(ck => taskLookup.has(ck));
+              if (hasKnownChild && rel.parentType === task.taskType) {
+                taskRel = rel;
+                break;
+              }
+            }
+          }
           if (taskRel?.childTaskKeys?.length) {
             const childBreakdowns: CameraBreakdown[] = [];
             for (const childKey of taskRel.childTaskKeys) {
