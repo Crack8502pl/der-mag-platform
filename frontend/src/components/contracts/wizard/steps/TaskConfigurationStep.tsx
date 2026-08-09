@@ -82,6 +82,45 @@ function createBomResolverRequest(
   }
 }
 
+function cameraCountFromConfig(
+  cfg: TaskConfiguration | undefined
+): number {
+  if (!cfg) return 0;
+  const cp = cfg.configParams;
+  if (cp) {
+    const fromParams = Math.max(
+      readNumericConfigParam(cp, 'cameraCount'),
+      readNumericConfigParam(cp, 'camera.total'),
+      readNumericConfigParam(cp, 'camera.total.ip')
+    );
+    if (fromParams > 0) return fromParams;
+  }
+  return cfg.materials
+    .filter((m) => m.isSelected && /kamera/i.test(m.groupName || ''))
+    .reduce((sum, m) => sum + (m.quantity || 0), 0);
+}
+
+function collectCamerasFromHierarchy(
+  parentWizardId: string,
+  allRels: Record<string, { childTaskKeys: string[] }>,
+  allConfigs: Record<string, TaskConfiguration>,
+  allEntries: TaskEntry[]
+): number {
+  const rel = allRels[parentWizardId];
+  if (!rel) return 0;
+  let total = 0;
+  for (const childKey of rel.childTaskKeys) {
+    const childEntry = allEntries.find((t) => t.key === childKey);
+    if (!childEntry) continue;
+    if (childEntry.taskType === 'NASTAWNIA' && childEntry.taskWizardId) {
+      total += collectCamerasFromHierarchy(childEntry.taskWizardId, allRels, allConfigs, allEntries);
+    } else {
+      total += cameraCountFromConfig(allConfigs[childKey]);
+    }
+  }
+  return total;
+}
+
 export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
   const allGeneratedTasks = generateAllTasks(wizardData.subsystems, wizardData.liniaKolejowa);
 
@@ -143,48 +182,8 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
 
       const allRels = wizardDataRef.current.taskRelationships ?? {};
       const allConfigs = taskConfigsRef.current;
-
-      const cameraCountFromMaterials = (taskKey: string): number => {
-        const cfg = allConfigs[taskKey];
-        if (!cfg) return 0;
-
-        const cp = cfg.configParams;
-        if (cp) {
-          const fromParams = Math.max(
-            readNumericConfigParam(cp, 'cameraCount'),
-            readNumericConfigParam(cp, 'camera.total'),
-            readNumericConfigParam(cp, 'camera.total.ip')
-          );
-          if (fromParams > 0) return fromParams;
-        }
-
-        return cfg.materials
-          .filter((m) => m.isSelected && /kamera/i.test(m.groupName || ''))
-          .reduce((sum, m) => sum + (m.quantity || 0), 0);
-      };
-
-      const collectCameras = (parentWizardId: string): number => {
-        const rel = allRels[parentWizardId];
-        if (!rel) return 0;
-
-        let total = 0;
-        for (const childKey of rel.childTaskKeys) {
-          const childEntry = taskEntries.find((t) => t.key === childKey);
-          if (!childEntry) continue;
-
-          if (childEntry.taskType === 'NASTAWNIA') {
-            if (childEntry.taskWizardId) {
-              total += collectCameras(childEntry.taskWizardId);
-            }
-          } else {
-            total += cameraCountFromMaterials(childKey);
-          }
-        }
-        return total;
-      };
-
       const lcsWizardId = lcsTask.taskWizardId ?? lcsTask.key;
-      const fromHierarchy = collectCameras(lcsWizardId);
+      const fromHierarchy = collectCamerasFromHierarchy(lcsWizardId, allRels, allConfigs, taskEntries);
       if (fromHierarchy > 0) return fromHierarchy;
 
       return manualOverride ?? lcsManualCameraCount[lcsTask.key] ?? 0;
@@ -305,43 +304,10 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
     const snapshot: Record<string, number> = {};
     const allRels = wizardData.taskRelationships ?? {};
 
-    const leafCameras = (taskKey: string): number => {
-      const cfg = taskConfigs[taskKey];
-      if (!cfg) return 0;
-      const cp = cfg.configParams;
-      if (cp) {
-        const v = Math.max(
-          readNumericConfigParam(cp, 'cameraCount'),
-          readNumericConfigParam(cp, 'camera.total'),
-          readNumericConfigParam(cp, 'camera.total.ip')
-        );
-        if (v > 0) return v;
-      }
-      return cfg.materials
-        .filter((m) => m.isSelected && /kamera/i.test(m.groupName || ''))
-        .reduce((sum, m) => sum + (m.quantity || 0), 0);
-    };
-
-    const collect = (parentWizardId: string): number => {
-      const rel = allRels[parentWizardId];
-      if (!rel) return 0;
-      let total = 0;
-      for (const childKey of rel.childTaskKeys) {
-        const childEntry = taskEntries.find((t) => t.key === childKey);
-        if (!childEntry) continue;
-        if (childEntry.taskType === 'NASTAWNIA' && childEntry.taskWizardId) {
-          total += collect(childEntry.taskWizardId);
-        } else {
-          total += leafCameras(childKey);
-        }
-      }
-      return total;
-    };
-
     for (const entry of taskEntries) {
       if (entry.taskType !== 'LCS') continue;
       const lcsWizardId = entry.taskWizardId ?? entry.key;
-      snapshot[entry.key] = collect(lcsWizardId);
+      snapshot[entry.key] = collectCamerasFromHierarchy(lcsWizardId, allRels, taskConfigs, taskEntries);
     }
     return snapshot;
   }, [taskConfigs, taskEntries, wizardData.taskRelationships]);
@@ -418,6 +384,10 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
     });
     return groups;
   };
+
+  // Pre-compute LCS camera count once to avoid calling resolveLcsCameraCount twice in JSX
+  const lcsCameraCountForActive =
+    activeTask?.taskType === 'LCS' ? resolveLcsCameraCount(activeTask) : 0;
 
   return (
     <div className="wizard-step-content task-config-step">
@@ -527,9 +497,9 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
                   <span style={{ fontSize: '13px', color: 'var(--text-secondary)', flex: '1 1 200px' }}>
                     {'📹 '}
                     <strong>Kamery w poddrzewie LCS</strong>{' — '}
-                    {resolveLcsCameraCount(activeTask) > 0
+                    {lcsCameraCountForActive > 0
                       ? <span style={{ color: 'var(--success-color)' }}>
-                          {'auto: '}{resolveLcsCameraCount(activeTask)}
+                          {'auto: '}{lcsCameraCountForActive}
                           {' (suma kamer z Przejazdów i SKP)'}
                         </span>
                       : <span style={{ color: 'var(--warning-color)' }}>
@@ -545,7 +515,7 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
                         border: '1px solid var(--border-color)', borderRadius: '4px',
                         background: 'var(--bg-tertiary)', color: 'var(--text-primary)', fontSize: '13px'
                       }}
-                      value={lcsManualCameraCount[activeTaskKey] ?? resolveLcsCameraCount(activeTask)}
+                      value={lcsManualCameraCount[activeTaskKey] ?? lcsCameraCountForActive}
                       onChange={(e) => {
                         const val = parseInt(e.target.value) || 0;
                         setLcsManualCameraCount(prev => ({ ...prev, [activeTaskKey]: val }));
