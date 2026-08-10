@@ -407,4 +407,191 @@ describe('TaskConfigurationStep', () => {
       isStandaloneNastawnia: true
     }));
   });
+
+  it('prefers configured task camera count over higher fallback defaults', async () => {
+    const wizardData: WizardData = {
+      ...baseWizardData,
+      taskConfigurations: {
+        'SMOKIP_A-0': {
+          taskId: 'SMOKIP_A-0',
+          taskNumber: 'task-1',
+          taskName: 'LCS',
+          taskType: 'LCS',
+          subsystemType: 'SMOKIP_A',
+          materials: [],
+          configParams: {
+            cameraCount: 1,
+            'camera.total': 1,
+            'camera.total.ip': 1,
+            'camera.ip.total': 1,
+            'lcsConfig.iloscKamer': 5
+          },
+          isConfigured: true
+        }
+      }
+    };
+
+    resolve.mockResolvedValue({
+      templateId: 101,
+      templateName: 'Test',
+      templateVersion: 2,
+      templateMissing: false,
+      items: [],
+      needsRecorder: true,
+      cameraCount: 1,
+      recorderRecommendation: null,
+      diskRecommendation: null,
+      retentionDays: 14,
+      isConfigured: false,
+      resolvedAt: new Date().toISOString(),
+      warnings: []
+    });
+
+    render(<TaskConfigurationStep wizardData={wizardData} onUpdate={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /Przeładuj szablon/i }));
+
+    await waitFor(() => expect(resolve).toHaveBeenCalledWith(expect.objectContaining({
+      taskType: 'LCS',
+      cameraCount: 1,
+      configParams: expect.objectContaining({
+        cameraCount: 1,
+        'camera.total.ip': 1,
+        'lcsConfig.iloscKamer': 5
+      })
+    })));
+  });
+
+  it('prefers nested configured hierarchy counts over higher template defaults for LCS', async () => {
+    const wizardData: WizardData = {
+      ...baseWizardData,
+      subsystems: [
+        {
+          type: 'SMOKIP_A',
+          params: {},
+          taskDetails: [
+            { taskType: 'PRZEJAZD_KAT_A', taskWizardId: 'child-1', kategoria: 'KAT A' },
+            { taskType: 'SKP', taskWizardId: 'child-2' },
+            { taskType: 'NASTAWNIA', taskWizardId: 'nd-1' },
+            { taskType: 'LCS', taskWizardId: 'lcs-1' }
+          ]
+        }
+      ],
+      taskRelationships: {
+        'lcs-1': {
+          parentWizardId: 'lcs-1',
+          parentType: 'LCS',
+          childTaskKeys: ['child-1', 'nd-1']
+        },
+        'nd-1': {
+          parentWizardId: 'nd-1',
+          parentType: 'NASTAWNIA',
+          childTaskKeys: ['child-2']
+        }
+      },
+      taskConfigurations: {
+        'SMOKIP_A-0': {
+          taskId: 'SMOKIP_A-0',
+          taskNumber: 'Z-1',
+          taskName: 'Przejazd',
+          taskType: 'PRZEJAZD_KAT_A',
+          subsystemType: 'SMOKIP_A',
+          materials: [],
+          configParams: {
+            cameraCount: 1,
+            'camera.total': 1,
+            'camera.total.ip': 1,
+            'camera.ip.total': 1,
+            'camera.total.ip.lpr': 1
+          },
+          isConfigured: true
+        },
+        'SMOKIP_A-1': {
+          taskId: 'SMOKIP_A-1',
+          taskNumber: 'Z-2',
+          taskName: 'SKP',
+          taskType: 'SKP',
+          subsystemType: 'SMOKIP_A',
+          materials: [],
+          configParams: {
+            cameraCount: 0,
+            'camera.total': 0,
+            'camera.total.ip': 0,
+            'camera.ip.total': 0,
+            'camera.total.ip.skp': 0
+          },
+          isConfigured: true
+        },
+        'SMOKIP_A-2': {
+          taskId: 'SMOKIP_A-2',
+          taskNumber: 'Z-3',
+          taskName: 'ND',
+          taskType: 'NASTAWNIA',
+          subsystemType: 'SMOKIP_A',
+          materials: [],
+          configParams: {
+            cameraCount: 2,
+            'camera.total': 2,
+            'camera.total.ip': 2,
+            'camera.ip.total': 2,
+            'nastawniConfig.iloscKamer': 2
+          },
+          isConfigured: false
+        },
+        'SMOKIP_A-3': {
+          taskId: 'SMOKIP_A-3',
+          taskNumber: 'Z-4',
+          taskName: 'LCS',
+          taskType: 'LCS',
+          subsystemType: 'SMOKIP_A',
+          materials: [],
+          configParams: {
+            cameraCount: 5,
+            'camera.total': 5,
+            'camera.total.ip': 5,
+            'camera.ip.total': 5,
+            'lcsConfig.iloscKamer': 5
+          },
+          isConfigured: false
+        }
+      }
+    };
+
+    resolve.mockResolvedValue({
+      templateId: 102,
+      templateName: 'LCS',
+      templateVersion: 1,
+      templateMissing: false,
+      items: [],
+      needsRecorder: true,
+      cameraCount: 1,
+      recorderRecommendation: null,
+      diskRecommendation: null,
+      retentionDays: 14,
+      isConfigured: false,
+      resolvedAt: new Date().toISOString(),
+      warnings: []
+    });
+
+    render(<TaskConfigurationStep wizardData={wizardData} onUpdate={vi.fn()} />);
+
+    fireEvent.click(screen.getByText((content) => content.includes('LCS') && !content.includes('BOM')));
+    fireEvent.click(await screen.findByRole('button', { name: /Przeładuj szablon/i }));
+
+    await waitFor(() => expect(resolve).toHaveBeenCalledWith(expect.objectContaining({
+      taskType: 'LCS',
+      cameraCount: 1,
+      cameraBreakdown: expect.objectContaining({
+        total: 1,
+        lpr: 1,
+        skp: 0
+      }),
+      configParams: expect.objectContaining({
+        cameraCount: 1,
+        'camera.total.ip': 1,
+        'camera.total.ip.skp': 0,
+        'lcsConfig.iloscKamer': 5
+      })
+    })));
+  });
 });

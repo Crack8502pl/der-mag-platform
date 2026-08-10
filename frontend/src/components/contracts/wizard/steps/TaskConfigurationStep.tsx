@@ -36,12 +36,46 @@ interface BomResolverRequestOptions {
   cameraCount?: number;
   cameraBreakdown?: CameraBreakdown;
   isStandaloneNastawnia?: boolean;
+  preferExplicitCameraValues?: boolean;
 }
 
 const CAMERA_REGEX = /kamera/i;
 const CAMERA_LPR_REGEX = /lpr/i;
 const CAMERA_SKP_REGEX = /skp/i;
 const CAMERA_OGOLNA_REGEX = /ogoln/i;
+const CAMERA_COUNT_PARAM_PATHS = [
+  'cameraCount',
+  'camera.total',
+  'camera.total.ip',
+  'camera.ip.total',
+  'camera.total.ip.ogolna',
+  'camera.total.ip.lpr',
+  'camera.total.ip.skp',
+  'lcsConfig.iloscKamer',
+  'nastawniConfig.iloscKamer'
+] as const;
+
+function hasNumericConfigParam(
+  configParams: Record<string, unknown>,
+  paramPath: string
+): boolean {
+  const direct = configParams[paramPath];
+  if (typeof direct === 'number' && Number.isFinite(direct) && direct >= 0) {
+    return true;
+  }
+
+  const keys = paramPath.split('.');
+  let current: unknown = configParams;
+  for (const key of keys) {
+    if (current && typeof current === 'object') {
+      current = (current as Record<string, unknown>)[key];
+    } else {
+      return false;
+    }
+  }
+
+  return typeof current === 'number' && Number.isFinite(current) && current >= 0;
+}
 
 function readNumericConfigParam(
   configParams: Record<string, unknown>,
@@ -72,8 +106,7 @@ function createBomResolverRequest(
 ) {
   const explicitBreakdown = options.cameraBreakdown;
   const explicitCameraCount = Math.max(0, options.cameraCount ?? explicitBreakdown?.total ?? 0);
-  const cameraCount = Math.max(
-    explicitCameraCount,
+  const fallbackCameraCount = Math.max(
     readNumericConfigParam(configParams, 'cameraCount'),
     readNumericConfigParam(configParams, 'camera.total'),
     readNumericConfigParam(configParams, 'camera.total.ip'),
@@ -81,18 +114,42 @@ function createBomResolverRequest(
     readNumericConfigParam(configParams, 'lcsConfig.iloscKamer'),
     readNumericConfigParam(configParams, 'nastawniConfig.iloscKamer')
   );
+  const preferExplicitCameraValues = !!options.preferExplicitCameraValues;
+  const cameraCount = preferExplicitCameraValues
+    ? explicitCameraCount
+    : Math.max(explicitCameraCount, fallbackCameraCount);
 
   const cameraBreakdown = {
-    total: Math.max(cameraCount, explicitBreakdown?.total ?? 0),
-    ogolna: Math.max(readNumericConfigParam(configParams, 'camera.total.ip.ogolna'), explicitBreakdown?.ogolna ?? 0),
-    lpr: Math.max(readNumericConfigParam(configParams, 'camera.total.ip.lpr'), explicitBreakdown?.lpr ?? 0),
-    skp: Math.max(readNumericConfigParam(configParams, 'camera.total.ip.skp'), explicitBreakdown?.skp ?? 0)
+    total: preferExplicitCameraValues
+      ? explicitBreakdown?.total ?? explicitCameraCount
+      : Math.max(cameraCount, explicitBreakdown?.total ?? 0),
+    ogolna: preferExplicitCameraValues
+      ? explicitBreakdown?.ogolna ?? readNumericConfigParam(configParams, 'camera.total.ip.ogolna')
+      : Math.max(readNumericConfigParam(configParams, 'camera.total.ip.ogolna'), explicitBreakdown?.ogolna ?? 0),
+    lpr: preferExplicitCameraValues
+      ? explicitBreakdown?.lpr ?? readNumericConfigParam(configParams, 'camera.total.ip.lpr')
+      : Math.max(readNumericConfigParam(configParams, 'camera.total.ip.lpr'), explicitBreakdown?.lpr ?? 0),
+    skp: preferExplicitCameraValues
+      ? explicitBreakdown?.skp ?? readNumericConfigParam(configParams, 'camera.total.ip.skp')
+      : Math.max(readNumericConfigParam(configParams, 'camera.total.ip.skp'), explicitBreakdown?.skp ?? 0)
   };
 
   const hasCameraBreakdown = cameraBreakdown.total > 0 || cameraBreakdown.ogolna > 0 || cameraBreakdown.lpr > 0 || cameraBreakdown.skp > 0;
-
+  const normalizedCameraConfigParams = preferExplicitCameraValues
+    ? {
+        cameraCount,
+        'camera.total': cameraBreakdown.total,
+        'camera.total.ip': cameraBreakdown.total,
+        'camera.ip.total': cameraBreakdown.total,
+        'camera.total.ip.ogolna': cameraBreakdown.ogolna,
+        'camera.total.ip.lpr': cameraBreakdown.lpr,
+        'camera.total.ip.skp': cameraBreakdown.skp
+      }
+    : {};
   const configParamsWithCameraCount =
-    cameraCount > 0 ? { ...configParams, cameraCount } : configParams;
+    cameraCount > 0 || preferExplicitCameraValues
+      ? { ...configParams, ...normalizedCameraConfigParams, cameraCount }
+      : configParams;
 
   return {
     subsystemType: task.subsystemType,
@@ -100,7 +157,7 @@ function createBomResolverRequest(
     taskVariant: task.taskVariant ?? null,
     isStandaloneNastawnia: options.isStandaloneNastawnia,
     configParams: configParamsWithCameraCount,
-    ...(cameraCount > 0 && { cameraCount }),
+    ...((cameraCount > 0 || preferExplicitCameraValues) && { cameraCount }),
     ...(hasCameraBreakdown && { cameraBreakdown })
   }
 }
@@ -166,6 +223,43 @@ function resolveCameraBreakdownFromConfig(config?: TaskConfiguration): CameraBre
   }
 
   return sumCameraBreakdown(config.materials.map(materialToCameraBreakdown));
+}
+
+function resolveCameraBreakdownFromParams(
+  configParams: Record<string, unknown>
+): CameraBreakdown | null {
+  const hasAnyCameraParams = CAMERA_COUNT_PARAM_PATHS.some((path) =>
+    hasNumericConfigParam(configParams, path)
+  );
+  if (!hasAnyCameraParams) {
+    return null;
+  }
+
+  const ogolna = readNumericConfigParam(configParams, 'camera.total.ip.ogolna');
+  const lpr = readNumericConfigParam(configParams, 'camera.total.ip.lpr');
+  const skp = readNumericConfigParam(configParams, 'camera.total.ip.skp');
+  const total = Math.max(
+    readNumericConfigParam(configParams, 'cameraCount'),
+    readNumericConfigParam(configParams, 'camera.total'),
+    readNumericConfigParam(configParams, 'camera.total.ip'),
+    readNumericConfigParam(configParams, 'camera.ip.total'),
+    readNumericConfigParam(configParams, 'lcsConfig.iloscKamer'),
+    readNumericConfigParam(configParams, 'nastawniConfig.iloscKamer'),
+    ogolna + lpr + skp
+  );
+
+  return { total, ogolna, lpr, skp };
+}
+
+function hasWizardCameraOverrides(config?: TaskConfiguration): boolean {
+  if (!config?.isConfigured) {
+    return false;
+  }
+
+  return (
+    !!resolveCameraBreakdownFromParams(config.configParams || {}) ||
+    config.materials.some((material) => materialToCameraBreakdown(material).total > 0)
+  );
 }
 
 export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
@@ -261,7 +355,9 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           }
         }
 
-        const collectCameraBreakdownFromHierarchy = (parentTask: TaskEntry): CameraBreakdown => {
+        const collectCameraBreakdownFromHierarchy = (
+          parentTask: TaskEntry
+        ): { breakdown: CameraBreakdown; hasWizardOverrides: boolean } => {
           // Collect all candidate IDs for this task
           const candidateIds = [
             parentTask.taskWizardId,
@@ -297,23 +393,35 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           }
 
           if (!rootRel?.childTaskKeys?.length) {
-            return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
+            return {
+              breakdown: { total: 0, ogolna: 0, lpr: 0, skp: 0 },
+              hasWizardOverrides: false
+            };
           }
 
           const visited = new Set<string>();
 
-          const traverse = (relId: string): CameraBreakdown => {
+          const traverse = (
+            relId: string
+          ): { breakdown: CameraBreakdown; hasWizardOverrides: boolean } => {
             if (visited.has(relId)) {
-              return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
+              return {
+                breakdown: { total: 0, ogolna: 0, lpr: 0, skp: 0 },
+                hasWizardOverrides: false
+              };
             }
             visited.add(relId);
 
             const rel = relationships[relId];
             if (!rel?.childTaskKeys?.length) {
-              return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
+              return {
+                breakdown: { total: 0, ogolna: 0, lpr: 0, skp: 0 },
+                hasWizardOverrides: false
+              };
             }
 
             const parts: CameraBreakdown[] = [];
+            let hasWizardOverrides = false;
             for (const childKey of rel.childTaskKeys) {
               const childTask = taskLookup.get(childKey);
               if (!childTask) continue;
@@ -329,25 +437,49 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
               );
 
               const nested = childRelId
-                ? traverse(childRelId)
-                : { total: 0, ogolna: 0, lpr: 0, skp: 0 };
-              if (nested.total > 0) {
-                parts.push(nested);
-              } else {
-                parts.push(resolveCameraBreakdownFromConfig(currentConfigs[childTask.key]));
-              }
+               ? traverse(childRelId)
+               : {
+                   breakdown: { total: 0, ogolna: 0, lpr: 0, skp: 0 },
+                   hasWizardOverrides: false
+                 };
+              const childConfig = currentConfigs[childTask.key];
+              const childBreakdown =
+               nested.hasWizardOverrides || nested.breakdown.total > 0
+                 ? nested.breakdown
+                 : resolveCameraBreakdownFromConfig(childConfig);
+              parts.push(childBreakdown);
+              hasWizardOverrides =
+               hasWizardOverrides ||
+               nested.hasWizardOverrides ||
+               hasWizardCameraOverrides(childConfig);
             }
 
-            return sumCameraBreakdown(parts);
+            return {
+              breakdown: sumCameraBreakdown(parts),
+              hasWizardOverrides
+            };
           };
 
           return traverse(rootId!);
         };
 
         const isHierarchyParentTask = task.taskType === 'LCS' || task.taskType === 'NASTAWNIA';
-        let resolvedCameraBreakdown = isHierarchyParentTask
+        const directCameraOverride = resolveCameraBreakdownFromParams(task.subsystemParams);
+        const configuredCameraOverride = currentConfigs[task.key]?.isConfigured
+          ? resolveCameraBreakdownFromConfig(currentConfigs[task.key])
+          : null;
+        const hierarchyCameraResolution = isHierarchyParentTask
           ? collectCameraBreakdownFromHierarchy(task)
-          : resolveCameraBreakdownFromConfig(currentConfigs[task.key]);
+          : null;
+        let resolvedCameraBreakdown = hierarchyCameraResolution?.hasWizardOverrides
+          ? hierarchyCameraResolution.breakdown
+          : configuredCameraOverride ??
+            directCameraOverride ??
+            hierarchyCameraResolution?.breakdown ??
+            resolveCameraBreakdownFromConfig(currentConfigs[task.key]);
+        let hasWizardCameraOverride = !!hierarchyCameraResolution?.hasWizardOverrides ||
+          hasWizardCameraOverrides(currentConfigs[task.key]) ||
+          !!directCameraOverride;
 
         if (isHierarchyParentTask && resolvedCameraBreakdown.total === 0) {
           const allRels = wizardDataRef.current.taskRelationships || {};
@@ -377,15 +509,20 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
             for (const childKey of taskRel.childTaskKeys) {
               const childTask = taskLookup.get(childKey);
               if (childTask) {
+                const childConfig = currentConfigs[childTask.key];
                 childBreakdowns.push(
-                  resolveCameraBreakdownFromConfig(currentConfigs[childTask.key])
+                  resolveCameraBreakdownFromConfig(childConfig)
                 );
+                hasWizardCameraOverride =
+                  hasWizardCameraOverride || hasWizardCameraOverrides(childConfig);
               }
             }
             resolvedCameraBreakdown = sumCameraBreakdown(childBreakdowns);
           }
           if (resolvedCameraBreakdown.total === 0) {
             resolvedCameraBreakdown = resolveCameraBreakdownFromConfig(currentConfigs[task.key]);
+            hasWizardCameraOverride =
+              hasWizardCameraOverride || hasWizardCameraOverrides(currentConfigs[task.key]);
           }
         }
 
@@ -413,7 +550,8 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           createBomResolverRequest(task, configParams, {
             cameraCount: resolvedCameraBreakdown.total,
             cameraBreakdown: resolvedCameraBreakdown,
-            isStandaloneNastawnia
+            isStandaloneNastawnia,
+            preferExplicitCameraValues: hasWizardCameraOverride
           })
         );
         const materials: ResolvedMaterial[] = resolved.items.map((item) => ({
