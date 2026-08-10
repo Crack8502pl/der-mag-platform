@@ -298,23 +298,23 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
               taskType: detail.taskType,
               taskWizardId: detail.taskWizardId ?? fallbackKey,
               label: buildLabel(detail.taskType, detail),
-              nazwa: detail.nazwa,
-            });
+               nazwa: detail.nazwa,
+              });
           }
 
           // NASTAWNIA can be both parent AND child
           if (CHILD_TASK_TYPES.includes(detail.taskType)) {
-            children.push({
-              key,
-              subsystemIndex: sIdx,
-              taskIndex: dIdx,
-              taskType: detail.taskType,
-              label: buildLabel(detail.taskType, detail),
-              kilometraz: detail.kilometraz,
-              nazwa: detail.nazwa,
-              taskWizardId: detail.taskWizardId ?? fallbackKey,
-              isExisting: false,
-            });
+              children.push({
+                key,
+                subsystemIndex: sIdx,
+                taskIndex: dIdx,
+                taskType: detail.taskType,
+                 label: buildLabel(detail.taskType, detail),
+                kilometraz: detail.kilometraz,
+                nazwa: detail.nazwa,
+                taskWizardId: detail.taskWizardId ?? fallbackKey,
+                isExisting: false,
+              });
           }
         });
       });
