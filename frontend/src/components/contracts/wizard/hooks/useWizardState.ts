@@ -458,7 +458,12 @@ export const useWizardState = ({
               return {
                 id: task.id, // IMPORTANT - preserve task ID
                 taskNumber: task.taskNumber, // IMPORTANT - preserve task number for relationships
-                taskWizardId: task.taskNumber, // FIX: use taskNumber as stable wizardId so relationship keys match
+                // Stable taskWizardId precedence: persisted metadata value → taskNumber → new UUID (last resort).
+                // Using meta.taskWizardId first ensures UUIDs already persisted (e.g. for LCS) are preserved
+                // across restores, while taskNumber provides a human-readable fallback for the test environment.
+                taskWizardId: (typeof meta.taskWizardId === 'string' && meta.taskWizardId !== '' ? meta.taskWizardId : undefined)
+                  ?? (task.taskNumber || undefined)
+                  ?? crypto.randomUUID(),
                 taskType,
                 kilometraz: meta.kilometraz || '',
                 kategoria: meta.kategoria || '',
