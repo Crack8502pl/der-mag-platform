@@ -173,19 +173,19 @@ export const useWizardState = ({
         const neededPrzejazdy = getNumericValue(simpleParams, 'przejazdyKatA');
         const existingPrzejazdy = existingDetails.filter(t => t.taskType === 'PRZEJAZD_KAT_A').length;
         for (let i = existingPrzejazdy; i < neededPrzejazdy; i++) {
-          additionalDetails.push({ taskType: 'PRZEJAZD_KAT_A', kilometraz: '', kategoria: 'KAT A' });
+          additionalDetails.push({ taskType: 'PRZEJAZD_KAT_A', kilometraz: '', kategoria: 'KAT A', taskWizardId: crypto.randomUUID() });
         }
 
         const neededSKP = getNumericValue(simpleParams, 'iloscSKP');
         const existingSKP = existingDetails.filter(t => t.taskType === 'SKP').length;
         for (let i = existingSKP; i < neededSKP; i++) {
-          additionalDetails.push({ taskType: 'SKP', kilometraz: '' });
+          additionalDetails.push({ taskType: 'SKP', kilometraz: '', taskWizardId: crypto.randomUUID() });
         }
 
         const neededNastawnia = getNumericValue(simpleParams, 'iloscNastawni');
         const existingNastawnia = existingDetails.filter(t => t.taskType === 'NASTAWNIA').length;
         for (let i = existingNastawnia; i < neededNastawnia; i++) {
-          additionalDetails.push({ taskType: 'NASTAWNIA', nazwa: '', miejscowosc: '' });
+          additionalDetails.push({ taskType: 'NASTAWNIA', nazwa: '', miejscowosc: '', taskWizardId: crypto.randomUUID() });
         }
 
         const neededLCS = getNumericValue(simpleParams, 'hasLCS');
@@ -197,13 +197,13 @@ export const useWizardState = ({
         const neededPrzejazdy = getNumericValue(simpleParams, 'przejazdyKatB');
         const existingPrzejazdy = existingDetails.filter(t => t.taskType === 'PRZEJAZD_KAT_B').length;
         for (let i = existingPrzejazdy; i < neededPrzejazdy; i++) {
-          additionalDetails.push({ taskType: 'PRZEJAZD_KAT_B', kilometraz: '', kategoria: 'KAT B' });
+          additionalDetails.push({ taskType: 'PRZEJAZD_KAT_B', kilometraz: '', kategoria: 'KAT B', taskWizardId: crypto.randomUUID() });
         }
 
         const neededNastawnia = getNumericValue(simpleParams, 'iloscNastawni');
         const existingNastawnia = existingDetails.filter(t => t.taskType === 'NASTAWNIA').length;
         for (let i = existingNastawnia; i < neededNastawnia; i++) {
-          additionalDetails.push({ taskType: 'NASTAWNIA', nazwa: '', miejscowosc: '' });
+          additionalDetails.push({ taskType: 'NASTAWNIA', nazwa: '', miejscowosc: '', taskWizardId: crypto.randomUUID() });
         }
 
         const neededLCS = getNumericValue(simpleParams, 'hasLCS');
@@ -232,15 +232,15 @@ export const useWizardState = ({
     if (subsystem.type === 'SMOKIP_A') {
       // PRZEJAZD_KAT_A
       for (let i = 0; i < getNumericValue(simpleParams, 'przejazdyKatA'); i++) {
-        taskDetails.push({ taskType: 'PRZEJAZD_KAT_A', kilometraz: '', kategoria: 'KAT A' });
+        taskDetails.push({ taskType: 'PRZEJAZD_KAT_A', kilometraz: '', kategoria: 'KAT A', taskWizardId: crypto.randomUUID() });
       }
       // SKP
       for (let i = 0; i < getNumericValue(simpleParams, 'iloscSKP'); i++) {
-        taskDetails.push({ taskType: 'SKP', kilometraz: '' });
+        taskDetails.push({ taskType: 'SKP', kilometraz: '', taskWizardId: crypto.randomUUID() });
       }
       // NASTAWNIA
       for (let i = 0; i < getNumericValue(simpleParams, 'iloscNastawni'); i++) {
-        taskDetails.push({ taskType: 'NASTAWNIA', nazwa: '', miejscowosc: '' });
+        taskDetails.push({ taskType: 'NASTAWNIA', nazwa: '', miejscowosc: '', taskWizardId: crypto.randomUUID() });
       }
       // LCS (hasLCS is now a count)
       const lcsCount = getNumericValue(simpleParams, 'hasLCS');
@@ -250,11 +250,11 @@ export const useWizardState = ({
     } else if (subsystem.type === 'SMOKIP_B') {
       // PRZEJAZD_KAT_B
       for (let i = 0; i < getNumericValue(simpleParams, 'przejazdyKatB'); i++) {
-        taskDetails.push({ taskType: 'PRZEJAZD_KAT_B', kilometraz: '', kategoria: 'KAT B' });
+        taskDetails.push({ taskType: 'PRZEJAZD_KAT_B', kilometraz: '', kategoria: 'KAT B', taskWizardId: crypto.randomUUID() });
       }
       // NASTAWNIA
       for (let i = 0; i < getNumericValue(simpleParams, 'iloscNastawni'); i++) {
-        taskDetails.push({ taskType: 'NASTAWNIA', nazwa: '', miejscowosc: '' });
+        taskDetails.push({ taskType: 'NASTAWNIA', nazwa: '', miejscowosc: '', taskWizardId: crypto.randomUUID() });
       }
       // LCS (hasLCS is now a count)
       const lcsCountB = getNumericValue(simpleParams, 'hasLCS');
