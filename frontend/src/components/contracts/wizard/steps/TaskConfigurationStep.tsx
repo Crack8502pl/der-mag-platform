@@ -252,7 +252,14 @@ function resolveCameraBreakdownFromParams(
 }
 
 function hasWizardCameraOverrides(config?: TaskConfiguration): boolean {
-  return !!config?.isConfigured;
+  if (!config?.isConfigured) {
+    return false;
+  }
+
+  return (
+    !!resolveCameraBreakdownFromParams(config.configParams || {}) ||
+    config.materials.some((material) => materialToCameraBreakdown(material).total > 0)
+  );
 }
 
 export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate }) => {
