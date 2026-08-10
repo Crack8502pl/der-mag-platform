@@ -277,49 +277,44 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
           }
         });
       });
-        } else {
-        // ── Regular wizard mode ──────────────────────────────────────────────────
-          wizardData.subsystems.forEach((sub, sIdx) => {
-            if (sub.type !== 'SMOKIP_A' && sub.type !== 'SMOKIP_B') return;
-            const details = sub.taskDetails ?? [];
-            details.forEach((detail, dIdx) => {
-            const fallbackKey = `${sIdx}-${dIdx}`;
-            const key = detail.taskWizardId ?? fallbackKey;
-          // Use taskWizardId as the chip key when available so that childTaskKeys
-          // stored in taskRelationships match the keys registered in TaskConfigurationStep's
-          // taskLookup (which also indexes by taskWizardId).
-          const key = detail.taskWizardId ?? fallbackKey;
+           } else {
+      // ── Regular wizard mode ──────────────────────────────────────────────────
+      wizardData.subsystems.forEach((sub, sIdx) => {
+        if (sub.type !== 'SMOKIP_A' && sub.type !== 'SMOKIP_B') return;
+        const details = sub.taskDetails ?? [];
+        details.forEach((detail, dIdx) => {
+          const fallbackKey = `${sIdx}-${dIdx}`;
+          const resolvedKey = detail.taskWizardId ?? fallbackKey;
 
           if (PARENT_TASK_TYPES.includes(detail.taskType)) {
             parents.push({
-              key,
+              key: resolvedKey,
               subsystemIndex: sIdx,
               taskIndex: dIdx,
               taskType: detail.taskType,
               taskWizardId: detail.taskWizardId ?? fallbackKey,
               label: buildLabel(detail.taskType, detail),
-               nazwa: detail.nazwa,
-              });
+              nazwa: detail.nazwa,
+            });
           }
 
           // NASTAWNIA can be both parent AND child
           if (CHILD_TASK_TYPES.includes(detail.taskType)) {
-              children.push({
-                key,
-                subsystemIndex: sIdx,
-                taskIndex: dIdx,
-                taskType: detail.taskType,
-                 label: buildLabel(detail.taskType, detail),
-                kilometraz: detail.kilometraz,
-                nazwa: detail.nazwa,
-                taskWizardId: detail.taskWizardId ?? fallbackKey,
-                isExisting: false,
-              });
+            children.push({
+              key: resolvedKey,
+              subsystemIndex: sIdx,
+              taskIndex: dIdx,
+              taskType: detail.taskType,
+              label: buildLabel(detail.taskType, detail),
+              kilometraz: detail.kilometraz,
+              nazwa: detail.nazwa,
+              taskWizardId: detail.taskWizardId ?? fallbackKey,
+              isExisting: false,
+            });
           }
         });
       });
     }
-
     return { parentNodes: parents, childTasks: children };
   }, [extendMode, extendData, wizardData.subsystems]);
 
