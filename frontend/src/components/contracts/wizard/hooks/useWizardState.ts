@@ -515,7 +515,8 @@ export const useWizardState = ({
                 t => t.taskNumber === child.childTaskNumber
               );
               if (childDetailIdx !== -1) {
-                childTaskKeys.push(`${sIdx}-${childDetailIdx}`);
+                const childDetail = sub.taskDetails![childDetailIdx];
+                childTaskKeys.push(childDetail.taskWizardId ?? `${sIdx}-${childDetailIdx}`);
               }
             }
 
