@@ -277,13 +277,14 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
           }
         });
       });
-    } else {
-      // ── Regular wizard mode ──────────────────────────────────────────────────
-      wizardData.subsystems.forEach((sub, sIdx) => {
-        if (sub.type !== 'SMOKIP_A' && sub.type !== 'SMOKIP_B') return;
-        const details = sub.taskDetails ?? [];
-        details.forEach((detail, dIdx) => {
-          const fallbackKey = `${sIdx}-${dIdx}`;
+        } else {
+        // ── Regular wizard mode ──────────────────────────────────────────────────
+          wizardData.subsystems.forEach((sub, sIdx) => {
+            if (sub.type !== 'SMOKIP_A' && sub.type !== 'SMOKIP_B') return;
+            const details = sub.taskDetails ?? [];
+            details.forEach((detail, dIdx) => {
+            const fallbackKey = `${sIdx}-${dIdx}`;
+            const key = detail.taskWizardId ?? fallbackKey;
           // Use taskWizardId as the chip key when available so that childTaskKeys
           // stored in taskRelationships match the keys registered in TaskConfigurationStep's
           // taskLookup (which also indexes by taskWizardId).
