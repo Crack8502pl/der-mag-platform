@@ -277,7 +277,7 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
           }
         });
       });
-           } else {
+              } else {
       // ── Regular wizard mode ──────────────────────────────────────────────────
       wizardData.subsystems.forEach((sub, sIdx) => {
         if (sub.type !== 'SMOKIP_A' && sub.type !== 'SMOKIP_B') return;
@@ -298,7 +298,6 @@ export const TaskRelationshipsStep: React.FC<Props> = ({
             });
           }
 
-          // NASTAWNIA can be both parent AND child
           if (CHILD_TASK_TYPES.includes(detail.taskType)) {
             children.push({
               key: resolvedKey,
