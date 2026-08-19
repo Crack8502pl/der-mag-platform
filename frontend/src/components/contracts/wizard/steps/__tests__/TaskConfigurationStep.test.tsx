@@ -492,7 +492,7 @@ describe('TaskConfigurationStep', () => {
     })));
   });
 
-  it('prefers nested configured hierarchy counts over higher template defaults for LCS', async () => {
+  it('uses child camera data even when nested child isConfigured=false', async () => {
     const wizardData: WizardData = {
       ...baseWizardData,
       subsystems: [
@@ -610,15 +610,15 @@ describe('TaskConfigurationStep', () => {
 
     await waitFor(() => expect(resolve).toHaveBeenCalledWith(expect.objectContaining({
       taskType: 'LCS',
-      cameraCount: 1,
+      cameraCount: 3,
       cameraBreakdown: expect.objectContaining({
-        total: 1,
+        total: 3,
         lpr: 1,
         skp: 0
       }),
       configParams: expect.objectContaining({
-        cameraCount: 1,
-        'camera.total.ip': 1,
+        cameraCount: 3,
+        'camera.total.ip': 3,
         'camera.total.ip.skp': 0,
         'lcsConfig.iloscKamer': 5
       })
@@ -981,5 +981,127 @@ describe('TaskConfigurationStep', () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(resolve).not.toHaveBeenCalled();
+  });
+
+  it('reloads LCS when child fingerprint changes even if child isConfigured=false', async () => {
+    const wizardData: WizardData = {
+      ...baseWizardData,
+      subsystems: [
+        {
+          type: 'SMOKIP_A',
+          params: {},
+          taskDetails: [
+            { taskType: 'PRZEJAZD_KAT_A', taskWizardId: 'child-1' },
+            { taskType: 'LCS', taskWizardId: 'lcs-1' }
+          ]
+        }
+      ],
+      taskRelationships: {
+        'lcs-1': {
+          parentWizardId: 'lcs-1',
+          parentType: 'LCS',
+          childTaskKeys: ['child-1']
+        }
+      },
+      taskConfigurations: {
+        'SMOKIP_A-0': {
+          taskId: 'SMOKIP_A-0',
+          taskNumber: 'Z-1',
+          taskName: 'Przejazd',
+          taskType: 'PRZEJAZD_KAT_A',
+          subsystemType: 'SMOKIP_A',
+          materials: [],
+          configParams: {
+            cameraCount: 2,
+            'camera.total.ip.ogolna': 1,
+            'camera.total.ip.lpr': 1,
+            'camera.total.ip.skp': 0
+          },
+          isConfigured: false
+        },
+        'SMOKIP_A-1': {
+          taskId: 'SMOKIP_A-1',
+          taskNumber: 'Z-2',
+          taskName: 'LCS',
+          taskType: 'LCS',
+          subsystemType: 'SMOKIP_A',
+          materials: [],
+          configParams: { cameraCount: 2, 'camera.total.ip': 2 },
+          isConfigured: true
+        }
+      }
+    };
+
+    resolve.mockResolvedValue(resolvedBom(1));
+
+    const { rerender } = render(<TaskConfigurationStep wizardData={wizardData} onUpdate={vi.fn()} />);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(resolve).not.toHaveBeenCalled();
+
+    const changedWizardData: WizardData = {
+      ...wizardData,
+      taskConfigurations: {
+        ...wizardData.taskConfigurations!,
+        'SMOKIP_A-0': {
+          ...wizardData.taskConfigurations!['SMOKIP_A-0'],
+          configParams: {
+            cameraCount: 1,
+            'camera.total.ip.ogolna': 1,
+            'camera.total.ip.lpr': 0,
+            'camera.total.ip.skp': 0
+          }
+        }
+      }
+    };
+
+    rerender(<TaskConfigurationStep wizardData={changedWizardData} onUpdate={vi.fn()} />);
+
+    await waitFor(() => expect(resolve).toHaveBeenCalledWith(expect.objectContaining({
+      taskType: 'LCS',
+      cameraCount: 1,
+      configParams: expect.objectContaining({ cameraCount: 1, 'camera.total.ip': 1 })
+    })));
+  });
+
+  it('does not clear legacy camera params when resolvedCameraBreakdown.total is 0', async () => {
+    const wizardData: WizardData = {
+      ...baseWizardData,
+      subsystems: [
+        {
+          type: 'SMOKIP_A',
+          params: {},
+          taskDetails: [{ taskType: 'LCS', taskWizardId: 'lcs-1' }]
+        }
+      ],
+      taskConfigurations: {
+        'SMOKIP_A-0': {
+          taskId: 'SMOKIP_A-0',
+          taskNumber: 'Z-1',
+          taskName: 'LCS',
+          taskType: 'LCS',
+          subsystemType: 'SMOKIP_A',
+          materials: [],
+          configParams: {
+            cameraCount: '',
+            lcsConfig: { iloscKamer: '' }
+          },
+          isConfigured: false
+        }
+      }
+    };
+
+    resolve.mockResolvedValue(resolvedBom(0));
+
+    render(<TaskConfigurationStep wizardData={wizardData} onUpdate={vi.fn()} />);
+    fireEvent.click(await screen.findByRole('button', { name: /Przeładuj szablon/i }));
+
+    await waitFor(() => expect(resolve).toHaveBeenCalledWith(expect.objectContaining({
+      taskType: 'LCS',
+      configParams: expect.objectContaining({
+        cameraCount: '',
+        lcsConfig: expect.objectContaining({ iloscKamer: '' })
+      })
+    })));
   });
 });
