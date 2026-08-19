@@ -87,6 +87,17 @@ Dostępne dla zadań szczegółowych (PRZEJAZD, SKP, NASTAWNIA, LCS, CUID):
 - fallback do wcześniej zapisanej wartości metadata,
 - fallback do `obserwowanePrzejazdy.length * 2`.
 
+#### Reaktywne odświeżanie LCS/NASTAWNIA po zmianie dzieci (TaskConfigurationStep)
+
+- Dla zadań-rodziców (`LCS`, `NASTAWNIA`) wizard śledzi fingerprint skonfigurowanych dzieci (`isConfigured=true`) oparty o:
+  - `cameraCount`
+  - `camera.total.ip.ogolna`
+  - `camera.total.ip.lpr`
+  - `camera.total.ip.skp`
+- Gdy fingerprint dzieci się zmieni, następuje automatyczne `loadTemplate(...)` i ponowne rozwiązywanie BOM/rekomendacji rejestratora.
+- Przed wywołaniem resolvera czyszczone są legacy wartości liczby kamer z `configParams` rodzica (`cameraCount`, `camera.total*`, `camera.ip.total`, `lcsConfig.iloscKamer`, `nastawniConfig.iloscKamer`), aby uniknąć utrzymywania starych wartości po zmniejszeniu liczby kamer.
+- Jeśli wyliczono jawny rozkład kamer z hierarchii dzieci, resolver preferuje te wartości (`preferExplicitCameraValues=true`) zamiast fallbacku opartego na historycznej konfiguracji.
+
 | Ścieżka parametru                            | Typ     | Opis                         |
 |----------------------------------------------|---------|------------------------------|
 | `lcsConfig.iloscKamer`                       | number  | Łączna liczba kamer dla LCS  |

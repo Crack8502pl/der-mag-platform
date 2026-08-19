@@ -300,6 +300,7 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
   const customOrdersEnabled = !!wizardData.customOrdersEnabled;
   const taskEntriesRef = useRef(taskEntries);
   taskEntriesRef.current = taskEntries;
+  const childConfigSnapshotRef = useRef<Record<string, string>>({});
 
   // Ref for wizardData – keeps loadTemplate stable while still reading latest state.
   const wizardDataRef = useRef(wizardData);
@@ -318,6 +319,30 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           ...task.subsystemParams,
           ...(currentConfigs[task.key]?.configParams || {})
         };
+        if (task.taskType === 'LCS' || task.taskType === 'NASTAWNIA') {
+          const cameraParamsToClear = [
+            'cameraCount',
+            'camera.total',
+            'camera.total.ip',
+            'camera.ip.total',
+            'camera.total.ip.ogolna',
+            'camera.total.ip.lpr',
+            'camera.total.ip.skp',
+          ];
+          for (const key of cameraParamsToClear) {
+            delete configParams[key];
+          }
+          if (configParams['lcsConfig'] && typeof configParams['lcsConfig'] === 'object') {
+            const lcsConfig = { ...(configParams['lcsConfig'] as Record<string, unknown>) };
+            delete lcsConfig['iloscKamer'];
+            configParams['lcsConfig'] = lcsConfig;
+          }
+          if (configParams['nastawniConfig'] && typeof configParams['nastawniConfig'] === 'object') {
+            const nastawniConfig = { ...(configParams['nastawniConfig'] as Record<string, unknown>) };
+            delete nastawniConfig['iloscKamer'];
+            configParams['nastawniConfig'] = nastawniConfig;
+          }
+        }
 
         const currentWizardData = wizardDataRef.current;
         const wizardRels = currentWizardData.taskRelationships
@@ -551,7 +576,7 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
             cameraCount: resolvedCameraBreakdown.total,
             cameraBreakdown: resolvedCameraBreakdown,
             isStandaloneNastawnia,
-            preferExplicitCameraValues: hasWizardCameraOverride
+            preferExplicitCameraValues: resolvedCameraBreakdown.total > 0 || hasWizardCameraOverride
           })
         );
         const materials: ResolvedMaterial[] = resolved.items.map((item) => ({
@@ -600,6 +625,48 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
       loadTemplate(activeTask);
     }
   }, [activeTaskKey, activeTask, loadTemplate]);
+
+  useEffect(() => {
+    const currentConfigs = (wizardData.taskConfigurations || {}) as Record<string, TaskConfiguration>;
+    const relationships = wizardData.taskRelationships || {};
+    for (const task of taskEntriesRef.current) {
+      if (task.taskType !== 'LCS' && task.taskType !== 'NASTAWNIA') continue;
+      if (!currentConfigs[task.key]) continue;
+
+      const parentIds = [task.taskWizardId, task.key, task.taskNumber].filter(Boolean) as string[];
+      let childKeys: string[] = [];
+      for (const pid of parentIds) {
+        if (relationships[pid]?.childTaskKeys?.length) {
+          childKeys = relationships[pid].childTaskKeys;
+          break;
+        }
+      }
+      if (childKeys.length === 0) continue;
+
+      const fingerprint = childKeys
+        .map((ck) => {
+          const childTask = taskEntriesRef.current.find((t) => t.key === ck || t.taskWizardId === ck);
+          if (!childTask) return '';
+          const cfg = currentConfigs[childTask.key];
+          if (!cfg?.isConfigured) return '';
+          return [
+            cfg.configParams?.cameraCount ?? 0,
+            cfg.configParams?.['camera.total.ip.ogolna'] ?? 0,
+            cfg.configParams?.['camera.total.ip.lpr'] ?? 0,
+            cfg.configParams?.['camera.total.ip.skp'] ?? 0,
+          ].join('-');
+        })
+        .join('|');
+
+      const prevFingerprint = childConfigSnapshotRef.current[task.key];
+      if (prevFingerprint !== undefined && prevFingerprint !== fingerprint) {
+        childConfigSnapshotRef.current[task.key] = fingerprint;
+        loadTemplate(task);
+      } else if (prevFingerprint === undefined) {
+        childConfigSnapshotRef.current[task.key] = fingerprint;
+      }
+    }
+  }, [wizardData.taskConfigurations, wizardData.taskRelationships, loadTemplate]);
 
   const updateMaterial = (taskKey: string, materialId: number, patch: Partial<ResolvedMaterial>) => {
     const config = taskConfigs[taskKey];

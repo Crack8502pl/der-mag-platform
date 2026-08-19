@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useState } from 'react';
 
-import type { WizardData } from '../../types/wizard.types';
+import type { TaskConfiguration, WizardData } from '../../types/wizard.types';
 
 const getTemplateFor = vi.fn();
 const resolve = vi.fn();
@@ -56,6 +56,36 @@ describe('TaskConfigurationStep', () => {
     sortOrder: 0,
     defaultQuantity: 0
   };
+
+  const resolvedBom = (cameraCount: number, recorderModel = `NVR-${cameraCount}`) => ({
+    templateId: 101,
+    templateName: 'Test',
+    templateVersion: 2,
+    templateMissing: false,
+    items: [{ ...baseResolvedItem, resolvedQuantity: 1 }],
+    needsRecorder: true,
+    cameraCount,
+    recorderRecommendation: {
+      recorder: {
+        id: 10,
+        modelName: recorderModel,
+        manufacturer: 'Hik',
+        minCameras: 1,
+        maxCameras: 64,
+        diskSlots: 2,
+        maxDiskCapacityTb: 16,
+        isActive: true,
+        catalogNumber: null
+      },
+      isRecommended: true,
+      alternatives: []
+    },
+    diskRecommendation: null,
+    retentionDays: 14,
+    isConfigured: false,
+    resolvedAt: new Date().toISOString(),
+    warnings: []
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -593,5 +623,363 @@ describe('TaskConfigurationStep', () => {
         'lcsConfig.iloscKamer': 5
       })
     })));
+  });
+
+  it('reloads LCS template when child fingerprint changes and uses new camera count', async () => {
+    const wizardData: WizardData = {
+      ...baseWizardData,
+      subsystems: [
+        {
+          type: 'SMOKIP_A',
+          params: {},
+          taskDetails: [
+            { taskType: 'PRZEJAZD_KAT_A', taskWizardId: 'child-1' },
+            { taskType: 'SKP', taskWizardId: 'child-2' },
+            { taskType: 'LCS', taskWizardId: 'lcs-1' }
+          ]
+        }
+      ],
+      taskRelationships: {
+        'lcs-1': {
+          parentWizardId: 'lcs-1',
+          parentType: 'LCS',
+          childTaskKeys: ['child-1', 'child-2']
+        }
+      },
+      taskConfigurations: {
+        'SMOKIP_A-0': {
+          taskId: 'SMOKIP_A-0',
+          taskNumber: 'Z-1',
+          taskName: 'Przejazd',
+          taskType: 'PRZEJAZD_KAT_A',
+          subsystemType: 'SMOKIP_A',
+          materials: [],
+          configParams: {
+            cameraCount: 6,
+            'camera.total.ip.ogolna': 3,
+            'camera.total.ip.lpr': 3,
+            'camera.total.ip.skp': 0
+          },
+          isConfigured: true
+        },
+        'SMOKIP_A-1': {
+          taskId: 'SMOKIP_A-1',
+          taskNumber: 'Z-2',
+          taskName: 'SKP',
+          taskType: 'SKP',
+          subsystemType: 'SMOKIP_A',
+          materials: [],
+          configParams: {
+            cameraCount: 1,
+            'camera.total.ip.ogolna': 0,
+            'camera.total.ip.lpr': 0,
+            'camera.total.ip.skp': 1
+          },
+          isConfigured: true
+        },
+        'SMOKIP_A-2': {
+          taskId: 'SMOKIP_A-2',
+          taskNumber: 'Z-3',
+          taskName: 'LCS',
+          taskType: 'LCS',
+          subsystemType: 'SMOKIP_A',
+          materials: [],
+          configParams: { cameraCount: 7, 'camera.total.ip': 7 },
+          isConfigured: true
+        }
+      }
+    };
+
+    resolve.mockResolvedValue(resolvedBom(3));
+
+    const { rerender } = render(<TaskConfigurationStep wizardData={wizardData} onUpdate={vi.fn()} />);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(resolve).not.toHaveBeenCalled();
+
+    const changedWizardData: WizardData = {
+      ...wizardData,
+      taskConfigurations: {
+        ...wizardData.taskConfigurations!,
+        'SMOKIP_A-0': {
+          ...wizardData.taskConfigurations!['SMOKIP_A-0'],
+          configParams: {
+            cameraCount: 2,
+            'camera.total.ip.ogolna': 1,
+            'camera.total.ip.lpr': 1,
+            'camera.total.ip.skp': 0
+          }
+        },
+        'SMOKIP_A-1': {
+          ...wizardData.taskConfigurations!['SMOKIP_A-1'],
+          configParams: {
+            cameraCount: 1,
+            'camera.total.ip.ogolna': 0,
+            'camera.total.ip.lpr': 0,
+            'camera.total.ip.skp': 1
+          }
+        }
+      }
+    };
+
+    rerender(<TaskConfigurationStep wizardData={changedWizardData} onUpdate={vi.fn()} />);
+
+    await waitFor(() => expect(resolve).toHaveBeenCalledWith(expect.objectContaining({
+      taskType: 'LCS',
+      cameraCount: 3,
+      configParams: expect.objectContaining({ cameraCount: 3, 'camera.total.ip': 3 })
+    })));
+  });
+
+  it('with preferExplicitCameraValues uses explicit cameraCount over stale config fallback', async () => {
+    const wizardData: WizardData = {
+      ...baseWizardData,
+      subsystems: [
+        {
+          type: 'SMOKIP_A',
+          params: {},
+          taskDetails: [
+            { taskType: 'PRZEJAZD_KAT_A', taskWizardId: 'child-1' },
+            { taskType: 'LCS', taskWizardId: 'lcs-1' }
+          ]
+        }
+      ],
+      taskRelationships: {
+        'lcs-1': {
+          parentWizardId: 'lcs-1',
+          parentType: 'LCS',
+          childTaskKeys: ['child-1']
+        }
+      },
+      taskConfigurations: {
+        'SMOKIP_A-0': {
+          taskId: 'SMOKIP_A-0',
+          taskNumber: 'Z-1',
+          taskName: 'Przejazd',
+          taskType: 'PRZEJAZD_KAT_A',
+          subsystemType: 'SMOKIP_A',
+          materials: [],
+          configParams: {
+            cameraCount: 3,
+            'camera.total.ip.ogolna': 1,
+            'camera.total.ip.lpr': 2,
+            'camera.total.ip.skp': 0
+          },
+          isConfigured: true
+        },
+        'SMOKIP_A-1': {
+          taskId: 'SMOKIP_A-1',
+          taskNumber: 'Z-2',
+          taskName: 'LCS',
+          taskType: 'LCS',
+          subsystemType: 'SMOKIP_A',
+          materials: [],
+          configParams: {
+            cameraCount: 7,
+            'camera.total': 7,
+            'camera.total.ip': 7,
+            'camera.ip.total': 7
+          },
+          isConfigured: true
+        }
+      }
+    };
+
+    resolve.mockResolvedValue(resolvedBom(3));
+
+    render(<TaskConfigurationStep wizardData={wizardData} onUpdate={vi.fn()} />);
+    fireEvent.click(screen.getByText((content) => content.includes('LCS') && !content.includes('BOM')));
+    fireEvent.click(await screen.findByRole('button', { name: /Przeładuj szablon/i }));
+
+    await waitFor(() => expect(resolve).toHaveBeenCalledWith(expect.objectContaining({
+      taskType: 'LCS',
+      cameraCount: 3,
+      configParams: expect.objectContaining({
+        cameraCount: 3,
+        'camera.total.ip': 3,
+        'camera.ip.total': 3
+      })
+    })));
+  });
+
+  it('updates recorder recommendation after reducing child camera counts', async () => {
+    const startingState: WizardData = {
+      ...baseWizardData,
+      subsystems: [
+        {
+          type: 'SMOKIP_A',
+          params: {},
+          taskDetails: [
+            { taskType: 'PRZEJAZD_KAT_A', taskWizardId: 'child-1' },
+            { taskType: 'LCS', taskWizardId: 'lcs-1' }
+          ]
+        }
+      ],
+      taskRelationships: {
+        'lcs-1': {
+          parentWizardId: 'lcs-1',
+          parentType: 'LCS',
+          childTaskKeys: ['child-1']
+        }
+      },
+      taskConfigurations: {
+        'SMOKIP_A-0': {
+          taskId: 'SMOKIP_A-0',
+          taskNumber: 'Z-1',
+          taskName: 'Przejazd',
+          taskType: 'PRZEJAZD_KAT_A',
+          subsystemType: 'SMOKIP_A',
+          materials: [],
+          configParams: {
+            cameraCount: 7,
+            'camera.total.ip.ogolna': 3,
+            'camera.total.ip.lpr': 4,
+            'camera.total.ip.skp': 0
+          },
+          isConfigured: true
+        },
+        'SMOKIP_A-1': {
+          taskId: 'SMOKIP_A-1',
+          taskNumber: 'Z-2',
+          taskName: 'LCS',
+          taskType: 'LCS',
+          subsystemType: 'SMOKIP_A',
+          materials: [],
+          configParams: { cameraCount: 7, 'camera.total.ip': 7 },
+          recorderRecommendation: {
+            recorder: {
+              id: 1,
+              modelName: 'NVR-7',
+              manufacturer: 'Hik',
+              minCameras: 1,
+              maxCameras: 16,
+              diskSlots: 2,
+              maxDiskCapacityTb: 16,
+              isActive: true,
+              catalogNumber: null
+            },
+            isRecommended: true,
+            alternatives: []
+          },
+          isConfigured: true
+        }
+      }
+    };
+
+    resolve.mockImplementation(async (request: { cameraCount?: number }) => resolvedBom(request.cameraCount ?? 0));
+
+    const StatefulRecorderCase = () => {
+      const [wizardData, setWizardData] = useState<WizardData>(startingState);
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() =>
+              setWizardData((prev) => ({
+                ...prev,
+                taskConfigurations: {
+                  ...(prev.taskConfigurations || {}),
+                  'SMOKIP_A-0': {
+                    ...(prev.taskConfigurations?.['SMOKIP_A-0'] as TaskConfiguration),
+                    configParams: {
+                      cameraCount: 3,
+                      'camera.total.ip.ogolna': 1,
+                      'camera.total.ip.lpr': 2,
+                      'camera.total.ip.skp': 0
+                    }
+                  }
+                }
+              }))
+            }
+          >
+            reduce-cameras
+          </button>
+          <TaskConfigurationStep
+            wizardData={wizardData}
+            onUpdate={(patch) => {
+              setWizardData((prev) => ({
+                ...prev,
+                ...patch,
+                taskConfigurations: {
+                  ...(prev.taskConfigurations || {}),
+                  ...(patch.taskConfigurations || {})
+                }
+              }));
+            }}
+          />
+        </>
+      );
+    };
+
+    render(<StatefulRecorderCase />);
+    fireEvent.click(screen.getByText((content) => content.includes('LCS') && !content.includes('BOM')));
+    expect(await screen.findByText(/NVR-7/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'reduce-cameras' }));
+
+    await waitFor(() => expect(resolve).toHaveBeenCalledWith(expect.objectContaining({
+      taskType: 'LCS',
+      cameraCount: 3
+    })));
+    expect(await screen.findByText(/NVR-3/)).toBeInTheDocument();
+  });
+
+  it('does not reload template when child fingerprint stays unchanged', async () => {
+    const wizardData: WizardData = {
+      ...baseWizardData,
+      subsystems: [
+        {
+          type: 'SMOKIP_A',
+          params: {},
+          taskDetails: [
+            { taskType: 'PRZEJAZD_KAT_A', taskWizardId: 'child-1' },
+            { taskType: 'LCS', taskWizardId: 'lcs-1' }
+          ]
+        }
+      ],
+      taskRelationships: {
+        'lcs-1': {
+          parentWizardId: 'lcs-1',
+          parentType: 'LCS',
+          childTaskKeys: ['child-1']
+        }
+      },
+      taskConfigurations: {
+        'SMOKIP_A-0': {
+          taskId: 'SMOKIP_A-0',
+          taskNumber: 'Z-1',
+          taskName: 'Przejazd',
+          taskType: 'PRZEJAZD_KAT_A',
+          subsystemType: 'SMOKIP_A',
+          materials: [],
+          configParams: {
+            cameraCount: 3,
+            'camera.total.ip.ogolna': 1,
+            'camera.total.ip.lpr': 2,
+            'camera.total.ip.skp': 0
+          },
+          isConfigured: true
+        },
+        'SMOKIP_A-1': {
+          taskId: 'SMOKIP_A-1',
+          taskNumber: 'Z-2',
+          taskName: 'LCS',
+          taskType: 'LCS',
+          subsystemType: 'SMOKIP_A',
+          materials: [],
+          configParams: { cameraCount: 7, 'camera.total.ip': 7 },
+          isConfigured: true
+        }
+      }
+    };
+
+    resolve.mockResolvedValue(resolvedBom(3));
+
+    const { rerender } = render(<TaskConfigurationStep wizardData={wizardData} onUpdate={vi.fn()} />);
+    rerender(<TaskConfigurationStep wizardData={{ ...wizardData, taskConfigurations: { ...wizardData.taskConfigurations! } }} onUpdate={vi.fn()} />);
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(resolve).not.toHaveBeenCalled();
   });
 });
