@@ -319,31 +319,6 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           ...task.subsystemParams,
           ...(currentConfigs[task.key]?.configParams || {})
         };
-        if (task.taskType === 'LCS' || task.taskType === 'NASTAWNIA') {
-          const cameraParamsToClear = [
-            'cameraCount',
-            'camera.total',
-            'camera.total.ip',
-            'camera.ip.total',
-            'camera.total.ip.ogolna',
-            'camera.total.ip.lpr',
-            'camera.total.ip.skp',
-          ];
-          for (const key of cameraParamsToClear) {
-            delete configParams[key];
-          }
-          if (configParams['lcsConfig'] && typeof configParams['lcsConfig'] === 'object') {
-            const lcsConfig = { ...(configParams['lcsConfig'] as Record<string, unknown>) };
-            delete lcsConfig['iloscKamer'];
-            configParams['lcsConfig'] = lcsConfig;
-          }
-          if (configParams['nastawniConfig'] && typeof configParams['nastawniConfig'] === 'object') {
-            const nastawniConfig = { ...(configParams['nastawniConfig'] as Record<string, unknown>) };
-            delete nastawniConfig['iloscKamer'];
-            configParams['nastawniConfig'] = nastawniConfig;
-          }
-        }
-
         const currentWizardData = wizardDataRef.current;
         const wizardRels = currentWizardData.taskRelationships
           ? Object.values(currentWizardData.taskRelationships)
@@ -476,7 +451,7 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
               hasWizardOverrides =
                hasWizardOverrides ||
                nested.hasWizardOverrides ||
-               hasWizardCameraOverrides(childConfig);
+               childBreakdown.total > 0;
             }
 
             return {
@@ -552,6 +527,28 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
         }
 
         if (resolvedCameraBreakdown.total > 0) {
+          const cameraParamsToClear = [
+            'cameraCount',
+            'camera.total',
+            'camera.total.ip',
+            'camera.ip.total',
+            'camera.total.ip.ogolna',
+            'camera.total.ip.lpr',
+            'camera.total.ip.skp',
+          ];
+          for (const key of cameraParamsToClear) {
+            delete configParams[key];
+          }
+          if (configParams['lcsConfig'] && typeof configParams['lcsConfig'] === 'object') {
+            const lcsConfig = { ...(configParams['lcsConfig'] as Record<string, unknown>) };
+            delete lcsConfig['iloscKamer'];
+            configParams['lcsConfig'] = lcsConfig;
+          }
+          if (configParams['nastawniConfig'] && typeof configParams['nastawniConfig'] === 'object') {
+            const nastawniConfig = { ...(configParams['nastawniConfig'] as Record<string, unknown>) };
+            delete nastawniConfig['iloscKamer'];
+            configParams['nastawniConfig'] = nastawniConfig;
+          }
           configParams.cameraCount = resolvedCameraBreakdown.total;
           configParams['camera.total'] = resolvedCameraBreakdown.total;
           configParams['camera.total.ip'] = resolvedCameraBreakdown.total;
@@ -648,13 +645,14 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           const childTask = taskEntriesRef.current.find((t) => t.key === ck || t.taskWizardId === ck);
           if (!childTask) return '';
           const cfg = currentConfigs[childTask.key];
-          if (!cfg?.isConfigured) return '';
-          return [
-            cfg.configParams?.cameraCount ?? 0,
-            cfg.configParams?.['camera.total.ip.ogolna'] ?? 0,
-            cfg.configParams?.['camera.total.ip.lpr'] ?? 0,
-            cfg.configParams?.['camera.total.ip.skp'] ?? 0,
-          ].join('-');
+          if (!cfg) return '';
+          const camCount = Number(cfg.configParams?.cameraCount ?? 0) || 0;
+          const ogolna = Number(cfg.configParams?.['camera.total.ip.ogolna'] ?? 0) || 0;
+          const lpr = Number(cfg.configParams?.['camera.total.ip.lpr'] ?? 0) || 0;
+          const skp = Number(cfg.configParams?.['camera.total.ip.skp'] ?? 0) || 0;
+          const hasData = camCount > 0 || ogolna > 0 || lpr > 0 || skp > 0;
+          if (!hasData) return '';
+          return [camCount, ogolna, lpr, skp].join('-');
         })
         .join('|');
 

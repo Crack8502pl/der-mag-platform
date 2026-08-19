@@ -323,6 +323,10 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
             ` (was: ${initialCameraCount} from metadata)`
           );
         }
+      } else if (isParentTask && task.taskNumber) {
+        // TODO(Fix 5 / legacy tasks): add relationship fallback by taskNumber when API supports it.
+        // Current taskRelationshipService exposes only getBySubsystem(subsystemId),
+        // so for tasks without subsystemId we intentionally keep metadata fallback.
       }
 
       // Fix 4: jeśli mamy świeże dane z dzieci, użyj ich zamiast zapisanych cameraRows

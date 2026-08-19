@@ -20,6 +20,8 @@ wartości `lcsConfig.iloscKamer` zapisanej w bazie.
    z `childTask.metadata.configParams`.
 4. Jeśli suma > 0 → nadpisuje `cameraCount` i `cameraRows` świeżymi danymi z dzieci.
 5. W przypadku błędu API lub braku dzieci → fallback do `lcsConfig.iloscKamer` z metadata.
+6. Dla starszych zadań bez `subsystemId` (legacy) aktualnie pozostaje fallback metadata,
+   ponieważ `taskRelationshipService` nie udostępnia jeszcze metody pobierania relacji po `taskNumber`.
 
 **Dotyczy pliku:** `frontend/src/components/tasks/TaskConfigWizard/TaskConfigWizard.tsx`
 
@@ -109,13 +111,14 @@ Dostępne dla zadań szczegółowych (PRZEJAZD, SKP, NASTAWNIA, LCS, CUID):
 
 #### Reaktywne odświeżanie LCS/NASTAWNIA po zmianie dzieci (TaskConfigurationStep)
 
-- Dla zadań-rodziców (`LCS`, `NASTAWNIA`) wizard śledzi fingerprint skonfigurowanych dzieci (`isConfigured=true`) oparty o:
+- Dla zadań-rodziców (`LCS`, `NASTAWNIA`) wizard śledzi fingerprint dzieci oparty o:
   - `cameraCount`
   - `camera.total.ip.ogolna`
   - `camera.total.ip.lpr`
   - `camera.total.ip.skp`
+- Dzieci z `isConfigured=false` są także uwzględniane, jeśli mają niezerowe dane kamer w `configParams`.
 - Gdy fingerprint dzieci się zmieni, następuje automatyczne `loadTemplate(...)` i ponowne rozwiązywanie BOM/rekomendacji rejestratora.
-- Przed wywołaniem resolvera czyszczone są legacy wartości liczby kamer z `configParams` rodzica (`cameraCount`, `camera.total*`, `camera.ip.total`, `lcsConfig.iloscKamer`, `nastawniConfig.iloscKamer`), aby uniknąć utrzymywania starych wartości po zmniejszeniu liczby kamer.
+- Legacy wartości liczby kamer w `configParams` rodzica (`cameraCount`, `camera.total*`, `camera.ip.total`, `lcsConfig.iloscKamer`, `nastawniConfig.iloscKamer`) są czyszczone tylko wtedy, gdy wyliczony `resolvedCameraBreakdown.total > 0` (czyli gdy są świeże dane do nadpisania). Przy `total === 0` poprzednie wartości pozostają jako fallback.
 - Jeśli wyliczono jawny rozkład kamer z hierarchii dzieci, resolver preferuje te wartości (`preferExplicitCameraValues=true`) zamiast fallbacku opartego na historycznej konfiguracji.
 
 | Ścieżka parametru                            | Typ     | Opis                         |
