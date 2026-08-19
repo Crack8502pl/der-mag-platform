@@ -627,8 +627,8 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
   }, [activeTaskKey, activeTask, loadTemplate]);
 
   useEffect(() => {
-    const currentConfigs = (wizardDataRef.current.taskConfigurations || {}) as Record<string, TaskConfiguration>;
-    const relationships = wizardDataRef.current.taskRelationships || {};
+    const currentConfigs = (wizardData.taskConfigurations || {}) as Record<string, TaskConfiguration>;
+    const relationships = wizardData.taskRelationships || {};
     for (const task of taskEntriesRef.current) {
       if (task.taskType !== 'LCS' && task.taskType !== 'NASTAWNIA') continue;
       if (!currentConfigs[task.key]) continue;
@@ -666,7 +666,7 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
         childConfigSnapshotRef.current[task.key] = fingerprint;
       }
     }
-  }, [wizardData.taskConfigurations, loadTemplate]);
+  }, [wizardData.taskConfigurations, wizardData.taskRelationships, loadTemplate]);
 
   const updateMaterial = (taskKey: string, materialId: number, patch: Partial<ResolvedMaterial>) => {
     const config = taskConfigs[taskKey];

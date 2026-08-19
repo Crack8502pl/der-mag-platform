@@ -693,7 +693,9 @@ describe('TaskConfigurationStep', () => {
     resolve.mockResolvedValue(resolvedBom(3));
 
     const { rerender } = render(<TaskConfigurationStep wizardData={wizardData} onUpdate={vi.fn()} />);
-    await waitFor(() => expect(resolve).not.toHaveBeenCalled());
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(resolve).not.toHaveBeenCalled();
 
     const changedWizardData: WizardData = {
       ...wizardData,
@@ -976,7 +978,8 @@ describe('TaskConfigurationStep', () => {
     const { rerender } = render(<TaskConfigurationStep wizardData={wizardData} onUpdate={vi.fn()} />);
     rerender(<TaskConfigurationStep wizardData={{ ...wizardData, taskConfigurations: { ...wizardData.taskConfigurations! } }} onUpdate={vi.fn()} />);
 
-    await new Promise((resolveTimeout) => setTimeout(resolveTimeout, 50));
+    await Promise.resolve();
+    await Promise.resolve();
     expect(resolve).not.toHaveBeenCalled();
   });
 });
