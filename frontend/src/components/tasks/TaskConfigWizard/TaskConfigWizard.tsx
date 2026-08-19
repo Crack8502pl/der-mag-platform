@@ -189,6 +189,72 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
     return nextConfigValues;
   };
 
+  /**
+   * Fix 4: Pobiera aktualny podział kamer z zadań-dzieci przez API.
+   * Używane do korygowania przestarzałej wartości lcsConfig.iloscKamer w bazie.
+   * Zwraca null gdy brak dzieci lub błąd — wtedy używany jest fallback z metadata.
+   */
+  const fetchChildrenCameraBreakdown = async (
+    subsystemId: number,
+    parentTaskNumber: string
+  ): Promise<CameraBreakdown | null> => {
+    try {
+      const relationships = await taskRelationshipService.getBySubsystem(subsystemId);
+
+      const myRelationship = relationships.find(rel => rel.parentTaskNumber === parentTaskNumber);
+
+      if (!myRelationship || !myRelationship.children?.length) {
+        return null;
+      }
+
+      const childNumbers = myRelationship.children
+        .map(c => c.childTaskNumber)
+        .filter(Boolean);
+      if (childNumbers.length === 0) return null;
+
+      const childTasks = await Promise.allSettled(
+        childNumbers.map(num => taskService.getById(num))
+      );
+
+      let totalOgolna = 0;
+      let totalLpr = 0;
+      let totalSkp = 0;
+
+      for (const result of childTasks) {
+        if (result.status !== 'fulfilled') continue;
+        const childTask = result.value;
+        const cp = (childTask.metadata?.configParams || {}) as Record<string, unknown>;
+
+        const toNum = (v: unknown): number => {
+          const n = Number(v);
+          return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
+        };
+
+        const childOgolna = toNum(cp['camera.total.ip.ogolna']);
+        const childLpr = toNum(cp['camera.total.ip.lpr']);
+        const childSkp = toNum(cp['camera.total.ip.skp']);
+
+        if (childOgolna === 0 && childLpr === 0 && childSkp === 0) {
+          // Fallback gdy breakdown nie jest zapisany — użyj cameraCount całości
+          const childTotal = toNum(cp['cameraCount']) || toNum(cp['camera.total']);
+          totalOgolna += childTotal;
+        } else {
+          totalOgolna += childOgolna;
+          totalLpr += childLpr;
+          totalSkp += childSkp;
+        }
+      }
+
+      const total = totalOgolna + totalLpr + totalSkp;
+      if (total === 0) return null;
+
+      return { total, ogolna: totalOgolna, lpr: totalLpr, skp: totalSkp };
+    } catch (err) {
+      console.warn('[TaskConfigWizard] fetchChildrenCameraBreakdown failed, using metadata fallback', err);
+      return null;
+    }
+  };
+
   const initWizard = async () => {
     try {
       setLoading(true);
@@ -242,7 +308,27 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
         setSelectedModels(migrated);
       }
 
-      if (Array.isArray(existingConfig.cameraRows)) {
+      // Fix 4: Dla zadań-rodziców (LCS, NASTAWNIA) pobierz aktualny cameraCount z dzieci przez API.
+      // Korekta przestarzałej wartości lcsConfig.iloscKamer zapisanej w bazie.
+      const taskTypeCode = task.taskType?.code || '';
+      const isParentTask = taskTypeCode === 'LCS' || taskTypeCode === 'NASTAWNIA';
+      let childrenBreakdown: CameraBreakdown | null = null;
+
+      if (isParentTask && task.subsystemId && task.taskNumber) {
+        childrenBreakdown = await fetchChildrenCameraBreakdown(task.subsystemId, task.taskNumber);
+        if (childrenBreakdown) {
+          setCameraCount(childrenBreakdown.total);
+          console.info(
+            `[TaskConfigWizard] cameraCount from children = ${childrenBreakdown.total}` +
+            ` (was: ${initialCameraCount} from metadata)`
+          );
+        }
+      }
+
+      // Fix 4: jeśli mamy świeże dane z dzieci, użyj ich zamiast zapisanych cameraRows
+      if (childrenBreakdown && childrenBreakdown.total > 0) {
+        setCameraRows(buildRowsFromBreakdown(childrenBreakdown));
+      } else if (Array.isArray(existingConfig.cameraRows)) {
         setCameraRows(existingConfig.cameraRows as CameraRow[]);
       } else if (existingConfig.cameraBreakdown && typeof existingConfig.cameraBreakdown === 'object') {
         setCameraRows(buildRowsFromBreakdown(existingConfig.cameraBreakdown as CameraBreakdown));
@@ -287,7 +373,6 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
       // Determine isStandaloneNastawnia for SMOKIP_A NASTAWNIA tasks.
       // A NASTAWNIA is "standalone" (needs its own recorder) when it is NOT a child
       // of any LCS task.  Priority: explicit metadata flag → live relationship query.
-      const taskTypeCode = task.taskType?.code || '';
       if (subsystemType === 'SMOKIP_A' && taskTypeCode === 'NASTAWNIA') {
         const metadataFlag = normalizedMetadata.isStandaloneNastawnia;
         if (typeof metadataFlag === 'boolean') {

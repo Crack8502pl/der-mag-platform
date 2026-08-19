@@ -5,6 +5,26 @@ Każda pozycja BOM może korzystać z tych parametrów przez pole `configParamNa
 
 ---
 
+## Live cameraCount from child tasks (LCS/NASTAWNIA)
+
+Przy otwieraniu `TaskConfigWizard` dla istniejącego zadania LCS lub NASTAWNIA, komponent pobiera
+aktualny podział kamer z zadań-dzieci (PRZEJAZD, SKP) przez API, zamiast korzystać z przestarzałej
+wartości `lcsConfig.iloscKamer` zapisanej w bazie.
+
+**Logika:**
+1. Dla zadań `LCS` i `NASTAWNIA` z ustawionym `subsystemId`, po otwarciu Wizarda wywoływana jest
+   funkcja `fetchChildrenCameraBreakdown(subsystemId, parentTaskNumber)`.
+2. Pobiera ona relacje przez `taskRelationshipService.getBySubsystem(subsystemId)`, następnie
+   aktualne dane dzieci przez `taskService.getById(childTaskNumber)`.
+3. Sumuje pola `camera.total.ip.ogolna`, `camera.total.ip.lpr`, `camera.total.ip.skp`
+   z `childTask.metadata.configParams`.
+4. Jeśli suma > 0 → nadpisuje `cameraCount` i `cameraRows` świeżymi danymi z dzieci.
+5. W przypadku błędu API lub braku dzieci → fallback do `lcsConfig.iloscKamer` z metadata.
+
+**Dotyczy pliku:** `frontend/src/components/tasks/TaskConfigWizard/TaskConfigWizard.tsx`
+
+---
+
 ## Źródło 1: Wizard Config (`subsystemWizardConfig.ts`)
 
 ### SMOKIP_A
