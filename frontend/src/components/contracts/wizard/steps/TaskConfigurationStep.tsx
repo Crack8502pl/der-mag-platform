@@ -54,6 +54,14 @@ const CAMERA_COUNT_PARAM_PATHS = [
   'lcsConfig.iloscKamer',
   'nastawniConfig.iloscKamer'
 ] as const;
+const LEAF_TASK_PARAM_OVERRIDES: Record<string, string[]> = {
+  PRZEJAZD_KAT_A: ['przejazdyKatA'],
+  PRZEJAZD_KAT_B: ['przejazdyKatB'],
+  PRZEJAZD_KAT_C: ['przejazdyKatC'],
+  PRZEJAZD_KAT_E: ['przejazdyKatE'],
+  PRZEJAZD_KAT_F: ['przejazdyKatF'],
+  SKP: ['iloscSKP']
+};
 
 function hasNumericConfigParam(
   configParams: Record<string, unknown>,
@@ -319,6 +327,15 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           ...task.subsystemParams,
           ...(currentConfigs[task.key]?.configParams || {})
         };
+        const isHierarchyParentTask = task.taskType === 'LCS' || task.taskType === 'NASTAWNIA';
+        if (!isHierarchyParentTask) {
+          const paramsToOverride = LEAF_TASK_PARAM_OVERRIDES[task.taskType] ?? [];
+          for (const param of paramsToOverride) {
+            if (param in configParams) {
+              configParams[param] = 1;
+            }
+          }
+        }
         const currentWizardData = wizardDataRef.current;
         const wizardRels = currentWizardData.taskRelationships
           ? Object.values(currentWizardData.taskRelationships)
@@ -463,7 +480,6 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           return traverse(rootId!);
         };
 
-        const isHierarchyParentTask = task.taskType === 'LCS' || task.taskType === 'NASTAWNIA';
         const directCameraOverride = resolveCameraBreakdownFromParams(task.subsystemParams);
         const configuredCameraOverride = currentConfigs[task.key]?.isConfigured
           ? resolveCameraBreakdownFromConfig(currentConfigs[task.key])
@@ -814,19 +830,46 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
                 )}
               </div>
 
-              {activeConfig.recorderRecommendation && (
-                <div className="alert alert-info" style={{ marginBottom: '16px' }}>
-                  <strong>🖥️ Rekomendowany rejestrator:</strong>{' '}
-                  {activeConfig.recorderRecommendation.recorder.modelName}{' '}
-                  ({activeConfig.recorderRecommendation.recorder.manufacturer}) —{' '}
-                  {activeConfig.recorderRecommendation.recorder.minCameras}
-                  –{activeConfig.recorderRecommendation.recorder.maxCameras} kamer
-                </div>
-              )}
+                {activeConfig.isConfigured && (
+                  <div className="alert alert-success" style={{ marginBottom: '12px', fontSize: '13px' }}>
+                    ✅ BOM zatwierdzony lokalnie. Dane zostaną zapisane do bazy przy finalizacji kontraktu (krok Podgląd → Dalej).
+                  </div>
+                )}
 
-              {activeConfig.templateMissing ? (
-                <div className="alert alert-error" style={{ marginBottom: '16px' }}>
-                  ⚠️ Brak szablonu BOM dla tego zadania.
+                {activeConfig.recorderRecommendation && (
+                  <div className="alert alert-info" style={{ marginBottom: '16px' }}>
+                    <strong>🖥️ Rekomendowany rejestrator:</strong>{' '}
+                    {activeConfig.recorderRecommendation.recorder.modelName}{' '}
+                    ({activeConfig.recorderRecommendation.recorder.manufacturer}) —{' '}
+                    {activeConfig.recorderRecommendation.recorder.minCameras}
+                    –{activeConfig.recorderRecommendation.recorder.maxCameras} kamer
+                    {activeConfig.configParams?.cameraCount && (
+                      <span style={{ marginLeft: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                        (dobrano dla {Number(activeConfig.configParams.cameraCount)} kamer z przejazdów)
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {activeConfig.configParams?.cameraCount && Number(activeConfig.configParams.cameraCount) > 0 && (
+                  <div className="alert alert-info" style={{ marginBottom: '12px', fontSize: '13px' }}>
+                    📷 <strong>Kamery wykryte dla tego zadania:</strong>{' '}
+                    {Number(activeConfig.configParams.cameraCount)} łącznie
+                    {Number(activeConfig.configParams['camera.total.ip.ogolna'] ?? 0) > 0 && (
+                      <> • Ogólne: {Number(activeConfig.configParams['camera.total.ip.ogolna'])}</>
+                    )}
+                    {Number(activeConfig.configParams['camera.total.ip.lpr'] ?? 0) > 0 && (
+                      <> • LPR: {Number(activeConfig.configParams['camera.total.ip.lpr'])}</>
+                    )}
+                    {Number(activeConfig.configParams['camera.total.ip.skp'] ?? 0) > 0 && (
+                      <> • SKP: {Number(activeConfig.configParams['camera.total.ip.skp'])}</>
+                    )}
+                  </div>
+                )}
+
+                {activeConfig.templateMissing ? (
+                  <div className="alert alert-error" style={{ marginBottom: '16px' }}>
+                    ⚠️ Brak szablonu BOM dla tego zadania.
                 </div>
               ) : (
                 Object.entries(groupedMaterials(activeConfig.materials)).map(([group, items]) => (

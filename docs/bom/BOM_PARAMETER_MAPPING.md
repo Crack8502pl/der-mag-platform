@@ -27,6 +27,26 @@ wartości `lcsConfig.iloscKamer` zapisanej w bazie.
 
 ---
 
+## Normalizacja `subsystemParams` dla zadań-liści (TaskConfigurationStep)
+
+W `TaskConfigurationStep` parametry podsystemu są kopiowane do `configParams` każdego zadania.
+Dla zadań-liści (pojedynczy `PRZEJAZD_*`, `SKP`) wartości ilościowe są normalizowane do `1`,
+aby BOM liczył materiał dla jednego zadania, a nie dla całego podsystemu.
+
+**Nadpisywane klucze dla liści:**
+- `PRZEJAZD_KAT_A` → `przejazdyKatA = 1`
+- `PRZEJAZD_KAT_B` → `przejazdyKatB = 1`
+- `PRZEJAZD_KAT_C` → `przejazdyKatC = 1`
+- `PRZEJAZD_KAT_E` → `przejazdyKatE = 1`
+- `PRZEJAZD_KAT_F` → `przejazdyKatF = 1`
+- `SKP` → `iloscSKP = 1`
+
+`LCS` i `NASTAWNIA` jako zadania-rodzice hierarchii nie są objęte tą normalizacją.
+
+**Dotyczy pliku:** `frontend/src/components/contracts/wizard/steps/TaskConfigurationStep.tsx`
+
+---
+
 ## Źródło 1: Wizard Config (`subsystemWizardConfig.ts`)
 
 ### SMOKIP_A
