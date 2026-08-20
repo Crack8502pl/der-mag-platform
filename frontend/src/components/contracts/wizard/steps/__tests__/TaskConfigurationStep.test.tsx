@@ -1104,4 +1104,77 @@ describe('TaskConfigurationStep', () => {
       })
     })));
   });
+
+  it('normalizes PRZEJAZD_KAT_A subsystem quantity to one task unit', async () => {
+    const wizardData: WizardData = {
+      ...baseWizardData,
+      subsystems: [
+        {
+          type: 'SMOKIP_A',
+          params: { przejazdyKatA: 3 },
+          taskDetails: [{ taskType: 'PRZEJAZD_KAT_A', taskWizardId: 'p-1', kategoria: 'KAT A' }]
+        }
+      ]
+    };
+
+    resolve.mockResolvedValue(resolvedBom(0));
+
+    render(<TaskConfigurationStep wizardData={wizardData} onUpdate={vi.fn()} />);
+
+    await waitFor(() => expect(resolve).toHaveBeenCalledWith(expect.objectContaining({
+      taskType: 'PRZEJAZD_KAT_A',
+      configParams: expect.objectContaining({
+        przejazdyKatA: 1
+      })
+    })));
+  });
+
+  it('normalizes SKP subsystem quantity to one task unit', async () => {
+    const wizardData: WizardData = {
+      ...baseWizardData,
+      subsystems: [
+        {
+          type: 'SMOKIP_A',
+          params: { iloscSKP: 2 },
+          taskDetails: [{ taskType: 'SKP', taskWizardId: 'skp-1' }]
+        }
+      ]
+    };
+
+    resolve.mockResolvedValue(resolvedBom(0));
+
+    render(<TaskConfigurationStep wizardData={wizardData} onUpdate={vi.fn()} />);
+
+    await waitFor(() => expect(resolve).toHaveBeenCalledWith(expect.objectContaining({
+      taskType: 'SKP',
+      configParams: expect.objectContaining({
+        iloscSKP: 1
+      })
+    })));
+  });
+
+  it('does not normalize LCS parent params such as hasLCS', async () => {
+    const wizardData: WizardData = {
+      ...baseWizardData,
+      subsystems: [
+        {
+          type: 'SMOKIP_A',
+          params: { hasLCS: 2, przejazdyKatA: 3 },
+          taskDetails: [{ taskType: 'LCS', taskWizardId: 'lcs-1' }]
+        }
+      ]
+    };
+
+    resolve.mockResolvedValue(resolvedBom(0));
+
+    render(<TaskConfigurationStep wizardData={wizardData} onUpdate={vi.fn()} />);
+
+    await waitFor(() => expect(resolve).toHaveBeenCalledWith(expect.objectContaining({
+      taskType: 'LCS',
+      configParams: expect.objectContaining({
+        hasLCS: 2,
+        przejazdyKatA: 3
+      })
+    })));
+  });
 });
