@@ -843,26 +843,26 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
                     ({activeConfig.recorderRecommendation.recorder.manufacturer}) —{' '}
                     {activeConfig.recorderRecommendation.recorder.minCameras}
                     –{activeConfig.recorderRecommendation.recorder.maxCameras} kamer
-                    {activeConfig.configParams?.cameraCount && (
+                    {Number(activeConfig.configParams?.cameraCount ?? 0) > 0 && (
                       <span style={{ marginLeft: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>
-                        (dobrano dla {Number(activeConfig.configParams.cameraCount)} kamer z przejazdów)
+                        (dobrano dla {Number(activeConfig.configParams?.cameraCount)} kamer z przejazdów)
                       </span>
                     )}
                   </div>
                 )}
 
-                {activeConfig.configParams?.cameraCount && Number(activeConfig.configParams.cameraCount) > 0 && (
+                {Number(activeConfig.configParams?.cameraCount ?? 0) > 0 && (
                   <div className="alert alert-info" style={{ marginBottom: '12px', fontSize: '13px' }}>
                     📷 <strong>Kamery wykryte dla tego zadania:</strong>{' '}
-                    {Number(activeConfig.configParams.cameraCount)} łącznie
-                    {Number(activeConfig.configParams['camera.total.ip.ogolna'] ?? 0) > 0 && (
-                      <> • Ogólne: {Number(activeConfig.configParams['camera.total.ip.ogolna'])}</>
+                    {Number(activeConfig.configParams?.cameraCount)} łącznie
+                    {Number(activeConfig.configParams?.['camera.total.ip.ogolna'] ?? 0) > 0 && (
+                      <> • Ogólne: {Number(activeConfig.configParams?.['camera.total.ip.ogolna'])}</>
                     )}
-                    {Number(activeConfig.configParams['camera.total.ip.lpr'] ?? 0) > 0 && (
-                      <> • LPR: {Number(activeConfig.configParams['camera.total.ip.lpr'])}</>
+                    {Number(activeConfig.configParams?.['camera.total.ip.lpr'] ?? 0) > 0 && (
+                      <> • LPR: {Number(activeConfig.configParams?.['camera.total.ip.lpr'])}</>
                     )}
-                    {Number(activeConfig.configParams['camera.total.ip.skp'] ?? 0) > 0 && (
-                      <> • SKP: {Number(activeConfig.configParams['camera.total.ip.skp'])}</>
+                    {Number(activeConfig.configParams?.['camera.total.ip.skp'] ?? 0) > 0 && (
+                      <> • SKP: {Number(activeConfig.configParams?.['camera.total.ip.skp'])}</>
                     )}
                   </div>
                 )}
