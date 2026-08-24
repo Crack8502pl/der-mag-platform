@@ -8,6 +8,8 @@ export class AddCompletedAtToTasks20260824 implements MigrationInterface {
       ALTER TABLE "tasks" ADD COLUMN IF NOT EXISTS "completed_at" TIMESTAMP NULL
     `);
 
+    // Historical tasks do not store the real completion timestamp, so updated_at
+    // is used as the best available proxy for already completed rows.
     await queryRunner.query(`
       UPDATE "tasks"
       SET "completed_at" = "updated_at"

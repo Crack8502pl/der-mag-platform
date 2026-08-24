@@ -109,13 +109,20 @@ describe('NotificationSchedulerService', () => {
   describe('getWeeklyProgress', () => {
     it('should count completed tasks by completedAt and created tasks by createdAt', async () => {
       const weekStart = new Date('2026-08-17T06:00:00.038Z');
+      const completedTasksQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValueOnce(7),
+      };
+      const createdTasksQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValueOnce(11),
+      };
 
       mockTaskRepository.createQueryBuilder
-        .mockReturnValueOnce(mockQueryBuilder)
-        .mockReturnValueOnce(mockQueryBuilder);
-      mockQueryBuilder.getCount
-        .mockResolvedValueOnce(7)
-        .mockResolvedValueOnce(11);
+        .mockReturnValueOnce(completedTasksQueryBuilder)
+        .mockReturnValueOnce(createdTasksQueryBuilder);
 
       const result = await (service as any).getWeeklyProgress(weekStart);
 
@@ -124,10 +131,10 @@ describe('NotificationSchedulerService', () => {
         tasksCreated: 11,
       });
       expect(mockTaskRepository.createQueryBuilder).toHaveBeenNthCalledWith(1, 'task');
-      expect(mockQueryBuilder.where).toHaveBeenNthCalledWith(1, 'task.completedAt >= :weekStart', { weekStart });
-      expect(mockQueryBuilder.andWhere).toHaveBeenNthCalledWith(1, 'task.status = :status', { status: 'completed' });
+      expect(completedTasksQueryBuilder.where).toHaveBeenCalledWith('task.completedAt >= :weekStart', { weekStart });
+      expect(completedTasksQueryBuilder.andWhere).toHaveBeenCalledWith('task.status = :status', { status: 'completed' });
       expect(mockTaskRepository.createQueryBuilder).toHaveBeenNthCalledWith(2, 'task');
-      expect(mockQueryBuilder.where).toHaveBeenNthCalledWith(2, 'task.createdAt >= :weekStart', { weekStart });
+      expect(createdTasksQueryBuilder.where).toHaveBeenCalledWith('task.createdAt >= :weekStart', { weekStart });
     });
   });
 
