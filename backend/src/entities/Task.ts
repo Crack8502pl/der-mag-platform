@@ -138,6 +138,9 @@ export class Task {
   @OneToMany(() => TaskMetric, metric => metric.task)
   metrics: TaskMetric[];
 
+  @Column({ name: 'completed_at', type: 'timestamp', nullable: true })
+  completedAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
