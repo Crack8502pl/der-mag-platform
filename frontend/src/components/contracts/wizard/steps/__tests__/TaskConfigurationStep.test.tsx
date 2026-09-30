@@ -731,6 +731,147 @@ describe('TaskConfigurationStep', () => {
     })));
   });
 
+  it('propagates an edited crossing BOM through Nastawnia to LCS', async () => {
+    const cameraMaterial = (id: number, name: string, quantity: number) => ({
+      id, materialName: name, quantity, unit: 'szt', quantitySource: 'FIXED' as const,
+      groupName: 'Kamery', requiresIp: true, isSelected: true
+    });
+    const cameraParams = (total: number, ogolna: number, lpr: number, skp: number) => ({
+      cameraCount: total,
+      'camera.total.ip.ogolna': ogolna,
+      'camera.total.ip.lpr': lpr,
+      'camera.total.ip.skp': skp
+    });
+    const taskConfig = (index: number, taskType: string, materials: TaskConfiguration['materials'],
+      params: Record<string, unknown>): TaskConfiguration => ({
+      taskId: `SMOKIP_A-${index}`, taskNumber: `Z-${index}`, taskName: taskType,
+      taskType, subsystemType: 'SMOKIP_A', materials, configParams: params, isConfigured: true
+    });
+    const crossing = () => [
+      cameraMaterial(3001, 'Kamera ogólna', 2),
+      cameraMaterial(3002, 'Kamera LPR', 2)
+    ];
+    const initial: WizardData = {
+      ...baseWizardData,
+      subsystems: [{
+        type: 'SMOKIP_A', params: {}, taskDetails: [
+          { taskType: 'PRZEJAZD_KAT_A', taskWizardId: 'crossing-1', kilometraz: '1', kategoria: 'KAT A' },
+          { taskType: 'PRZEJAZD_KAT_A', taskWizardId: 'crossing-2', kilometraz: '2', kategoria: 'KAT A' },
+          { taskType: 'SKP', taskWizardId: 'skp-1', kilometraz: '3' },
+          { taskType: 'SKP', taskWizardId: 'skp-2', kilometraz: '4' },
+          { taskType: 'NASTAWNIA', taskWizardId: 'nastawnia' },
+          { taskType: 'LCS', taskWizardId: 'lcs' }
+        ]
+      }],
+      taskRelationships: {
+        nastawnia: {
+          parentWizardId: 'nastawnia', parentType: 'NASTAWNIA',
+          childTaskKeys: ['crossing-1', 'crossing-2', 'skp-1', 'skp-2']
+        },
+        lcs: {
+          parentWizardId: 'lcs', parentType: 'LCS', childTaskKeys: ['nastawnia']
+        }
+      },
+      taskConfigurations: {
+        'SMOKIP_A-0': taskConfig(0, 'PRZEJAZD_KAT_A', crossing(), cameraParams(4, 2, 2, 0)),
+        'SMOKIP_A-1': taskConfig(1, 'PRZEJAZD_KAT_A', crossing(), cameraParams(4, 2, 2, 0)),
+        'SMOKIP_A-2': taskConfig(2, 'SKP', [cameraMaterial(4001, 'Kamera SKP', 1)], cameraParams(1, 0, 0, 1)),
+        'SMOKIP_A-3': taskConfig(3, 'SKP', [cameraMaterial(4001, 'Kamera SKP', 1)], cameraParams(1, 0, 0, 1)),
+        'SMOKIP_A-4': taskConfig(4, 'NASTAWNIA', [], cameraParams(10, 4, 4, 2)),
+        'SMOKIP_A-5': {
+          ...taskConfig(5, 'LCS', [], cameraParams(10, 4, 4, 2)),
+          recorderRecommendation: resolvedBom(10).recorderRecommendation
+        }
+      }
+    };
+    const updates = vi.fn();
+    resolve.mockImplementation(async (request: { cameraCount?: number }) => resolvedBom(request.cameraCount ?? 0));
+    const StatefulHierarchy = () => {
+      const [data, setData] = useState(initial);
+      return <TaskConfigurationStep wizardData={data} onUpdate={(patch) => {
+        updates(patch);
+        setData((prev) => ({
+          ...prev, ...patch,
+          taskConfigurations: { ...prev.taskConfigurations, ...patch.taskConfigurations }
+        }));
+      }} />;
+    };
+
+    render(<StatefulHierarchy />);
+    expect(resolve).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('SMOKIP_A-1'));
+    fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '3' } });
+    fireEvent.click(screen.getByRole('button', { name: /Zastosuj BOM do zadania/i }));
+
+    await waitFor(() => expect(updates.mock.calls.some(([patch]) =>
+      patch.taskConfigurations?.['SMOKIP_A-1']?.configParams?.cameraCount === 5
+    )).toBe(true));
+    const crossingParams = updates.mock.calls
+      .map(([patch]) => patch.taskConfigurations?.['SMOKIP_A-1']?.configParams)
+      .find((params) => params?.cameraCount === 5);
+    expect(crossingParams).toEqual(expect.objectContaining(cameraParams(5, 3, 2, 0)));
+
+    await waitFor(() => expect(resolve).toHaveBeenCalledWith(expect.objectContaining({
+      taskType: 'NASTAWNIA', cameraCount: 11,
+      cameraBreakdown: { total: 11, ogolna: 5, lpr: 4, skp: 2 }
+    })));
+    await waitFor(() => expect(resolve).toHaveBeenCalledWith(expect.objectContaining({
+      taskType: 'LCS', cameraCount: 11,
+      cameraBreakdown: { total: 11, ogolna: 5, lpr: 4, skp: 2 },
+      configParams: expect.objectContaining({ cameraCount: 11 })
+    })));
+    await waitFor(() => {
+      for (const key of ['SMOKIP_A-4', 'SMOKIP_A-5']) {
+        expect(updates.mock.calls.some(([patch]) =>
+          patch.taskConfigurations?.[key]?.configParams?.cameraCount === 11 &&
+          patch.taskConfigurations[key].configParams['camera.total.ip.ogolna'] === 5
+        )).toBe(true);
+      }
+    });
+    fireEvent.click(screen.getByText('SMOKIP_A-5'));
+    expect(await screen.findByText(/dobrano dla 11 kamer/)).toBeInTheDocument();
+  });
+
+  it.each(['deselected', 'zero quantity'])('keeps camera config when all materials are %s', async (change) => {
+    const config: TaskConfiguration = {
+      taskId: 'SMOKIP_A-0', taskNumber: 'Z-0', taskName: 'Przejazd',
+      taskType: 'PRZEJAZD_KAT_A', subsystemType: 'SMOKIP_A',
+      materials: [{
+        id: 1, materialName: 'Kamera ogólna', groupName: 'Kamery', quantity: 2,
+        unit: 'szt', quantitySource: 'FIXED', requiresIp: true, isSelected: true
+      }],
+      configParams: {
+        cameraCount: 2, 'camera.total.ip.ogolna': 2,
+        'camera.total.ip.lpr': 0, 'camera.total.ip.skp': 0
+      },
+      isConfigured: true
+    };
+    const initial: WizardData = {
+      ...baseWizardData,
+      subsystems: [{ type: 'SMOKIP_A', params: {}, taskDetails: [
+        { taskType: 'PRZEJAZD_KAT_A', taskWizardId: 'crossing' }
+      ] }],
+      taskConfigurations: { 'SMOKIP_A-0': config }
+    };
+    const updates = vi.fn();
+    const Stateful = () => {
+      const [data, setData] = useState(initial);
+      return <TaskConfigurationStep wizardData={data} onUpdate={(patch) => {
+        updates(patch);
+        setData((prev) => ({ ...prev, ...patch }));
+      }} />;
+    };
+    render(<Stateful />);
+    if (change === 'deselected') {
+      fireEvent.click(screen.getByRole('checkbox', { name: '' }));
+    } else {
+      fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '0' } });
+    }
+    fireEvent.click(screen.getByRole('button', { name: /Zastosuj BOM do zadania/i }));
+    expect(updates.mock.calls.at(-1)?.[0].taskConfigurations['SMOKIP_A-0'].configParams)
+      .toEqual(expect.objectContaining({ cameraCount: 2, 'camera.total.ip.ogolna': 2 }));
+  });
+
   it('with preferExplicitCameraValues uses explicit cameraCount over stale config fallback', async () => {
     const wizardData: WizardData = {
       ...baseWizardData,

@@ -81,7 +81,7 @@ export class MaterialImportService {
 
       // Wczytaj i parsuj plik
       const content = fs.readFileSync(filePath, 'utf-8');
-      const records = parse(content, {
+      const records = parse<Record<string, string>>(content, {
         columns: true,
         skip_empty_lines: true,
         trim: true,

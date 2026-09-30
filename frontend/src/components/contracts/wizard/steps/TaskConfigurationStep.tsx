@@ -225,6 +225,11 @@ function resolveCameraBreakdownFromConfig(config?: TaskConfiguration): CameraBre
     return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
   }
 
+  const fromMaterials = sumCameraBreakdown(config.materials.map(materialToCameraBreakdown));
+  if (fromMaterials.total > 0) {
+    return fromMaterials;
+  }
+
   const fromConfig = {
     total: readNumericConfigParam(config.configParams || {}, 'cameraCount'),
     ogolna: readNumericConfigParam(config.configParams || {}, 'camera.total.ip.ogolna'),
@@ -236,7 +241,7 @@ function resolveCameraBreakdownFromConfig(config?: TaskConfiguration): CameraBre
     return { ...fromConfig, total: configTotal };
   }
 
-  return sumCameraBreakdown(config.materials.map(materialToCameraBreakdown));
+  return fromMaterials;
 }
 
 function resolveCameraBreakdownFromParams(
