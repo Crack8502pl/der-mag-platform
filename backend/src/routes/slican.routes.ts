@@ -54,7 +54,7 @@ function validate(data: Record<string, any>, kind: 'central' | 'license', creati
     if (key === 'notes' && value !== null && typeof value !== 'string') throw new ApiError(400, 'Invalid notes');
     if (key === 'isActive' && typeof value !== 'boolean') throw new ApiError(400, 'Invalid isActive');
     if (key === 'packageSize' && ![1, 10, 100].includes(value)) throw new ApiError(400, 'Invalid packageSize');
-    if (key === 'licenseType' && !(value in demandByType)) throw new ApiError(400, 'Invalid licenseType');
+    if (key === 'licenseType' && !Object.hasOwn(demandByType, value)) throw new ApiError(400, 'Invalid licenseType');
     if (key === 'demandField' && !Object.values(demandByType).includes(value)) throw new ApiError(400, 'Invalid demandField');
   }
 }
@@ -179,7 +179,7 @@ slicanFormulaRoutes.put('/', checkPermission('bom', 'update'), handle(async (req
   const fields = Object.keys(defaultMultipliers);
   if (Object.keys(data).some(key => !fields.includes(key)) ||
       Object.entries(data).some(([, value]) => typeof value !== 'number' || !Number.isFinite(value) ||
-        value < 0 || value > 999.99 || Math.round(value * 100) !== value * 100))
+        value < 0 || value > 999.99 || Number(value.toFixed(2)) !== value))
     throw new ApiError(400, 'Invalid multipliers');
   const repository = AppDataSource.getRepository(SlicanVoipSubscriberFormula);
   const current = await repository.findOneBy({ id: 1 });
