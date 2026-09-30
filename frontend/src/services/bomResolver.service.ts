@@ -20,7 +20,8 @@ export interface ResolvedBomItem {
   materialName: string;
   catalogNumber?: string | null;
   unit: string;
-  resolvedQuantity: number;
+  /** API may return a decimal string (e.g. "2.00") or a number */
+  resolvedQuantity: number | string;
   defaultQuantity: number;
   quantitySource: 'FIXED' | 'FROM_CONFIG' | 'PER_UNIT' | 'DEPENDENT';
   configParamName?: string | null;

@@ -16,7 +16,8 @@ jest.mock('../../../src/services/BomSubsystemTemplateService', () => ({
 jest.mock('../../../src/services/RecorderSelectionService', () => ({
   RecorderSelectionService: {
     getRecorder: jest.fn(),
-    selectRecorder: jest.fn()
+    selectRecorder: jest.fn(),
+    getAllRecorders: jest.fn()
   }
 }));
 
@@ -181,6 +182,68 @@ describe('BomResolverService', () => {
       ogolna: 3,
       lpr: 1,
       skp: 1
+    });
+  });
+
+  describe('recorder mapped to BOM quantity', () => {
+    const recorderItem = (id: number, stockId: number) => ({
+      id,
+      materialName: `Rejestrator ${stockId}`,
+      catalogNumber: null,
+      unit: 'szt',
+      defaultQuantity: 1,
+      quantitySource: QuantitySource.DEPENDENT,
+      configParamName: null,
+      dependsOnItemId: null,
+      dependencyFormula: null,
+      requiresIp: false,
+      isRequired: false,
+      sortOrder: id,
+      notes: null,
+      warehouseStockId: stockId,
+      groupName: 'Rejestratory'
+    });
+
+    beforeEach(() => {
+      (BomSubsystemTemplateService.getTemplate as jest.Mock).mockResolvedValue({
+        id: 102,
+        templateName: 'SMOKIP A LCS',
+        version: 1,
+        items: [recorderItem(1, 101), recorderItem(2, 300)]
+      });
+      (RecorderSelectionService.getAllRecorders as jest.Mock).mockResolvedValue([
+        { id: 1, warehouseStockId: 101, diskSlots: 1 },
+        { id: 2, warehouseStockId: 300, diskSlots: 4 }
+      ]);
+    });
+
+    const quantities = (result: any) =>
+      Object.fromEntries(result.items.map((i: any) => [i.warehouseStockId, Number(i.resolvedQuantity)]));
+
+    it('sets quantity 1 for selected recorder (10 cameras) and 0 for alternatives', async () => {
+      (RecorderSelectionService.selectRecorder as jest.Mock).mockResolvedValue({
+        id: 2, warehouseStockId: 300, diskSlots: 4
+      });
+      const result = await BomResolverService.resolve({
+        subsystemType: SubsystemType.SMOKIP_A,
+        taskType: 'LCS',
+        cameraCount: 10,
+        configParams: {}
+      });
+      expect(quantities(result)).toEqual({ 101: 0, 300: 1 });
+    });
+
+    it('selects the small recorder for 2 cameras', async () => {
+      (RecorderSelectionService.selectRecorder as jest.Mock).mockResolvedValue({
+        id: 1, warehouseStockId: 101, diskSlots: 1
+      });
+      const result = await BomResolverService.resolve({
+        subsystemType: SubsystemType.SMOKIP_A,
+        taskType: 'LCS',
+        cameraCount: 2,
+        configParams: {}
+      });
+      expect(quantities(result)).toEqual({ 101: 1, 300: 0 });
     });
   });
 

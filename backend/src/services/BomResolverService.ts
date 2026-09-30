@@ -307,6 +307,23 @@ export class BomResolverService {
       return a.sortOrder - b.sortOrder;
     });
 
+    // Recorder stock ids, used to map the selected recorder onto BOM items deterministically
+    let recorderStockIds: Set<number> | null = null;
+    if (
+      recorder &&
+      sortedItems.some(
+        (i: BomSubsystemTemplateItem) =>
+          i.quantitySource === QuantitySource.DEPENDENT && !i.dependsOnItemId && i.warehouseStockId != null
+      )
+    ) {
+      const allRecorders = await RecorderSelectionService.getAllRecorders();
+      recorderStockIds = new Set(
+        allRecorders
+          .map((r: RecorderSpecification) => r.warehouseStockId)
+          .filter((id): id is number => id != null)
+      );
+    }
+
     for (const item of sortedItems) {
       let quantity = item.defaultQuantity;
 
@@ -340,6 +357,14 @@ export class BomResolverService {
               base,
               item.dependencyFormula || '* 1'
             );
+          } else if (
+            !item.dependsOnItemId &&
+            recorder &&
+            recorderStockIds &&
+            item.warehouseStockId != null &&
+            recorderStockIds.has(item.warehouseStockId)
+          ) {
+            quantity = item.warehouseStockId === recorder.warehouseStockId ? 1 : 0;
           }
           break;
 
