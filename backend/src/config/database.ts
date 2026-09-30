@@ -81,6 +81,9 @@ import { Car } from '../entities/Car';
 // Recorder and Disk Specifications
 import { RecorderSpecification } from '../entities/RecorderSpecification';
 import { DiskSpecification } from '../entities/DiskSpecification';
+import { SlicanCentralSpecification } from '../entities/SlicanCentralSpecification';
+import { SlicanLicenseSpecification } from '../entities/SlicanLicenseSpecification';
+import { SlicanVoipSubscriberFormula } from '../entities/SlicanVoipSubscriberFormula';
 // Wizard Drafts
 import { WizardDraft } from '../entities/WizardDraft';
 // Asset Management
@@ -215,6 +218,9 @@ export const AppDataSource = new DataSource({
     // Recorder and Disk Specifications
     RecorderSpecification,
     DiskSpecification,
+    SlicanCentralSpecification,
+    SlicanLicenseSpecification,
+    SlicanVoipSubscriberFormula,
     // Wizard Drafts
     WizardDraft,
     // Asset Management

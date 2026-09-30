@@ -44,6 +44,7 @@ import bomTemplateDependencyRuleRoutes from './bomTemplateDependencyRule.routes'
 // Recorder and Disk Specification routes
 import recorderSpecificationRoutes from './recorderSpecification.routes';
 import diskSpecificationRoutes from './diskSpecification.routes';
+import { slicanCentralRoutes, slicanLicenseRoutes, slicanFormulaRoutes } from './slican.routes';
 // BOM resolver orchestration routes
 import bomResolverRoutes from './bomResolver.routes';
 // Symfonia MSSQL integration routes
@@ -132,6 +133,9 @@ router.use('/bom-template-dependency-rules', bomTemplateDependencyRuleRoutes);
 // Recorder and Disk Specification routes
 router.use('/recorder-specifications', recorderSpecificationRoutes);
 router.use('/disk-specifications', diskSpecificationRoutes);
+router.use('/slican-central-specifications', slicanCentralRoutes);
+router.use('/slican-license-specifications', slicanLicenseRoutes);
+router.use('/slican-voip-subscriber-formula', slicanFormulaRoutes);
 
 // BOM resolver orchestration routes
 router.use('/bom-resolver', bomResolverRoutes);
