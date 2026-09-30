@@ -147,7 +147,7 @@ export class BOMTemplateService {
     // Remove BOM if present
     const content = fileContent.replace(/^\uFEFF/, '');
     
-    const records = parse(content, {
+    const records = parse<Record<string, string>>(content, {
       columns: true,
       skip_empty_lines: true,
       delimiter: ';',
