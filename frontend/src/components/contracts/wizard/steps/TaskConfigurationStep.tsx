@@ -170,7 +170,12 @@ function createBomResolverRequest(
   }
 }
 
-function materialToCameraBreakdown(material: ResolvedMaterial): CameraBreakdown {
+export function normalizeQuantity(value: number | string | null | undefined): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+export function materialToCameraBreakdown(material: ResolvedMaterial): CameraBreakdown {
   if (!material.isSelected) {
     return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
   }
@@ -184,7 +189,8 @@ function materialToCameraBreakdown(material: ResolvedMaterial): CameraBreakdown 
     return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
   }
 
-  const quantity = Number.isFinite(material.quantity) && material.quantity > 0 ? material.quantity : 0;
+  const parsedQuantity = Number(material.quantity);
+  const quantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : 0;
   if (quantity <= 0) {
     return { total: 0, ogolna: 0, lpr: 0, skp: 0 };
   }
@@ -596,12 +602,12 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
           id: item.templateItemId,
           materialName: item.materialName,
           catalogNumber: item.catalogNumber ?? undefined,
-          quantity: item.resolvedQuantity,
+          quantity: normalizeQuantity(item.resolvedQuantity),
           unit: item.unit,
           quantitySource: item.quantitySource,
           groupName: item.groupName || 'Inne',
           requiresIp: item.requiresIp,
-          isSelected: item.isRequired || item.resolvedQuantity > 0,
+          isSelected: item.isRequired || normalizeQuantity(item.resolvedQuantity) > 0,
         }));
 
         const updatedConfig: TaskConfiguration = {
@@ -845,7 +851,7 @@ export const TaskConfigurationStep: React.FC<Props> = ({ wizardData, onUpdate })
                     –{activeConfig.recorderRecommendation.recorder.maxCameras} kamer
                     {Number(activeConfig.configParams?.cameraCount ?? 0) > 0 && (
                       <span style={{ marginLeft: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>
-                        (dobrano dla {Number(activeConfig.configParams?.cameraCount)} kamer z przejazdów)
+                        (dobrano dla {Number(activeConfig.configParams?.cameraCount)} kamer)
                       </span>
                     )}
                   </div>
