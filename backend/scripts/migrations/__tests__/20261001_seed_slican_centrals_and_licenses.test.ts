@@ -73,8 +73,18 @@ databaseDescribe('20261001 Slican seed migration', () => {
     expect(seeded.rows[0]).toEqual({ centrals: '4', licenses: '12', logged_rows: '15' });
     const inactive = await client.query(`
       SELECT
-        (SELECT COUNT(*) FROM slican_central_specifications WHERE is_active) +
-        (SELECT COUNT(*) FROM slican_license_specifications WHERE is_active) AS active_count
+        (SELECT COUNT(*)
+         FROM slican_central_specifications specification
+         JOIN slican_audio_seed_log seed ON seed.entity_id = specification.id
+         WHERE seed.seed_key = '20261001_seed_slican_centrals_and_licenses'
+           AND seed.entity_table = 'slican_central_specifications'
+           AND specification.is_active) +
+        (SELECT COUNT(*)
+         FROM slican_license_specifications specification
+         JOIN slican_audio_seed_log seed ON seed.entity_id = specification.id
+         WHERE seed.seed_key = '20261001_seed_slican_centrals_and_licenses'
+           AND seed.entity_table = 'slican_license_specifications'
+           AND specification.is_active) AS active_count
     `);
     expect(inactive.rows[0].active_count).toBe('0');
 
