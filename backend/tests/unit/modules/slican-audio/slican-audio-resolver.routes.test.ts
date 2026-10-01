@@ -21,6 +21,7 @@ jest.mock('../../../../src/middleware/auth', () => ({
 const app = express();
 app.use(express.json());
 app.use('/slican-audio-resolver', resolverRoutes);
+app.use('/slican-audio', resolverRoutes);
 app.use('/smoka/audio', aggregationRoutes);
 
 describe('Slican audio resolver endpoint', () => {
@@ -68,6 +69,8 @@ describe('Slican audio resolver endpoint', () => {
       warehouseStockId: 10,
       modelName: 'NCP-CM300P'
     });
+    expect(result.body.bomItems).toContainEqual({ warehouseStockId: 10, quantity: 1 });
+    expect((await request(app).post('/slican-audio/resolve').send(demand)).status).toBe(200);
 
     expect((await request(app).post('/slican-audio-resolver/resolve').send({
       ...demand,

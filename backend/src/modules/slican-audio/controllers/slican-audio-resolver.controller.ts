@@ -22,9 +22,9 @@ export class SlicanAudioResolverController {
     }
 
     try {
-      const { centralRecommendation, licenses, warnings } =
+      const { centralRecommendation, licenses, warnings, bomItems } =
         await new SlicanAudioResolverService().resolveForSmokA(demand);
-      res.json({ centralRecommendation, licenses, warnings });
+      res.json({ centralRecommendation, licenses, warnings, bomItems });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Błąd rozwiązywania Slican audio.';
       res.status(error instanceof RangeError ? 422 : 500).json({ error: message });
