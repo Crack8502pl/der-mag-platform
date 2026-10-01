@@ -51,6 +51,7 @@ export interface TaskPermissions {
  */
 export interface CompletionPermissions {
   read?: boolean;
+  readAll?: boolean;
   scan?: boolean;
   assignPallet?: boolean;
   reportMissing?: boolean;
