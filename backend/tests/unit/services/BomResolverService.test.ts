@@ -6,6 +6,7 @@ import { RecorderSelectionService } from '../../../src/services/RecorderSelectio
 import { DiskConfigurationService } from '../../../src/services/DiskConfigurationService';
 import { BomTemplateDependencyRuleService } from '../../../src/services/BomTemplateDependencyRuleService';
 import { DependencyRuleEngine } from '../../../src/services/DependencyRuleEngine';
+import { SlicanAudioResolverService } from '../../../src/modules/slican-audio/services/slican-audio-resolver.service';
 
 jest.mock('../../../src/services/BomSubsystemTemplateService', () => ({
   BomSubsystemTemplateService: {
@@ -41,9 +42,26 @@ jest.mock('../../../src/services/DependencyRuleEngine', () => ({
   }
 }));
 
+const mockResolveSlicanAudio = jest.fn();
+jest.mock('../../../src/modules/slican-audio/services/slican-audio-resolver.service', () => ({
+  SlicanAudioResolverService: jest.fn().mockImplementation(() => ({
+    resolveForSmokA: mockResolveSlicanAudio
+  }))
+}));
+
 describe('BomResolverService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockResolveSlicanAudio.mockResolvedValue({
+      centralRecommendation: { warehouseStockId: 500, modelName: 'NCP-CM300P' },
+      licenses: [{ type: 'AUDIO', items: [{ warehouseStockId: 600, quantity: 2 }] }],
+      warnings: [],
+      bomItems: [
+        { warehouseStockId: 500, quantity: 1 },
+        { warehouseStockId: 501, quantity: 0 },
+        { warehouseStockId: 600, quantity: 2 }
+      ]
+    });
 
     (BomSubsystemTemplateService.getTemplate as jest.Mock).mockResolvedValue({
       id: 101,
@@ -249,5 +267,95 @@ describe('BomResolverService', () => {
 
   it('needsRecorder returns true for SMOKIP_A LCS', () => {
     expect(BomResolverService.needsRecorder(SubsystemType.SMOKIP_A, 'LCS')).toBe(true);
+  });
+
+  it('maps selected audio central and licenses into SMOKIP_A BOM items', async () => {
+    (BomSubsystemTemplateService.getTemplate as jest.Mock).mockResolvedValue({
+      id: 103,
+      templateName: 'SMOKIP A',
+      version: 1,
+      items: [500, 501, 600].map((warehouseStockId, index) => ({
+        id: index + 1,
+        materialName: `Stock ${warehouseStockId}`,
+        catalogNumber: null,
+        unit: 'szt',
+        defaultQuantity: 1,
+        quantitySource: QuantitySource.FIXED,
+        requiresIp: false,
+        isRequired: false,
+        sortOrder: index,
+        warehouseStockId,
+        groupName: 'Audio'
+      }))
+    });
+    const result = await BomResolverService.resolve({
+      subsystemType: SubsystemType.SMOKIP_A,
+      taskType: 'LCS',
+      audioBreakdown: {
+        dphIpDevices: 0,
+        audioIpDevices: 2,
+        cts220IpDevices: 0,
+        ivrChannels: 0,
+        conferenceChannels: 0
+      },
+      configParams: {}
+    });
+
+    expect(result.centralRecommendation?.warehouseStockId).toBe(500);
+    expect(result.licenses?.[0].items[0].quantity).toBe(2);
+    expect(result.items.map(item => [item.warehouseStockId, item.resolvedQuantity])).toEqual([
+      [500, 1],
+      [501, 0],
+      [600, 2]
+    ]);
+  });
+
+  it('does not run Slican audio resolution for SMOKIP_B or CCTV, or infer demand from cameras', async () => {
+    await BomResolverService.resolve({
+      subsystemType: SubsystemType.SMOKIP_B,
+      cameraBreakdown: { total: 5, ogolna: 5, lpr: 0, skp: 0 },
+      configParams: {}
+    });
+    await BomResolverService.resolve({
+      subsystemType: SubsystemType.CCTV,
+      cameraCount: 5,
+      configParams: {}
+    });
+    expect(mockResolveSlicanAudio).not.toHaveBeenCalled();
+  });
+
+  it('resolves hierarchical audio demand only for the LCS owner or standalone Nastawnia', async () => {
+    const audioBreakdown = {
+      dphIpDevices: 0,
+      audioIpDevices: 1,
+      cts220IpDevices: 0,
+      ivrChannels: 0,
+      conferenceChannels: 0
+    };
+    await BomResolverService.resolve({
+      subsystemType: SubsystemType.SMOKIP_A,
+      taskType: 'NASTAWNIA',
+      isStandaloneNastawnia: false,
+      audioBreakdown,
+      configParams: {}
+    });
+    expect(mockResolveSlicanAudio).not.toHaveBeenCalled();
+
+    await BomResolverService.resolve({
+      subsystemType: SubsystemType.SMOKIP_A,
+      taskType: 'NASTAWNIA',
+      isStandaloneNastawnia: true,
+      audioBreakdown,
+      configParams: {}
+    });
+    expect(mockResolveSlicanAudio).toHaveBeenCalledTimes(1);
+
+    mockResolveSlicanAudio.mockClear();
+    await BomResolverService.resolve({
+      subsystemType: SubsystemType.SMOKIP_A,
+      audioBreakdown,
+      configParams: {}
+    });
+    expect(mockResolveSlicanAudio).toHaveBeenCalledTimes(1);
   });
 });

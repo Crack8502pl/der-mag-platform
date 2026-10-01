@@ -12,6 +12,8 @@ import { BomTemplateDependencyRuleService } from './BomTemplateDependencyRuleSer
 import { DependencyRuleEngine } from './DependencyRuleEngine';
 import { BomSubsystemTemplateItem, QuantitySource } from '../entities/BomSubsystemTemplateItem';
 import { DiskSpecification } from '../entities/DiskSpecification';
+import { SlicanAudioDemand } from './SlicanAudioService';
+import { SlicanAudioResolverService, SlicanAudioResolution } from '../modules/slican-audio/services/slican-audio-resolver.service';
 
 const DEFAULT_GROUP_NAME = 'Inne';
 const DEFAULT_RECORDING_DAYS = 14;
@@ -46,6 +48,8 @@ export interface BomResolveRequest {
   selectedRecorderId?: number | null;
   /** Optional camera type breakdown propagated from the Wizard */
   cameraBreakdown?: CameraBreakdown;
+  /** Explicit Slican audio demand; independent from cameraBreakdown */
+  audioBreakdown?: SlicanAudioDemand;
 }
 
 export interface ResolvedBomItem {
@@ -105,6 +109,9 @@ export interface BomResolveResult {
   resolvedAt: string;
   warnings: string[];
   cameraBreakdown?: CameraBreakdown;
+  audioBreakdown?: SlicanAudioDemand;
+  centralRecommendation?: SlicanAudioResolution['centralRecommendation'];
+  licenses?: SlicanAudioResolution['licenses'];
 }
 
 // Subsystem types that involve a recorder + disk storage selection
@@ -158,7 +165,8 @@ export class BomResolverService {
       bitrateMbps = 4.0,
       configParams: callerConfigParams = {},
       isStandaloneNastawnia = false,
-      cameraBreakdown: requestedCameraBreakdown
+      cameraBreakdown: requestedCameraBreakdown,
+      audioBreakdown
     } = request;
     let cameraBreakdown = BomResolverService.normalizeCameraBreakdown(
       requestedCameraBreakdown,
@@ -178,6 +186,12 @@ export class BomResolverService {
     const totalIpCameras = BomResolverService.resolveTotalIpCameras(cameraBreakdown, callerConfigParams);
     const recordingDays = requestRecordingDays ?? request.retentionDays ?? DEFAULT_RECORDING_DAYS;
     const needsRecorder = BomResolverService.needsRecorder(subsystemType, taskType, isStandaloneNastawnia);
+    const ownsAudioDomain =
+      subsystemType === SubsystemType.SMOKIP_A &&
+      (taskType !== 'NASTAWNIA' || isStandaloneNastawnia);
+    const audioResolution = ownsAudioDomain && audioBreakdown
+      ? await new SlicanAudioResolverService().resolveForSmokA(audioBreakdown)
+      : null;
     if (process.env.NODE_ENV !== 'production' && process.env.DEBUG_RECORDER_SELECTION === 'true') {
       console.log('[BomResolverService.resolve] recorder selection gate', {
         subsystemType,
@@ -208,11 +222,19 @@ export class BomResolverService {
       retentionDays: recordingDays,
       isConfigured: false,
       resolvedAt: new Date().toISOString(),
-      warnings: [],
-      cameraBreakdown
+      warnings: audioResolution?.warnings ?? [],
+      cameraBreakdown,
+      ...(audioResolution && {
+        audioBreakdown,
+        centralRecommendation: audioResolution.centralRecommendation,
+        licenses: audioResolution.licenses
+      })
     };
 
     if (!template) {
+      if (audioResolution?.bomItems.some(item => item.quantity > 0)) {
+        baseResult.warnings.push('Brak szablonu BOM dla wybranej centrali lub licencji Slican audio.');
+      }
       return baseResult;
     }
 
@@ -386,6 +408,25 @@ export class BomResolverService {
         callerConfigParams.selectedModels as Record<string, { checked: boolean; quantity?: number }> | undefined,
         mergedConfigParams
       );
+    }
+
+    if (audioResolution) {
+      const quantitiesByStockId = new Map(
+        audioResolution.bomItems.map(item => [item.warehouseStockId, item.quantity])
+      );
+      const templateStockIds = new Set(
+        sortedItems
+          .map(item => item.warehouseStockId)
+          .filter((id): id is number => id != null)
+      );
+      for (const item of sortedItems) {
+        if (item.warehouseStockId != null && quantitiesByStockId.has(item.warehouseStockId)) {
+          itemQuantities.set(item.id, quantitiesByStockId.get(item.warehouseStockId)!);
+        }
+      }
+      if (audioResolution.bomItems.some(item => item.quantity > 0 && !templateStockIds.has(item.warehouseStockId))) {
+        baseResult.warnings.push('Wybrana centrala lub licencja Slican audio nie występuje w pozycjach szablonu BOM.');
+      }
     }
 
     // ── 5. Build result items ────────────────────────────────────────────────
