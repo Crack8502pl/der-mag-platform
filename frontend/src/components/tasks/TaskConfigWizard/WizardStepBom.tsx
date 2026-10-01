@@ -25,6 +25,11 @@ export const WizardStepBom: React.FC<WizardStepBomProps> = ({ resolvedBom, bomGr
     (resolvedBom.cameraBreakdown?.ogolna ?? 0) +
     (resolvedBom.cameraBreakdown?.lpr ?? 0) +
     (resolvedBom.cameraBreakdown?.skp ?? 0);
+  const audioBreakdown = resolvedBom.audioBreakdown;
+  const audioTotal = audioBreakdown
+    ? audioBreakdown.dphIpDevices + audioBreakdown.audioIpDevices + audioBreakdown.cts220IpDevices +
+      audioBreakdown.ivrChannels + audioBreakdown.conferenceChannels
+    : 0;
 
   const getGroupStyle = (groupName: string) => {
     const group = bomGroups.find(g => g.name === groupName);
@@ -147,6 +152,86 @@ export const WizardStepBom: React.FC<WizardStepBomProps> = ({ resolvedBom, bomGr
           )}
         </div>
       </div>
+
+      {audioBreakdown && (
+        <section aria-label="Audio / Slican" style={{
+          marginBottom: '16px',
+          padding: '14px',
+          border: '1px solid var(--border-color)',
+          borderRadius: '8px',
+          background: 'var(--card-bg)',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+            <h4 style={{ margin: 0, color: 'var(--text-primary)' }}>🔊 Audio / Slican</h4>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <span className="wizard-badge">AGGREGATED</span>
+              <span className="wizard-badge">
+                {audioTotal === 0
+                  ? 'MISSING'
+                  : (resolvedBom.audioAggregationWarnings?.length || resolvedBom.audioWarnings?.length)
+                    ? 'WARNING'
+                    : 'VALID'}
+              </span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
+            {[
+              ['DPH.IP', audioBreakdown.dphIpDevices],
+              ['Audio.IP', audioBreakdown.audioIpDevices],
+              ['CTS220.IP', audioBreakdown.cts220IpDevices],
+              ['IVR', audioBreakdown.ivrChannels],
+              ['Konferencje', audioBreakdown.conferenceChannels],
+            ].map(([label, quantity]) => (
+              <span key={label} style={{ fontSize: '12px', padding: '3px 8px', borderRadius: '4px', background: 'var(--bg-secondary)' }}>
+                {label}: {quantity}
+              </span>
+            ))}
+            <strong style={{ padding: '3px 8px' }}>Razem: {audioTotal}</strong>
+          </div>
+          {resolvedBom.audioHierarchySummary && resolvedBom.audioHierarchySummary.length > 0 && (
+            <div className="table-container" style={{ marginTop: '12px' }}>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Hierarchia</th>
+                    <th>DPH.IP</th>
+                    <th>Audio.IP</th>
+                    <th>CTS220.IP</th>
+                    <th>IVR</th>
+                    <th>Konferencje</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resolvedBom.audioHierarchySummary.map(node => (
+                    <tr key={node.nodeId}>
+                      <td>{node.nodeType} ({node.nodeId})</td>
+                      <td>{node.aggregate.dphIpDevices}</td>
+                      <td>{node.aggregate.audioIpDevices}</td>
+                      <td>{node.aggregate.cts220IpDevices}</td>
+                      <td>{node.aggregate.ivrChannels}</td>
+                      <td>{node.aggregate.conferenceChannels}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {resolvedBom.centralRecommendation && (
+            <div style={{ marginTop: '10px' }}>
+              Centrala: <strong>{resolvedBom.centralRecommendation.modelName}</strong>
+            </div>
+          )}
+          {(resolvedBom.licenses || []).some(license => license.items.length > 0) && (
+            <ul style={{ margin: '8px 0 0', paddingLeft: '20px' }}>
+              {resolvedBom.licenses?.flatMap(license => license.items.map(item => (
+                <li key={`${license.type}-${item.warehouseStockId}`}>
+                  {license.type}: {item.quantity} × {item.warehouseStockId}
+                </li>
+              )))}
+            </ul>
+          )}
+        </section>
+      )}
 
       {/* Warnings */}
       {resolvedBom.warnings.length > 0 && (

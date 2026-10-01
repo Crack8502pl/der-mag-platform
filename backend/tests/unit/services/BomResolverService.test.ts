@@ -308,6 +308,11 @@ describe('BomResolverService', () => {
       [501, 0],
       [600, 2]
     ]);
+    expect(result.audioBomItems).toEqual([
+      { templateItemId: 1, quantity: 1 },
+      { templateItemId: 2, quantity: 0 },
+      { templateItemId: 3, quantity: 2 }
+    ]);
   });
 
   it('does not run Slican audio resolution for SMOKIP_B or CCTV, or infer demand from cameras', async () => {

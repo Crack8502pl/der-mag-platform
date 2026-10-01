@@ -6,6 +6,7 @@ import { SlicanCentralSpecification } from '../../../../src/entities/SlicanCentr
 import { SlicanLicenseSpecification } from '../../../../src/entities/SlicanLicenseSpecification';
 import { SlicanVoipSubscriberFormula } from '../../../../src/entities/SlicanVoipSubscriberFormula';
 import resolverRoutes from '../../../../src/modules/slican-audio/routes/slican-audio-resolver.routes';
+import aggregationRoutes from '../../../../src/modules/slican-audio/routes/smoka-audio-aggregation.routes';
 
 jest.mock('../../../../src/config/database', () => ({
   AppDataSource: { getRepository: jest.fn() }
@@ -20,6 +21,7 @@ jest.mock('../../../../src/middleware/auth', () => ({
 const app = express();
 app.use(express.json());
 app.use('/slican-audio-resolver', resolverRoutes);
+app.use('/smoka/audio', aggregationRoutes);
 
 describe('Slican audio resolver endpoint', () => {
   let canRead: boolean;
@@ -73,5 +75,24 @@ describe('Slican audio resolver endpoint', () => {
     })).status).toBe(400);
     canRead = false;
     expect((await request(app).post('/slican-audio-resolver/resolve').send(demand)).status).toBe(403);
+  });
+
+  it('aggregates validated owner hierarchy through the SMOK-A audio endpoint', async () => {
+    canRead = true;
+    const result = await request(app).post('/smoka/audio/aggregate').send({
+      ownerId: 'lcs',
+      nodes: [
+        { id: 'lcs', type: 'LCS', items: [{ id: 'dph-1', deviceType: 'DPH_IP', quantity: 1 }] },
+        { id: 'crossing', type: 'Przejazd', ownerId: 'lcs', items: [{ id: 'dph-1', deviceType: 'DPH_IP', quantity: 1 }] }
+      ]
+    });
+    expect(result.status).toBe(200);
+    expect(result.body.aggregate.dphIpDevices).toBe(1);
+    expect(result.body.warnings).toHaveLength(1);
+
+    expect((await request(app).post('/smoka/audio/aggregate').send({
+      ownerId: 'lcs',
+      nodes: [{ id: 'lcs', type: 'LCS', items: [{ deviceType: 'DPH_IP', quantity: -1 }] }]
+    })).status).toBe(400);
   });
 });

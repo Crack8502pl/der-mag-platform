@@ -2,11 +2,21 @@ import api from './api';
 import type {
   SlicanCentralSpecification,
   SlicanCentralSpecificationDTO,
+  SlicanAudioAggregate,
+  SlicanHierarchyAudioNode,
   SlicanLicenseSpecification,
   SlicanLicenseSpecificationDTO
 } from '../types/slicanAudio.types';
 
 export const slicanAudioService = {
+  async aggregateSmokAAudio(
+    ownerId: string,
+    nodes: SlicanHierarchyAudioNode[]
+  ): Promise<{ aggregate: SlicanAudioAggregate; warnings: string[] }> {
+    const response = await api.post('/smoka/audio/aggregate', { ownerId, nodes });
+    return response.data;
+  },
+
   async getCentrals(): Promise<SlicanCentralSpecification[]> {
     const response = await api.get('/slican-central-specifications');
     return response.data.data || [];

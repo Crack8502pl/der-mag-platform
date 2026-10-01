@@ -2,6 +2,27 @@ export type SlicanLicenseType = 'VOIP_SUBSCRIBER' | 'AUDIO' | 'IVR' | 'CONFERENC
 export type SlicanLicensePackageSize = 1 | 10 | 100;
 export type SlicanLicenseDemandField = 'sipVoipSubscribers' | 'audioDevices' | 'ivrChannels' | 'conferenceChannels';
 
+export interface SlicanAudioAggregate {
+  dphIpDevices: number;
+  audioIpDevices: number;
+  cts220IpDevices: number;
+  ivrChannels: number;
+  conferenceChannels: number;
+}
+
+export interface SlicanHierarchyAudioNode {
+  id: string;
+  type: 'LCS' | 'Nastawnia' | 'Przejazd' | 'SKP' | 'Point';
+  parentId?: string;
+  ownerId?: string;
+  items: Array<{
+    id?: string;
+    deviceId?: string;
+    deviceType: 'DPH_IP' | 'AUDIO_IP' | 'CTS220_IP' | 'IVR' | 'CONFERENCE';
+    quantity: number;
+  }>;
+}
+
 export interface SlicanCentralSpecification {
   id: number;
   warehouseStockId: number;

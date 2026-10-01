@@ -538,6 +538,15 @@ export class BomSubsystemTemplateService {
     // Resolve quantities and create task materials
     const taskMaterials: TaskMaterial[] = [];
     const itemQuantities = new Map<number, number>();
+    const slicanAudioOverrides = new Map<number, number>();
+    if (Array.isArray(configParams.slicanAudioBomItems)) {
+      for (const override of configParams.slicanAudioBomItems) {
+        if (Number.isSafeInteger(override?.templateItemId) &&
+            Number.isSafeInteger(override?.quantity) && override.quantity >= 0) {
+          slicanAudioOverrides.set(override.templateItemId, override.quantity);
+        }
+      }
+    }
 
     // Sort items to process dependencies correctly
     const sortedItems = [...template.items].sort((a, b) => {
@@ -624,6 +633,9 @@ export class BomSubsystemTemplateService {
         }
       }
 
+      const resolvedAudioQuantity = slicanAudioOverrides.get(item.id);
+      if (resolvedAudioQuantity !== undefined) quantity = resolvedAudioQuantity;
+
       // Store calculated quantity for dependent items
       itemQuantities.set(item.id, quantity);
 
@@ -661,7 +673,9 @@ export class BomSubsystemTemplateService {
         const templateItem = sortedItems.find(item => item.materialName === taskMaterial.materialName);
         if (templateItem) {
           const ruleQuantity = updatedQuantities.get(templateItem.id);
-          if (ruleQuantity !== undefined) {
+          if (slicanAudioOverrides.has(templateItem.id)) {
+            taskMaterial.plannedQuantity = slicanAudioOverrides.get(templateItem.id)!;
+          } else if (ruleQuantity !== undefined) {
             taskMaterial.plannedQuantity = ruleQuantity;
           }
         }

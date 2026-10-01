@@ -114,6 +114,42 @@ export const WizardStepSummary: React.FC<WizardStepSummaryProps> = ({
         </div>
       )}
 
+      {resolvedBom.audioBreakdown && (
+        <div className="wizard-section">
+          <h3 className="wizard-section-title">🔊 Audio / Slican</h3>
+          <div className="wizard-stat-grid">
+            <div className="wizard-stat-card">
+              <div className="stat-label">DPH.IP</div>
+              <div className="stat-value">{resolvedBom.audioBreakdown.dphIpDevices}</div>
+            </div>
+            <div className="wizard-stat-card">
+              <div className="stat-label">Audio.IP</div>
+              <div className="stat-value">{resolvedBom.audioBreakdown.audioIpDevices}</div>
+            </div>
+            <div className="wizard-stat-card">
+              <div className="stat-label">CTS220.IP</div>
+              <div className="stat-value">{resolvedBom.audioBreakdown.cts220IpDevices}</div>
+            </div>
+            <div className="wizard-stat-card">
+              <div className="stat-label">IVR</div>
+              <div className="stat-value">{resolvedBom.audioBreakdown.ivrChannels}</div>
+            </div>
+            <div className="wizard-stat-card">
+              <div className="stat-label">Konferencje</div>
+              <div className="stat-value">{resolvedBom.audioBreakdown.conferenceChannels}</div>
+            </div>
+          </div>
+          {resolvedBom.centralRecommendation && (
+            <p>Centrala: <strong>{resolvedBom.centralRecommendation.modelName}</strong></p>
+          )}
+          {(resolvedBom.licenses || []).flatMap(license => license.items.map(item => (
+            <div key={`${license.type}-${item.warehouseStockId}`}>
+              {license.type}: {item.quantity} × {item.warehouseStockId}
+            </div>
+          )))}
+        </div>
+      )}
+
       {/* Recorder */}
       {resolvedBom.needsRecorder && resolvedBom.recorderRecommendation && (
         <div className="wizard-section">

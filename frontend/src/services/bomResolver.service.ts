@@ -2,6 +2,7 @@
 // frontend/src/services/bomResolver.service.ts
 import api from './api';
 import type { CameraBreakdown } from '../types/cameraBreakdown';
+import type { SlicanAudioAggregate } from '../types/slicanAudio.types';
 
 export interface BomResolveRequest {
   subsystemType: string;
@@ -13,6 +14,7 @@ export interface BomResolveRequest {
   retentionDays?: number;
   cameraCount?: number;
   cameraBreakdown?: CameraBreakdown;
+  audioBreakdown?: SlicanAudioAggregate;
 }
 
 export interface ResolvedBomItem {
@@ -83,6 +85,17 @@ export interface BomResolveResult {
   resolvedAt: string;
   warnings: string[];
   cameraBreakdown?: CameraBreakdown;
+  audioBreakdown?: SlicanAudioAggregate;
+  audioBomItems?: Array<{ templateItemId: number; quantity: number }>;
+  audioWarnings?: string[];
+  audioAggregationWarnings?: string[];
+  audioHierarchySummary?: Array<{
+    nodeId: string;
+    nodeType: string;
+    aggregate: SlicanAudioAggregate;
+  }>;
+  centralRecommendation?: { warehouseStockId: number; modelName: string } | null;
+  licenses?: Array<{ type: string; items: Array<{ warehouseStockId: number; quantity: number }> }>;
 }
 
 export const bomResolverService = {
