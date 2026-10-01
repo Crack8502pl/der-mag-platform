@@ -18,13 +18,17 @@ try {
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/tests'],
+  roots: [
+    '<rootDir>/tests',
+    '<rootDir>/scripts/migrations/__tests__',
+    '<rootDir>/src/modules/slican-audio/__tests__'
+  ],
   transformIgnorePatterns: ['node_modules/(?!(uuid)/)'],
   transform: {
     '^.+\\.tsx?$': 'ts-jest',
     '^.+\\.js$': ['babel-jest', { plugins: ['@babel/plugin-transform-modules-commonjs'] }],
   },
-  testMatch: ['**/*.test.ts'],
+  testMatch: ['**/*.{test,spec}.ts'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   coverageProvider: 'v8',
 

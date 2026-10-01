@@ -122,6 +122,40 @@ describe('BomResolverService', () => {
     expect(result.recorder).toBeNull();
   });
 
+  it.each([SubsystemType.SMOKIP_B, SubsystemType.CCTV])(
+    'does not resolve Slican audio for %s',
+    async subsystemType => {
+      const result = await BomResolverService.resolve({
+        subsystemType,
+        taskType: 'LCS',
+        audioBreakdown: {
+          dphIpDevices: 2,
+          audioIpDevices: 1,
+          cts220IpDevices: 0,
+          ivrChannels: 0,
+          conferenceChannels: 0
+        },
+        configParams: {}
+      });
+
+      expect(mockResolveSlicanAudio).not.toHaveBeenCalled();
+      expect(result.centralRecommendation).toBeUndefined();
+      expect(result.audioBreakdown).toBeUndefined();
+    }
+  );
+
+  it('keeps projects without an audio breakdown valid', async () => {
+    const result = await BomResolverService.resolve({
+      subsystemType: SubsystemType.SMOKIP_A,
+      taskType: 'LCS',
+      configParams: {}
+    });
+
+    expect(mockResolveSlicanAudio).not.toHaveBeenCalled();
+    expect(result.warnings).toEqual([]);
+    expect(result.audioBreakdown).toBeUndefined();
+  });
+
   it('passes nested camera aliases in mergedConfigParams for dependency rules', async () => {
     (BomTemplateDependencyRuleService.getRulesForTemplate as jest.Mock).mockResolvedValue([{ id: 1 }]);
 

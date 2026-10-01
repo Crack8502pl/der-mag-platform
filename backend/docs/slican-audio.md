@@ -31,7 +31,7 @@ curl -H "Authorization: ******" \
 
 curl -X POST -H "Authorization: ******" -H "Content-Type: application/json" \
   -d '{"dphIpDevices":4,"audioIpDevices":6,"cts220IpDevices":2,"ivrChannels":1,"conferenceChannels":4}' \
-  https://example.com/api/slican-audio-resolver/resolve
+  https://example.com/api/slican-audio/resolve
 
 curl -X POST -H "Authorization: ******" -H "Content-Type: application/json" \
   -d '{"ownerId":"lcs-1","nodes":[{"id":"lcs-1","type":"LCS","items":[{"id":"dph-1","deviceType":"DPH_IP","quantity":1}]},{"id":"crossing-1","type":"Przejazd","parentId":"lcs-1","ownerId":"lcs-1","items":[{"deviceType":"IVR","quantity":2}]}]}' \
@@ -93,7 +93,8 @@ DROP TABLE IF EXISTS slican_voip_subscriber_formula;
 DROP TABLE IF EXISTS slican_central_specifications;
 ```
 
-Open business questions for #673: which additional catalog limits should
-participate in selection? Should multipliers vary by central? How should
-retired products and their successors be handled? Hierarchy aggregation,
-ownership and final BOM insertion are implemented by #674.
+Optional catalog limits are currently stored but do not participate in central
+selection. The multiplier is global, not central-specific. Review inactive
+seeded defaults against the current catalog before activation. See
+`docs/architecture/slican-audio.md` and `docs/api/slican-audio-api.md` for the
+current behavior and API contract.

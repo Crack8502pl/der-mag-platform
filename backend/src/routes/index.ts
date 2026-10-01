@@ -139,6 +139,7 @@ router.use('/slican-central-specifications', slicanCentralRoutes);
 router.use('/slican-license-specifications', slicanLicenseRoutes);
 router.use('/slican-voip-subscriber-formula', slicanFormulaRoutes);
 router.use('/slican-audio-resolver', slicanAudioResolverRoutes);
+router.use('/slican-audio', slicanAudioResolverRoutes);
 router.use('/smoka/audio', smokaAudioAggregationRoutes);
 
 // BOM resolver orchestration routes
