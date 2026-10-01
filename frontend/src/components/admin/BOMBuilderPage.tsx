@@ -28,6 +28,7 @@ import { DiskSpecificationModal } from './DiskSpecificationModal';
 import BomImportAllModal from './BomImportAllModal';
 import { RuleFormulaPreview } from './RuleFormulaPreview';
 import { RulePipelineView } from './RulePipelineView';
+import { SlicanAudioTab } from './SlicanAudioTab';
 import {
   generateHumanReadableFormula,
   AGGREGATION_DESCRIPTIONS,
@@ -36,7 +37,7 @@ import {
 } from '../../utils/ruleFormulaGenerator';
 import '../../styles/grover-theme.css';
 
-type Tab = 'materials' | 'templates';
+type Tab = 'materials' | 'templates' | 'slican-audio';
 
 export const BOMBuilderPage: React.FC = () => {
   const navigate = useNavigate();
@@ -112,6 +113,17 @@ export const BOMBuilderPage: React.FC = () => {
           >
             📄 Szablony BOM
           </button>
+          <button
+            className={`btn ${activeTab === 'slican-audio' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('slican-audio')}
+            style={{
+              borderRadius: '0',
+              borderBottom: activeTab === 'slican-audio' ? '2px solid var(--primary-color)' : 'none',
+              flex: 1
+            }}
+          >
+            ☎️ Slican audio
+          </button>
         </div>
       </div>
 
@@ -121,6 +133,9 @@ export const BOMBuilderPage: React.FC = () => {
       )}
       {activeTab === 'templates' && (
         <TemplatesTab canCreate={canCreate} canUpdate={canUpdate} canDelete={canDelete} />
+      )}
+      {activeTab === 'slican-audio' && (
+        <SlicanAudioTab canCreate={canCreate} canUpdate={canUpdate} canDelete={canDelete} />
       )}
     </div>
   );
