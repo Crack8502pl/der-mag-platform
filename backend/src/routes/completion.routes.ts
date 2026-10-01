@@ -5,6 +5,7 @@ import { Router } from 'express';
 import { CompletionController } from '../controllers/CompletionController';
 import { authenticate } from '../middleware/auth';
 import { requirePermission } from '../middleware/PermissionMiddleware';
+import { requireCompletionOrderAccess, restrictCompletionListScope } from '../middleware/CompletionOrderAccess';
 
 const router = Router();
 
@@ -22,6 +23,7 @@ router.post(
 router.get(
   '/orders',
   requirePermission('completion', 'read'),
+  restrictCompletionListScope,
   CompletionController.listOrders
 );
 
@@ -29,6 +31,7 @@ router.get(
 router.get(
   '/orders/:id',
   requirePermission('completion', 'read'),
+  requireCompletionOrderAccess,
   CompletionController.getOrder
 );
 
@@ -36,6 +39,7 @@ router.get(
 router.post(
   '/orders/:id/scan',
   requirePermission('completion', 'scan'),
+  requireCompletionOrderAccess,
   CompletionController.scanItem
 );
 
@@ -43,6 +47,7 @@ router.post(
 router.post(
   '/orders/:id/report-missing',
   requirePermission('completion', 'reportMissing'),
+  requireCompletionOrderAccess,
   CompletionController.reportMissing
 );
 
@@ -50,6 +55,7 @@ router.post(
 router.post(
   '/orders/:id/pallets',
   requirePermission('completion', 'create'),
+  requireCompletionOrderAccess,
   CompletionController.createPallet
 );
 
@@ -57,6 +63,7 @@ router.post(
 router.post(
   '/orders/:id/assign-pallet',
   requirePermission('completion', 'assignPallet'),
+  requireCompletionOrderAccess,
   CompletionController.assignPallet
 );
 
@@ -64,6 +71,7 @@ router.post(
 router.patch(
   '/orders/:id/decision',
   requirePermission('completion', 'decideContinue'),
+  requireCompletionOrderAccess,
   CompletionController.makeDecision
 );
 
@@ -71,6 +79,7 @@ router.patch(
 router.post(
   '/orders/:id/approve',
   requirePermission('completion', 'complete'),
+  requireCompletionOrderAccess,
   CompletionController.approveCompletion
 );
 
@@ -78,6 +87,7 @@ router.post(
 router.post(
   '/orders/:id/complete',
   requirePermission('completion', 'complete'),
+  requireCompletionOrderAccess,
   CompletionController.completeOrder
 );
 
@@ -85,6 +95,7 @@ router.post(
 router.patch(
   '/orders/:id/cancel',
   requirePermission('completion', 'read'),
+  requireCompletionOrderAccess,
   CompletionController.cancelOrder
 );
 
@@ -92,6 +103,7 @@ router.patch(
 router.patch(
   '/orders/:id/items/:itemId/serials',
   requirePermission('completion', 'scan'),
+  requireCompletionOrderAccess,
   CompletionController.saveItemSerials
 );
 
@@ -99,6 +111,7 @@ router.patch(
 router.post(
   '/orders/:id/create-prefab',
   requirePermission('completion', 'complete'),
+  requireCompletionOrderAccess,
   CompletionController.createPrefabTask
 );
 
@@ -106,6 +119,7 @@ router.post(
 router.patch(
   '/orders/:id/items/:itemId/warehouse-location',
   requirePermission('completion', 'scan'),
+  requireCompletionOrderAccess,
   CompletionController.updateWarehouseLocation
 );
 
@@ -113,6 +127,7 @@ router.patch(
 router.post(
   '/orders/:id/request-partial',
   requirePermission('completion', 'complete'),
+  requireCompletionOrderAccess,
   CompletionController.requestPartialIssue
 );
 
@@ -120,6 +135,7 @@ router.post(
 router.post(
   '/orders/:id/approve-partial',
   requirePermission('completion', 'complete'),
+  requireCompletionOrderAccess,
   CompletionController.approvePartialIssue
 );
 
@@ -127,6 +143,7 @@ router.post(
 router.post(
   '/orders/:id/reopen',
   requirePermission('completion', 'complete'),
+  requireCompletionOrderAccess,
   CompletionController.reopenPartialOrder
 );
 
@@ -134,6 +151,7 @@ router.post(
 router.get(
   '/completed',
   requirePermission('completion', 'read'),
+  restrictCompletionListScope,
   CompletionController.getCompletedOrders
 );
 
@@ -141,6 +159,7 @@ router.get(
 router.patch(
   '/orders/:id/issued-quantities',
   requirePermission('completion', 'scan'),
+  requireCompletionOrderAccess,
   CompletionController.saveIssuedQuantities
 );
 
