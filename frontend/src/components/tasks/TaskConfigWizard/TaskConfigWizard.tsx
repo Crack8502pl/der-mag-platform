@@ -8,11 +8,13 @@ import bomGroupService from '../../../services/bomGroup.service';
 import taskService from '../../../services/task.service';
 import bomResolverService from '../../../services/bomResolver.service';
 import taskRelationshipService from '../../../services/taskRelationship.service';
+import slicanAudioService from '../../../services/slicanAudio.service';
 import type { BomSubsystemTemplate, BomSubsystemTemplateItem } from '../../../services/bomSubsystemTemplate.service';
 import type { BomGroup } from '../../../services/bomGroup.service';
 import type { BomResolveResult } from '../../../services/bomResolver.service';
 import type { Task, TaskMetadata } from '../../../types/task.types';
 import type { CameraBreakdown, CameraRow } from '../../../types/cameraBreakdown';
+import type { SlicanAudioAggregate, SlicanHierarchyAudioNode } from '../../../types/slicanAudio.types';
 import { extractCameraBreakdown, extractCameraCount } from '../../../utils/cameraCountUtils';
 import {
   mergeLcsConfigToMetadata,
@@ -62,6 +64,40 @@ const DEFAULT_CAMERA_ROWS: CameraRow[] = [
 ];
 
 const createDefaultCameraRows = (): CameraRow[] => DEFAULT_CAMERA_ROWS.map(row => ({ ...row }));
+
+const summarizeAudioHierarchy = (
+  nodes: SlicanHierarchyAudioNode[],
+  ownerId: string
+): NonNullable<BomResolveResult['audioHierarchySummary']> => {
+  const seenDevices = new Set<string>();
+  const fieldByType: Record<string, keyof SlicanAudioAggregate> = {
+    DPH_IP: 'dphIpDevices',
+    AUDIO_IP: 'audioIpDevices',
+    CTS220_IP: 'cts220IpDevices',
+    IVR: 'ivrChannels',
+    CONFERENCE: 'conferenceChannels',
+  };
+  return nodes
+    .filter(node => node.id === ownerId || node.ownerId === ownerId)
+    .map(node => {
+      const aggregate: SlicanAudioAggregate = {
+        dphIpDevices: 0,
+        audioIpDevices: 0,
+        cts220IpDevices: 0,
+        ivrChannels: 0,
+        conferenceChannels: 0,
+      };
+      node.items.forEach(item => {
+        const field = fieldByType[item.deviceType];
+        if (!field) return;
+        const deviceId = item.id ?? item.deviceId;
+        if (deviceId && seenDevices.has(deviceId)) return;
+        if (deviceId) seenDevices.add(deviceId);
+        aggregate[field] += item.quantity;
+      });
+      return { nodeId: node.id, nodeType: node.type, aggregate };
+    });
+};
 
 const CAMERA_VALUE_PATTERNS = {
   Ogólna: [
@@ -140,6 +176,68 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
       ...(existingLcsConfig ? { lcsConfig: existingLcsConfig } : {}),
       ...(existingNastawniConfig ? { nastawniConfig: existingNastawniConfig } : {}),
     };
+  };
+
+  const buildAudioHierarchy = async (): Promise<SlicanHierarchyAudioNode[]> => {
+    const ownerId = String(task.id || task.taskNumber);
+    let relationships: Awaited<ReturnType<typeof taskRelationshipService.getBySubsystem>> = [];
+    if (task.subsystemId) {
+      relationships = await taskRelationshipService.getBySubsystem(task.subsystemId);
+    }
+    const childrenByParent = new Map(
+      relationships.map(relationship => [relationship.parentTaskNumber, relationship.children])
+    );
+    const queue: Array<{ current: Task; parentId?: string }> = [{ current: task }];
+    const visited = new Set<string>();
+    const nodes: SlicanHierarchyAudioNode[] = [];
+
+    while (queue.length > 0) {
+      const { current, parentId } = queue.shift()!;
+      if (visited.has(current.taskNumber)) continue;
+      visited.add(current.taskNumber);
+
+      const currentId = String(current.id || current.taskNumber);
+      const metadata = current.metadata || {};
+      const configParams = (metadata.configParams || {}) as Record<string, unknown>;
+      const audioItems = metadata.slicanAudioItems ?? metadata.audioItems ??
+        configParams.slicanAudioItems ?? configParams.audioItems;
+      const taskType = current.taskType?.code || '';
+      const normalizedType = taskType.toUpperCase();
+      const type: SlicanHierarchyAudioNode['type'] =
+        normalizedType === 'LCS' ? 'LCS'
+          : normalizedType === 'NASTAWNIA' || normalizedType === 'ND' ? 'Nastawnia'
+            : normalizedType.includes('SKP') ? 'SKP'
+              : normalizedType.includes('PRZEJAZD') || normalizedType.includes('SMOKIP_A') ? 'Przejazd'
+                : 'Point';
+      nodes.push({
+        id: currentId,
+        type,
+        ...(parentId ? { parentId } : {}),
+        ownerId,
+        items: Array.isArray(audioItems) ? audioItems as SlicanHierarchyAudioNode['items'] : []
+      });
+
+      const children = childrenByParent.get(current.taskNumber) || [];
+      const childTasks = await Promise.allSettled(children.map(child => taskService.getById(child.childTaskNumber)));
+      childTasks.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          queue.push({ current: result.value, parentId: currentId });
+        } else {
+          const child = children[index];
+          queue.push({
+            current: {
+              id: child.childTaskId,
+              taskNumber: child.childTaskNumber,
+              taskType: { code: child.childTaskType },
+              metadata: {}
+            } as Task,
+            parentId: currentId
+          });
+        }
+      });
+    }
+
+    return nodes;
   };
 
   const buildCameraBreakdownFromRows = (rows: CameraRow[]): CameraBreakdown => ({
@@ -508,6 +606,8 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
       const taskVariant = metadata.taskVariant || null;
       let breakdown = buildCameraBreakdownFromRows(cameraRows);
       let effectiveRows = cameraRows;
+      let audioBreakdown: SlicanAudioAggregate | undefined;
+      let audioWarnings: string[] = [];
 
       // FALLBACK #604: gdy cameraRows puste (async setState), pobierz z configValues
       if (breakdown.total === 0) {
@@ -532,6 +632,23 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
       setConfigValues(syncedConfigValues);
       setCameraCount(count);
 
+      const isAudioOwner = subsystemType === 'SMOKIP_A' &&
+        (taskType === 'LCS' || (taskType === 'NASTAWNIA' && isStandaloneNastawnia));
+      let audioHierarchySummary: BomResolveResult['audioHierarchySummary'];
+      if (isAudioOwner) {
+        const audioNodes = await buildAudioHierarchy();
+        const aggregatedAudio = await slicanAudioService.aggregateSmokAAudio(
+          String(task.id || task.taskNumber),
+          audioNodes
+        );
+        audioBreakdown = aggregatedAudio.aggregate;
+        audioWarnings = aggregatedAudio.warnings;
+        audioHierarchySummary = summarizeAudioHierarchy(
+          audioNodes,
+          String(task.id || task.taskNumber)
+        );
+      }
+
       const result = await bomResolverService.resolve({
         subsystemType,
         taskType,
@@ -542,9 +659,15 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
         retentionDays,
         cameraCount: count,
         cameraBreakdown: breakdown,
+        ...(audioBreakdown && { audioBreakdown }),
       });
 
-      setResolvedBom(result);
+      setResolvedBom({
+        ...result,
+        audioAggregationWarnings: audioWarnings,
+        audioHierarchySummary,
+        warnings: [...audioWarnings, ...result.warnings],
+      });
       return true;
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Błąd rozwiązywania BOM');
@@ -572,6 +695,12 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
         selectedRecorderId: selectedRecorderId || null,
         cameraRows,
         cameraBreakdown,
+        ...(resolvedBom.audioBreakdown && {
+          audioBreakdown: resolvedBom.audioBreakdown,
+          slicanAudioCentralRecommendation: resolvedBom.centralRecommendation,
+          slicanAudioLicenses: resolvedBom.licenses,
+          slicanAudioBomItems: resolvedBom.audioBomItems,
+        }),
         appliedBomTemplateId: resolvedBom.templateId || null,
         wizardResolvedAt: resolvedBom.resolvedAt || new Date().toISOString(),
       };
@@ -601,7 +730,13 @@ export const TaskConfigWizard: React.FC<TaskConfigWizardProps> = ({ task, onClos
           await bomSubsystemTemplateService.applyToTask(
             resolvedBom.templateId,
             task.id,
-            { ...syncedConfigValues, selectedModels, cameraRows, cameraBreakdown }
+            {
+              ...syncedConfigValues,
+              selectedModels,
+              cameraRows,
+              cameraBreakdown,
+              ...(resolvedBom.audioBomItems && { slicanAudioBomItems: resolvedBom.audioBomItems }),
+            }
           );
         }
       }

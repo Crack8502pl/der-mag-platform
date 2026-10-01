@@ -6,6 +6,7 @@ const getAllGroups = vi.fn();
 const resolveBom = vi.fn();
 const getBySubsystem = vi.fn();
 const taskGetById = vi.fn();
+const aggregateAudio = vi.fn();
 
 vi.mock('../../../services/bomSubsystemTemplate.service', () => ({
   default: {
@@ -30,6 +31,12 @@ vi.mock('../../../services/task.service', () => ({
 vi.mock('../../../services/bomResolver.service', () => ({
   default: {
     resolve: (...args: unknown[]) => resolveBom(...args)
+  }
+}));
+
+vi.mock('../../../services/slicanAudio.service', () => ({
+  default: {
+    aggregateSmokAAudio: (...args: unknown[]) => aggregateAudio(...args),
   }
 }));
 
@@ -77,6 +84,16 @@ describe('TaskConfigWizard', () => {
     getAllGroups.mockResolvedValue([]);
     getTemplateFor.mockResolvedValue(defaultTemplateResponse);
     getBySubsystem.mockResolvedValue([]);
+    aggregateAudio.mockResolvedValue({
+      aggregate: {
+        dphIpDevices: 0,
+        audioIpDevices: 0,
+        cts220IpDevices: 0,
+        ivrChannels: 0,
+        conferenceChannels: 0,
+      },
+      warnings: [],
+    });
   });
 
   it('blocks next button on BOM step when templateMissing=true', async () => {
@@ -120,6 +137,87 @@ describe('TaskConfigWizard', () => {
 
     await waitFor(() => expect(resolveBom).toHaveBeenCalled());
     expect(screen.getByRole('button', { name: /Dalej/i })).toBeDisabled();
+  });
+
+  it('aggregates the full audio hierarchy for an LCS owner before resolving BOM', async () => {
+    getBySubsystem.mockResolvedValue([{
+      parentTaskNumber: 'LCS-1',
+      parentType: 'LCS',
+      parentTaskId: 1,
+      children: [{ childTaskNumber: 'P-1', childTaskId: 2, childTaskType: 'PRZEJAZD_KAT_A' }],
+    }]);
+    taskGetById.mockResolvedValue({
+      id: 2,
+      taskNumber: 'P-1',
+      taskType: { code: 'PRZEJAZD_KAT_A' },
+      metadata: { configParams: { slicanAudioItems: [{ id: 'dph-1', deviceType: 'DPH_IP', quantity: 2 }] } },
+    });
+    aggregateAudio.mockResolvedValue({
+      aggregate: {
+        dphIpDevices: 2,
+        audioIpDevices: 0,
+        cts220IpDevices: 0,
+        ivrChannels: 0,
+        conferenceChannels: 0,
+      },
+      warnings: [],
+    });
+    resolveBom.mockResolvedValue({
+      templateId: 1,
+      templateName: 'BOM',
+      templateVersion: 1,
+      templateMissing: false,
+      subsystemType: 'SMOKIP_A',
+      items: [],
+      needsRecorder: false,
+      cameraCount: 0,
+      recorderRecommendation: null,
+      diskRecommendation: null,
+      retentionDays: 30,
+      isConfigured: false,
+      resolvedAt: new Date().toISOString(),
+      warnings: [],
+    });
+
+    render(
+      <TaskConfigWizard
+        task={{
+          id: 1,
+          taskNumber: 'LCS-1',
+          taskType: { code: 'LCS' },
+          subsystemId: 10,
+          metadata: { subsystemType: 'SMOKIP_A', taskVariant: null },
+        } as any}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />
+    );
+
+    await screen.findByText('params-step');
+    fireEvent.click(screen.getByRole('button', { name: /Dalej/i }));
+    await screen.findByText('cameras-step');
+    fireEvent.click(screen.getByRole('button', { name: /Oblicz BOM/i }));
+
+    await waitFor(() => expect(aggregateAudio).toHaveBeenCalled());
+    expect(aggregateAudio).toHaveBeenCalledWith('1', [
+      { id: '1', type: 'LCS', ownerId: '1', items: [] },
+      {
+        id: '2',
+        type: 'Przejazd',
+        parentId: '1',
+        ownerId: '1',
+        items: [{ id: 'dph-1', deviceType: 'DPH_IP', quantity: 2 }],
+      },
+    ]);
+    expect(resolveBom).toHaveBeenCalledWith(expect.objectContaining({
+      audioBreakdown: {
+        dphIpDevices: 2,
+        audioIpDevices: 0,
+        cts220IpDevices: 0,
+        ivrChannels: 0,
+        conferenceChannels: 0,
+      },
+    }));
   });
 
   describe('Fix4 — fetchChildrenCameraBreakdown', () => {

@@ -33,6 +33,10 @@ curl -X POST -H "Authorization: ******" -H "Content-Type: application/json" \
   -d '{"dphIpDevices":4,"audioIpDevices":6,"cts220IpDevices":2,"ivrChannels":1,"conferenceChannels":4}' \
   https://example.com/api/slican-audio-resolver/resolve
 
+curl -X POST -H "Authorization: ******" -H "Content-Type: application/json" \
+  -d '{"ownerId":"lcs-1","nodes":[{"id":"lcs-1","type":"LCS","items":[{"id":"dph-1","deviceType":"DPH_IP","quantity":1}]},{"id":"crossing-1","type":"Przejazd","parentId":"lcs-1","ownerId":"lcs-1","items":[{"deviceType":"IVR","quantity":2}]}]}' \
+  https://example.com/api/smoka/audio/aggregate
+
 curl -H "Authorization: ******" -H "Content-Type: application/json" \
   -d '{"warehouseStockId":2345,"licenseType":"VOIP_SUBSCRIBER","packageSize":10,"demandField":"sipVoipSubscribers"}' \
   https://example.com/api/slican-license-specifications
@@ -71,6 +75,12 @@ explicit object as `audioBreakdown` only for SMOKIP_A; it never derives audio
 demand from camera counts. In a hierarchy, LCS owns propagated demand, while
 NASTAWNIA resolves audio only when standalone. Missing central/license
 configuration or an unresolved stock item is reported in `warnings`.
+`POST /api/smoka/audio/aggregate` accepts `{ownerId, nodes}` and returns
+`{aggregate, warnings}`. The owner must be represented by a node ID; only its
+nodes and descendants assigned to that owner are counted. Repeated item `id`
+or `deviceId` values are counted once, while invalid or negative quantities are
+rejected. The SMOK-A wizard reads local audio entries from
+`metadata.slicanAudioItems` or `metadata.configParams.slicanAudioItems`.
 
 Apply `scripts/migrations/20260930_add_slican_audio_specs.sql` with the
 repository's migration workflow or manually through `psql`. It is idempotent
@@ -86,4 +96,4 @@ DROP TABLE IF EXISTS slican_central_specifications;
 Open business questions for #673: which additional catalog limits should
 participate in selection? Should multipliers vary by central? How should
 retired products and their successors be handled? Hierarchy aggregation,
-ownership and final BOM insertion belong to #673, not this configuration API.
+ownership and final BOM insertion are implemented by #674.

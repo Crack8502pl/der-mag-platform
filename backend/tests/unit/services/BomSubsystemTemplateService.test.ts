@@ -450,6 +450,38 @@ describe('BomSubsystemTemplateService', () => {
       expect(mockTaskMaterialRepository.create).toHaveBeenCalledTimes(2);
     });
 
+    it('should apply resolved Slican quantities, including zero-quantity central alternatives', async () => {
+      mockTaskRepository.findOne.mockResolvedValueOnce({ id: 1, taskNumber: 'LCS-1' });
+      mockTemplateRepository.findOne.mockResolvedValueOnce({
+        id: 1,
+        items: [
+          { id: 10, materialName: 'Selected central', defaultQuantity: 0, quantitySource: 'FIXED', unit: 'szt' },
+          { id: 11, materialName: 'Alternative central', defaultQuantity: 1, quantitySource: 'FIXED', unit: 'szt' },
+          { id: 12, materialName: 'License', defaultQuantity: 0, quantitySource: 'FIXED', unit: 'szt' }
+        ]
+      });
+      mockTaskMaterialRepository.create.mockImplementation((data: any) => data);
+      mockTaskMaterialRepository.save.mockImplementation(async (data: any) => data);
+
+      await BomSubsystemTemplateService.applyTemplateToTask(1, 1, {
+        slicanAudioBomItems: [
+          { templateItemId: 10, quantity: 1 },
+          { templateItemId: 11, quantity: 0 },
+          { templateItemId: 12, quantity: 2 }
+        ]
+      });
+
+      expect(mockTaskMaterialRepository.create).toHaveBeenNthCalledWith(
+        1, expect.objectContaining({ materialName: 'Selected central', plannedQuantity: 1 })
+      );
+      expect(mockTaskMaterialRepository.create).toHaveBeenNthCalledWith(
+        2, expect.objectContaining({ materialName: 'Alternative central', plannedQuantity: 0 })
+      );
+      expect(mockTaskMaterialRepository.create).toHaveBeenNthCalledWith(
+        3, expect.objectContaining({ materialName: 'License', plannedQuantity: 2 })
+      );
+    });
+
     it('should propagate requiresSerialNumber=true from template item to TaskMaterial', async () => {
       const mockTask = { id: 1, taskNumber: 'Z000010326' };
 

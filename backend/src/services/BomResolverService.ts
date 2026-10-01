@@ -110,6 +110,8 @@ export interface BomResolveResult {
   warnings: string[];
   cameraBreakdown?: CameraBreakdown;
   audioBreakdown?: SlicanAudioDemand;
+  audioBomItems?: Array<{ templateItemId: number; quantity: number }>;
+  audioWarnings?: string[];
   centralRecommendation?: SlicanAudioResolution['centralRecommendation'];
   licenses?: SlicanAudioResolution['licenses'];
 }
@@ -224,6 +226,7 @@ export class BomResolverService {
       resolvedAt: new Date().toISOString(),
       warnings: audioResolution?.warnings ?? [],
       cameraBreakdown,
+      ...(audioResolution && { audioWarnings: audioResolution.warnings }),
       ...(audioResolution && {
         audioBreakdown,
         centralRecommendation: audioResolution.centralRecommendation,
@@ -427,6 +430,12 @@ export class BomResolverService {
       if (audioResolution.bomItems.some(item => item.quantity > 0 && !templateStockIds.has(item.warehouseStockId))) {
         baseResult.warnings.push('Wybrana centrala lub licencja Slican audio nie występuje w pozycjach szablonu BOM.');
       }
+      baseResult.audioBomItems = sortedItems
+        .filter(item => item.warehouseStockId != null && quantitiesByStockId.has(item.warehouseStockId))
+        .map(item => ({
+          templateItemId: item.id,
+          quantity: itemQuantities.get(item.id) ?? 0
+        }));
     }
 
     // ── 5. Build result items ────────────────────────────────────────────────

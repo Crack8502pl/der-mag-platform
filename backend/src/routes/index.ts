@@ -46,6 +46,7 @@ import recorderSpecificationRoutes from './recorderSpecification.routes';
 import diskSpecificationRoutes from './diskSpecification.routes';
 import { slicanCentralRoutes, slicanLicenseRoutes, slicanFormulaRoutes } from './slican.routes';
 import slicanAudioResolverRoutes from '../modules/slican-audio/routes/slican-audio-resolver.routes';
+import smokaAudioAggregationRoutes from '../modules/slican-audio/routes/smoka-audio-aggregation.routes';
 // BOM resolver orchestration routes
 import bomResolverRoutes from './bomResolver.routes';
 // Symfonia MSSQL integration routes
@@ -138,6 +139,7 @@ router.use('/slican-central-specifications', slicanCentralRoutes);
 router.use('/slican-license-specifications', slicanLicenseRoutes);
 router.use('/slican-voip-subscriber-formula', slicanFormulaRoutes);
 router.use('/slican-audio-resolver', slicanAudioResolverRoutes);
+router.use('/smoka/audio', smokaAudioAggregationRoutes);
 
 // BOM resolver orchestration routes
 router.use('/bom-resolver', bomResolverRoutes);
