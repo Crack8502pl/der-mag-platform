@@ -32,7 +32,8 @@ export class BomResolverController {
         configParams,
         isStandaloneNastawnia,
         selectedRecorderId,
-        cameraBreakdown
+        cameraBreakdown,
+        audioBreakdown
       } = req.body as Partial<BomResolveRequest>;
 
       if (!subsystemType) {
@@ -63,7 +64,8 @@ export class BomResolverController {
         configParams: configParams ?? {},
         isStandaloneNastawnia: isStandaloneNastawnia ?? false,
         selectedRecorderId: selectedRecorderId ?? null,
-        cameraBreakdown: normalizeCameraBreakdown(cameraBreakdown)
+        cameraBreakdown: normalizeCameraBreakdown(cameraBreakdown),
+        audioBreakdown
       });
 
       res.json({
@@ -113,7 +115,8 @@ export class BomResolverController {
           configParams: r.configParams ?? {},
           isStandaloneNastawnia: r.isStandaloneNastawnia ?? false,
           selectedRecorderId: r.selectedRecorderId ?? null,
-          cameraBreakdown: normalizeCameraBreakdown(r.cameraBreakdown)
+          cameraBreakdown: normalizeCameraBreakdown(r.cameraBreakdown),
+          audioBreakdown: r.audioBreakdown
         }))
       );
 

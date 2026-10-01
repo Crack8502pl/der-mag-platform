@@ -1,7 +1,7 @@
 # Slican audio configuration
 
 ```text
-SMOK-A audio demand (aggregation in #673)
+SMOKIP_A audioBreakdown (separate from cameraBreakdown)
     → VoIP multiplier formula → active central satisfying all five limits
     → independent license packages per demand field → BOM (#673)
 ```
@@ -28,6 +28,10 @@ curl -X PUT -H "Authorization: ******" -H "Content-Type: application/json" \
 
 curl -H "Authorization: ******" \
   'https://example.com/api/slican-central-specifications/select?demand=%7B%22dphIp%22%3A4%2C%22audioIp%22%3A6%2C%22cts220Ip%22%3A2%2C%22ivr%22%3A1%2C%22conf%22%3A4%7D'
+
+curl -X POST -H "Authorization: ******" -H "Content-Type: application/json" \
+  -d '{"dphIpDevices":4,"audioIpDevices":6,"cts220IpDevices":2,"ivrChannels":1,"conferenceChannels":4}' \
+  https://example.com/api/slican-audio-resolver/resolve
 
 curl -H "Authorization: ******" -H "Content-Type: application/json" \
   -d '{"warehouseStockId":2345,"licenseType":"VOIP_SUBSCRIBER","packageSize":10,"demandField":"sipVoipSubscribers"}' \
@@ -62,6 +66,11 @@ the smaller tier. Examples: 12 → 10 + 2×1; 89 → 9×10; 901 → 9×100 + 1;
 912 → 9×100 + 10 + 2×1; 99 → 100; 9999 → 100×100.
 The problem statement's `rest100 >= 9` pseudocode conflicts with its own
 examples (it would make 12 → 100); this implementation follows the examples.
+The resolver endpoint requires `bom:read`. The BOM resolver accepts this same
+explicit object as `audioBreakdown` only for SMOKIP_A; it never derives audio
+demand from camera counts. In a hierarchy, LCS owns propagated demand, while
+NASTAWNIA resolves audio only when standalone. Missing central/license
+configuration or an unresolved stock item is reported in `warnings`.
 
 Apply `scripts/migrations/20260930_add_slican_audio_specs.sql` with the
 repository's migration workflow or manually through `psql`. It is idempotent
