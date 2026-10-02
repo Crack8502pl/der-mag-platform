@@ -7,7 +7,7 @@ export class SlicanCentralSpecification {
   @Column({ name: 'warehouse_stock_id', type: 'int', unique: true }) warehouseStockId: number;
   @ManyToOne(() => WarehouseStock, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'warehouse_stock_id' }) warehouseStock: WarehouseStock;
-  @Column({ name: 'model_name', length: 50 }) modelName: string;
+  @Column({ name: 'model_name', type: 'varchar', length: 50 }) modelName: string;
   @Column({ name: 'max_sip_voip_subscribers', type: 'int' }) maxSipVoipSubscribers: number;
   @Column({ name: 'max_dph_ip_devices', type: 'int' }) maxDphIpDevices: number;
   @Column({ name: 'max_audio_ip_devices', type: 'int' }) maxAudioIpDevices: number;
@@ -19,7 +19,7 @@ export class SlicanCentralSpecification {
   @Column({ name: 'max_concurrent_video_calls', type: 'int', nullable: true }) maxConcurrentVideoCalls: number | null;
   @Column({ name: 'max_webcti_messengercti_accounts', type: 'int', nullable: true }) maxWebctiMessengerctiAccounts: number | null;
   @Column({ type: 'int', default: 10 }) priority: number;
-  @Column({ name: 'is_active', default: true }) isActive: boolean;
+  @Column({ name: 'is_active', type: 'boolean', default: true }) isActive: boolean;
   @Column({ type: 'text', nullable: true }) notes: string | null;
   @CreateDateColumn({ name: 'created_at' }) createdAt: Date;
   @UpdateDateColumn({ name: 'updated_at' }) updatedAt: Date;
