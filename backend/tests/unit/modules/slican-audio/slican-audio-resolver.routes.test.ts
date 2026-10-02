@@ -7,6 +7,7 @@ import { SlicanLicenseSpecification } from '../../../../src/entities/SlicanLicen
 import { SlicanVoipSubscriberFormula } from '../../../../src/entities/SlicanVoipSubscriberFormula';
 import resolverRoutes from '../../../../src/modules/slican-audio/routes/slican-audio-resolver.routes';
 import aggregationRoutes from '../../../../src/modules/slican-audio/routes/smoka-audio-aggregation.routes';
+import { createMockQueryBuilder } from '../../../mocks/database.mock';
 
 jest.mock('../../../../src/config/database', () => ({
   AppDataSource: { getRepository: jest.fn() }
@@ -23,6 +24,37 @@ app.use(express.json());
 app.use('/slican-audio-resolver', resolverRoutes);
 app.use('/slican-audio', resolverRoutes);
 app.use('/smoka/audio', aggregationRoutes);
+
+function centralQueryBuilder(items: any[]) {
+  const queryBuilder = createMockQueryBuilder<any>();
+  const parameters: Record<string, number> = {};
+  queryBuilder.andWhere.mockImplementation((_condition, values) => {
+    Object.assign(parameters, values);
+    return queryBuilder;
+  });
+  queryBuilder.getOne.mockImplementation(async () => items
+    .filter(item => item.isActive &&
+      item.maxSipVoipSubscribers >= parameters.sipVoipSubscribers &&
+      item.maxDphIpDevices >= parameters.dphIpDevices &&
+      item.maxAudioIpDevices >= parameters.audioIpDevices &&
+      item.maxIvrChannels >= parameters.ivrChannels &&
+      item.maxConferenceChannels >= parameters.conferenceChannels)
+    .sort((a, b) => a.priority - b.priority ||
+      a.maxSipVoipSubscribers - b.maxSipVoipSubscribers || a.id - b.id)[0] ?? null);
+  return queryBuilder;
+}
+
+function licenseQueryBuilder(items: any[]) {
+  const queryBuilder = createMockQueryBuilder<any>();
+  let types: string[] = [];
+  queryBuilder.andWhere.mockImplementation((_condition, values) => {
+    types = values?.types ?? [];
+    return queryBuilder;
+  });
+  queryBuilder.getMany.mockImplementation(async () => items
+    .filter(item => item.isActive && types.includes(item.licenseType)));
+  return queryBuilder;
+}
 
 describe('Slican audio resolver endpoint', () => {
   let canRead: boolean;
@@ -45,13 +77,27 @@ describe('Slican audio resolver endpoint', () => {
             maxAudioIpDevices: 10,
             maxIvrChannels: 10,
             maxConferenceChannels: 10
-          }]
+          }],
+          createQueryBuilder: () => centralQueryBuilder([{
+            warehouseStockId: 10,
+            modelName: 'NCP-CM300P',
+            priority: 1,
+            isActive: true,
+            maxSipVoipSubscribers: 20,
+            maxDphIpDevices: 10,
+            maxAudioIpDevices: 10,
+            maxIvrChannels: 10,
+            maxConferenceChannels: 10
+          }])
         };
       }
       if (entity === SlicanVoipSubscriberFormula) {
         return { findOneBy: async () => null };
       }
-      return { find: async () => [] };
+      return {
+        find: async () => [],
+        createQueryBuilder: () => licenseQueryBuilder([])
+      };
     });
   });
 

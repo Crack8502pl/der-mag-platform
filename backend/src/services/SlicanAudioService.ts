@@ -41,6 +41,11 @@ export function calculateLicensePackages(demand: number): Record<number, number>
   return packages;
 }
 
+/**
+ * @deprecated Use SlicanCentralSelectionService.selectCentral() instead.
+ * Kept temporarily for backward compatibility. Will be removed in a follow-up PR
+ * once confirmed no other call sites remain (search codebase for `selectCentral(`).
+ */
 export function selectCentral(centrals: SlicanCentralSpecification[], demand: SlicanAudioDemand, sipVoipSubscribers: number) {
   return centrals
     .filter(c => c.isActive &&
@@ -61,6 +66,11 @@ const licenseFields: Record<string, 'sipVoipSubscribers' | 'audioDevices' | 'ivr
 
 export class MissingLicensePackagesError extends Error {}
 
+/**
+ * @deprecated Use SlicanLicenseSelectionService.selectLicensesForDemand() instead.
+ * Kept temporarily for backward compatibility. Will be removed in a follow-up PR
+ * once confirmed no other call sites remain (search codebase for `selectLicenses(`).
+ */
 export function selectLicenses(
   licenses: SlicanLicenseSpecification[],
   demand: { sipVoipSubscribers: number; audioDevices: number; ivrChannels: number; conferenceChannels: number }

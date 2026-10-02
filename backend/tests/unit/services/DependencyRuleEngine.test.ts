@@ -9,8 +9,80 @@ import {
 } from '../../../src/entities/BomTemplateDependencyRule';
 import { InputType } from '../../../src/entities/BomTemplateDependencyRuleInput';
 import { ComparisonOperator } from '../../../src/entities/BomTemplateDependencyRuleCondition';
+import { SlicanCentralSelectionService } from '../../../src/services/SlicanCentralSelectionService';
+
+jest.mock('../../../src/services/SlicanCentralSelectionService', () => ({
+  SlicanCentralSelectionService: { selectCentral: jest.fn() }
+}));
 
 describe('DependencyRuleEngine', () => {
+  describe('SELECT_SLICAN_CENTRAL aggregation', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('uses six sorted inputs and returns one when a central is found', async () => {
+      (SlicanCentralSelectionService.selectCentral as jest.Mock).mockResolvedValue({ id: 1 });
+      const rule: any = {
+        id: 30,
+        evaluationOrder: 0,
+        isActive: true,
+        aggregationType: AggregationType.SELECT_SLICAN_CENTRAL,
+        mathOperation: MathOperation.NONE,
+        mathOperand: null,
+        targetItemId: 130,
+        inputs: [1.2, 2.4, 3.5, 4.6, 5.7, 6.8].map((value, index) => ({
+          inputType: InputType.ITEM,
+          sourceItemId: index + 1,
+          inputMultiplier: 1,
+          sortOrder: index,
+          onlyIfSelected: false
+        })),
+        conditions: []
+      };
+
+      const result = await DependencyRuleEngine.evaluate([rule], new Map(
+        [1.2, 2.4, 3.5, 4.6, 5.7, 6.8].map((value, index) => [index + 1, value])
+      ));
+
+      expect(SlicanCentralSelectionService.selectCentral).toHaveBeenCalledWith({
+        dphIpDevices: 1,
+        audioIpDevices: 2,
+        cts220IpDevices: 4,
+        ivrChannels: 5,
+        conferenceChannels: 6
+      }, 7);
+      expect(result.get(130)).toBe(1);
+    });
+
+    it('returns zero without selecting when fewer than six inputs are configured', async () => {
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const rule: any = {
+        id: 31,
+        evaluationOrder: 0,
+        isActive: true,
+        aggregationType: AggregationType.SELECT_SLICAN_CENTRAL,
+        mathOperation: MathOperation.NONE,
+        mathOperand: null,
+        targetItemId: 131,
+        inputs: [
+          { inputType: InputType.ITEM, sourceItemId: 1, inputMultiplier: 1, sortOrder: 0, onlyIfSelected: false }
+        ],
+        conditions: []
+      };
+
+      const result = await DependencyRuleEngine.evaluate([rule], new Map([[1, 3]]));
+
+      expect(SlicanCentralSelectionService.selectCentral).not.toHaveBeenCalled();
+      expect(result.get(131)).toBe(0);
+      expect(warn).toHaveBeenCalledWith(
+        'AggregationType.SELECT_SLICAN_CENTRAL requires 6 inputs; got',
+        1
+      );
+      warn.mockRestore();
+    });
+  });
+
   describe('SUM aggregation', () => {
     it('should sum multiple item quantities', async () => {
       const rule: any = {
