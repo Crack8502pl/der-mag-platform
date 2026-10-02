@@ -1,6 +1,6 @@
 # Form & Checklist Engine — backend services
 
-**Etap:** 4 dla #689, podrzędny do #685  
+**Etap:** 4 dla #689, podrzędny do #685
 **Zakres:** usługi domenowe bez kontrolerów, tras HTTP ani zmian schematu.
 
 ## Usługi i metody
