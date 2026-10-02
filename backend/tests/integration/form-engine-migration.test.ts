@@ -5,6 +5,7 @@ import { FormTemplate } from '../../src/entities/FormTemplate';
 import { FormTemplateVersion } from '../../src/entities/FormTemplateVersion';
 import { FormInstance } from '../../src/entities/FormInstance';
 import { FormFieldValue } from '../../src/entities/FormFieldValue';
+import { FormAssignmentRule } from '../../src/entities/FormAssignmentRule';
 import { FormKind, FormProcedureType } from '../../src/entities/FormTypes';
 
 // Opt in with an isolated PostgreSQL database; each run owns only its temporary schema.
@@ -166,6 +167,20 @@ describePostgres('Form Engine PostgreSQL migration', () => {
       [next.id, ids.triggerId], '23503'
     );
     await rejects(`INSERT INTO form_assignment_rules (template_version_id) VALUES ($1)`, [next.id]);
+  });
+
+  it('clears an optional draft trigger through TypeORM without clearing the version', async () => {
+    const version = await draft();
+    const ids = await definition(version.id);
+    await runner.manager.createQueryBuilder().relation(FormAssignmentRule, 'trigger').of(ids.ruleId).set(null);
+    const rule = await runner.manager.getRepository(FormAssignmentRule).findOneOrFail({ where: { id: ids.ruleId } });
+    expect(rule.triggerId).toBeNull();
+    expect(rule.templateVersionId).toBe(version.id);
+    await runner.manager.createQueryBuilder().relation(FormAssignmentRule, 'trigger').of(ids.ruleId).set(ids.triggerId);
+    const linked = await runner.manager.getRepository(FormAssignmentRule).findOneOrFail({
+      where: { id: ids.ruleId }, relations: { trigger: true }
+    });
+    expect(linked.trigger?.templateVersionId).toBe(version.id);
   });
 
   it('pins instances to a published version and keeps historical answers when a new version appears', async () => {

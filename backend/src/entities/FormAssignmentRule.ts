@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index, Check } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index, Check, ForeignKey } from 'typeorm';
 import { FormTemplateVersion } from './FormTemplateVersion';
 import { FormTrigger } from './FormTrigger';
 import { User } from './User';
@@ -9,6 +9,9 @@ import { FormJsonObject } from './FormTypes';
 @Index('idx_form_assignment_rules_version', ['templateVersionId', 'priority'])
 @Index('idx_form_assignment_rules_trigger', ['triggerId'])
 @Check('chk_form_assignment_target', `"assigned_user_id" IS NOT NULL OR "assigned_team_id" IS NOT NULL`)
+@ForeignKey(() => FormTrigger, ['triggerId', 'templateVersionId'], ['id', 'templateVersionId'], {
+  name: 'fk_form_assignment_trigger', onDelete: 'RESTRICT'
+})
 export class FormAssignmentRule {
   @PrimaryGeneratedColumn()
   id: number;
@@ -23,11 +26,10 @@ export class FormAssignmentRule {
   @Column({ name: 'trigger_id', type: 'int', nullable: true })
   triggerId: number | null;
 
-  @ManyToOne(() => FormTrigger, trigger => trigger.assignmentRules, { nullable: true, onDelete: 'RESTRICT' })
-  @JoinColumn([
-    { name: 'trigger_id', referencedColumnName: 'id' },
-    { name: 'template_version_id', referencedColumnName: 'templateVersionId' }
-  ])
+  @ManyToOne(() => FormTrigger, trigger => trigger.assignmentRules, {
+    nullable: true, onDelete: 'RESTRICT', createForeignKeyConstraints: false
+  })
+  @JoinColumn({ name: 'trigger_id' })
   trigger: FormTrigger | null;
 
   @Column({ type: 'int', default: 0 })

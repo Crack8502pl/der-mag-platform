@@ -45,7 +45,11 @@ describe('Form Engine TypeORM model', () => {
     const relationColumns = (entity: Function, relation: string) =>
       source.getMetadata(entity).findRelationWithPropertyPath(relation)?.joinColumns.map(column => column.databaseName);
     expect(relationColumns(FormFieldDefinition, 'section')).toEqual(['section_id', 'template_version_id']);
-    expect(relationColumns(FormAssignmentRule, 'trigger')).toEqual(['trigger_id', 'template_version_id']);
+    expect(relationColumns(FormAssignmentRule, 'trigger')).toEqual(['trigger_id']);
+    const triggerConstraint = source.getMetadata(FormAssignmentRule).foreignKeys
+      .find(key => key.name === 'fk_form_assignment_trigger')!;
+    expect(triggerConstraint.columns.map(column => column.databaseName)).toEqual(['trigger_id', 'template_version_id']);
+    expect(triggerConstraint.referencedColumns.map(column => column.databaseName)).toEqual(['id', 'template_version_id']);
     expect(relationColumns(FormFieldValue, 'instance')).toEqual(['instance_id', 'template_version_id']);
     expect(relationColumns(FormFieldValue, 'fieldDefinition')).toEqual(['field_definition_id', 'template_version_id']);
     const versionColumn = source.getMetadata(FormInstance).findColumnWithPropertyName('templateVersionId');
