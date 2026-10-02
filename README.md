@@ -16,6 +16,7 @@ Grover Platform to kompleksowy system do zarządzania zadaniami infrastrukturaln
 
 - [Architektura](docs/ARCHITECTURE.md)
 - [Analiza Form & Checklist Engine (etap 1)](docs/form-checklist-engine/01-repository-analysis.md)
+- [Propozycja architektury Form & Checklist Engine (etap 2)](docs/form-checklist-engine/02-architecture-proposal.md)
 - [Role i uprawnienia](docs/ROLES_AND_PERMISSIONS.md)
 - [Plan bezpieczeństwa OWASP Top 10:2025](docs/security/OWASP_SECURITY_PLAN.md)
 - [Przewodnik onboarding](docs/ONBOARDING.md)
