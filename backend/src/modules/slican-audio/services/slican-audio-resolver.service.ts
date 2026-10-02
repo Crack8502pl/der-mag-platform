@@ -5,9 +5,10 @@ import { SlicanVoipSubscriberFormula } from '../../../entities/SlicanVoipSubscri
 import {
   calculateVoipSubscribers,
   defaultMultipliers,
-  selectCentral,
   SlicanAudioDemand
 } from '../../../services/SlicanAudioService';
+import { SlicanCentralSelectionService } from '../../../services/SlicanCentralSelectionService';
+import { SlicanLicenseSelectionService } from '../../../services/SlicanLicenseSelectionService';
 
 type LicenseItem = { warehouseStockId: number; quantity: number };
 
@@ -17,20 +18,6 @@ export interface SlicanAudioResolution {
   warnings: string[];
   bomItems: LicenseItem[];
 }
-
-const LICENSE_DEMAND_FIELD: Record<string, string> = {
-  VOIP_SUBSCRIBER: 'sipVoipSubscribers',
-  AUDIO: 'audioDevices',
-  IVR: 'ivrChannels',
-  CONFERENCE: 'conferenceChannels'
-};
-
-const DEMAND_VALUE_FIELD: Record<string, keyof SlicanAudioDemand | 'sipVoipSubscribers'> = {
-  sipVoipSubscribers: 'sipVoipSubscribers',
-  audioDevices: 'audioIpDevices',
-  ivrChannels: 'ivrChannels',
-  conferenceChannels: 'conferenceChannels'
-};
 
 const DEMAND_FIELDS: Array<keyof SlicanAudioDemand> = [
   'dphIpDevices',
@@ -43,23 +30,6 @@ const DEMAND_FIELDS: Array<keyof SlicanAudioDemand> = [
 function isValidDemand(demand: SlicanAudioDemand): boolean {
   return demand !== null && typeof demand === 'object' &&
     DEMAND_FIELDS.every(field => Number.isSafeInteger(demand[field]) && demand[field] >= 0);
-}
-
-function packageDemand(demand: number, sizes: number[]): Record<number, number> {
-  const packages: Record<number, number> = {};
-  let remaining = demand;
-
-  for (const size of [...sizes].sort((a, b) => b - a).slice(0, -1)) {
-    const quantity = Math.floor(remaining / size);
-    const remainder = remaining % size;
-    const roundUp = remainder >= size - 1;
-    if (quantity + Number(roundUp) > 0) packages[size] = quantity + Number(roundUp);
-    remaining = roundUp ? 0 : remainder;
-  }
-
-  const smallest = Math.min(...sizes);
-  if (remaining > 0) packages[smallest] = (packages[smallest] ?? 0) + remaining;
-  return packages;
 }
 
 export class SlicanAudioResolverService {
@@ -93,7 +63,7 @@ export class SlicanAudioResolverService {
     }
 
     const activeCentrals = centrals.filter(central => central.isActive);
-    const central = selectCentral(centrals, demand, sipVoipSubscribers);
+    const central = await SlicanCentralSelectionService.selectCentral(demand, sipVoipSubscribers);
     if (!central) {
       if (activeCentrals.length === 0) {
         warnings.push('Brak aktywnych central Slican audio.');
@@ -110,58 +80,16 @@ export class SlicanAudioResolverService {
       return { centralRecommendation: null, licenses: [], warnings, bomItems };
     }
 
-    const licenses: SlicanAudioResolution['licenses'] = [];
-    for (const [type, expectedField] of Object.entries(LICENSE_DEMAND_FIELD)) {
-      const output = { type, items: [] as LicenseItem[] };
-      licenses.push(output);
+    const licenseResult = await SlicanLicenseSelectionService.resolveLicensesForDemand({
+      sipVoipSubscribers,
+      audioDevices: demand.audioIpDevices,
+      ivrChannels: demand.ivrChannels,
+      conferenceChannels: demand.conferenceChannels
+    });
+    const { licenses } = licenseResult;
+    warnings.push(...licenseResult.warnings);
 
-      const active = allLicenses.filter(license =>
-        license.isActive && license.licenseType === type
-      );
-      const configuredField = active[0]?.demandField ?? expectedField;
-      if (active.some(license => license.demandField !== configuredField) ||
-          configuredField !== expectedField) {
-        warnings.push(`Niejednoznaczna konfiguracja zapotrzebowania licencji ${type}.`);
-        continue;
-      }
-      const field = DEMAND_VALUE_FIELD[configuredField];
-      const requested = field === 'sipVoipSubscribers'
-        ? sipVoipSubscribers
-        : demand[field as keyof SlicanAudioDemand];
-      if (requested === 0) continue;
-      if (active.length === 0) {
-        warnings.push(`Brak aktywnych licencji typu ${type}.`);
-        continue;
-      }
-
-      const bySize = new Map<number, SlicanLicenseSpecification>();
-      let ambiguous = false;
-      for (const license of active) {
-        if (bySize.has(license.packageSize)) ambiguous = true;
-        bySize.set(license.packageSize, license);
-      }
-      if (ambiguous) {
-        warnings.push(`Niejednoznaczna konfiguracja pakietów licencji ${type}.`);
-        continue;
-      }
-      if (!bySize.has(1)) {
-        warnings.push(`Brakuje pakietu rozmiaru 1 dla ${type}.`);
-        continue;
-      }
-
-      const packages = packageDemand(requested, [...bySize.keys()]);
-      for (const [size, quantity] of Object.entries(packages)) {
-        const license = bySize.get(Number(size));
-        if (!license) {
-          warnings.push(`Brakuje pakietu rozmiaru ${size} dla ${type}.`);
-          output.items = [];
-          break;
-        }
-        output.items.push({ warehouseStockId: license.warehouseStockId, quantity });
-      }
-    }
-
-    for (const item of licenses.flatMap(license => license.items)) {
+    for (const item of licenseResult.selected) {
       const bomItem = bomItems.find(candidate => candidate.warehouseStockId === item.warehouseStockId);
       if (bomItem) bomItem.quantity = item.quantity;
     }

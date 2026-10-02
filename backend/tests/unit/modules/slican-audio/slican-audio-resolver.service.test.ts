@@ -3,6 +3,7 @@ import { SlicanCentralSpecification } from '../../../../src/entities/SlicanCentr
 import { SlicanLicenseSpecification } from '../../../../src/entities/SlicanLicenseSpecification';
 import { SlicanVoipSubscriberFormula } from '../../../../src/entities/SlicanVoipSubscriberFormula';
 import { SlicanAudioResolverService } from '../../../../src/modules/slican-audio/services/slican-audio-resolver.service';
+import { createMockQueryBuilder } from '../../../mocks/database.mock';
 
 jest.mock('../../../../src/config/database', () => ({
   AppDataSource: { getRepository: jest.fn() }
@@ -20,6 +21,8 @@ describe('SlicanAudioResolverService', () => {
   let centrals: any[];
   let licenses: any[];
   let formula: any;
+  let centralQueryBuilder: any;
+  let licenseQueryBuilder: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -67,9 +70,29 @@ describe('SlicanAudioResolverService', () => {
       audioIpMultiplier: 1,
       cts220IpMultiplier: 1
     };
+    centralQueryBuilder = createMockQueryBuilder<SlicanCentralSpecification>();
+    centralQueryBuilder.getOne.mockImplementation(async () =>
+      centrals.filter(central =>
+        central.isActive &&
+        central.maxSipVoipSubscribers >= 12 &&
+        central.maxDphIpDevices >= demand.dphIpDevices &&
+        central.maxAudioIpDevices >= demand.audioIpDevices &&
+        central.maxIvrChannels >= demand.ivrChannels &&
+        central.maxConferenceChannels >= demand.conferenceChannels
+      ).sort((a, b) =>
+        a.priority - b.priority ||
+        a.maxSipVoipSubscribers - b.maxSipVoipSubscribers ||
+        a.id - b.id
+      )[0] ?? null
+    );
+    licenseQueryBuilder = createMockQueryBuilder<SlicanLicenseSpecification>();
+    licenseQueryBuilder.getMany.mockImplementation(async () =>
+      licenses.filter(license => license.isActive)
+    );
     (AppDataSource.getRepository as jest.Mock).mockImplementation(entity => ({
       find: async () => entity === SlicanCentralSpecification ? centrals : licenses,
-      findOneBy: async () => entity === SlicanVoipSubscriberFormula ? formula : null
+      findOneBy: async () => entity === SlicanVoipSubscriberFormula ? formula : null,
+      createQueryBuilder: () => entity === SlicanCentralSpecification ? centralQueryBuilder : licenseQueryBuilder
     }));
   });
 

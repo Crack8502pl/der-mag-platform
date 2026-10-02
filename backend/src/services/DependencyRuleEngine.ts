@@ -262,6 +262,26 @@ export class DependencyRuleEngine {
         return diskSelections.reduce((sum, s) => sum + s.quantity, 0);
       }
 
+      case AggregationType.SELECT_SLICAN_CENTRAL: {
+        // Inputs: DPH.IP, Audio.IP, CTS220.IP, IVR, conferences, SIP/VoIP subscribers
+        if (values.length < 6) {
+          console.warn('AggregationType.SELECT_SLICAN_CENTRAL requires 6 inputs; got', values.length);
+          return 0;
+        }
+
+        const demand = {
+          dphIpDevices: Math.round(values[0]),
+          audioIpDevices: Math.round(values[1]),
+          cts220IpDevices: Math.round(values[2]),
+          ivrChannels: Math.round(values[3]),
+          conferenceChannels: Math.round(values[4])
+        };
+        const sipVoipSubscribers = Math.round(values[5]);
+        const { SlicanCentralSelectionService } = await import('./SlicanCentralSelectionService');
+        const central = await SlicanCentralSelectionService.selectCentral(demand, sipVoipSubscribers);
+        return central ? 1 : 0;
+      }
+
       default:
         return 0;
     }

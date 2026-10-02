@@ -6,9 +6,9 @@ import { SlicanVoipSubscriberFormula } from '../entities/SlicanVoipSubscriberFor
 import { WarehouseStock } from '../entities/WarehouseStock';
 import { authenticate } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
+import { SlicanCentralSpecificationController } from '../controllers/SlicanCentralSpecificationController';
 import {
-  calculateVoipSubscribers, defaultMultipliers, MissingLicensePackagesError,
-  selectCentral, selectLicenses, SlicanAudioDemand
+  defaultMultipliers, MissingLicensePackagesError
 } from '../services/SlicanAudioService';
 
 class ApiError extends Error {
@@ -91,40 +91,7 @@ function crud(kind: 'central' | 'license') {
   const repo = () => AppDataSource.getRepository(entity);
 
   if (kind === 'central') {
-    router.get('/select', checkPermission('bom', 'read'), handle(async (req, res) => {
-      let raw: Record<string, any>;
-      try { raw = object(JSON.parse(String(req.query.demand))); }
-      catch { throw new ApiError(400, 'Invalid demand JSON'); }
-      const aliases: Record<string, string> = {
-        dphIp: 'dphIpDevices', audioIp: 'audioIpDevices', cts220Ip: 'cts220IpDevices',
-        ivr: 'ivrChannels', conf: 'conferenceChannels'
-      };
-      const parsed: Record<string, unknown> = { ...raw };
-      for (const [short, long] of Object.entries(aliases)) {
-        if (short in raw) {
-          if (long in raw) throw new ApiError(400, `Duplicate demand field: ${long}`);
-          parsed[long] = raw[short];
-          delete parsed[short];
-        }
-      }
-      const keys = Object.values(aliases);
-      if (Object.keys(parsed).some(key => !keys.includes(key)) || keys.some(key => !integer(parsed[key])))
-        throw new ApiError(400, 'Demand must contain five non-negative integer fields');
-      const demand = parsed as unknown as SlicanAudioDemand;
-      const formula = await AppDataSource.getRepository(SlicanVoipSubscriberFormula).findOneBy({ id: 1 });
-      const sipVoipSubscribers = calculateVoipSubscribers(demand, formula ?? defaultMultipliers);
-      if (!Number.isSafeInteger(sipVoipSubscribers)) throw new ApiError(400, 'Calculated demand is too large');
-      const centrals = await AppDataSource.getRepository(SlicanCentralSpecification).find();
-      const central = selectCentral(centrals, demand, sipVoipSubscribers);
-      const warnings: string[] = [];
-      if (!central) warnings.push(centrals.some(c => c.isActive) ? 'No central fits demand' : 'No active central configuration');
-      const allLicenses = await AppDataSource.getRepository(SlicanLicenseSpecification).find();
-      const result = selectLicenses(allLicenses, {
-        sipVoipSubscribers, audioDevices: demand.audioIpDevices,
-        ivrChannels: demand.ivrChannels, conferenceChannels: demand.conferenceChannels
-      });
-      res.json({ central, sipVoipSubscribers, licenses: result.licenses, warnings: [...warnings, ...result.warnings] });
-    }));
+    router.get('/select', checkPermission('bom', 'read'), SlicanCentralSpecificationController.selectForDemand);
   }
 
   router.get('/', checkPermission('bom', 'read'), handle(async (_req, res) => {
