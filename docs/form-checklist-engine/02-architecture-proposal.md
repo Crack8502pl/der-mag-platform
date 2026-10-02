@@ -4,6 +4,8 @@
 **Data:** 2026-10-02  
 **Zakres:** propozycja architektury; bez kodu produkcyjnego, migracji i encji.
 
+**Aktualizacja etapu 3 (#688):** wdrożone decyzje modelowe i sposób uruchomienia migracji opisuje sekcja 14. W zakresie reprezentacji definicji zastępuje ona pierwotną propozycję snapshotu JSONB z sekcji 8.
+
 ## 1. Założenia i decyzje
 
 Form Engine jest częścią domeny Grovera. Formularz i checklista korzystają z tego samego modelu; `CHECKLIST` jest typem formularza, a nie odrębnym silnikiem. Definicja jest konfigurowana danymi, a nie hardcodowana w komponentach biznesowych.
@@ -237,6 +239,43 @@ sequenceDiagram
   S->>DB: Transakcyjny zapis dozwolonych wartości / decyzji
   API-->>UI: Zapis albo błędy pól
 ```
+
+## 14. Model wdrożony w etapie 3 (#688)
+
+- `FormTemplate` przechowuje stabilny `key`, typ `FORM`/`CHECKLIST`, `procedureType` i flagę `active`. Nie ma odrębnej encji checklisty.
+- `FormTemplateVersion` ma unikalną parę `(templateId, version)` z dodatnim numerem, `DRAFT`/`PUBLISHED`, `publishedAt`, autorstwo oraz własne `title`, `description`, `kind`, `procedureType` i JSONB `settings`. Serwis tworzący szkic w etapie 4 powinien skopiować metadane szablonu; późniejsza zmiana szablonu nie zmienia historycznej wersji.
+- Zakres #688 wymaga encji `FormSection` i `FormFieldDefinition`, dlatego definicja jest **jednym niezmiennym agregatem relacyjnym**, nie drugą kopią w JSONB. Sekcje, pola, `FormTrigger` i `FormAssignmentRule` należą do konkretnej wersji. Klucze sekcji/pól są unikalne w wersji; kolejność jest indeksowana. Relacje pozwalają pobrać agregat przez jawne joiny lub zapytania zbiorcze, bez eager/lazy loading i kaskadowego zapisu.
+- Typ pola jest `varchar`, nie enumem PostgreSQL: dodanie typu nie wymaga migracji. `validation`, `options`, `conditions` oraz ustawienia wersji są JSONB; walidacja strukturalna, allowlisty typów/operatorów i interpretacja tych danych należą do kolejnych etapów. Nie zawierają wykonywalnych skryptów ani akcji modyfikujących instalację urządzenia.
+- Constraint wymaga spójności statusu wersji z `publishedAt`. Triggery PostgreSQL blokują `UPDATE`/`DELETE` opublikowanej wersji oraz `INSERT`/`UPDATE`/`DELETE` jej sekcji, pól, triggerów i przypisań, także przenoszenie rekordów między wersjami. Edycja definicji blokuje wiersz wersji (`FOR UPDATE`), aby serializować ją z publikacją. `TRUNCATE` definicji jest zabroniony. Poprawka opublikowanego formularza oznacza nowy szkic, nie cofnięcie publikacji.
+- `FormInstance.templateVersionId` jest obowiązkowe, wskazuje wyłącznie opublikowaną wersję i nie może się zmienić. Status wykonania nie zastępuje statusu istniejącego zadania. Wersję można wyłączyć z nowych użyć przez dezaktywację szablonu w przyszłym serwisie; ten etap nie wprowadza mutowalnego stanu `RETIRED` wersji.
+- Kontekst instancji używa FK do istniejących `Contract`, `Task`, `SubsystemTask`, `Device`, `User` i `Brigade` (`assignedTeamId`). `objectId` wskazuje `Asset`. `bomItemId` wskazuje `TaskGeneratedBomItem`, a alternatywne `workflowBomItemId` — `WorkflowGeneratedBomItem`; nie można podać obu naraz. Opcjonalność kontekstu pozwala na formularz samodzielny; jego spójność domenową i scope RBAC sprawdzą serwisy.
+- `FormFieldValue` ma jedną wartość JSONB na parę `(instanceId, fieldDefinitionId)`. Złożone FK z `templateVersionId` zabraniają użycia pola innej wersji oraz powiązania pola z sekcją lub przypisania z triggerem innej wersji.
+- Pliki są referencjami many-to-many z wartości pól do istniejących `Document`/`Photo` przez `form_value_documents` i `form_value_photos`. Nie powstaje nowy storage ani kopia `Attachment`. Istniejące ACL/upload pozostają obowiązkowe w przyszłych serwisach.
+- `FormApproval` jest append-only: decyzja, autor, czas, komentarz, `stepKey`, dodatnie `stepOrder` i `round` oraz metadane JSONB pozwalają rozbudować zatwierdzanie o kolejne kroki i ponowne zgłoszenia. Nie ma nowej generycznej tabeli audit ani wykorzystania wyspecjalizowanego `EmailAutomationAuditLog` do obcej domeny; integracja audytu pozostaje etapem 10.
+- Wszystkie FK używają `RESTRICT`, aby fizyczne usunięcie kontekstu nie niszczyło traceability ani opublikowanych definicji. Archiwizacja/retencja musi uwzględniać te referencje; istniejące soft-delete nie usuwa rekordów.
+- Procedury są ograniczone do `CABINET_PREFABRICATION`, `DEVICE_PRECONFIGURATION`, `FIELD_INSTALLATION`. W modelu formularzy nie ma `installedIn`, kaskadowych aktualizacji `Device` ani triggerów zmieniających `devices.installed_asset_id`. `objectId` jest kontekstem, **nie potwierdzeniem fizycznego montażu**. Tylko przyszła obsługa instalacji terenowej może modyfikować istniejącą relację urządzenia; samo zapisanie formularza prekonfiguracji nie robi tego.
+
+### Migracja i weryfikacja
+
+Migracja TypeORM: `backend/src/migrations/20261002_create_form_checklist_engine.ts`, jawnie zarejestrowana w `AppDataSource`. Nazwa klasy ma 13-cyfrowy timestamp wymagany przez runner TypeORM; nazwa pliku zawiera datę utworzenia. `up` tworzy wyłącznie nowe tabele/indeksy/constrainty/funkcje, a `down` usuwa je w odwrotnej kolejności, bez zmiany istniejących tabel domenowych.
+
+Z katalogu `backend`, przy skonfigurowanej istniejącej bazie:
+
+```bash
+npm run migration:run
+npm run build
+npm test -- --runInBand tests/unit/config/formEngineModel.test.ts
+```
+
+`AppDataSource.synchronize` jest wyłączone **we wszystkich środowiskach**, także development. Zmiany schematu wymagają migracji. Istniejący `npm run migrate:all` obsługuje historyczne pliki SQL, nie tę migrację TypeORM.
+
+Testy integracyjne można uruchomić na dedykowanej bazie PostgreSQL, ustawiając `FORM_ENGINE_TEST_DATABASE_URL` i wykonując:
+
+```bash
+npm test -- --runInBand tests/integration/form-engine-migration.test.ts
+```
+
+Testy tworzą i usuwają wyłącznie własny tymczasowy schemat; w nim minimalne istniejące cele FK oraz rzeczywiste nowe tabele przez runner TypeORM. Sprawdzają publikację, niezmienność całego agregatu, współbieżną edycję/publikację, powiązania między wersjami, odczyt historycznych odpowiedzi przez ORM, referencje plików, wielostopniowe decyzje, rozdzielenie prekonfiguracji od montażu oraz `down`/ponowne `up`. Bez tej zmiennej testy integracyjne są pomijane.
 
 ## Źródła analizy
 
