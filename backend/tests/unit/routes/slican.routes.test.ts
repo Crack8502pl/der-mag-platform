@@ -7,6 +7,7 @@ import { WarehouseStock } from '../../../src/entities/WarehouseStock';
 import { SlicanCentralSpecification } from '../../../src/entities/SlicanCentralSpecification';
 import { SlicanLicenseSpecification } from '../../../src/entities/SlicanLicenseSpecification';
 import { SlicanVoipSubscriberFormula } from '../../../src/entities/SlicanVoipSubscriberFormula';
+import { createMockQueryBuilder } from '../../mocks/database.mock';
 
 jest.mock('../../../src/config/database', () => ({ AppDataSource: { getRepository: jest.fn() } }));
 jest.mock('../../../src/middleware/auth', () => ({
@@ -25,6 +26,37 @@ const central = {
   maxIvrChannels: 2, maxConferenceChannels: 40, isActive: true, priority: 10
 };
 const query = encodeURIComponent(JSON.stringify({ dphIp: 4, audioIp: 6, cts220Ip: 2, ivr: 1, conf: 4 }));
+
+function centralQueryBuilder(items: Record<string, any>[]) {
+  const queryBuilder = createMockQueryBuilder<any>();
+  const parameters: Record<string, number> = {};
+  queryBuilder.andWhere.mockImplementation((_condition, values) => {
+    Object.assign(parameters, values);
+    return queryBuilder;
+  });
+  queryBuilder.getOne.mockImplementation(async () => items
+    .filter(item => item.isActive &&
+      item.maxSipVoipSubscribers >= parameters.sipVoipSubscribers &&
+      item.maxDphIpDevices >= parameters.dphIpDevices &&
+      item.maxAudioIpDevices >= parameters.audioIpDevices &&
+      item.maxIvrChannels >= parameters.ivrChannels &&
+      item.maxConferenceChannels >= parameters.conferenceChannels)
+    .sort((a, b) => a.priority - b.priority ||
+      a.maxSipVoipSubscribers - b.maxSipVoipSubscribers || a.id - b.id)[0] ?? null);
+  return queryBuilder;
+}
+
+function licenseQueryBuilder(items: Record<string, any>[]) {
+  const queryBuilder = createMockQueryBuilder<any>();
+  let types: string[] = [];
+  queryBuilder.andWhere.mockImplementation((_condition, values) => {
+    types = values?.types ?? [];
+    return queryBuilder;
+  });
+  queryBuilder.getMany.mockImplementation(async () => items
+    .filter(item => item.isActive && types.includes(item.licenseType)));
+  return queryBuilder;
+}
 
 describe('Slican configuration API', () => {
   let allowed: Record<string, boolean>;
@@ -46,6 +78,9 @@ describe('Slican configuration API', () => {
       const items = rows[name];
       return {
         find: async () => items,
+        createQueryBuilder: () => name === 'SlicanCentralSpecification'
+          ? centralQueryBuilder(items)
+          : licenseQueryBuilder(items),
         findOneBy: async (where: Record<string, any>) =>
           items.find(row => Object.entries(where).every(([key, value]) => row[key] === value)) ?? null,
         create: (data: any) => ({ isActive: true, priority: 10, ...data }),

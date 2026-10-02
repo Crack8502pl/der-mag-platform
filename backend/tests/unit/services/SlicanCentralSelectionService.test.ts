@@ -55,6 +55,26 @@ describe('SlicanCentralSelectionService', () => {
     await expect(SlicanCentralSelectionService.selectCentral(demand, 6)).resolves.toBeNull();
   });
 
+  it('logs the matching count when selection debugging is enabled', async () => {
+    const previous = process.env.DEBUG_RECORDER_SELECTION;
+    process.env.DEBUG_RECORDER_SELECTION = 'true';
+    queryBuilder.getCount.mockResolvedValue(2);
+    queryBuilder.getOne.mockResolvedValue(null);
+    const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    try {
+      await SlicanCentralSelectionService.selectCentral(demand, 6);
+      expect(log).toHaveBeenCalledWith(
+        '[SlicanCentralSelectionService.selectCentral] selecting central',
+        { demand, sipVoipSubscribers: 6, matchingCount: 2 }
+      );
+    } finally {
+      log.mockRestore();
+      if (previous === undefined) delete process.env.DEBUG_RECORDER_SELECTION;
+      else process.env.DEBUG_RECORDER_SELECTION = previous;
+    }
+  });
+
   it('lists only active centrals', async () => {
     const active = [{ id: 1 }] as SlicanCentralSpecification[];
     repository.find.mockResolvedValue(active);
@@ -65,6 +85,18 @@ describe('SlicanCentralSelectionService', () => {
       where: { isActive: true },
       relations: ['warehouseStock'],
       order: { priority: 'ASC', maxSipVoipSubscribers: 'ASC' }
+    });
+  });
+
+  it('gets one central specification with its warehouse stock', async () => {
+    const central = { id: 7 } as SlicanCentralSpecification;
+    repository.findOne.mockResolvedValue(central);
+
+    await expect(SlicanCentralSelectionService.getCentral(7)).resolves.toBe(central);
+
+    expect(repository.findOne).toHaveBeenCalledWith({
+      where: { id: 7 },
+      relations: ['warehouseStock']
     });
   });
 });

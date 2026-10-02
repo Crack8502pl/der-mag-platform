@@ -23,6 +23,46 @@ app.use(express.json());
 app.use('/api/smoka/audio', aggregationRoutes);
 app.use('/api/slican-audio', resolverRoutes);
 
+function centralQueryBuilder(items: any[]) {
+  const queryBuilder: any = {};
+  const parameters: Record<string, number> = {};
+  queryBuilder.leftJoinAndSelect = jest.fn(() => queryBuilder);
+  queryBuilder.where = jest.fn(() => queryBuilder);
+  queryBuilder.andWhere = jest.fn((_condition: string, values?: Record<string, number>) => {
+    Object.assign(parameters, values);
+    return queryBuilder;
+  });
+  queryBuilder.orderBy = jest.fn(() => queryBuilder);
+  queryBuilder.addOrderBy = jest.fn(() => queryBuilder);
+  queryBuilder.getOne = jest.fn();
+  queryBuilder.getOne.mockImplementation(async () => items
+    .filter(item => item.isActive &&
+      item.maxSipVoipSubscribers >= parameters.sipVoipSubscribers &&
+      item.maxDphIpDevices >= parameters.dphIpDevices &&
+      item.maxAudioIpDevices >= parameters.audioIpDevices &&
+      item.maxIvrChannels >= parameters.ivrChannels &&
+      item.maxConferenceChannels >= parameters.conferenceChannels)
+    .sort((a, b) => a.priority - b.priority ||
+      a.maxSipVoipSubscribers - b.maxSipVoipSubscribers || a.id - b.id)[0] ?? null);
+  return queryBuilder;
+}
+
+function licenseQueryBuilder(items: any[]) {
+  const queryBuilder: any = {};
+  let types: string[] = [];
+  queryBuilder.where = jest.fn(() => queryBuilder);
+  queryBuilder.andWhere = jest.fn((_condition: string, values?: { types?: string[] }) => {
+    types = values?.types ?? [];
+    return queryBuilder;
+  });
+  queryBuilder.orderBy = jest.fn(() => queryBuilder);
+  queryBuilder.addOrderBy = jest.fn(() => queryBuilder);
+  queryBuilder.getMany = jest.fn();
+  queryBuilder.getMany.mockImplementation(async () => items
+    .filter(item => item.isActive && types.includes(item.licenseType)));
+  return queryBuilder;
+}
+
 describe('Slican audio end-to-end', () => {
   const central = {
     id: 1,
@@ -65,6 +105,9 @@ describe('Slican audio end-to-end', () => {
       }
       return {
         find: async () => entity === SlicanCentralSpecification ? [central, secondaryCentral] : licenses,
+        createQueryBuilder: () => entity === SlicanCentralSpecification
+          ? centralQueryBuilder([central, secondaryCentral])
+          : licenseQueryBuilder(licenses),
         findOneBy: async () => entity === SlicanVoipSubscriberFormula
           ? { id: 1, dphIpMultiplier: 1, audioIpMultiplier: 1, cts220IpMultiplier: 1 }
           : null
@@ -194,6 +237,11 @@ describe('Slican audio end-to-end', () => {
         find: async () => entity === SlicanCentralSpecification ? [central, secondaryCentral] : licenses.filter(
           license => !(license.licenseType === 'IVR' && license.packageSize === 1)
         ),
+        createQueryBuilder: () => entity === SlicanCentralSpecification
+          ? centralQueryBuilder([central, secondaryCentral])
+          : licenseQueryBuilder(licenses.filter(
+            license => !(license.licenseType === 'IVR' && license.packageSize === 1)
+          )),
         findOneBy: async () => entity === SlicanVoipSubscriberFormula
           ? { id: 1, dphIpMultiplier: 1, audioIpMultiplier: 1, cts220IpMultiplier: 1 }
           : null
