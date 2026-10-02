@@ -99,6 +99,15 @@ import { RailwayLine } from '../entities/RailwayLine.entity';
 import { RailwayStation } from '../entities/RailwayStation.entity';
 import { WebhookConfig } from '../entities/WebhookConfig.entity';
 import { EmailAutomationAuditLog } from '../entities/EmailAutomationAuditLog';
+import { FormTemplate } from '../entities/FormTemplate';
+import { FormTemplateVersion } from '../entities/FormTemplateVersion';
+import { FormSection } from '../entities/FormSection';
+import { FormFieldDefinition } from '../entities/FormFieldDefinition';
+import { FormTrigger } from '../entities/FormTrigger';
+import { FormAssignmentRule } from '../entities/FormAssignmentRule';
+import { FormInstance } from '../entities/FormInstance';
+import { FormFieldValue } from '../entities/FormFieldValue';
+import { FormApproval } from '../entities/FormApproval';
 // Migrations
 import { BackfillWizardTaskMetadata1714080000000 } from '../migrations/1714080000000-BackfillWizardTaskMetadata';
 import { CreateNetworkTopologies20260430 } from '../migrations/20260430_create_network_topologies';
@@ -109,6 +118,7 @@ import { AddGpsToServiceTask1779574500000 } from '../migrations/1779574500000-Ad
 import { AddEmailAutomationSystemSetting20260807 } from '../migrations/20260807_add_email_automation_system_setting';
 import { AddEmailAutomationPausedToUsers20260807 } from '../migrations/20260807_add_email_automation_paused_to_users';
 import { AddEmailAutomationAuditTable20260807 } from '../migrations/20260807_add_email_automation_audit_table';
+import { CreateFormChecklistEngine1790971200000 } from '../migrations/20261002_create_form_checklist_engine';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -117,7 +127,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USER || 'dermag_user',
   password: process.env.DB_PASSWORD || 'change-me-in-production',
   database: process.env.DB_NAME || 'dermag_platform',
-  synchronize: process.env.NODE_ENV === 'development', // Tylko w dev!
+  synchronize: false,
   logging: process.env.NODE_ENV === 'development',
   logger: process.env.NODE_ENV === 'development' ? new TypeOrmLogger() : undefined,
   // Konfiguracja puli połączeń - rozwiązuje problem concurrent queries
@@ -236,6 +246,15 @@ export const AppDataSource = new DataSource({
     RailwayStation,
     WebhookConfig,
     EmailAutomationAuditLog,
+    FormTemplate,
+    FormTemplateVersion,
+    FormSection,
+    FormFieldDefinition,
+    FormTrigger,
+    FormAssignmentRule,
+    FormInstance,
+    FormFieldValue,
+    FormApproval,
   ],
   subscribers: [],
   migrations: [
@@ -248,6 +267,7 @@ export const AppDataSource = new DataSource({
     AddEmailAutomationSystemSetting20260807,
     AddEmailAutomationPausedToUsers20260807,
     AddEmailAutomationAuditTable20260807,
+    CreateFormChecklistEngine1790971200000,
   ],
 });
 
