@@ -6,3 +6,4 @@
 - [Propozycja architektury — etap 2](form-checklist-engine/02-architecture-proposal.md)
 - [Backend services — etap 4](form-checklist-engine/04-backend-services.md)
 - [REST API — etap 5](form-checklist-engine/05-api.md)
+- [Form Builder — etap 6](form-checklist-engine/06-form-builder.md)

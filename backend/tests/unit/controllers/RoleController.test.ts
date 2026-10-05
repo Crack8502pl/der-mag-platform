@@ -405,6 +405,11 @@ describe('RoleController', () => {
             name: 'users',
             displayName: 'Użytkownicy',
             actions: expect.arrayContaining(['read', 'create', 'update', 'delete'])
+          }),
+          expect.objectContaining({
+            name: 'forms',
+            displayName: 'Formularze i checklisty',
+            actions: expect.arrayContaining(['read', 'create', 'update', 'publish', 'complete', 'approve', 'assign', 'readAll'])
           })
         ])
       });
