@@ -1,6 +1,6 @@
 import { DataSource, EntityManager } from 'typeorm';
 import { AppDataSource } from '../config/database';
-import { CreateFormInstanceDto, FormResponses } from '../dto/FormServiceDto';
+import { CreateFormInstanceDto, FormInstanceAssignmentInput, FormResponses } from '../dto/FormServiceDto';
 import { FormFieldDefinition } from '../entities/FormFieldDefinition';
 import { FormFieldValue } from '../entities/FormFieldValue';
 import { FormInstance } from '../entities/FormInstance';
@@ -11,10 +11,16 @@ import { FormDomainError } from '../errors/FormDomainError';
 import { FormAuditService } from './FormAuditService';
 import { validateFormResponses } from './FormRules';
 
+export type FormInstanceAccessGuard = (manager: EntityManager, instance: FormInstance) => Promise<void>;
+
 export class FormInstanceService {
   constructor(private readonly dataSource: DataSource = AppDataSource) {}
 
   async createInstance(input: CreateFormInstanceDto, actorId: number): Promise<FormInstance> {
+    if (input.bomItemId !== undefined && input.bomItemId !== null
+      && input.workflowBomItemId !== undefined && input.workflowBomItemId !== null) {
+      throw new FormDomainError('INVALID_INSTANCE_CONTEXT', 'Only one BOM item context may be linked to an instance');
+    }
     return this.dataSource.transaction(async manager => {
       const version = await manager.getRepository(FormTemplateVersion).findOne({
         where: { id: input.templateVersionId },
@@ -40,9 +46,10 @@ export class FormInstanceService {
     });
   }
 
-  async saveResponses(instanceId: number, responses: FormResponses, actorId: number): Promise<FormFieldValue[]> {
+  async saveResponses(instanceId: number, responses: FormResponses, actorId: number, accessGuard?: FormInstanceAccessGuard): Promise<FormFieldValue[]> {
     return this.dataSource.transaction(async manager => {
       const instance = await this.lockInstance(manager, instanceId);
+      await accessGuard?.(manager, instance);
       if (![FormInstanceStatus.DRAFT, FormInstanceStatus.IN_PROGRESS, FormInstanceStatus.REJECTED].includes(instance.status)) {
         throw new FormDomainError('INVALID_INSTANCE_STATUS', 'Responses can only be changed before approval');
       }
@@ -101,9 +108,10 @@ export class FormInstanceService {
     return validateFormResponses(sections, fields, values, true);
   }
 
-  async complete(instanceId: number, actorId: number): Promise<FormInstance> {
+  async complete(instanceId: number, actorId: number, accessGuard?: FormInstanceAccessGuard): Promise<FormInstance> {
     return this.dataSource.transaction(async manager => {
       const instance = await this.lockInstance(manager, instanceId);
+      await accessGuard?.(manager, instance);
       if (![FormInstanceStatus.DRAFT, FormInstanceStatus.IN_PROGRESS, FormInstanceStatus.REJECTED].includes(instance.status)) {
         throw new FormDomainError('INVALID_INSTANCE_STATUS', 'Only editable form instances can be completed');
       }
@@ -122,6 +130,32 @@ export class FormInstanceService {
         { field: 'status', previousValue: oldStatus, newValue: saved.status },
         { field: 'submittedAt', previousValue: null, newValue: saved.submittedAt },
       ]);
+      return saved;
+    });
+  }
+
+  async assignInstance(instanceId: number, input: FormInstanceAssignmentInput, actorId: number): Promise<FormInstance> {
+    return this.dataSource.transaction(async manager => {
+      const instance = await this.lockInstance(manager, instanceId);
+      if (![FormInstanceStatus.DRAFT, FormInstanceStatus.IN_PROGRESS, FormInstanceStatus.REJECTED].includes(instance.status)) {
+        throw new FormDomainError('INVALID_INSTANCE_STATUS', 'Only editable form instances can be reassigned');
+      }
+      if (input.assignedUserId === undefined && input.assignedTeamId === undefined) {
+        throw new FormDomainError('INVALID_ASSIGNMENT', 'At least one assignment property must be supplied');
+      }
+      const assignedUserId = input.assignedUserId === undefined ? instance.assignedUserId : input.assignedUserId;
+      const assignedTeamId = input.assignedTeamId === undefined ? instance.assignedTeamId : input.assignedTeamId;
+      if (assignedUserId === null && assignedTeamId === null) {
+        throw new FormDomainError('INVALID_ASSIGNMENT', 'An instance must retain a user or team assignment');
+      }
+      const changes = [
+        { field: 'assignedUserId', previousValue: instance.assignedUserId, newValue: assignedUserId },
+        { field: 'assignedTeamId', previousValue: instance.assignedTeamId, newValue: assignedTeamId },
+      ];
+      instance.assignedUserId = assignedUserId;
+      instance.assignedTeamId = assignedTeamId;
+      const saved = await manager.getRepository(FormInstance).save(instance);
+      await FormAuditService.record(manager, 'FORM_INSTANCE_ASSIGNED', actorId, 'form_instance', instance.id, changes);
       return saved;
     });
   }

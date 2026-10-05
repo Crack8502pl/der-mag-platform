@@ -6,11 +6,12 @@ import { FormTemplate } from '../entities/FormTemplate';
 import { FormTemplateVersion } from '../entities/FormTemplateVersion';
 import { FormTrigger } from '../entities/FormTrigger';
 import { FormVersionStatus } from '../entities/FormTypes';
-import { CreateFormTemplateDto, DraftSectionDto, UpdateFormDraftDto } from '../dto/FormServiceDto';
+import { CreateFormTemplateDto, DraftSectionDto, FormAssignmentRuleInput, UpdateFormDraftDto } from '../dto/FormServiceDto';
 import { FormDomainError } from '../errors/FormDomainError';
 import { FormAuditService } from './FormAuditService';
 import { validateFormConditionShape, validateFormDefinition } from './FormRules';
 import { DataSource, EntityManager } from 'typeorm';
+import { RESERVED_FORM_KEYS } from '../utils/formJson';
 
 export class FormTemplateService {
   constructor(private readonly dataSource: DataSource = AppDataSource) {}
@@ -140,11 +141,16 @@ export class FormTemplateService {
   async publishVersion(versionId: number, actorId: number): Promise<FormTemplateVersion> {
     return this.dataSource.transaction(async manager => {
       const version = await this.lockVersion(manager, versionId);
-      const [sections, fields] = await Promise.all([
+      const [sections, fields, assignmentRules] = await Promise.all([
         manager.getRepository(FormSection).find({ where: { templateVersionId: version.id } }),
         manager.getRepository(FormFieldDefinition).find({ where: { templateVersionId: version.id } }),
+        manager.getRepository(FormAssignmentRule).find({ where: { templateVersionId: version.id } }),
       ]);
       validateFormDefinition(sections, fields);
+      const fieldKeys = new Set(fields.map(field => field.key));
+      for (const rule of assignmentRules) {
+        validateFormConditionShape(rule.conditions, fieldKeys, 'assignment rule');
+      }
 
       const oldStatus = version.status;
       version.status = FormVersionStatus.PUBLISHED;
@@ -170,17 +176,55 @@ export class FormTemplateService {
     return version;
   }
 
+  async replaceAssignmentRules(versionId: number, input: FormAssignmentRuleInput[], actorId: number): Promise<FormAssignmentRule[]> {
+    return this.dataSource.transaction(async manager => {
+      await this.lockVersion(manager, versionId);
+      const [fields, triggers] = await Promise.all([
+        manager.getRepository(FormFieldDefinition).find({ where: { templateVersionId: versionId } }),
+        manager.getRepository(FormTrigger).find({ where: { templateVersionId: versionId } }),
+      ]);
+      const keys = new Set(fields.map(field => field.key));
+      const triggerIds = new Set(triggers.map(trigger => trigger.id));
+      for (const rule of input) {
+        if (!rule.assignedUserId && !rule.assignedTeamId) {
+          throw new FormDomainError('INVALID_DEFINITION', 'An assignment rule must have a user or team target');
+        }
+        if (rule.triggerId !== undefined && rule.triggerId !== null && !triggerIds.has(rule.triggerId)) {
+          throw new FormDomainError('INVALID_DEFINITION', 'Assignment trigger must belong to the same version');
+        }
+        validateFormConditionShape(rule.conditions, keys, 'assignment rule');
+      }
+      const repository = manager.getRepository(FormAssignmentRule);
+      const previous = await repository.find({ where: { templateVersionId: versionId } });
+      await repository.delete({ templateVersionId: versionId });
+      const entities = input.map(rule => repository.create({
+        templateVersionId: versionId,
+        triggerId: rule.triggerId ?? null,
+        priority: rule.priority ?? 0,
+        active: rule.active ?? true,
+        conditions: rule.conditions ?? {},
+        assignedUserId: rule.assignedUserId ?? null,
+        assignedTeamId: rule.assignedTeamId ?? null,
+      }));
+      const saved = entities.length ? await repository.save(entities) : [];
+      await FormAuditService.record(manager, 'FORM_ASSIGNMENT_RULES_UPDATED', actorId, 'form_template_version', versionId, [
+        { field: 'assignmentRules', previousValue: previous, newValue: saved },
+      ]);
+      return saved;
+    });
+  }
+
   private validateDraftSections(sections: DraftSectionDto[]): void {
     const sectionKeys = new Set<string>();
     const fieldKeys = new Set<string>();
     for (const section of sections) {
-      if (!section.key || sectionKeys.has(section.key)) {
-        throw new FormDomainError('INVALID_DEFINITION', `Duplicate or empty section key: ${section.key}`);
+      if (!section.key || RESERVED_FORM_KEYS.includes(section.key) || sectionKeys.has(section.key)) {
+        throw new FormDomainError('INVALID_DEFINITION', `Duplicate, empty or reserved section key: ${section.key}`);
       }
       sectionKeys.add(section.key);
       for (const field of section.fields || []) {
-        if (!field.key || fieldKeys.has(field.key)) {
-          throw new FormDomainError('INVALID_DEFINITION', `Duplicate or empty field key: ${field.key}`);
+        if (!field.key || RESERVED_FORM_KEYS.includes(field.key) || fieldKeys.has(field.key)) {
+          throw new FormDomainError('INVALID_DEFINITION', `Duplicate, empty or reserved field key: ${field.key}`);
         }
         fieldKeys.add(field.key);
       }
