@@ -123,6 +123,11 @@ describe('definition safety', () => {
   it.each(['BOOLEAN', 'FILE', '', null])('rejects unsupported type %j', fieldType => {
     expect(getDefinitionError(version([field({ fieldType: fieldType as string })]))).not.toBeNull();
   });
+  it.each([null, undefined, [], 'invalid', 1])('rejects malformed options %j before rendering', options => {
+    expect(getDefinitionError(version([field({
+      options: options as unknown as FormField['options'],
+    })]))).not.toBeNull();
+  });
   it.each([
     { min: '1' }, { max: '2' }, { min: NaN }, { max: Infinity }, { min: 2, max: 1 },
   ])('rejects malformed number bounds %j', validation => {

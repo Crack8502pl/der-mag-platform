@@ -120,6 +120,7 @@ export function getDefinitionError(version: FormVersion): string | null {
     if (typeof field.fieldType !== 'string' || !supportedTypes.has(field.fieldType.toUpperCase())) {
       return `Unsupported field type: ${field.fieldType}`;
     }
+    if (!isObject(field.options)) return `Invalid options on ${field.key}`;
     if (field.fieldType.toUpperCase() === 'NUMBER') {
       const { min, max } = field.validation || {};
       if ((min !== undefined && (typeof min !== 'number' || !Number.isFinite(min))) ||
