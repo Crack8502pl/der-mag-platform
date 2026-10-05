@@ -37,6 +37,25 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('DynamicFormRenderer', () => {
+  it('keeps control, radio option and error IDs distinct for valid suffixed field keys', async () => {
+    vi.mocked(formsService.getVersion).mockResolvedValue({
+      ...version, sections: [version.sections[0]], fields: [
+        { ...version.fields[0], fieldType: 'RADIO', options: { values: ['A', 'B'] } },
+        { ...version.fields[0], id: 2, key: 'result-1', label: 'Opis', fieldType: 'TEXT' },
+        { ...version.fields[0], id: 3, key: 'result-error', label: 'Komentarz', fieldType: 'TEXT' },
+      ],
+    });
+    const { container } = render(<DynamicFormRenderer versionId={12} onSubmit={vi.fn()} />);
+    await screen.findByRole('radiogroup', { name: 'Wynik' });
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz odpowiedzi' }));
+    await screen.findAllByRole('alert');
+    const ids = Array.from(container.querySelectorAll('[id]'), element => element.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(screen.getByLabelText(/Opis/)).toHaveAttribute('type', 'text');
+    expect(screen.getByLabelText(/Komentarz/)).toHaveAttribute('type', 'text');
+    expect(screen.getByRole('radio', { name: 'B' }).id).not.toBe(screen.getByLabelText(/Opis/).id);
+  });
+
   it('loads the exact persisted version and evaluates section and field conditions', async () => {
     render(<DynamicFormRenderer versionId={12} />);
     expect(screen.getByRole('status')).toHaveTextContent('Ładowanie');

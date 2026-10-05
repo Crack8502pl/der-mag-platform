@@ -120,7 +120,7 @@ function FormRuntime({
           {section.description && <p>{section.description}</p>}
           {section.fields.filter(field => isFieldVisible(version, field, values)).map(field => {
             const Component = fieldRegistry[field.fieldType.toUpperCase()];
-            const inputId = `${id}-${field.key}`;
+            const inputId = `${id}:${field.key}:input`;
             const errorId = `${inputId}-error`;
             const required = isFieldRequired(field, values);
             const error = errors[field.key];

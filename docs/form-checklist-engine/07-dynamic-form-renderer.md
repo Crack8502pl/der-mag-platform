@@ -55,6 +55,7 @@ Backend pozostaje źródłem prawdy: ponownie sprawdza zapis względem wersji in
 
 - Stany: ładowanie, błąd pobrania/nieobsługiwana definicja z retry, brak widocznych pól, zapis w toku, sukces i błąd zapisu.
 - Etykiety, oznaczenie required, grupy radio, `aria-required`, `aria-invalid` i `aria-describedby`; blokada pól podczas zapisu, focus ring z tokenu motywu. Układ działa na małym ekranie.
+- ID kontrolek, opcji RADIO i błędów mają osobne namespace z separatorem niedozwolonym w kluczach pól, więc np. `result`, `result-1` i `result-error` nie powodują kolizji etykiet.
 - Nieobsługiwany typ, zarezerwowane/niebezpieczne klucze i niespójna definicja blokują renderowanie zamiast pomijać pole lub rejestrować niebezpieczną ścieżkę RHF.
 - Brak RBAC lub utrata dostępu skutkuje błędem API. Rozwiązaniem jest prawidłowe nadanie istniejących uprawnień, nigdy pominięcie autoryzacji.
 - Ukryte, ale błędnie typowane historyczne dane mogą blokować zapis. Host powinien pokazać poprawny snapshot i umożliwić korektę danych; nie usuwać ich automatycznie.
@@ -76,4 +77,4 @@ npm run build
 
 Konfiguracja coverage obejmuje nowy runtime, pomija testy i zachowuje istniejące progi 70% dla linii, statements, funkcji i gałęzi.
 
-Weryfikacja etapu 7: pełny frontend **35 zestawów / 455 testów** bez błędów; TypeScript/Vite build i ukierunkowany ESLint przeszły. Pokrycie nowych modułów (linie / gałęzie): renderer **100% / 95,23%**, registry **100% / 100%**, schemat **99,03% / 98,93%**. Vite poprawnie serwuje stronę i moduł renderer’a przez HTTP. Kontrola wizualna przeglądarką nie była możliwa z powodu niedostępnego transportu narzędzia; interakcje UI zweryfikowano przez Testing Library. Build zachowuje ostrzeżenia o brakujących certyfikatach, cyklicznych chunkach i wielkości bundle, bez błędów kompilacji.
+Weryfikacja etapu 7: pełny frontend **35 zestawów / 456 testów** bez błędów; TypeScript/Vite build i ukierunkowany ESLint przeszły. Pokrycie nowych modułów (linie / gałęzie): renderer **100% / 95,23%**, registry **100% / 100%**, schemat **99,03% / 98,93%**. Vite poprawnie serwuje stronę i moduł renderer’a przez HTTP. Kontrola wizualna przeglądarką nie była możliwa z powodu niedostępnego transportu narzędzia; interakcje UI zweryfikowano przez Testing Library. Build zachowuje ostrzeżenia o brakujących certyfikatach, cyklicznych chunkach i wielkości bundle, bez błędów kompilacji.
