@@ -12,6 +12,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useFormTemplates } from '../../hooks/useFormTemplates';
+import { DynamicFormRenderer } from '../forms/DynamicFormRenderer';
 import { formsService, type UpdateFormDraftInput } from '../../services/forms.service';
 import type {
   FormAssignmentRule,
@@ -682,17 +683,8 @@ export const FormBuilderPage: React.FC = () => {
             </div>
           ) : tab === 'preview' ? (
             <div className="form-builder__preview">
-              <h3>{version.title}</h3>
-              {version.description && <p>{version.description}</p>}
-              {sections.map(section => (
-                <section className="form-builder__preview-section" key={section.key}>
-                  <h4>{section.title}</h4>
-                  {section.description && <p>{section.description}</p>}
-                  {section.fields.map(field => <PreviewField field={field} key={field.key} />)}
-                </section>
-              ))}
-              {sections.length === 0 && <p>Brak sekcji do podglądu.</p>}
-              <p className="form-builder__hint">Podgląd wizualny — warunki i walidacja nie są tu wykonywane.</p>
+              <p className="form-builder__hint">Interaktywny podgląd zapisanej wersji — zapisz zmiany w builderze, aby je zobaczyć. Odpowiedzi w podglądzie nie są zapisywane.</p>
+              <DynamicFormRenderer versionId={version.id} />
             </div>
           ) : (
             <div className="form-builder__card">
@@ -770,20 +762,5 @@ const FieldEditor: React.FC<{
         <button type="button" className="btn btn-secondary" onClick={onDelete}>Usuń pole</button>
       </div>}
     </fieldset>
-  );
-};
-
-const PreviewField: React.FC<{ field: FormField }> = ({ field }) => {
-  const id = `preview-${field.key}`;
-  const values = Array.isArray(field.options.values) ? field.options.values : [];
-  return (
-    <div className="form-builder__preview-field">
-      <label htmlFor={id}>{field.label}{field.required && <span aria-label="wymagane"> *</span>}</label>
-      {field.fieldType === 'TEXTAREA' ? <textarea id={id} disabled /> :
-        field.fieldType === 'SELECT' ? <select id={id} disabled><option>Wybierz…</option>{values.map(value => <option key={String(value)}>{String(value)}</option>)}</select> :
-          field.fieldType === 'CHECKBOX' ? <input id={id} type="checkbox" disabled /> :
-            <input id={id} type={field.fieldType === 'NUMBER' ? 'number' : field.fieldType === 'DATE' ? 'date' : 'text'} disabled />}
-      {typeof field.options.unit === 'string' && field.options.unit && <small>{field.options.unit}</small>}
-    </div>
   );
 };

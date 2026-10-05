@@ -9,7 +9,7 @@ Panel administracyjny dostępny pod `/admin/forms` zapewnia listę szablonów or
 
 - **Form Builder** — edycja tytułu, opisu, sekcji i pól wersji roboczej; przeciąganie sekcji i pól, kopiowanie/usuwanie pól, required, typy, walidacja liczbowa, jednostki, opcje wyboru i deklaratywne warunki.
 - **Versions** — lista wersji, otwieranie istniejących wersji i tworzenie następnej wersji na podstawie opublikowanej.
-- **Preview** — statyczny podgląd wizualny definicji; nie renderuje runtime ani nie wykonuje warunków.
+- **Preview** — od etapu 7 interaktywny [DynamicFormRenderer](07-dynamic-form-renderer.md) zapisanej wersji, z warunkami widoczności; bez zapisu odpowiedzi.
 - **Assignments / Rules** — odczyt i zapis reguł przypisań wyłącznie dla draftów.
 
 Tworzenie nowego formularza wymaga klucza, nazwy, rodzaju `FORM`/`CHECKLIST` i jednej z obsługiwanych procedur. Nie są dodawane przykładowe formularze biznesowe ani zależności od konkretnych procedur poza dozwolonymi wartościami domenowymi.
@@ -31,7 +31,7 @@ Role potrzebują `forms.read` do otwarcia panelu; akcje są prezentowane zależn
 
 - Warunki są edytowane jako ograniczone deklaratywne dane pól/sekcji. Sekcje obsługują tylko `visibleWhen`; pola: `visibleWhen`, `requiredWhen`, `blockCompletionWhen`. Publikacja ponownie waliduje referencje i operatory według API.
 - `options.values` przechowuje wybrane opcje, a `options.unit` jednostkę prezentacyjną. Etap 5 nie egzekwuje jeszcze wyboru z listy opcji podczas walidacji odpowiedzi.
-- Podgląd jest statyczny: nie odwzorowuje pełnego zachowania walidacji, warunków, Variable Engine ani renderera etapu 7.
+- Podgląd używa zapisanej wersji: niezapisane edycje nie są widoczne. Pełny Variable Engine i triggery nadal pozostają poza zakresem.
 - Reguły przypisań są konfigurowane, ale nie wykonywane automatycznie (etap 8). Wymagane cele i zgodność triggera z wersją są ostatecznie walidowane przez API.
 - Trasy API listują do 100 szablonów na stronę; UI korzysta z pierwszej strony. Dla dużych katalogów należy dodać paginację UI z istniejącymi `page`/`limit`, bez nowych filtrów API.
 - Nowe wersje opublikowanej definicji pozostają osobnymi snapshotami; edycja i publikacja starszej wersji nie są oferowane.

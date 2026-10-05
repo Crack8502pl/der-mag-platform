@@ -10,14 +10,14 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
-      // Zbieramy coverage tylko z plików posiadających testy jednostkowe.
-      // Komponenty React, hooki i serwisy API wymagają środowiska z mockami
-      // i będą objęte testami w dedykowanych zadaniach.
+      // Zbieramy coverage z modułów objętych testami jednostkowymi.
       include: [
         'src/utils/**/*.{ts,tsx}',
+        'src/components/forms/**/*.{ts,tsx}',
       ],
       exclude: [
         'src/utils/**/*.test.{ts,tsx}',
+        'src/components/forms/**/*.test.{ts,tsx}',
         'src/**/*.d.ts',
         'src/test/**',
       ],

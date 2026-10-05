@@ -1,0 +1,72 @@
+.dynamic-form {
+  max-width: 900px;
+  color: var(--text-primary);
+}
+
+.dynamic-form h2,
+.dynamic-form h3,
+.dynamic-form p {
+  color: inherit;
+}
+
+.dynamic-form__body {
+  border: 0;
+  padding: 0;
+  margin: 0 0 16px;
+  min-width: 0;
+}
+
+.dynamic-form__section {
+  padding: 18px;
+  margin: 16px 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.dynamic-form__field {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.dynamic-form input:not([type="radio"]):not([type="checkbox"]),
+.dynamic-form select,
+.dynamic-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px;
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.dynamic-form textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.dynamic-form :is(input, select, textarea, button):focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.dynamic-form .dynamic-form__hint {
+  color: var(--text-secondary);
+}
+
+.dynamic-form .dynamic-form__error {
+  color: var(--error);
+}
+
+.dynamic-form [aria-invalid="true"] {
+  border-color: var(--error);
+}
+
+@media (max-width: 720px) {
+  .dynamic-form__section {
+    padding: 12px;
+  }
+}
