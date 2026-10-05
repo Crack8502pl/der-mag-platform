@@ -157,7 +157,10 @@ export interface FormsPermissions {
   create?: boolean;
   update?: boolean;
   publish?: boolean;
+  complete?: boolean;
+  approve?: boolean;
   assign?: boolean;
+  readAll?: boolean;
 }
 
 export interface MapPermissions {
@@ -244,8 +247,8 @@ export type PermissionAction =
   | 'deletePool'
   | 'receiveOrder'
   | 'publish'
+  | 'readAll'
   | 'reportMissing'
   | 'updatePool'
   | 'viewAll'
   | 'access'; // Used for admin-only routes with module: 'all'
-

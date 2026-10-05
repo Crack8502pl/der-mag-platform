@@ -348,6 +348,11 @@ export class RoleController {
           actions: ['read', 'create', 'update', 'delete']
         },
         {
+          name: 'forms',
+          displayName: 'Formularze i checklisty',
+          actions: ['read', 'create', 'update', 'publish', 'complete', 'approve', 'assign', 'readAll']
+        },
+        {
           name: 'map',
           displayName: 'Mapa',
           actions: ['read', 'viewAll']

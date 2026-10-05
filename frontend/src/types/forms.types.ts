@@ -32,7 +32,7 @@ export interface FormField {
 export interface FormSection {
   key: string;
   title: string;
-  description?: string;
+  description?: string | null;
   sortOrder: number;
   conditions: Record<string, FormCondition>;
   fields: FormField[];
@@ -53,6 +53,11 @@ export interface FormVersion {
   fields: Array<FormField & { id: number; sectionId: number }>;
   assignmentRules: FormAssignmentRule[];
 }
+
+export type FormVersionSummary = Pick<
+  FormVersion,
+  'id' | 'templateId' | 'version' | 'status' | 'title' | 'description' | 'kind' | 'procedureType' | 'publishedAt'
+>;
 
 export interface FormAssignmentRule {
   id?: number;

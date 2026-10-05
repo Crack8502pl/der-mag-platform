@@ -5,6 +5,7 @@ import type {
   FormProcedureType,
   FormTemplate,
   FormVersion,
+  FormVersionSummary,
   Paginated,
 } from '../types/forms.types';
 
@@ -54,8 +55,8 @@ export const formsService = {
     return unwrap(await api.post<ApiEnvelope<FormTemplate>>('/forms/templates', input));
   },
 
-  async listVersions(templateId: number): Promise<Paginated<FormVersion>> {
-    return unwrap(await api.get<ApiEnvelope<Paginated<FormVersion>>>(`/forms/templates/${templateId}/versions`));
+  async listVersions(templateId: number): Promise<Paginated<FormVersionSummary>> {
+    return unwrap(await api.get<ApiEnvelope<Paginated<FormVersionSummary>>>(`/forms/templates/${templateId}/versions`));
   },
 
   async createDraft(templateId: number): Promise<FormVersion> {

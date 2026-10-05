@@ -55,7 +55,7 @@
 .form-builder__preview,
 .form-builder__section,
 .form-builder__field {
-  background: var(--card-bg, var(--surface-color, #20242b));
+  background: var(--bg-card, #20242b);
   border: 1px solid var(--border-color, #454b55);
   border-radius: 10px;
 }
@@ -89,7 +89,7 @@
   padding: 16px;
   text-align: left;
   color: var(--text-primary);
-  background: var(--card-bg, var(--surface-color, #20242b));
+  background: var(--bg-card, #20242b);
   border: 1px solid var(--border-color, #454b55);
   border-radius: 8px;
   cursor: pointer;
@@ -130,7 +130,7 @@
   box-sizing: border-box;
   padding: 9px 10px;
   color: var(--text-primary);
-  background: var(--input-bg, var(--background-color, #16191e));
+  background: var(--bg-input, #16191e);
   border: 1px solid var(--border-color, #555);
   border-radius: 6px;
   font: inherit;

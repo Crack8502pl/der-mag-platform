@@ -20,6 +20,7 @@ Tworzenie nowego formularza wymaga klucza, nazwy, rodzaju `FORM`/`CHECKLIST` i j
 - `frontend/src/components/admin/FormBuilderPage.css` korzysta z tokenów motywu i wspiera `grover` oraz `husky`.
 - `frontend/src/services/forms.service.ts` typuje wywołania API; `frontend/src/hooks/useFormTemplates.ts` pobiera listę i udostępnia odświeżenie.
 - `frontend/src/types/forms.types.ts` zawiera minimalne modele UI. `permissions.types.ts`, route `/admin/forms` i karta panelu administratora używają istniejącego modułu uprawnień `forms`.
+- `backend/src/controllers/RoleController.ts` wystawia akcje `forms` w istniejącym schemacie macierzy uprawnień, aby administratorzy mogli przydzielać je przez UI RBAC.
 - Drag & drop korzysta z istniejącego `@dnd-kit/core`. Nie dodano zależności; brak `@dnd-kit/sortable` nie blokuje sortowania prostym mechanizmem core.
 
 Wykorzystywane endpointy: `GET/POST /forms/templates`, `GET /forms/templates/:id/versions`, `POST /forms/templates/:id/draft`, `GET /forms/versions/:id`, `PUT /forms/versions/:id/draft`, `POST /forms/versions/:id/publish`, `POST /forms/versions/:id/next`, `GET/PUT /forms/versions/:id/assignment-rules`. API pozostaje źródłem prawdy dla walidacji, publikacji, audytu i niemutowalności wersji. Builder nie modyfikuje danych bezpośrednio i nie implementuje runtime reguł.

@@ -22,16 +22,52 @@ import type {
   FormSection,
   FormTemplate,
   FormVersion,
+  FormVersionSummary,
 } from '../../types/forms.types';
 import './FormBuilderPage.css';
 
 type BuilderTab = 'builder' | 'versions' | 'preview' | 'rules';
 type DefinitionSection = FormSection & { id?: number };
 
-const FIELD_TYPES = ['TEXT', 'TEXTAREA', 'EMAIL', 'DATE', 'SELECT', 'RADIO', 'NUMBER', 'PASS_FAIL', 'CHECKBOX', 'MULTI_SELECT'];
+const FIELD_TYPES = ['TEXT', 'STRING', 'TEXTAREA', 'EMAIL', 'DATE', 'SELECT', 'RADIO', 'NUMBER', 'PASS_FAIL', 'CHECKBOX', 'MULTI_SELECT'];
 const PROCEDURES: FormProcedureType[] = ['CABINET_PREFABRICATION', 'DEVICE_PRECONFIGURATION', 'FIELD_INSTALLATION'];
 const CONDITION_KEYS = ['visibleWhen', 'requiredWhen', 'blockCompletionWhen'] as const;
 const OPERATORS = ['equals', 'notEquals', 'gt', 'gte', 'lt', 'lte', 'in', 'notIn', 'isEmpty', 'isNotEmpty'];
+const RESERVED_KEYS = new Set([...Object.getOwnPropertyNames(Object.prototype), 'prototype']);
+
+const uniqueKey = (base: string, used: string[]): string => {
+  let candidate = base;
+  let suffix = 2;
+  while (used.includes(candidate)) {
+    candidate = `${base}_${suffix}`;
+    suffix += 1;
+  }
+  return candidate;
+};
+
+const definitionError = (sections: DefinitionSection[]): string => {
+  const sectionKeys = new Set<string>();
+  const fieldKeys = new Set<string>();
+  const validKey = (key: string) => /^[A-Za-z0-9_-]{1,100}$/.test(key) && !RESERVED_KEYS.has(key);
+  for (const section of sections) {
+    if (!validKey(section.key)) return `Nieprawidłowy klucz sekcji: ${section.key || '(pusty)'}.`;
+    if (sectionKeys.has(section.key)) return `Klucz sekcji "${section.key}" musi być unikalny.`;
+    if (!section.title.trim()) return `Sekcja "${section.key}" musi mieć nazwę.`;
+    sectionKeys.add(section.key);
+    for (const field of section.fields) {
+      if (!validKey(field.key)) return `Nieprawidłowy klucz pola: ${field.key || '(pusty)'}.`;
+      if (fieldKeys.has(field.key)) return `Klucz pola "${field.key}" musi być unikalny w całym formularzu.`;
+      if (!field.label.trim()) return `Pole "${field.key}" musi mieć etykietę.`;
+      fieldKeys.add(field.key);
+      const min = field.validation.min;
+      const max = field.validation.max;
+      if (typeof min === 'number' && typeof max === 'number' && min > max) {
+        return `Minimum pola "${field.key}" nie może przekraczać maksimum.`;
+      }
+    }
+  }
+  return '';
+};
 
 const emptySection = (index: number): DefinitionSection => ({
   key: `section_${index + 1}`,
@@ -85,6 +121,29 @@ const templateSections = (version: FormVersion): DefinitionSection[] =>
         conditions: field.conditions || {},
       })),
   }));
+
+const draftInput = (version: FormVersion, sections: DefinitionSection[]): UpdateFormDraftInput => ({
+  title: version.title,
+  description: version.description || undefined,
+  settings: version.settings || {},
+  sections: sections.map((section, sectionIndex) => ({
+    key: section.key,
+    title: section.title,
+    description: section.description || undefined,
+    sortOrder: sectionIndex,
+    conditions: section.conditions,
+    fields: section.fields.map((field, fieldIndex) => ({
+      key: field.key,
+      label: field.label,
+      fieldType: field.fieldType,
+      required: field.required,
+      sortOrder: fieldIndex,
+      validation: field.validation,
+      options: field.options,
+      conditions: field.conditions,
+    })),
+  })),
+});
 
 const reindex = <T extends { sortOrder: number }>(items: T[]): T[] =>
   items.map((item, sortOrder) => ({ ...item, sortOrder }));
@@ -220,7 +279,7 @@ export const FormBuilderPage: React.FC = () => {
 
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
   const [version, setVersion] = useState<FormVersion | null>(null);
-  const [versions, setVersions] = useState<FormVersion[]>([]);
+  const [versions, setVersions] = useState<FormVersionSummary[]>([]);
   const [sections, setSections] = useState<DefinitionSection[]>([]);
   const [tab, setTab] = useState<BuilderTab>('builder');
   const [rules, setRules] = useState<FormAssignmentRule[]>([]);
@@ -238,6 +297,7 @@ export const FormBuilderPage: React.FC = () => {
 
   const readOnly = !canUpdate || version?.status !== 'DRAFT';
   const fieldKeys = useMemo(() => sections.flatMap(section => section.fields.map(field => field.key)), [sections]);
+  const draftDefinitionError = useMemo(() => definitionError(sections), [sections]);
 
   const loadVersion = useCallback(async (selected: FormTemplate, versionId: number) => {
     setLoadingDetail(true);
@@ -319,32 +379,14 @@ export const FormBuilderPage: React.FC = () => {
 
   const saveDraft = async () => {
     if (!version) return;
+    if (draftDefinitionError) {
+      setMessage(draftDefinitionError);
+      return;
+    }
     setSaving(true);
     setMessage('');
     try {
-      const input: UpdateFormDraftInput = {
-        title: version.title,
-        description: version.description || undefined,
-        settings: version.settings || {},
-        sections: sections.map((section, sectionIndex) => ({
-          key: section.key,
-          title: section.title,
-          description: section.description || undefined,
-          sortOrder: sectionIndex,
-          conditions: section.conditions,
-          fields: section.fields.map((field, fieldIndex) => ({
-            key: field.key,
-            label: field.label,
-            fieldType: field.fieldType,
-            required: field.required,
-            sortOrder: fieldIndex,
-            validation: field.validation,
-            options: field.options,
-            conditions: field.conditions,
-          })),
-        })),
-      };
-      const updated = await formsService.updateDraft(version.id, input);
+      const updated = await formsService.updateDraft(version.id, draftInput(version, sections));
       await loadVersion(selectedTemplate!, updated.id);
       setMessage('Wersja robocza została zapisana.');
     } catch (error) {
@@ -356,9 +398,14 @@ export const FormBuilderPage: React.FC = () => {
 
   const publish = async () => {
     if (!version) return;
+    if (draftDefinitionError) {
+      setMessage(draftDefinitionError);
+      return;
+    }
     setSaving(true);
     setMessage('');
     try {
+      await formsService.updateDraft(version.id, draftInput(version, sections));
       const published = await formsService.publishVersion(version.id);
       await loadVersion(selectedTemplate!, published.id);
       setMessage('Wersja została opublikowana.');
@@ -443,7 +490,13 @@ export const FormBuilderPage: React.FC = () => {
 
   const addField = (sectionIndex: number) => {
     setSections(current => current.map((section, index) => index === sectionIndex
-      ? { ...section, fields: [...section.fields, emptyField(section.fields.length)] }
+      ? {
+        ...section,
+        fields: [...section.fields, {
+          ...emptyField(section.fields.length),
+          key: uniqueKey(`field_${section.fields.length + 1}`, current.flatMap(item => item.fields.map(field => field.key))),
+        }],
+      }
       : section));
   };
 
@@ -451,7 +504,8 @@ export const FormBuilderPage: React.FC = () => {
     setSections(current => current.map((section, index) => {
       if (index !== sectionIndex) return section;
       const original = section.fields[fieldIndex];
-      const key = `${original.key}_copy`;
+      const baseKey = original.key.replace(/(?:_copy(?:_\d+)?)+$/, '');
+      const key = uniqueKey(`${baseKey}_copy`, current.flatMap(item => item.fields.map(field => field.key)));
       return { ...section, fields: [...section.fields, { ...original, key, label: `${original.label} (kopia)`, sortOrder: section.fields.length }] };
     }));
   };
@@ -486,7 +540,7 @@ export const FormBuilderPage: React.FC = () => {
       {createOpen && (
         <form className="form-builder__card form-builder__create" onSubmit={createTemplate}>
           <h2>Nowy formularz</h2>
-          <label>Klucz <input required maxLength={100} value={templateForm.key} onChange={event => setTemplateForm({ ...templateForm, key: event.target.value })} /></label>
+          <label>Klucz <input required pattern="[A-Za-z0-9_-]+" maxLength={100} value={templateForm.key} onChange={event => setTemplateForm({ ...templateForm, key: event.target.value })} /></label>
           <label>Nazwa <input required maxLength={255} value={templateForm.name} onChange={event => setTemplateForm({ ...templateForm, name: event.target.value })} /></label>
           <label>Opis <textarea value={templateForm.description} onChange={event => setTemplateForm({ ...templateForm, description: event.target.value })} /></label>
           <label>Typ <select value={templateForm.kind} onChange={event => setTemplateForm({ ...templateForm, kind: event.target.value as FormKind })}>
@@ -549,10 +603,11 @@ export const FormBuilderPage: React.FC = () => {
                 <span>{readOnly ? 'Wersja tylko do odczytu' : 'Edycja wersji roboczej'}</span>
                 <div>
                   {version.status === 'PUBLISHED' && canCreate && <button className="btn btn-secondary" disabled={saving} onClick={() => void createNextVersion(version.id)}>Nowa wersja</button>}
-                  {canUpdate && version.status === 'DRAFT' && <button className="btn btn-secondary" disabled={saving} onClick={() => void saveDraft()}>{saving ? 'Zapisywanie…' : 'Zapisz draft'}</button>}
-                  {canPublish && version.status === 'DRAFT' && <button className="btn btn-primary" disabled={saving} onClick={() => void publish()}>{saving ? 'Publikowanie…' : 'Publikuj wersję'}</button>}
+                  {canUpdate && version.status === 'DRAFT' && <button className="btn btn-secondary" disabled={saving || Boolean(draftDefinitionError)} onClick={() => void saveDraft()}>{saving ? 'Zapisywanie…' : 'Zapisz draft'}</button>}
+                  {canPublish && version.status === 'DRAFT' && <button className="btn btn-primary" disabled={saving || Boolean(draftDefinitionError)} onClick={() => void publish()}>{saving ? 'Publikowanie…' : 'Publikuj wersję'}</button>}
                 </div>
               </div>
+              {draftDefinitionError && <p className="form-builder__notice form-builder__notice--error" role="alert">{draftDefinitionError}</p>}
               <label className="form-builder__title-input">Tytuł wersji
                 <input value={version.title} disabled={readOnly} onChange={event => setVersion({ ...version, title: event.target.value })} />
               </label>
@@ -561,7 +616,10 @@ export const FormBuilderPage: React.FC = () => {
               </label>
               <div className="form-builder__section-actions">
                 <h3>Sekcje</h3>
-                {!readOnly && <button type="button" className="btn btn-secondary" onClick={() => setSections(current => [...current, emptySection(current.length)])}>+ Dodaj sekcję</button>}
+                {!readOnly && <button type="button" className="btn btn-secondary" onClick={() => setSections(current => [...current, {
+                  ...emptySection(current.length),
+                  key: uniqueKey(`section_${current.length + 1}`, current.map(section => section.key)),
+                }])}>+ Dodaj sekcję</button>}
               </div>
               {sections.length === 0 && <p className="form-builder__hint">Dodaj sekcję, aby rozpocząć budowanie formularza.</p>}
               <DndContext sensors={sensors} onDragEnd={event => setSections(current => reorder(current, event))}>
