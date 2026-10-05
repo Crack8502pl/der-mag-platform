@@ -13,7 +13,9 @@ import { FormDomainError } from '../../../src/errors/FormDomainError';
 import { FormApprovalService } from '../../../src/services/FormApprovalService';
 import { FormInstanceService } from '../../../src/services/FormInstanceService';
 import { FormTemplateService } from '../../../src/services/FormTemplateService';
-import { validateFormDefinition, validateFormResponses } from '../../../src/services/FormRules';
+import {
+  assertRelationAllowed, evaluateFormCondition, resolveAssignment, validateFormDefinition, validateFormResponses,
+} from '../../../src/services/FormRules';
 
 jest.mock('../../../src/config/database', () => ({ AppDataSource: {} }));
 
@@ -556,5 +558,52 @@ describe('FormApprovalService', () => {
       comment: 'Needs changes',
     });
     expect(instance.status).toBe(FormInstanceStatus.REJECTED);
+  });
+});
+
+describe('FormRules stage 8: composite conditions, variable references, assignment', () => {
+  const when = (conditions: unknown) => evaluateFormCondition({ visibleWhen: conditions }, 'visibleWhen', { a: 1, b: 2, c: 2 });
+
+  it('evaluates all/any/not groups and ${form.key} references', () => {
+    expect(when({ all: [{ field: 'a', operator: 'equals', value: 1 }, { field: 'b', operator: 'gt', value: 1 }] })).toBe(true);
+    expect(when({ any: [{ field: 'a', operator: 'equals', value: 9 }, { field: 'b', operator: 'equals', value: 2 }] })).toBe(true);
+    expect(when({ not: { field: 'a', operator: 'equals', value: 1 } })).toBe(false);
+    expect(when({ field: 'b', operator: 'equals', value: '${form.c}' })).toBe(true);
+    expect(when({ field: 'a', operator: 'equals', value: '${form.c}' })).toBe(false);
+  });
+
+  it('rejects unsafe or malformed conditions at definition time', () => {
+    const build = (condition: unknown) => validateFormDefinition([section], [
+      { ...fields[0], conditions: { visibleWhen: condition } } as FormFieldDefinition,
+      { ...fields[1] } as FormFieldDefinition,
+    ]);
+    const key = fields[1].key;
+    expect(() => build({ field: key, operator: 'equals', value: `\${form.${key}}` })).not.toThrow();
+    for (const bad of [
+      { field: key, operator: 'equals', value: '${camera.total}' },
+      { field: key, operator: 'equals', value: '${form.missing}' },
+      { field: key, operator: 'equals', value: 'x ${form.' + key + '}' },
+      { all: [] },
+      { all: [{ field: key, operator: 'isEmpty' }], any: [] },
+      { not: { not: { not: { not: { field: key, operator: 'isEmpty' } } } } },
+    ]) {
+      expect(() => build(bad)).toThrow(FormDomainError);
+    }
+  });
+
+  it('resolves assignment by priority and active flag', () => {
+    const rules = [
+      { id: 1, priority: 5, active: true, conditions: {}, assignedUserId: 1, assignedTeamId: null },
+      { id: 2, priority: 1, active: true, conditions: { when: { field: 'a', operator: 'equals', value: 1 } }, assignedUserId: 2, assignedTeamId: null },
+      { id: 3, priority: 0, active: false, conditions: {}, assignedUserId: 3, assignedTeamId: null },
+    ];
+    expect(resolveAssignment(rules, { a: 1 })?.id).toBe(2);
+    expect(resolveAssignment(rules, { a: 2 })?.id).toBe(1);
+    expect(resolveAssignment([], {})).toBeNull();
+  });
+
+  it('forbids installedIn in DEVICE_PRECONFIGURATION', () => {
+    expect(() => assertRelationAllowed('DEVICE_PRECONFIGURATION', 'installedIn')).toThrow(FormDomainError);
+    expect(() => assertRelationAllowed('FIELD_INSTALLATION', 'installedIn')).not.toThrow();
   });
 });
