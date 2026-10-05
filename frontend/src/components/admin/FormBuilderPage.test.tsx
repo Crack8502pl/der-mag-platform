@@ -128,7 +128,7 @@ describe('FormBuilderPage', () => {
     expect(await screen.findByText('Wersja robocza została zapisana.')).toBeInTheDocument();
   });
 
-  it('shows the preview as a static display of the saved definition', async () => {
+  it('shows an interactive preview of the saved version, not unsaved edits', async () => {
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
     await screen.findByDisplayValue('Wynik');
@@ -137,10 +137,12 @@ describe('FormBuilderPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
 
-    expect(screen.getByRole('heading', { level: 3, name: 'Kontrola jakości' })).toBeInTheDocument();
-    expect(screen.getByRole('combobox')).toBeDisabled();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Kontrola jakości' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).not.toBeDisabled();
     expect(screen.getByRole('option', { name: 'PASS' })).toBeInTheDocument();
-    expect(screen.getByText(/warunki i walidacja nie są tu wykonywane/i)).toBeInTheDocument();
+    expect(screen.getByText(/Interaktywny podgląd zapisanej wersji/i)).toBeInTheDocument();
+    expect(formsService.getVersion).toHaveBeenLastCalledWith(draft.id);
+    expect(screen.queryByRole('button', { name: 'Zapisz odpowiedzi' })).not.toBeInTheDocument();
   });
 
   it('saves current edits before publishing the immutable version', async () => {
