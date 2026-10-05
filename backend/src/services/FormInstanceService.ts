@@ -6,6 +6,7 @@ import { FormFieldValue } from '../entities/FormFieldValue';
 import { FormInstance } from '../entities/FormInstance';
 import { FormSection } from '../entities/FormSection';
 import { FormInstanceStatus, FormVersionStatus } from '../entities/FormTypes';
+import { Task } from '../entities/Task';
 import { FormTemplateVersion } from '../entities/FormTemplateVersion';
 import { FormDomainError } from '../errors/FormDomainError';
 import { FormAuditService } from './FormAuditService';
@@ -30,6 +31,16 @@ export class FormInstanceService {
       }
       if (version.status !== FormVersionStatus.PUBLISHED) {
         throw new FormDomainError('VERSION_NOT_PUBLISHED', 'Form instances require a published version');
+      }
+
+      if (input.taskId != null && input.contractId != null) {
+        const task = await manager.getRepository(Task).findOne({ where: { id: input.taskId } });
+        if (!task) {
+          throw new FormDomainError('INVALID_INSTANCE_CONTEXT', `Task ${input.taskId} was not found`);
+        }
+        if (task.contractId !== input.contractId) {
+          throw new FormDomainError('INVALID_INSTANCE_CONTEXT', 'Task does not belong to the supplied contract');
+        }
       }
 
       const repository = manager.getRepository(FormInstance);

@@ -5,6 +5,7 @@ import { FormFieldDefinition } from '../../../src/entities/FormFieldDefinition';
 import { FormFieldValue } from '../../../src/entities/FormFieldValue';
 import { FormInstance } from '../../../src/entities/FormInstance';
 import { FormSection } from '../../../src/entities/FormSection';
+import { Task } from '../../../src/entities/Task';
 import { FormTemplate } from '../../../src/entities/FormTemplate';
 import { FormTemplateVersion } from '../../../src/entities/FormTemplateVersion';
 import { FormTrigger } from '../../../src/entities/FormTrigger';
@@ -394,6 +395,22 @@ describe('FormInstanceService', () => {
       id: 20, templateVersionId: 7, status: FormInstanceStatus.DRAFT,
     });
     expect(instanceRepository.create).toHaveBeenCalledWith(expect.objectContaining({ templateVersionId: 7 }));
+  });
+
+  it('rejects a task that does not belong to the supplied contract and keeps traceability otherwise', async () => {
+    const versionRepository = repository({ findOne: jest.fn().mockResolvedValue({ id: 7, status: FormVersionStatus.PUBLISHED }) });
+    const taskRepository = repository({ findOne: jest.fn().mockResolvedValue({ id: 5, contractId: 2 }) });
+    const instanceRepository = repository({ save: jest.fn(async (value: any) => ({ id: 20, ...value })) });
+    const { dataSource } = harness(repositoryMap([
+      [FormTemplateVersion, versionRepository], [Task, taskRepository], [FormInstance, instanceRepository],
+    ]));
+    const service = new FormInstanceService(dataSource);
+
+    await expect(service.createInstance({ templateVersionId: 7, taskId: 5, contractId: 3 }, 9))
+      .rejects.toMatchObject({ code: 'INVALID_INSTANCE_CONTEXT' });
+    expect(instanceRepository.save).not.toHaveBeenCalled();
+    await expect(service.createInstance({ templateVersionId: 7, taskId: 5, contractId: 2, deviceId: 4, assignedUserId: 1 }, 9))
+      .resolves.toMatchObject({ taskId: 5, contractId: 2, deviceId: 4, assignedUserId: 1, templateVersionId: 7 });
   });
 
   it('validates submitted answer values against stored definitions before saving', async () => {
