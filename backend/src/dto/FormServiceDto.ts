@@ -49,3 +49,17 @@ export interface CreateFormInstanceDto {
 }
 
 export type FormResponses = Record<string, FormJsonValue>;
+
+export interface FormInstanceAssignmentInput {
+  assignedUserId?: number | null;
+  assignedTeamId?: number | null;
+}
+
+export interface FormAssignmentRuleInput {
+  triggerId?: number | null;
+  priority?: number;
+  active?: boolean;
+  conditions?: FormJsonObject;
+  assignedUserId?: number;
+  assignedTeamId?: number;
+}

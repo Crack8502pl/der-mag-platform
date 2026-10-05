@@ -3,6 +3,7 @@ import { FormFieldDefinition } from '../entities/FormFieldDefinition';
 import { FormSection } from '../entities/FormSection';
 import { FormJsonValue } from '../entities/FormTypes';
 import { FormResponses } from '../dto/FormServiceDto';
+import { RESERVED_FORM_KEYS } from '../utils/formJson';
 
 const OPERATORS = new Set([
   'equals',
@@ -98,6 +99,9 @@ function validateConditions(
 }
 
 export function validateFormDefinition(sections: FormSection[], fields: FormFieldDefinition[]): void {
+  if (sections.some(section => RESERVED_FORM_KEYS.includes(section.key))) {
+    throw new FormDomainError('INVALID_DEFINITION', 'Reserved section keys are not allowed');
+  }
   const fieldKeys = new Set<string>();
   const sectionIds = new Set(sections.map(section => section.id));
   const supportedTypes = new Set([
@@ -106,8 +110,8 @@ export function validateFormDefinition(sections: FormSection[], fields: FormFiel
   ]);
 
   for (const field of fields) {
-    if (fieldKeys.has(field.key) || !sectionIds.has(field.sectionId)) {
-      throw new FormDomainError('INVALID_DEFINITION', `Duplicate or unlinked field: ${field.key}`);
+    if (RESERVED_FORM_KEYS.includes(field.key) || fieldKeys.has(field.key) || !sectionIds.has(field.sectionId)) {
+      throw new FormDomainError('INVALID_DEFINITION', `Duplicate, reserved or unlinked field: ${field.key}`);
     }
     if (!supportedTypes.has(field.fieldType.toUpperCase())) {
       throw new FormDomainError('INVALID_DEFINITION', `Unsupported field type: ${field.fieldType}`);

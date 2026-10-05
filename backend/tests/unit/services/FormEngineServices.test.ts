@@ -234,6 +234,7 @@ describe('FormTemplateService', () => {
       [FormTemplateVersion, versionRepository],
       [FormSection, sectionRepository],
       [FormFieldDefinition, fieldRepository],
+      [FormAssignmentRule, repository()],
     ]));
     const service = new FormTemplateService(dataSource);
 
@@ -259,6 +260,7 @@ describe('FormTemplateService', () => {
       [FormTemplateVersion, versionRepository],
       [FormSection, sectionRepository],
       [FormFieldDefinition, fieldRepository],
+      [FormAssignmentRule, repository()],
     ]));
     await expect(new FormTemplateService(dataSource).publishVersion(7, 9)).rejects.toMatchObject({
       code: 'INVALID_DEFINITION',

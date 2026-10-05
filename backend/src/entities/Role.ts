@@ -222,8 +222,20 @@ export interface MapPermissions {
 /**
  * Struktura wszystkich uprawnień
  */
+export interface FormsPermissions {
+  read?: boolean;
+  create?: boolean;
+  update?: boolean;
+  publish?: boolean;
+  complete?: boolean;
+  approve?: boolean;
+  assign?: boolean;
+  readAll?: boolean;
+}
+
 export interface RolePermissions {
   all?: boolean; // Admin - pełny dostęp
+  forms?: FormsPermissions;
   dashboard?: DashboardPermissions;
   contracts?: ContractPermissions;
   subsystems?: SubsystemPermissions;
