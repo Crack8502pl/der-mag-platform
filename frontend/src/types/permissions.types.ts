@@ -152,6 +152,14 @@ export interface AssetPermissions {
   delete?: boolean;
 }
 
+export interface FormsPermissions {
+  read?: boolean;
+  create?: boolean;
+  update?: boolean;
+  publish?: boolean;
+  assign?: boolean;
+}
+
 export interface MapPermissions {
   read?: boolean;
   viewAll?: boolean;
@@ -179,6 +187,7 @@ export interface RolePermissions {
   brigades?: BrigadePermissions;
   cars?: CarsPermissions;
   assets?: AssetPermissions;
+  forms?: FormsPermissions;
   map?: MapPermissions;
   [key: string]: any;
 }
@@ -205,6 +214,7 @@ export type PermissionModule =
   | 'brigades'
   | 'cars'
   | 'assets'
+  | 'forms'
   | 'map';
 
 export type PermissionAction = 
@@ -233,9 +243,9 @@ export type PermissionAction =
   | 'decideContinue'
   | 'deletePool'
   | 'receiveOrder'
+  | 'publish'
   | 'reportMissing'
   | 'updatePool'
   | 'viewAll'
   | 'access'; // Used for admin-only routes with module: 'all'
-
 

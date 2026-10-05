@@ -76,6 +76,13 @@ export const AdminDashboard: React.FC = () => {
       permission: { module: 'bom', action: 'read' },
     },
     {
+      title: 'Form Builder',
+      description: 'Zarządzaj wersjami formularzy i checklist',
+      icon: '📝',
+      path: '/admin/forms',
+      permission: { module: 'forms', action: 'read' },
+    },
+    {
       title: 'Import materiałów',
       description: 'Importuj materiały z plików CSV/Excel',
       icon: '📥',
