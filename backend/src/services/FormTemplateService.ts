@@ -192,7 +192,7 @@ export class FormTemplateService {
         if (rule.triggerId !== undefined && rule.triggerId !== null && !triggerIds.has(rule.triggerId)) {
           throw new FormDomainError('INVALID_DEFINITION', 'Assignment trigger must belong to the same version');
         }
-        validateFormConditionShape(rule.conditions, keys, 'assignment rule');
+        validateFormConditionShape(rule.conditions, keys, 'assignment rule', ['when']);
       }
       const repository = manager.getRepository(FormAssignmentRule);
       const previous = await repository.find({ where: { templateVersionId: versionId } });

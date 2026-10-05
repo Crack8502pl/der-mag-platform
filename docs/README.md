@@ -8,3 +8,4 @@
 - [REST API — etap 5](form-checklist-engine/05-api.md)
 - [Form Builder — etap 6](form-checklist-engine/06-form-builder.md)
 - [DynamicFormRenderer — etap 7](form-checklist-engine/07-dynamic-form-renderer.md)
+- [Rules / Trigger integration — etap 8](form-checklist-engine/08-rules-trigger-integration.md)

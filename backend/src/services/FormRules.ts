@@ -4,6 +4,33 @@ import { FormSection } from '../entities/FormSection';
 import { FormJsonValue } from '../entities/FormTypes';
 import { FormResponses } from '../dto/FormServiceDto';
 import { RESERVED_FORM_KEYS } from '../utils/formJson';
+import { VariableParser } from '../modules/variable-engine/parser/VariableParser';
+
+const MAX_CONDITION_DEPTH = 3;
+const MAX_CONDITION_GROUP = 20;
+const FORM_REFERENCE_PREFIX = 'form.';
+const variableParser = new VariableParser();
+
+/**
+ * A condition operand of the form `${form.<fieldKey>}` is parsed with the shared
+ * Variable Engine parser and resolved against the stored form responses.
+ * Returns the referenced field key, or null when the value is a plain literal.
+ * Throws for any other `${...}` usage (no foreign namespaces, no expressions).
+ */
+function parseFormReference(value: unknown, owner: string): string | null {
+  if (typeof value !== 'string' || !value.includes('${')) return null;
+  const tokens = variableParser.parse(value);
+  const token = tokens[0];
+  const key = token?.expression.slice(FORM_REFERENCE_PREFIX.length);
+  if (
+    tokens.length !== 1 || token.raw !== value ||
+    !token.expression.startsWith(FORM_REFERENCE_PREFIX) ||
+    !/^[A-Za-z0-9_-]+$/.test(key)
+  ) {
+    throw new FormDomainError('INVALID_DEFINITION', `Condition on ${owner} contains an unsupported variable reference`);
+  }
+  return key;
+}
 
 const OPERATORS = new Set([
   'equals',
@@ -18,11 +45,13 @@ const OPERATORS = new Set([
   'isNotEmpty',
 ]);
 
-type Condition = {
+type LeafCondition = {
   field: string;
   operator: string;
   value?: FormJsonValue;
 };
+
+type Condition = LeafCondition | { all: Condition[] } | { any: Condition[] } | { not: Condition };
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -36,7 +65,22 @@ const isEmpty = (value: unknown): boolean =>
 const equal = (left: unknown, right: unknown): boolean =>
   JSON.stringify(left) === JSON.stringify(right);
 
-function validateCondition(value: unknown, fieldKeys: Set<string>, owner: string): Condition {
+function validateCondition(value: unknown, fieldKeys: Set<string>, owner: string, depth = 0): Condition {
+  if (isObject(value) && ['all', 'any', 'not'].some(key => key in value)) {
+    const keys = Object.keys(value);
+    const group = value[keys[0]];
+    if (depth >= MAX_CONDITION_DEPTH || keys.length !== 1 || !['all', 'any', 'not'].includes(keys[0])) {
+      throw new FormDomainError('INVALID_DEFINITION', `Invalid condition group on ${owner}`);
+    }
+    if (keys[0] === 'not') {
+      validateCondition(group, fieldKeys, owner, depth + 1);
+    } else if (!Array.isArray(group) || group.length === 0 || group.length > MAX_CONDITION_GROUP) {
+      throw new FormDomainError('INVALID_DEFINITION', `Condition group on ${owner} must be a bounded non-empty list`);
+    } else {
+      group.forEach(item => validateCondition(item, fieldKeys, owner, depth + 1));
+    }
+    return value as Condition;
+  }
   if (
     !isObject(value) ||
     typeof value.field !== 'string' ||
@@ -67,6 +111,12 @@ function validateCondition(value: unknown, fieldKeys: Set<string>, owner: string
       throw new FormDomainError('INVALID_DEFINITION', `Condition on ${owner} requires a bounded scalar list`);
     }
   } else if (
+    parseFormReference(value.value, owner) !== null
+  ) {
+    if (!fieldKeys.has(parseFormReference(value.value, owner) as string)) {
+      throw new FormDomainError('INVALID_DEFINITION', `Condition on ${owner} references an unknown field`);
+    }
+  } else if (
     value.operator !== 'isEmpty' &&
     value.operator !== 'isNotEmpty' &&
     value.value !== null &&
@@ -93,7 +143,7 @@ function validateConditions(
     throw new FormDomainError('INVALID_DEFINITION', `Conditions on ${owner} contain unsupported properties`);
   }
 
-  for (const key of ['visibleWhen', 'requiredWhen', 'blockCompletionWhen']) {
+  for (const key of ['visibleWhen', 'requiredWhen', 'blockCompletionWhen', 'when']) {
     if (conditions[key] !== undefined) validateCondition(conditions[key], fieldKeys, owner);
   }
 }
@@ -136,10 +186,17 @@ export function validateFormDefinition(sections: FormSection[], fields: FormFiel
 }
 
 function evaluateCondition(condition: Condition, values: FormResponses): boolean {
+  if ('all' in condition) return condition.all.every(item => evaluateCondition(item, values));
+  if ('any' in condition) return condition.any.some(item => evaluateCondition(item, values));
+  if ('not' in condition) return !evaluateCondition(condition.not, values);
   const actual = Object.prototype.hasOwnProperty.call(values, condition.field)
     ? values[condition.field]
     : undefined;
-  const expected = condition.value;
+  let expected = condition.value;
+  const reference = parseFormReference(expected, 'condition');
+  if (reference !== null) {
+    expected = Object.prototype.hasOwnProperty.call(values, reference) ? values[reference] : undefined;
+  }
   switch (condition.operator) {
     case 'equals': return equal(actual, expected);
     case 'notEquals': return !equal(actual, expected);
@@ -252,4 +309,44 @@ export function validateFormConditionShape(
   allowedKeys?: string[],
 ): void {
   validateConditions(conditions, fieldKeys, owner, allowedKeys);
+}
+
+export interface AssignmentRuleLike {
+  id?: number;
+  priority: number;
+  active: boolean;
+  conditions: unknown;
+  assignedUserId: number | null;
+  assignedTeamId: number | null;
+}
+
+/**
+ * Picks the first active assignment rule (lowest priority value, then id) whose
+ * `conditions.when` matches the stored responses; a rule without `when` always matches.
+ */
+export function resolveAssignment<T extends AssignmentRuleLike>(rules: T[], values: FormResponses): T | null {
+  const ordered = [...rules]
+    .filter(rule => rule.active)
+    .sort((a, b) => a.priority - b.priority || (a.id ?? 0) - (b.id ?? 0));
+  for (const rule of ordered) {
+    const when = isObject(rule.conditions) ? rule.conditions.when : undefined;
+    if (when === undefined || evaluateCondition(when as Condition, values)) return rule;
+  }
+  return null;
+}
+
+/** Evaluates a stored visibility/required/block condition on a definition against responses. */
+export function evaluateFormCondition(
+  conditions: unknown,
+  key: 'visibleWhen' | 'requiredWhen' | 'blockCompletionWhen',
+  values: FormResponses,
+): boolean {
+  return conditionMatches(conditions, key, values);
+}
+
+/** DEVICE_PRECONFIGURATION must never create installedIn (assembly) relations. */
+export function assertRelationAllowed(procedureType: string, relationType: string): void {
+  if (procedureType === 'DEVICE_PRECONFIGURATION' && relationType === 'installedIn') {
+    throw new FormDomainError('INVALID_DEFINITION', 'installedIn relations are not allowed in DEVICE_PRECONFIGURATION');
+  }
 }
