@@ -143,6 +143,9 @@ export class EmptyFormActionDto {
 export class ApprovalDto {
   @ValidateIf(supplied) @Transform(trim) @IsString() @MinLength(1) @MaxLength(10000)
   comment?: string;
+
+  @ValidateIf(supplied) @IsBoolean()
+  override?: boolean;
 }
 
 export class RejectionDto {

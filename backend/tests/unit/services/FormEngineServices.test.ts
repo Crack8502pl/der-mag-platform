@@ -578,6 +578,61 @@ describe('FormApprovalService', () => {
   });
 });
 
+describe('FormEngine stage 10: approval and audit', () => {
+  const auditEvents = (manager: any) => manager.query.mock.calls.map((call: any[]) => call[1][0]);
+  const approvalHarness = () => {
+    const instance = { id: 20, status: FormInstanceStatus.SUBMITTED };
+    const approvalRepository = repository({ save: jest.fn(async (value: any) => ({ id: 40, ...value })) });
+    const h = harness(repositoryMap([
+      [FormInstance, repository({ findOne: jest.fn().mockResolvedValue(instance), save: jest.fn(async (v: any) => v) })],
+      [FormApproval, approvalRepository],
+    ]));
+    return { ...h, instance };
+  };
+
+  it('audits approval with actor, previous and new status', async () => {
+    const { dataSource, manager } = approvalHarness();
+    await new FormApprovalService(dataSource).approve(20, 9, 'ok');
+    const [, params] = manager.query.mock.calls[0];
+    expect(params[1]).toBe(9);
+    expect(JSON.parse(params[2]).changes).toContainEqual({
+      field: 'instanceStatus', previousValue: FormInstanceStatus.SUBMITTED, newValue: FormInstanceStatus.APPROVED,
+    });
+    expect(JSON.parse(params[2])).toMatchObject({ stepKey: 'approval', stepOrder: 1, round: 1 });
+  });
+
+  it('audits rejection with its comment', async () => {
+    const { dataSource, manager } = approvalHarness();
+    await new FormApprovalService(dataSource).reject(20, 9, 'Fix it');
+    expect(auditEvents(manager)).toEqual(['FORM_REJECTED']);
+    expect(JSON.parse(manager.query.mock.calls[0][1][2]).changes).toContainEqual({
+      field: 'comment', previousValue: null, newValue: 'Fix it',
+    });
+  });
+
+  it('requires a comment for override and audits it separately', async () => {
+    const service = new FormApprovalService(approvalHarness().dataSource);
+    await expect(service.approve(20, 9, ' ', { override: true })).rejects.toMatchObject({ code: 'OVERRIDE_COMMENT_REQUIRED' });
+    const { dataSource, manager } = approvalHarness();
+    const approval = await new FormApprovalService(dataSource).approve(20, 9, 'Approved by exception', { override: true });
+    expect(approval.metadata).toEqual({ override: true });
+    expect(auditEvents(manager)).toEqual(['FORM_APPROVED', 'FORM_OVERRIDE']);
+  });
+
+  it('audits FAIL answers when responses are saved', async () => {
+    const instance = { id: 20, templateVersionId: 7, status: FormInstanceStatus.IN_PROGRESS };
+    const { dataSource, manager } = harness(repositoryMap([
+      [FormInstance, repository({ findOne: jest.fn().mockResolvedValue(instance), save: jest.fn(async (v: any) => v) })],
+      [FormSection, repository({ find: jest.fn().mockResolvedValue([section]) })],
+      [FormFieldDefinition, repository({ find: jest.fn().mockResolvedValue(fields) })],
+      [FormFieldValue, repository()],
+    ]));
+    await new FormInstanceService(dataSource).saveResponses(20, { result: 'FAIL' }, 9);
+    expect(auditEvents(manager)).toEqual(['FORM_RESPONSES_UPDATED', 'FORM_FAIL_RECORDED']);
+    expect(JSON.parse(manager.query.mock.calls[1][1][2]).failedFields).toEqual(['result']);
+  });
+});
+
 describe('FormRules stage 8: composite conditions, variable references, assignment', () => {
   const when = (conditions: unknown) => evaluateFormCondition({ visibleWhen: conditions }, 'visibleWhen', { a: 1, b: 2, c: 2 });
 

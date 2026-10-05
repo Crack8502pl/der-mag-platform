@@ -23,6 +23,7 @@ const statusByCode: Record<FormDomainErrorCode, number> = {
   INVALID_ASSIGNMENT: 400,
   INVALID_INSTANCE_CONTEXT: 400,
   REJECTION_COMMENT_REQUIRED: 400,
+  OVERRIDE_COMMENT_REQUIRED: 400,
 };
 
 const permissions = (req: Request): RolePermissions => req.user!.permissions;
@@ -175,6 +176,6 @@ export class FormsController {
   ));
 
   // forms.approve permits decisions across records; the service enforces submitted state.
-  approve = this.handler(req => this.approvals.approve(Number(req.params.id), req.userId!, req.body.comment));
+  approve = this.handler(req => this.approvals.approve(Number(req.params.id), req.userId!, req.body.comment, { override: req.body.override === true }));
   reject = this.handler(req => this.approvals.reject(Number(req.params.id), req.userId!, req.body.comment));
 }

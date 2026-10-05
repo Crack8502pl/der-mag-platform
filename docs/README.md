@@ -10,3 +10,4 @@
 - [DynamicFormRenderer — etap 7](form-checklist-engine/07-dynamic-form-renderer.md)
 - [Rules / Trigger integration — etap 8](form-checklist-engine/08-rules-trigger-integration.md)
 - [FormInstance + wykonanie — etap 9](form-checklist-engine/09-form-instance-execution.md)
+- [Approval + Audit — etap 10](form-checklist-engine/10-approval-audit.md)
