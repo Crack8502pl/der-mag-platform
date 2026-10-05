@@ -6,11 +6,21 @@ import { FormApprovalDecision, FormInstanceStatus } from '../entities/FormTypes'
 import { FormDomainError } from '../errors/FormDomainError';
 import { FormAuditService } from './FormAuditService';
 
+export interface FormApprovalOptions {
+  override?: boolean;
+}
+
+// Single default step; stepKey/stepOrder/round columns allow multi-step flows later.
+const DEFAULT_STEP = { stepKey: 'approval', stepOrder: 1 };
+
 export class FormApprovalService {
   constructor(private readonly dataSource: DataSource = AppDataSource) {}
 
-  async approve(instanceId: number, actorId: number, comment?: string): Promise<FormApproval> {
-    return this.decide(instanceId, actorId, FormApprovalDecision.APPROVED, comment);
+  async approve(instanceId: number, actorId: number, comment?: string, options: FormApprovalOptions = {}): Promise<FormApproval> {
+    if (options.override && !comment?.trim()) {
+      throw new FormDomainError('OVERRIDE_COMMENT_REQUIRED', 'An override comment is required');
+    }
+    return this.decide(instanceId, actorId, FormApprovalDecision.APPROVED, comment, options);
   }
 
   async reject(instanceId: number, actorId: number, comment: string): Promise<FormApproval> {
@@ -25,6 +35,7 @@ export class FormApprovalService {
     actorId: number,
     decision: FormApprovalDecision,
     comment?: string,
+    options: FormApprovalOptions = {},
   ): Promise<FormApproval> {
     return this.dataSource.transaction(async manager => {
       const instanceRepository = manager.getRepository(FormInstance);
@@ -48,13 +59,12 @@ export class FormApprovalService {
         : lastDecision?.round ?? 1;
       const approval = await approvalRepository.save(approvalRepository.create({
         instanceId,
-        stepKey: 'approval',
-        stepOrder: 1,
+        ...DEFAULT_STEP,
         round,
         decision,
         decidedById: actorId,
         comment: comment?.trim() || null,
-        metadata: {},
+        metadata: options.override ? { override: true } : {},
       }));
 
       const oldStatus = instance.status;
@@ -66,7 +76,13 @@ export class FormApprovalService {
         { field: 'decision', previousValue: null, newValue: decision },
         { field: 'instanceStatus', previousValue: oldStatus, newValue: instance.status },
         { field: 'comment', previousValue: null, newValue: approval.comment },
-      ], { instanceId, round });
+      ], { instanceId, round, stepKey: DEFAULT_STEP.stepKey, stepOrder: DEFAULT_STEP.stepOrder });
+      if (options.override) {
+        await FormAuditService.record(manager, 'FORM_OVERRIDE', actorId, 'form_approval', approval.id, [
+          { field: 'override', previousValue: false, newValue: true },
+          { field: 'comment', previousValue: null, newValue: approval.comment },
+        ], { instanceId, round });
+      }
       return approval;
     });
   }

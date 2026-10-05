@@ -78,11 +78,13 @@ export class FormInstanceService {
       const fieldsByKey = new Map(fields.map(field => [field.key, field]));
       const valuesByFieldId = new Map(existingValues.map(value => [value.fieldDefinitionId, value]));
       const changes: Array<{ field: string; previousValue: unknown; newValue: unknown }> = [];
+      const failed: string[] = [];
       const toSave = Object.entries(responses).map(([key, value]) => {
         const field = fieldsByKey.get(key)!;
         const existing = valuesByFieldId.get(field.id);
         if (JSON.stringify(existing?.value ?? null) !== JSON.stringify(value ?? null)) {
           changes.push({ field: key, previousValue: existing?.value ?? null, newValue: value });
+          if (field.fieldType.toUpperCase() === 'PASS_FAIL' && value === 'FAIL') failed.push(key);
         }
         return manager.getRepository(FormFieldValue).create({
           ...(existing ? { id: existing.id } : {}),
@@ -105,6 +107,10 @@ export class FormInstanceService {
           ...changes,
           ...(oldStatus === instance.status ? [] : [{ field: 'status', previousValue: oldStatus, newValue: instance.status }]),
         ]);
+      }
+      if (failed.length) {
+        await FormAuditService.record(manager, 'FORM_FAIL_RECORDED', actorId, 'form_instance', instance.id,
+          changes.filter(change => failed.includes(change.field)), { failedFields: failed });
       }
       return savedValues;
     });

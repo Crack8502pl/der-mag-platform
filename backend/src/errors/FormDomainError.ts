@@ -10,7 +10,8 @@ export type FormDomainErrorCode =
   | 'INVALID_ASSIGNMENT'
   | 'INVALID_INSTANCE_CONTEXT'
   | 'INVALID_INSTANCE_STATUS'
-  | 'REJECTION_COMMENT_REQUIRED';
+  | 'REJECTION_COMMENT_REQUIRED'
+  | 'OVERRIDE_COMMENT_REQUIRED';
 
 export class FormDomainError extends Error {
   constructor(
