@@ -1,40 +1,27 @@
-// scripts/setup-database.ts
-// Complete database setup: migrations + seed
 import 'reflect-metadata';
 import { AppDataSource } from '../src/config/database';
 import { DatabaseSeeder } from '../src/services/DatabaseSeeder';
-import { execSync } from 'child_process';
+import { runDataMigrations } from './run-data-migrations';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
 
 dotenv.config();
 
 async function setupDatabase() {
-  console.log('🚀 Starting complete database setup...\n');
+  console.log('🚀 Rozpoczynam konfigurację bazy danych...\n');
   
   try {
-    // Step 1: Run SQL migrations
-    console.log('📦 Step 1: Running SQL migrations...');
-    try {
-      const scriptPath = path.join(__dirname, 'run-all-migrations.sh');
-      execSync(`bash ${scriptPath}`, { 
-        stdio: 'inherit',
-        cwd: process.cwd()
-      });
-      console.log('✅ SQL migrations completed\n');
-    } catch (error) {
-      console.log('⚠️  Migrations may already be applied (continuing...)\n');
-    }
-    
-    // Step 2: Initialize TypeORM connection
-    console.log('📦 Step 2: Initializing database connection...');
+    console.log('📦 Krok 1: Migracje TypeORM...');
     await AppDataSource.initialize();
-    console.log('✅ Database connected\n');
+    const migrations = await AppDataSource.runMigrations();
+    console.log(`✅ Połączono z bazą. Zastosowano migracji: ${migrations.length}.\n`);
     
-    // Step 3: Run seeders
-    console.log('📦 Step 3: Running database seeders...');
+    console.log('📦 Krok 2: Migracje danych i uprawnień...');
+    await runDataMigrations();
+    console.log('✅ Migracje danych i uprawnień zakończone.\n');
+
+    console.log('📦 Krok 3: Brakujące dane początkowe...');
     await DatabaseSeeder.seed();
-    console.log('✅ Seeders completed\n');
+    console.log('✅ Dane początkowe gotowe.\n');
     
     console.log('════════════════════════════════════════');
     console.log('🎉 Database setup completed successfully!');
@@ -47,8 +34,8 @@ async function setupDatabase() {
     console.log('');
     
   } catch (error) {
-    console.error('❌ Database setup failed:', error);
-    process.exit(1);
+    console.error('❌ Konfiguracja bazy danych nie powiodła się:', error);
+    process.exitCode = 1;
   } finally {
     if (AppDataSource.isInitialized) {
       await AppDataSource.destroy();

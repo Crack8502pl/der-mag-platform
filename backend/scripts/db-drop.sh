@@ -3,6 +3,10 @@
 set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/db-env.sh"
 load_database_config
+if ! command -v sudo >/dev/null 2>&1; then
+  echo "Błąd: wymagane jest polecenie sudo." >&2
+  exit 1
+fi
 
 echo "Ta operacja usunie bazę '$DB_NAME'. Użytkownik '$DB_USER' pozostanie."
 read -r -p "Czy na pewno usunąć bazę? [y/N] " confirmation

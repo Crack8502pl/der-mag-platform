@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddCompletedAtToTasks20260824 implements MigrationInterface {
-  name = 'AddCompletedAtToTasks20260824';
+export class AddCompletedAtToTasks1787529600000 implements MigrationInterface {
+  name = 'AddCompletedAtToTasks1787529600000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`

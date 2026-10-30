@@ -1,63 +1,56 @@
-#!/bin/bash
-# Script to run all database migrations in order
-# Usage: npm run migrate:all
+#!/usr/bin/env bash
 
-set -e  # Exit on error
+set -euo pipefail
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/db-env.sh"
+load_database_config
 
-# Load environment variables
-if [ -f .env ]; then
-  set -a
-  source .env
-  set +a
-fi
-
-# Database connection string
-DB_CONNECTION_STRING="${DB_CONNECTION_STRING:-postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}}"
-
-echo "======================================"
-echo "🔄 Running all database migrations..."
-echo "======================================"
-echo ""
-
-# Counter
-TOTAL=0
-SUCCESS=0
-FAILED=0
-
-# Get all .sql files in migrations directory and sort them
-MIGRATION_DIR="scripts/migrations"
-MIGRATIONS=$(ls -1 ${MIGRATION_DIR}/*.sql 2>/dev/null | sort)
-
-if [ -z "$MIGRATIONS" ]; then
-  echo "❌ No migration files found in ${MIGRATION_DIR}"
+export PGPASSWORD="$DB_PASSWORD"
+shopt -s nullglob
+MIGRATIONS=("$SCRIPT_DIR"/migrations/*.sql)
+if ((${#MIGRATIONS[@]} == 0)); then
+  echo "Błąd: nie znaleziono plików migracji SQL w $SCRIPT_DIR/migrations." >&2
   exit 1
 fi
 
-# Run each migration
-for MIGRATION_FILE in $MIGRATIONS; do
-  FILENAME=$(basename "$MIGRATION_FILE")
-  TOTAL=$((TOTAL + 1))
-  
-  echo "[$TOTAL] 📦 Running: $FILENAME"
-  
-  # Run migration and capture output
-  if psql "$DB_CONNECTION_STRING" -f "$MIGRATION_FILE" 2>&1 | grep -q "ERROR"; then
-    echo "    ⚠️  Already applied or error (continuing...)"
-    FAILED=$((FAILED + 1))
+TOTAL=0
+SUCCESS=0
+SKIPPED=0
+FAILED=0
+OUTPUT_FILE="$(mktemp)"
+trap 'rm -f "$OUTPUT_FILE"' EXIT
+
+run_migration() {
+  local migration="$1"
+  if [[ -n "$DB_CONNECTION_STRING" ]]; then
+    psql "$DB_CONNECTION_STRING" -v ON_ERROR_STOP=1 -f "$migration"
   else
-    echo "    ✅ Success"
-    SUCCESS=$((SUCCESS + 1))
+    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+      -v ON_ERROR_STOP=1 -f "$migration"
   fi
-  
-  echo ""
+}
+
+for migration in "${MIGRATIONS[@]}"; do
+  TOTAL=$((TOTAL + 1))
+  filename="$(basename "$migration")"
+  echo "[$TOTAL] Uruchamianie: $filename"
+
+  if run_migration "$migration" >"$OUTPUT_FILE" 2>&1; then
+    cat "$OUTPUT_FILE"
+    echo "    Zastosowano."
+    SUCCESS=$((SUCCESS + 1))
+  elif grep -Eqi 'already exists|already been applied' "$OUTPUT_FILE"; then
+    cat "$OUTPUT_FILE"
+    echo "    Pominięto: obiekt już istnieje."
+    SKIPPED=$((SKIPPED + 1))
+  else
+    cat "$OUTPUT_FILE" >&2
+    echo "    BŁĄD: migracja nie została zastosowana." >&2
+    FAILED=$((FAILED + 1))
+  fi
 done
 
-echo "======================================"
-echo "📊 Migration Summary:"
-echo "   Total:   $TOTAL"
-echo "   Success: $SUCCESS"
-echo "   Skipped: $FAILED"
-echo "======================================"
-echo ""
-echo "✅ Migration process completed!"
-echo ""
+echo "Podsumowanie: razem=$TOTAL, zastosowano=$SUCCESS, pominięto=$SKIPPED, błędy=$FAILED"
+if ((FAILED > 0)); then
+  exit 1
+fi

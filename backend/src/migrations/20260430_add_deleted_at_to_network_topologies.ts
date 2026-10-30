@@ -3,8 +3,8 @@
 
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddDeletedAtToNetworkTopologies20260430 implements MigrationInterface {
-  name = 'AddDeletedAtToNetworkTopologies20260430';
+export class AddDeletedAtToNetworkTopologies1777507200001 implements MigrationInterface {
+  name = 'AddDeletedAtToNetworkTopologies1777507200001';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`

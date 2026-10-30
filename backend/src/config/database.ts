@@ -109,15 +109,19 @@ import { FormInstance } from '../entities/FormInstance';
 import { FormFieldValue } from '../entities/FormFieldValue';
 import { FormApproval } from '../entities/FormApproval';
 // Migrations
+import { InitialSchema1600000000000 } from '../migrations/1600000000000-InitialSchema';
+import { AddBrigadeIdToTasks1714000000000 } from '../migrations/1714000000000-AddBrigadeIdToTasks';
 import { BackfillWizardTaskMetadata1714080000000 } from '../migrations/1714080000000-BackfillWizardTaskMetadata';
-import { CreateNetworkTopologies20260430 } from '../migrations/20260430_create_network_topologies';
-import { AddDeletedAtToNetworkTopologies20260430 } from '../migrations/20260430_add_deleted_at_to_network_topologies';
-import { CreateRailwayTables20260517 } from '../migrations/20260517_create_railway_tables';
-import { CreateWebhookConfigs20260517 } from '../migrations/20260517_create_webhook_configs';
+import { CreateNetworkTopologies1777507200000 } from '../migrations/20260430_create_network_topologies';
+import { AddDeletedAtToNetworkTopologies1777507200001 } from '../migrations/20260430_add_deleted_at_to_network_topologies';
+import { AddRequiresGroundingToWarehouseStock1778630400000 } from '../migrations/20260513_add_requires_grounding_to_warehouse_stock';
+import { CreateRailwayTables1778976000000 } from '../migrations/20260517_create_railway_tables';
+import { CreateWebhookConfigs1778976000001 } from '../migrations/20260517_create_webhook_configs';
 import { AddGpsToServiceTask1779574500000 } from '../migrations/1779574500000-AddGpsToServiceTask';
-import { AddEmailAutomationSystemSetting20260807 } from '../migrations/20260807_add_email_automation_system_setting';
-import { AddEmailAutomationPausedToUsers20260807 } from '../migrations/20260807_add_email_automation_paused_to_users';
-import { AddEmailAutomationAuditTable20260807 } from '../migrations/20260807_add_email_automation_audit_table';
+import { AddEmailAutomationSystemSetting1786060800000 } from '../migrations/20260807_add_email_automation_system_setting';
+import { AddEmailAutomationPausedToUsers1786060800001 } from '../migrations/20260807_add_email_automation_paused_to_users';
+import { AddEmailAutomationAuditTable1786060800002 } from '../migrations/20260807_add_email_automation_audit_table';
+import { AddCompletedAtToTasks1787529600000 } from '../migrations/20260824_add_completed_at_to_tasks';
 import { CreateFormChecklistEngine1790971200000 } from '../migrations/20261002_create_form_checklist_engine';
 
 export const AppDataSource = new DataSource({
@@ -258,15 +262,19 @@ export const AppDataSource = new DataSource({
   ],
   subscribers: [],
   migrations: [
+    InitialSchema1600000000000,
+    AddBrigadeIdToTasks1714000000000,
     BackfillWizardTaskMetadata1714080000000,
-    CreateNetworkTopologies20260430,
-    AddDeletedAtToNetworkTopologies20260430,
-    CreateRailwayTables20260517,
-    CreateWebhookConfigs20260517,
+    CreateNetworkTopologies1777507200000,
+    AddDeletedAtToNetworkTopologies1777507200001,
+    AddRequiresGroundingToWarehouseStock1778630400000,
+    CreateRailwayTables1778976000000,
+    CreateWebhookConfigs1778976000001,
     AddGpsToServiceTask1779574500000,
-    AddEmailAutomationSystemSetting20260807,
-    AddEmailAutomationPausedToUsers20260807,
-    AddEmailAutomationAuditTable20260807,
+    AddEmailAutomationSystemSetting1786060800000,
+    AddEmailAutomationPausedToUsers1786060800001,
+    AddEmailAutomationAuditTable1786060800002,
+    AddCompletedAtToTasks1787529600000,
     CreateFormChecklistEngine1790971200000,
   ],
 });

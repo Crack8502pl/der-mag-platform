@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddEmailAutomationPausedToUsers20260807 implements MigrationInterface {
-  name = 'AddEmailAutomationPausedToUsers20260807';
+export class AddEmailAutomationPausedToUsers1786060800001 implements MigrationInterface {
+  name = 'AddEmailAutomationPausedToUsers1786060800001';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`

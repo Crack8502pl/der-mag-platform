@@ -4,6 +4,8 @@ export class CreateFormChecklistEngine1790971200000 implements MigrationInterfac
   name = 'CreateFormChecklistEngine1790971200000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    if (await queryRunner.hasTable('form_templates')) return;
+
     await queryRunner.query(`
       CREATE TABLE form_templates (
         id SERIAL PRIMARY KEY,

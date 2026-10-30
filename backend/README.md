@@ -96,6 +96,10 @@ npm run db:setup
 `db:create` jest idempotentne; istniejącemu użytkownikowi ustawia hasło z `.env`.
 `db:drop` usuwa bazę po potwierdzeniu, ale pozostawia użytkownika. Nie uruchamiaj
 skryptów inicjalizacyjnych SQL ręcznie przy pierwszym uruchomieniu.
+`db:setup` uruchamia najpierw migracje TypeORM, potem wybrane migracje danych i
+uprawnień, a na końcu uzupełnia brakujące role, typy zadań i konto `admin`.
+Migracja bazowego schematu pomija istniejącą bazę, jeśli tabela `users` już
+istnieje.
 
 **Dane seed zawierają:** role, typy zadań, użytkownika administracyjnego oraz
 przykładowe dane aplikacji.

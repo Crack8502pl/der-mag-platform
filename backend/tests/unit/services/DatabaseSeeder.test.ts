@@ -23,6 +23,10 @@ describe('DatabaseSeeder', () => {
   let mockTaskTypeRepository: any;
 
   beforeEach(() => {
+    const rolesByName = new Map<string, any>();
+    const usersByUsername = new Map<string, any>();
+    const taskTypesByCode = new Map<string, any>();
+
     // Mock console to avoid cluttering test output
     jest.spyOn(console, 'log').mockImplementation();
 
@@ -30,18 +34,32 @@ describe('DatabaseSeeder', () => {
     mockRoleRepository = {
       count: jest.fn(),
       create: jest.fn((data) => data),
-      save: jest.fn((data) => Promise.resolve(data)),
-      findOne: jest.fn(),
+      save: jest.fn((data) => {
+        const saved = { id: rolesByName.size + 1, ...data };
+        rolesByName.set(data.name, saved);
+        return Promise.resolve(saved);
+      }),
+      findOne: jest.fn(({ where }: any) => Promise.resolve(rolesByName.get(where.name) ?? null)),
     };
 
     mockUserRepository = {
       create: jest.fn((data) => data),
-      save: jest.fn((data) => Promise.resolve(data)),
+      save: jest.fn((data) => {
+        const saved = { id: usersByUsername.size + 1, ...data };
+        usersByUsername.set(data.username, saved);
+        return Promise.resolve(saved);
+      }),
+      findOne: jest.fn(({ where }: any) => Promise.resolve(usersByUsername.get(where.username) ?? null)),
     };
 
     mockTaskTypeRepository = {
       create: jest.fn((data) => data),
-      save: jest.fn((data) => Promise.resolve(data)),
+      save: jest.fn((data) => {
+        const saved = { id: taskTypesByCode.size + 1, ...data };
+        taskTypesByCode.set(data.code, saved);
+        return Promise.resolve(saved);
+      }),
+      findOne: jest.fn(({ where }: any) => Promise.resolve(taskTypesByCode.get(where.code) ?? null)),
     };
 
     (AppDataSource.getRepository as jest.Mock).mockImplementation((entity: any) => {
@@ -63,19 +81,38 @@ describe('DatabaseSeeder', () => {
   });
 
   describe('seed', () => {
-    it('should skip seeding if roles already exist', async () => {
-      mockRoleRepository.count.mockResolvedValue(1);
+    it('should seed missing data when some roles already exist', async () => {
+      mockRoleRepository.findOne.mockImplementation(({ where }: any) =>
+        Promise.resolve(where.name === 'admin' ? { id: 1, name: 'admin' } : null)
+      );
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword123');
 
       await DatabaseSeeder.seed();
 
-      expect(mockRoleRepository.count).toHaveBeenCalled();
-      expect(mockRoleRepository.save).not.toHaveBeenCalled();
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('już zawiera dane'));
+      expect(mockRoleRepository.save).toHaveBeenCalledTimes(9);
+      expect(mockTaskTypeRepository.save).toHaveBeenCalledTimes(13);
+      expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+    });
+
+    it('should leave existing task types and admin untouched while seeding missing records', async () => {
+      mockRoleRepository.findOne.mockImplementation(({ where }: any) =>
+        Promise.resolve(where.name === 'admin' ? { id: 1, name: 'admin' } : null)
+      );
+      mockTaskTypeRepository.findOne.mockImplementation(({ where }: any) =>
+        Promise.resolve(where.code === 'SMW' ? { id: 1, code: 'SMW' } : null)
+      );
+      mockUserRepository.findOne.mockResolvedValue({ id: 1, username: 'admin' });
+
+      await DatabaseSeeder.seed();
+
+      expect(mockRoleRepository.save).toHaveBeenCalledTimes(9);
+      expect(mockTaskTypeRepository.save).toHaveBeenCalledTimes(12);
+      expect(mockUserRepository.save).not.toHaveBeenCalled();
+      expect(bcrypt.hash).not.toHaveBeenCalled();
     });
 
     it('should seed all data when database is empty', async () => {
       mockRoleRepository.count.mockResolvedValue(0);
-      mockRoleRepository.findOne.mockResolvedValue({ id: 1, name: 'admin' });
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword123');
 
       await DatabaseSeeder.seed();
@@ -100,6 +137,7 @@ describe('DatabaseSeeder', () => {
           email: 'r.krakowski@der-mag.pl',
           firstName: 'Administrator',
           lastName: 'Systemu',
+          forcePasswordChange: true,
         })
       );
 
@@ -111,7 +149,6 @@ describe('DatabaseSeeder', () => {
       process.env.ADMIN_EMAIL = customEmail;
 
       mockRoleRepository.count.mockResolvedValue(0);
-      mockRoleRepository.findOne.mockResolvedValue({ id: 1, name: 'admin' });
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword123');
 
       await DatabaseSeeder.seed();
@@ -127,7 +164,6 @@ describe('DatabaseSeeder', () => {
 
     it('should create all required roles', async () => {
       mockRoleRepository.count.mockResolvedValue(0);
-      mockRoleRepository.findOne.mockResolvedValue({ id: 1, name: 'admin' });
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword123');
 
       await DatabaseSeeder.seed();
@@ -153,7 +189,6 @@ describe('DatabaseSeeder', () => {
 
     it('should create all 13 task types including SERWIS, SKD, CCTV', async () => {
       mockRoleRepository.count.mockResolvedValue(0);
-      mockRoleRepository.findOne.mockResolvedValue({ id: 1, name: 'admin' });
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword123');
 
       await DatabaseSeeder.seed();
@@ -195,7 +230,6 @@ describe('DatabaseSeeder', () => {
       mockRoleRepository.clear = jest.fn().mockResolvedValue({});
       mockUserRepository.clear = jest.fn().mockResolvedValue({});
       mockTaskTypeRepository.clear = jest.fn().mockResolvedValue({});
-      mockRoleRepository.findOne.mockResolvedValue({ id: 1, name: 'admin' });
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword123');
       
       // Mock AppDataSource.query for TRUNCATE operations

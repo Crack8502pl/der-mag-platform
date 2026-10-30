@@ -3,6 +3,10 @@
 set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/db-env.sh"
 load_database_config
+if ! command -v sudo >/dev/null 2>&1; then
+  echo "Błąd: wymagane jest polecenie sudo." >&2
+  exit 1
+fi
 
 quoted_user="$(sql_identifier "$DB_USER")"
 quoted_database="$(sql_identifier "$DB_NAME")"

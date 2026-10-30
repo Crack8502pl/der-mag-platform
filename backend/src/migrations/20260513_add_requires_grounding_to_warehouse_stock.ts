@@ -3,8 +3,8 @@
 
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddRequiresGroundingToWarehouseStock20260513 implements MigrationInterface {
-  name = 'AddRequiresGroundingToWarehouseStock20260513';
+export class AddRequiresGroundingToWarehouseStock1778630400000 implements MigrationInterface {
+  name = 'AddRequiresGroundingToWarehouseStock1778630400000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
