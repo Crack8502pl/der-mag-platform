@@ -2,15 +2,15 @@
 // Trasy API honeypota - wszystkie wymagają autentykacji i roli admin
 
 import { Router } from 'express';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { HoneypotController } from '../controllers/HoneypotController';
 
 const router = Router();
 
 // Wszystkie endpointy honeypota wymagają autentykacji i roli admin
 router.use(authenticate);
-// TODO: migrate to checkPermission(resource, action)
-router.use(authorize('admin'));
+router.use(checkPermission('admin', 'access'));
 
 // Statystyki honeypota
 router.get('/stats', HoneypotController.getStats);

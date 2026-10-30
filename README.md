@@ -12,6 +12,49 @@ Grover Platform to kompleksowy system do zarządzania zadaniami infrastrukturaln
 
 - [Onboarding dla deweloperów](docs/ONBOARDING.md)
 
+### Uruchomienie przez Docker Compose
+
+Wymagany jest Docker z Compose v2. Skopiuj `.env.example` do `.env`, ustaw
+`DB_PASSWORD`, `REDIS_PASSWORD`, dwa różne sekrety JWT (co najmniej 32 znaki)
+oraz `ENCRYPTION_KEY`, a następnie uruchom:
+
+```bash
+cp .env.example .env
+# Uzupełnij wymagane sekrety w .env
+docker compose up --build -d
+```
+
+Compose uruchamia PostgreSQL 16, Redis 7, jednorazowy kontener migracji i
+seedowania oraz aplikację na `http://localhost:3000` (lub porcie z `APP_PORT`).
+Aplikacja startuje dopiero po udanych migracjach i sprawdzeniu gotowości usług.
+Dane bazy, Redis i przesłane pliki są przechowywane w wolumenach. Migracja
+tworzy domyślne konto `admin` z hasłem `Admin123!` i wymusza zmianę hasła przy
+pierwszym logowaniu; zmień je od razu. Synchronizacja Symfonia jest domyślnie
+wyłączona przez `SYMFONIA_SYNC_ENABLED=false`; ustawienia `SYMFONIA_*` można
+dodać do `.env` i są przekazywane bez zmian.
+
+Zatrzymanie usług bez usuwania danych: `docker compose down`. Pełne usunięcie
+również danych trwałych: `docker compose down --volumes`.
+
+### Uruchomienie bez Dockera
+
+Można nadal użyć skryptów A1 i lokalnego PostgreSQL. Ustaw konfigurację bazy,
+JWT, klucz szyfrowania i pozostałe zmienne w `backend/.env`, przygotuj bazę
+przez `npm run db:create`, a następnie zainstaluj zależności, zastosuj
+migracje i uruchom backend:
+
+```bash
+cd backend
+npm ci
+npm run db:setup
+npm start
+```
+
+Redis jest wymagany dla funkcji wykorzystujących kolejki i cache; w tym trybie
+uruchom go osobno i ustaw `REDIS_HOST`, `REDIS_PORT` oraz `REDIS_PASSWORD`.
+Skrypty SQL w `backend/scripts/migrations/` pozostają materiałem historycznym;
+nowe instalacje aplikują migracje przez TypeORM.
+
 ## 📚 Dokumentacja
 
 - [Indeks dokumentacji](docs/README.md)

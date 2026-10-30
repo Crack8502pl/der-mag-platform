@@ -1,0 +1,72 @@
+name: Docker Compose Integration
+
+on:
+  pull_request:
+    paths:
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.env.example'
+      - 'backend/src/config/database.ts'
+      - 'backend/src/migrations/**'
+      - 'backend/src/scripts/**'
+      - 'backend/src/services/DatabaseSeeder.ts'
+      - 'backend/scripts/**'
+      - '.github/workflows/docker-compose-integration.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.env.example'
+      - 'backend/src/config/database.ts'
+      - 'backend/src/migrations/**'
+      - 'backend/src/scripts/**'
+      - 'backend/src/services/DatabaseSeeder.ts'
+      - 'backend/scripts/**'
+      - '.github/workflows/docker-compose-integration.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  compose-clean-install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure test environment
+        run: |
+          printf '%s\n' \
+            'DB_NAME=dermag_compose_test' \
+            'DB_USER=dermag_user' \
+            'DB_PASSWORD=compose-test-db-password' \
+            'REDIS_PASSWORD=compose-test-redis-password' \
+            'JWT_ACCESS_SECRET=compose-test-access-secret-at-least-32-chars' \
+            'JWT_REFRESH_SECRET=compose-test-refresh-secret-at-least-32-chars' \
+            'ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef' \
+            'APP_PORT=3000' \
+            'CORS_ORIGIN=http://localhost:3000' \
+            'SYMFONIA_SYNC_ENABLED=false' > .env
+
+      - name: Start clean Compose stack
+        run: |
+          docker compose down --volumes --remove-orphans
+          docker compose up --build --detach --wait --wait-timeout 240
+
+      - name: Verify seeded admin login
+        run: |
+          status=$(curl --silent --show-error --output /tmp/login-response \
+            --write-out '%{http_code}' \
+            --header 'Content-Type: application/json' \
+            --data '{"username":"admin","password":"Admin123!"}' \
+            http://localhost:3000/api/auth/login)
+          if [ "$status" != "200" ]; then
+            cat /tmp/login-response
+            echo "Expected admin login to return HTTP 200, got $status"
+            exit 1
+          fi
+          node -e "const response = JSON.parse(require('fs').readFileSync('/tmp/login-response', 'utf8')); if (!response.success || response.data.user.username !== 'admin' || !response.data.requirePasswordChange) process.exit(1)"
+
+      - name: Stop Compose stack
+        if: always()
+        run: docker compose down --volumes --remove-orphans

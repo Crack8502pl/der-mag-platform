@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { AppDataSource } from '../src/config/database';
 import { DatabaseSeeder } from '../src/services/DatabaseSeeder';
-import { runDataMigrations } from './run-data-migrations';
+import { ShipmentBomTemplatesSeed } from '../src/seeds/shipmentBomTemplates.seed';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -15,12 +15,9 @@ async function setupDatabase() {
     const migrations = await AppDataSource.runMigrations();
     console.log(`✅ Połączono z bazą. Zastosowano migracji: ${migrations.length}.\n`);
     
-    console.log('📦 Krok 2: Migracje danych i uprawnień...');
-    await runDataMigrations();
-    console.log('✅ Migracje danych i uprawnień zakończone.\n');
-
-    console.log('📦 Krok 3: Brakujące dane początkowe...');
+    console.log('📦 Krok 2: Brakujące dane początkowe...');
     await DatabaseSeeder.seed();
+    await ShipmentBomTemplatesSeed.seed();
     console.log('✅ Dane początkowe gotowe.\n');
     
     console.log('════════════════════════════════════════');

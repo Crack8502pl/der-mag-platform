@@ -2,7 +2,8 @@
 // Routes for Symfonia warehouse stock sync and contracts sync - admin only
 
 import { Router } from 'express';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { SymfoniaSyncController } from '../controllers/SymfoniaSyncController';
 import { SymfoniaContractSyncController } from '../controllers/SymfoniaContractSyncController';
 import { SymfoniaCarSyncController } from '../controllers/SymfoniaCarSyncController';
@@ -11,8 +12,7 @@ const router = Router();
 
 // All routes require authentication and admin role
 router.use(authenticate);
-// TODO: migrate to checkPermission(resource, action)
-router.use(authorize('admin'));
+router.use(checkPermission('admin', 'access'));
 
 // Warehouse stock sync (Magazyn)
 router.post('/full', SymfoniaSyncController.fullSync);
