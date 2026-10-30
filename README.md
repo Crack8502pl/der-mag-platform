@@ -184,6 +184,15 @@ grover-platform/
 
 ## 🔧 Instalacja i uruchomienie
 
+### Budowanie obrazu Docker
+
+Z katalogu głównego repozytorium zbuduj obraz aplikacji (bez publikowania go
+w rejestrze):
+
+```bash
+docker build -t der-mag-platform .
+```
+
 ## 🗄️ Database Setup
 
 ### Wymagania
