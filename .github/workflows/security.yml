@@ -29,7 +29,8 @@ jobs:
         continue-on-error: false
         run: |
           npm ci
-          npm audit --audit-level=high
+          # deepmerge (przez jest, tylko devDependencies) nie ma poprawki upstream
+          npm audit --audit-level=high --omit=dev
 
       - name: Frontend — install & audit
         working-directory: frontend

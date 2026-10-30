@@ -149,7 +149,7 @@ export class FormTemplateService {
       validateFormDefinition(sections, fields);
       const fieldKeys = new Set(fields.map(field => field.key));
       for (const rule of assignmentRules) {
-        validateFormConditionShape(rule.conditions, fieldKeys, 'assignment rule');
+        validateFormConditionShape(rule.conditions, fieldKeys, 'assignment rule', ['when']);
       }
 
       const oldStatus = version.status;
