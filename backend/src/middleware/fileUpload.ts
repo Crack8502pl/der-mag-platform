@@ -5,18 +5,14 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'subsystems', 'documentation');
-
-// Upewnij się, że katalog istnieje
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-}
+export const getSubsystemDocumentationUploadDir = (uploadRoot = process.env.UPLOAD_DIR || './uploads'): string =>
+  path.join(path.resolve(uploadRoot), 'subsystems', 'documentation');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     // Use the subsystem ID temporarily; service will rename the directory
     const subsystemId = req.params.id || 'TEMP';
-    const subsystemDir = path.join(UPLOAD_DIR, subsystemId);
+    const subsystemDir = path.join(getSubsystemDocumentationUploadDir(), subsystemId);
     
     if (!fs.existsSync(subsystemDir)) {
       fs.mkdirSync(subsystemDir, { recursive: true });
