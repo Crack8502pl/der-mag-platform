@@ -83,29 +83,22 @@ npm install
 
 3. **Konfiguracja bazy danych**
 
-Utwórz bazę danych PostgreSQL:
+Skonfiguruj `.env`, a następnie utwórz użytkownika i bazę danych poleceniem
+projektowym (wczytuje ono `DB_NAME`, `DB_USER` i `DB_PASSWORD` z `.env`):
 
 ```bash
-psql -U postgres
-CREATE DATABASE dermag_platform;
-CREATE USER dermag_user WITH PASSWORD 'your-password';
-GRANT ALL PRIVILEGES ON DATABASE dermag_platform TO dermag_user;
-\q
+cp .env.example .env
+# Ustaw własną wartość DB_PASSWORD w .env
+npm run db:create
+npm run db:setup
 ```
 
-Uruchom skrypty inicjalizacyjne:
+`db:create` jest idempotentne; istniejącemu użytkownikowi ustawia hasło z `.env`.
+`db:drop` usuwa bazę po potwierdzeniu, ale pozostawia użytkownika. Nie uruchamiaj
+skryptów inicjalizacyjnych SQL ręcznie przy pierwszym uruchomieniu.
 
-```bash
-psql -U dermag_user -d dermag_platform -f scripts/init-db.sql
-psql -U dermag_user -d dermag_platform -f scripts/seed-data.sql
-```
-
-**Dane seed zawierają:**
-- 10 ról z granularnymi uprawnieniami
-- 13 typów zadań (task_types) zgodnych z SystemType enum
-- Użytkownika admin (username: `admin`, password: `Admin123!`)
-- Przykładowe pule IP dla SMW i SDIP
-- Szablony BOM i aktywności dla SMW
+**Dane seed zawierają:** role, typy zadań, użytkownika administracyjnego oraz
+przykładowe dane aplikacji.
 
 **Migracja istniejącej bazy:**
 

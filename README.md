@@ -186,38 +186,30 @@ grover-platform/
 
 ## 🗄️ Database Setup
 
-### Prerequisites
-- PostgreSQL 14+ zainstalowany
-- Użytkownik Linux z dostępem sudo do postgres
+### Wymagania
+- PostgreSQL 15+ zainstalowany i uruchomiony
+- Użytkownik systemowy z dostępem `sudo -u postgres`
 
-### First-time setup
+### Pierwsze uruchomienie
 
-1. **Configure sudo access (one-time):**
-   ```bash
-   sudo visudo
-   
-   # Add this line (replace 'crack' with your Linux username):
-   crack ALL=(postgres) NOPASSWD: /usr/bin/psql
-   ```
+```bash
+cd backend
+cp .env.example .env
+```
 
-2. **Verify sudo access:**
-   ```bash
-   sudo -u postgres psql -c "SELECT version();"
-   ```
-   
-   If it shows PostgreSQL version without asking for password - it works! ✅
+Ustaw własne hasło w `backend/.env` jako `DB_PASSWORD`, a następnie utwórz
+użytkownika bazy i bazę danych, uruchom konfigurację i start aplikacji:
 
-3. **Create database and run migrations:**
-   ```bash
-   cd backend
-   npm run db:create
-   npm run db:setup
-   ```
+```bash
+npm run db:create
+npm run db:setup
+npm run dev
+```
 
-4. **Start development server:**
-   ```bash
-   npm run dev
-   ```
+`db:create` można uruchamiać wielokrotnie. Tworzy użytkownika, jeśli go nie ma,
+albo aktualizuje jego hasło na wartość z `.env`; bazę tworzy tylko wtedy, gdy
+jeszcze nie istnieje. `db:drop` pyta o potwierdzenie i usuwa wyłącznie bazę,
+pozostawiając użytkownika.
 
 ### Database commands
 
