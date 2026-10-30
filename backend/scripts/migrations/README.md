@@ -1,3 +1,19 @@
+# Migration status
+
+Database setup now runs TypeORM migrations through `npm run db:setup` (or
+`npm run db:migrate` in the built Docker image). The data and permission SQL
+files `20251230_add_system_config.sql`, `20260102_full_permissions_sync.sql`,
+`20260107_create_notification_schedules.sql`,
+`20260108_add_brigades_permissions.sql`, `20260207_add_bom_groups.sql`, and
+`20261001_seed_slican_centrals_and_licenses.sql` are executed once by the
+TypeORM migration `1793318400000-MigrateLegacyData`.
+
+The remaining SQL files document historical database changes and are not
+applied by fresh setup. Do not apply them manually to a database managed by
+TypeORM unless a migration-specific procedure explicitly requires it.
+
+---
+
 # Database Migration Guide - Refresh Token Rotation
 
 This guide explains how to run the database migration for the refresh token rotation system.
@@ -303,4 +319,3 @@ For complete implementation details, see:
 - `/IMPLEMENTATION_BOM_TRIGGERS.md` - Full documentation
 - API endpoints: `/api/bom-triggers/*`
 - DTO validation: `backend/src/dto/BomTriggerDto.ts`
-

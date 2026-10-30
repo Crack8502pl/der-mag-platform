@@ -24,7 +24,8 @@ COPY backend/package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=backend-build /app/backend/dist ./dist
 COPY --from=frontend /app/frontend/dist /app/frontend/dist
-RUN mkdir -p "$UPLOAD_DIR" && chown -R node:node /app/backend/uploads /app/frontend/dist
+RUN mkdir -p "$UPLOAD_DIR" /app/backend/logs \
+  && chown -R node:node /app/backend/uploads /app/backend/logs /app/frontend/dist
 
 USER node
 EXPOSE 3000

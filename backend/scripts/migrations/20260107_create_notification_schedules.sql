@@ -24,8 +24,14 @@ COMMENT ON COLUMN notification_schedules.schedule_cron IS 'Wyrażenie cron dla h
 
 -- Insert default notification schedules
 INSERT INTO notification_schedules (notification_type, schedule_cron, active)
-VALUES 
-  ('daily_brigade_report', '0 18 * * *', true),  -- 18:00 daily
-  ('daily_management_report', '0 20 * * *', true),  -- 20:00 daily
-  ('weekly_manager_report', '0 16 * * 5', true)  -- 16:00 every Friday
-ON CONFLICT DO NOTHING;
+SELECT defaults.notification_type, defaults.schedule_cron, true
+FROM (VALUES
+  ('daily_brigade_report', '0 18 * * *'),
+  ('daily_management_report', '0 20 * * *'),
+  ('weekly_manager_report', '0 16 * * 5')
+) AS defaults(notification_type, schedule_cron)
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM notification_schedules existing
+  WHERE existing.notification_type = defaults.notification_type
+);

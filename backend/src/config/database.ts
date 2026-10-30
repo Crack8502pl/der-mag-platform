@@ -123,6 +123,7 @@ import { AddEmailAutomationPausedToUsers1786060800001 } from '../migrations/2026
 import { AddEmailAutomationAuditTable1786060800002 } from '../migrations/20260807_add_email_automation_audit_table';
 import { AddCompletedAtToTasks1787529600000 } from '../migrations/20260824_add_completed_at_to_tasks';
 import { CreateFormChecklistEngine1790971200000 } from '../migrations/20261002_create_form_checklist_engine';
+import { MigrateLegacyData1793318400000 } from '../migrations/1793318400000-MigrateLegacyData';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -276,6 +277,7 @@ export const AppDataSource = new DataSource({
     AddEmailAutomationAuditTable1786060800002,
     AddCompletedAtToTasks1787529600000,
     CreateFormChecklistEngine1790971200000,
+    MigrateLegacyData1793318400000,
   ],
 });
 

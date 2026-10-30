@@ -2,15 +2,15 @@
 // Routes for Symfonia MSSQL integration - admin only
 
 import { Router } from 'express';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { SymfoniaIntegrationController } from '../controllers/SymfoniaIntegrationController';
 
 const router = Router();
 
 // All routes require authentication and admin role
 router.use(authenticate);
-// TODO: migrate to checkPermission(resource, action)
-router.use(authorize('admin'));
+router.use(checkPermission('admin', 'access'));
 
 router.get('/status', SymfoniaIntegrationController.getStatus);
 router.get('/tables', SymfoniaIntegrationController.getTables);

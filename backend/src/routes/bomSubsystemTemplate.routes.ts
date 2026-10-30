@@ -3,7 +3,7 @@
 
 import { Router } from 'express';
 import { BomSubsystemTemplateController } from '../controllers/BomSubsystemTemplateController';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import { uploadCSV } from '../middleware/upload';
 import multer from 'multer';
@@ -42,15 +42,13 @@ router.get(
 
 router.get(
   '/export-all-json',
-  // TODO: migrate to checkPermission(resource, action)
-  authorize('admin'),
+  checkPermission('admin', 'access'),
   BomSubsystemTemplateController.exportAllJson
 );
 
 router.post(
   '/import-all-json',
-  // TODO: migrate to checkPermission(resource, action)
-  authorize('admin'),
+  checkPermission('admin', 'access'),
   upload.single('file'),
   BomSubsystemTemplateController.importAllJson
 );

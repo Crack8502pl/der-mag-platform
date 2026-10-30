@@ -1,14 +1,13 @@
 // src/routes/ip.routes.ts
 import { Router } from 'express';
 import { IPManagementController } from '../controllers/IPManagementController';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 
 const router = Router();
 
 router.get('/pools', authenticate, IPManagementController.getPools);
-// TODO: migrate to checkPermission(resource, action)
-router.post('/allocate', authenticate, authorize('admin', 'manager'), IPManagementController.allocateIP);
-// TODO: migrate to checkPermission(resource, action)
-router.post('/release', authenticate, authorize('admin', 'manager'), IPManagementController.releaseIP);
+router.post('/allocate', authenticate, checkPermission('network', 'allocate'), IPManagementController.allocateIP);
+router.post('/release', authenticate, checkPermission('network', 'allocate'), IPManagementController.releaseIP);
 
 export default router;
