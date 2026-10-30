@@ -7,11 +7,31 @@ export class AddBrigadeIdToTasks1714000000000 implements MigrationInterface {
   name = 'AddBrigadeIdToTasks1714000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    if (!(await queryRunner.hasColumn('tasks', 'brigade_id'))) {
+      await queryRunner.query(`ALTER TABLE "tasks" ADD COLUMN "brigade_id" integer`);
+    }
+
     await queryRunner.query(`
-      ALTER TABLE "tasks"
-      ADD COLUMN IF NOT EXISTS "brigade_id" integer,
-      ADD CONSTRAINT "FK_tasks_brigade_id"
-        FOREIGN KEY ("brigade_id") REFERENCES "brigades"("id") ON DELETE SET NULL
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM pg_constraint
+          WHERE conrelid = 'tasks'::regclass
+            AND confrelid = 'brigades'::regclass
+            AND contype = 'f'
+            AND (
+              SELECT attnum
+              FROM pg_attribute
+              WHERE attrelid = 'tasks'::regclass AND attname = 'brigade_id'
+            ) = ANY (conkey)
+        ) THEN
+          ALTER TABLE "tasks"
+            ADD CONSTRAINT "FK_tasks_brigade_id"
+            FOREIGN KEY ("brigade_id") REFERENCES "brigades"("id") ON DELETE SET NULL;
+        END IF;
+      END
+      $$;
     `);
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_tasks_brigade_id" ON "tasks" ("brigade_id")`);
   }

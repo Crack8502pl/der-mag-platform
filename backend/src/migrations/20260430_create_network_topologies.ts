@@ -3,8 +3,8 @@
 
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateNetworkTopologies20260430 implements MigrationInterface {
-  name = 'CreateNetworkTopologies20260430';
+export class CreateNetworkTopologies1777507200000 implements MigrationInterface {
+  name = 'CreateNetworkTopologies1777507200000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`

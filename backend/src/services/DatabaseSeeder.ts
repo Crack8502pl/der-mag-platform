@@ -9,18 +9,7 @@ import { RailwayLinesSeed } from '../seeds/RailwayLinesSeed';
 export class DatabaseSeeder {
   
   static async seed(): Promise<void> {
-    console.log('🌱 Sprawdzanie czy baza wymaga seedowania...');
-    
-    const roleRepo = AppDataSource.getRepository(Role);
-    const roleCount = await roleRepo.count();
-    
-    if (roleCount > 0) {
-      console.log('✅ Baza danych już zawiera dane - pomijam seedowanie');
-      return;
-    }
-    
-    console.log('📦 Seedowanie bazy danych...');
-    
+    console.log('🌱 Sprawdzanie brakujących danych początkowych...');
     await this.seedRoles();
     await this.seedTaskTypes();
     await this.seedAdmin();
@@ -223,11 +212,14 @@ export class DatabaseSeeder {
     ];
     
     for (const role of roles) {
+      const existingRole = await roleRepo.findOne({ where: { name: role.name } });
+      if (existingRole) continue;
+
       const newRole = roleRepo.create(role);
       await roleRepo.save(newRole);
     }
     
-    console.log('   ✅ Role utworzone (10 ról)');
+    console.log('   ✅ Sprawdzono wymagane role (10)');
   }
   
   private static async seedTaskTypes(): Promise<void> {
@@ -251,17 +243,26 @@ export class DatabaseSeeder {
     ];
     
     for (const taskType of taskTypes) {
+      const existingTaskType = await taskTypeRepo.findOne({ where: { code: taskType.code } });
+      if (existingTaskType) continue;
+
       const newTaskType = taskTypeRepo.create(taskType);
       await taskTypeRepo.save(newTaskType);
     }
     
-    console.log('   ✅ Typy zadań utworzone (13)');
+    console.log('   ✅ Sprawdzono wymagane typy zadań (13)');
   }
   
   private static async seedAdmin(): Promise<void> {
     const userRepo = AppDataSource.getRepository(User);
     const roleRepo = AppDataSource.getRepository(Role);
-    
+
+    const existingAdmin = await userRepo.findOne({ where: { username: 'admin' } });
+    if (existingAdmin) {
+      console.log('   ✅ Użytkownik admin już istnieje');
+      return;
+    }
+
     const adminRole = await roleRepo.findOne({ where: { name: 'admin' } });
     
     if (!adminRole) {
@@ -279,7 +280,8 @@ export class DatabaseSeeder {
       lastName: 'Systemu',
       phone: '+48123456789',
       role: adminRole,
-      active: true
+      active: true,
+      forcePasswordChange: true,
     });
     
     await userRepo.save(admin);
