@@ -273,7 +273,7 @@ describe('Forms REST API', () => {
     await call('post', '/instances/1/complete', {});
     expect(services.complete).toHaveBeenCalledWith(1, 7, expect.any(Function));
     await call('post', '/instances/1/approve', {});
-    expect(services.approve).toHaveBeenCalledWith(1, 7, undefined);
+    expect(services.approve).toHaveBeenCalledWith(1, 7, undefined, { override: false });
     await call('post', '/instances/1/reject', { comment: ' Rework ' });
     expect(services.reject).toHaveBeenCalledWith(1, 7, 'Rework');
     await call('put', '/instances/99/assignment', { assignedUserId: null, assignedTeamId: 9 });

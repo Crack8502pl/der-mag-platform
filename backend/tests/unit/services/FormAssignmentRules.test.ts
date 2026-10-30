@@ -59,7 +59,7 @@ describe('FormTemplateService.replaceAssignmentRules', () => {
   it('accepts same-version trigger and declarative persisted-field condition with both assignment targets', async () => {
     const input = {
       assignedUserId: 7, assignedTeamId: 8, triggerId: 5, priority: 3, active: false,
-      conditions: { visibleWhen: { field: 'result', operator: 'equals', value: 'FAIL' } },
+      conditions: { when: { field: 'result', operator: 'equals', value: 'FAIL' } },
     };
     expect(await service.replaceAssignmentRules(1, [input], 9)).toEqual([{ id: 30, templateVersionId: 1, ...input }]);
   });
@@ -93,8 +93,8 @@ describe('FormTemplateService.replaceAssignmentRules', () => {
   it.each([
     [{}],
     [{ assignedUserId: 7, triggerId: 99 }],
-    [{ assignedUserId: 7, conditions: { visibleWhen: { field: 'another_version_field', operator: 'equals', value: true } } }],
-    [{ assignedUserId: 7, conditions: { visibleWhen: { field: 'result', operator: 'eval', value: 'process.exit()' } } }],
+    [{ assignedUserId: 7, conditions: { when: { field: 'another_version_field', operator: 'equals', value: true } } }],
+    [{ assignedUserId: 7, conditions: { when: { field: 'result', operator: 'eval', value: 'process.exit()' } } }],
     [{ assignedUserId: 7, conditions: { execute: 'arbitrary code' } }],
   ])('rejects invalid target/foreign trigger/unsafe conditions before deleting existing rules (%j)', async input => {
     await expect(service.replaceAssignmentRules(1, [input as any], 9)).rejects.toMatchObject({ code: 'INVALID_DEFINITION' });
@@ -129,7 +129,7 @@ describe('FormTemplateService.replaceAssignmentRules', () => {
     const sections = { find: jest.fn().mockResolvedValue([]) };
     fields.find.mockResolvedValue([]);
     rules.find.mockResolvedValue([{
-      conditions: { visibleWhen: { field: 'removed', operator: 'equals', value: true } },
+      conditions: { when: { field: 'removed', operator: 'equals', value: true } },
     }]);
     const original = manager.getRepository.getMockImplementation();
     manager.getRepository.mockImplementation((entity: unknown) => entity === FormSection ? sections : original(entity));
@@ -141,7 +141,7 @@ describe('FormTemplateService.replaceAssignmentRules', () => {
     const sections = { find: jest.fn().mockResolvedValue([{ id: 2, conditions: {} }]) };
     fields.find.mockResolvedValue([{ id: 3, sectionId: 2, key: 'result', fieldType: 'TEXT', conditions: {}, validation: {} }]);
     rules.find.mockResolvedValue([{
-      conditions: { visibleWhen: { field: 'result', operator: 'equals', value: 'OK' } },
+      conditions: { when: { field: 'result', operator: 'equals', value: 'OK' } },
     }]);
     versions.save = jest.fn(async (version: unknown) => version);
     const original = manager.getRepository.getMockImplementation();
