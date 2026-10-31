@@ -153,6 +153,24 @@ export class RejectionDto {
   comment: string;
 }
 
+export class RecordInstallationReadinessDto {
+  @IsInt() @Min(1) @Max(pgMax)
+  preconfigurationInstanceId: number;
+}
+
+export class RecordFieldInstallationDto {
+  @IsInt() @Min(1) @Max(pgMax)
+  taskId: number;
+
+  @IsInt() @Min(1) @Max(pgMax)
+  installationInstanceId: number;
+}
+
+export class RecordPostInstallationVerificationDto {
+  @IsInt() @Min(1) @Max(pgMax)
+  verificationInstanceId: number;
+}
+
 export class AssignmentRuleDto {
   @ValidateIf(nullable) @IsInt() @Min(1) @Max(pgMax)
   triggerId?: number | null;

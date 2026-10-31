@@ -7,7 +7,6 @@ import { SubsystemTask, TaskWorkflowStatus } from '../entities/SubsystemTask';
 import { Device } from '../entities/Device';
 import { SystemType } from '../entities/Subsystem';
 import { AssetNumberingService } from './AssetNumberingService';
-import { DeviceLinkingService } from './DeviceLinkingService';
 import { TaskSyncService } from './TaskSyncService';
 import { Repository } from 'typeorm';
 
@@ -29,11 +28,9 @@ export const ASSET_CREATION_BUSINESS_ERRORS = new Set([
 ]);
 
 export class AssetCreationService {
-  private deviceLinkingService: DeviceLinkingService;
   private subsystemTaskRepository: Repository<SubsystemTask>;
 
   constructor() {
-    this.deviceLinkingService = new DeviceLinkingService();
     this.subsystemTaskRepository = AppDataSource.getRepository(SubsystemTask);
   }
 
@@ -42,8 +39,9 @@ export class AssetCreationService {
    *
    * Validation of the task is done before the transaction so that business-rule
    * violations (404/400) are cheap and don't hold a DB connection.  The asset
-   * creation, device linking and task save all run inside a single
-   * AppDataSource.transaction() so that any failure rolls back every change.
+   * creation and task save run inside a single AppDataSource.transaction()
+   * so that any failure rolls back every change. Device installation is deferred
+   * to the approved FIELD_INSTALLATION form workflow.
    * After the commit, TaskSyncService.syncFromSubsystemTask() is called
    * "best-effort" to keep the legacy `tasks` table in sync.
    */
@@ -115,9 +113,12 @@ export class AssetCreationService {
     const numberingService = new AssetNumberingService(AppDataSource);
     const assetNumber = await numberingService.generateAssetNumber();
 
-    // ── 5. Atomic: create asset + link devices + save task ────────────────────
-    let linkedDevices: Device[] = [];
+    // ── 5. Atomic: create asset + save task ──────────────────────────────────
+    const linkedDevices: Device[] = [];
     const warnings: string[] = [];
+    if (deviceSerialNumbers?.length) {
+      warnings.push('Powiązanie urządzeń odroczono do zatwierdzonego workflow FIELD_INSTALLATION.');
+    }
 
     const { savedAsset, savedTask } = await AppDataSource.transaction(async manager => {
       const assetRepo = manager.getRepository(Asset);
@@ -146,25 +147,6 @@ export class AssetCreationService {
         photosFolder: assetData.photosFolder || null
       });
       const savedAsset = await assetRepo.save(assetEntity);
-
-      // Link devices (same transaction manager)
-      if (deviceSerialNumbers && deviceSerialNumbers.length > 0) {
-        const linkResult = await this.deviceLinkingService.linkDevicesWithManager(
-          manager,
-          savedAsset.id,
-          deviceSerialNumbers,
-          bomSnapshot
-        );
-
-        linkedDevices = linkResult.linked;
-
-        if (linkResult.notFound.length > 0) {
-          warnings.push(`Nie znaleziono urządzeń: ${linkResult.notFound.join(', ')}`);
-        }
-        if (linkResult.alreadyInstalled.length > 0) {
-          warnings.push(`Urządzenia już zainstalowane: ${linkResult.alreadyInstalled.join(', ')}`);
-        }
-      }
 
       // Update task (same transaction manager)
       task.status = TaskWorkflowStatus.VERIFIED;

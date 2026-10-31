@@ -11,11 +11,13 @@ import { FormFieldDefinition } from '../../src/entities/FormFieldDefinition';
 import { FormAssignmentRule } from '../../src/entities/FormAssignmentRule';
 import { FormTrigger } from '../../src/entities/FormTrigger';
 import { FormInstance } from '../../src/entities/FormInstance';
+import { DeviceInstallationWorkflow, DeviceInstallationStatus } from '../../src/entities/DeviceInstallationWorkflow';
 import { FormFieldValue } from '../../src/entities/FormFieldValue';
 import { FormDomainError, FormDomainErrorCode } from '../../src/errors/FormDomainError';
 import { FormTemplateService } from '../../src/services/FormTemplateService';
 import { FormInstanceService } from '../../src/services/FormInstanceService';
 import { FormApprovalService } from '../../src/services/FormApprovalService';
+import { DeviceInstallationWorkflowService } from '../../src/services/DeviceInstallationWorkflowService';
 import { errorHandler } from '../../src/middleware/errorHandler';
 import formsRoutes from '../../src/routes/forms.routes';
 import { RESERVED_FORM_KEYS } from '../../src/utils/formJson';
@@ -36,6 +38,14 @@ const draftBody = {
     }],
   }],
 };
+const workflowRecord = (overrides: Partial<DeviceInstallationWorkflow> = {}) => ({
+  id: 1, deviceId: 8, preconfigurationInstanceId: 1,
+  status: DeviceInstallationStatus.READY_FOR_FIELD_INSTALLATION,
+  readyAt: new Date(), fieldInstallationTaskId: null, installationInstanceId: null,
+  installedAssetId: null, verificationInstanceId: null, commissionedAt: null,
+  createdById: 7, createdAt: new Date(), updatedAt: new Date(),
+  ...overrides,
+});
 const allActions = { read: true, create: true, update: true, publish: true, complete: true, approve: true, assign: true };
 let grants: any;
 let userExists: boolean;
@@ -60,6 +70,11 @@ const services = {
   complete: jest.spyOn(FormInstanceService.prototype, 'complete'),
   approve: jest.spyOn(FormApprovalService.prototype, 'approve'),
   reject: jest.spyOn(FormApprovalService.prototype, 'reject'),
+  getInstallationWorkflow: jest.spyOn(DeviceInstallationWorkflowService.prototype, 'getWorkflow'),
+  recordInstallationReadiness: jest.spyOn(DeviceInstallationWorkflowService.prototype, 'recordReadiness'),
+  recordFieldInstallation: jest.spyOn(DeviceInstallationWorkflowService.prototype, 'recordInstallation'),
+  recordPostInstallationVerification: jest.spyOn(DeviceInstallationWorkflowService.prototype, 'recordVerification'),
+  commissionDevice: jest.spyOn(DeviceInstallationWorkflowService.prototype, 'commission'),
 };
 
 const app = express();
@@ -95,6 +110,11 @@ const endpoints: [string, string, unknown, number, string][] = [
   ['post', '/instances/1/complete', {}, 200, 'complete'],
   ['post', '/instances/1/approve', { comment: ' Approved ' }, 200, 'approve'],
   ['post', '/instances/1/reject', { comment: ' Rework ' }, 200, 'approve'],
+  ['get', '/installation-workflows/1', undefined, 200, 'read'],
+  ['post', '/installation-workflows/readiness', { preconfigurationInstanceId: 1 }, 201, 'complete'],
+  ['post', '/installation-workflows/1/field-installation', { taskId: 2, installationInstanceId: 3 }, 200, 'complete'],
+  ['post', '/installation-workflows/1/verification', { verificationInstanceId: 4 }, 200, 'complete'],
+  ['post', '/installation-workflows/1/commission', {}, 200, 'complete'],
 ];
 
 beforeEach(() => {
@@ -112,6 +132,23 @@ beforeEach(() => {
     spy.mockReset();
     (spy as jest.Mock).mockResolvedValue({ id: 1 });
   }
+  services.getInstallationWorkflow.mockResolvedValue(workflowRecord());
+  services.recordInstallationReadiness.mockImplementation(async (_instance, _actor, guard) => {
+    await guard?.({ getRepository: AppDataSource.getRepository } as any, { id: 1 } as unknown as FormInstance);
+    return workflowRecord();
+  });
+  services.recordFieldInstallation.mockImplementation(async (_id, _task, _instance, _actor, guard) => {
+    await guard?.({ getRepository: AppDataSource.getRepository } as any, workflowRecord());
+    return workflowRecord();
+  });
+  services.recordPostInstallationVerification.mockImplementation(async (_id, _instance, _actor, guard) => {
+    await guard?.({ getRepository: AppDataSource.getRepository } as any, workflowRecord());
+    return workflowRecord();
+  });
+  services.commissionDevice.mockImplementation(async (_id, _actor, guard) => {
+    await guard?.({ getRepository: AppDataSource.getRepository } as any, workflowRecord({ verificationInstanceId: 4 }));
+    return workflowRecord({ verificationInstanceId: 4 });
+  });
   services.values.mockImplementation(async (id, _responses, _actor, guard) => {
     await guard?.({ getRepository: AppDataSource.getRepository } as any, { id } as FormInstance);
     return [];
@@ -251,6 +288,11 @@ describe('Forms REST API', () => {
     ['put', '/versions/1/assignment-rules', { rules: [{ assignedUserId: '7' }] }],
     ['put', '/versions/1/assignment-rules', { rules: [{ assignedUserId: 7, templateVersionId: 2 }] }],
     ['put', '/versions/1/assignment-rules', { rules: null }],
+    ['post', '/installation-workflows/readiness', { preconfigurationInstanceId: '1' }],
+    ['post', '/installation-workflows/readiness', { preconfigurationInstanceId: 0 }],
+    ['post', '/installation-workflows/1/field-installation', { taskId: 2, installationInstanceId: 3, deviceId: 9 }],
+    ['post', '/installation-workflows/1/field-installation', { taskId: 2 }],
+    ['post', '/installation-workflows/1/verification', { verificationInstanceId: 4, status: 'VERIFIED' }],
     ['post', '/templates', []],
     ['post', '/templates', 'string'],
   ])('rejects invalid/unknown body for %s %s (%j)', async (method, path, body) => {
@@ -278,6 +320,23 @@ describe('Forms REST API', () => {
     expect(services.reject).toHaveBeenCalledWith(1, 7, 'Rework');
     await call('put', '/instances/99/assignment', { assignedUserId: null, assignedTeamId: 9 });
     expect(services.assignInstance).toHaveBeenCalledWith(99, { assignedUserId: null, assignedTeamId: 9 }, 7);
+  });
+
+  it('scopes every workflow read, source form, and installation evidence to the current actor', async () => {
+    await call('get', '/installation-workflows/1');
+    expect(services.getInstallationWorkflow).toHaveBeenCalledWith(1);
+    await call('post', '/installation-workflows/readiness', { preconfigurationInstanceId: 1 });
+    expect(services.recordInstallationReadiness).toHaveBeenCalledWith(1, 7, expect.any(Function));
+    await call('post', '/installation-workflows/1/field-installation', { taskId: 2, installationInstanceId: 3 });
+    expect(services.recordFieldInstallation).toHaveBeenCalledWith(1, 2, 3, 7, expect.any(Function));
+    await call('post', '/installation-workflows/1/verification', { verificationInstanceId: 4 });
+    expect(services.recordPostInstallationVerification).toHaveBeenCalledWith(1, 4, 7, expect.any(Function));
+    await call('post', '/installation-workflows/1/commission', {});
+    expect(services.commissionDevice).toHaveBeenCalledWith(1, 7, expect.any(Function));
+    expect(query.andWhere).toHaveBeenCalledWith(expect.stringContaining('instance.createdById'), { actorId: 7 });
+    grants.forms.readAll = true;
+    await call('get', '/installation-workflows/1');
+    expect(services.getInstallationWorkflow).toHaveBeenCalledTimes(2);
   });
 
   it('validates all nullable/non-nullable optional DTO properties at runtime', async () => {

@@ -3,7 +3,7 @@
 
 import { Request, Response } from 'express';
 import { AssetService } from '../services/AssetService';
-import { DeviceLinkingService } from '../services/DeviceLinkingService';
+import { DeviceLinkingService, FieldInstallationRequiredError } from '../services/DeviceLinkingService';
 
 export class AssetController {
   private assetService: AssetService;
@@ -527,7 +527,8 @@ export class AssetController {
       });
     } catch (error: any) {
       console.error('Error linking devices:', error);
-      const statusCode = error.message === 'Obiekt nie znaleziony' ? 404 : 400;
+      const statusCode = error.message === 'Obiekt nie znaleziony' ? 404
+        : error instanceof FieldInstallationRequiredError ? 409 : 400;
       res.status(statusCode).json({
         success: false,
         message: error.message || 'Błąd podczas łączenia urządzeń',

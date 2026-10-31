@@ -4,7 +4,14 @@
 import { AppDataSource } from '../config/database';
 import { Asset } from '../entities/Asset';
 import { Device } from '../entities/Device';
-import { EntityManager, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
+
+export class FieldInstallationRequiredError extends Error {
+  constructor() {
+    super('Urządzenia można powiązać z obiektem wyłącznie przez zatwierdzony workflow FIELD_INSTALLATION');
+    this.name = 'FieldInstallationRequiredError';
+  }
+}
 
 export class DeviceLinkingService {
   private assetRepository: Repository<Asset>;
@@ -15,101 +22,10 @@ export class DeviceLinkingService {
     this.deviceRepository = AppDataSource.getRepository(Device);
   }
 
-  /**
-   * Core linking logic executed inside a caller-provided transaction manager.
-   * Normalizes + deduplicates serial numbers; batch-fetches devices in one query;
-   * saves all updates in one batch call.
-   */
-  private async performLinking(
-    manager: EntityManager,
-    assetId: number,
-    serialNumbers: string[]
-  ): Promise<{ linked: Device[]; notFound: string[]; alreadyInstalled: string[] }> {
-    const deviceRepo = manager.getRepository(Device);
-
-    // Deduplicate and normalize serial numbers (case-insensitive)
-    const normalizedMap = new Map<string, string>(); // lowercase → original (first occurrence)
-    for (const sn of serialNumbers) {
-      const key = sn.toLowerCase();
-      if (!normalizedMap.has(key)) {
-        normalizedMap.set(key, sn);
-      }
+  private assertFieldInstallationRequired(serialNumbers: string[]): void {
+    if (serialNumbers.length > 0) {
+      throw new FieldInstallationRequiredError();
     }
-    const uniqueLower = Array.from(normalizedMap.keys());
-
-    // Batch-fetch all requested devices in a single query
-    const foundDevices = await deviceRepo
-      .createQueryBuilder('device')
-      .where('LOWER(device.serial_number) IN (:...serialNumbers)', { serialNumbers: uniqueLower })
-      .getMany();
-
-    // Build a lookup map keyed by lowercased serial number
-    const deviceMap = new Map<string, Device>(
-      foundDevices.map(d => [d.serialNumber.toLowerCase(), d])
-    );
-
-    const linked: Device[] = [];
-    const notFound: string[] = [];
-    const alreadyInstalled: string[] = [];
-
-    for (const [lowerSn, originalSn] of normalizedMap) {
-      const device = deviceMap.get(lowerSn);
-
-      if (!device) {
-        notFound.push(originalSn);
-        continue;
-      }
-
-      // Check if already installed on another asset
-      if (device.installedAssetId !== null && device.installedAssetId !== assetId) {
-        alreadyInstalled.push(originalSn);
-        continue;
-      }
-
-      // Check if device inventory status allows installation
-      if (device.inventoryStatus === 'faulty' || device.inventoryStatus === 'decommissioned') {
-        throw new Error(
-          `Urządzenie ${originalSn} ma status ${device.inventoryStatus} i nie może być zainstalowane`
-        );
-      }
-
-      // Mark device as linked (actual save done in batch below)
-      device.installedAssetId = assetId;
-      device.inventoryStatus = 'installed';
-      linked.push(device);
-    }
-
-    // Save all linked devices in a single batch operation
-    if (linked.length > 0) {
-      await deviceRepo.save(linked);
-    }
-
-    return { linked, notFound, alreadyInstalled };
-  }
-
-  /**
-   * Link devices to an asset using a caller-provided transaction manager.
-   * Intended for use inside an outer transaction (e.g. AssetCreationService).
-   */
-  async linkDevicesWithManager(
-    manager: EntityManager,
-    assetId: number,
-    serialNumbers: string[],
-    bomSnapshot?: any
-  ): Promise<{ linked: Device[]; notFound: string[]; alreadyInstalled: string[] }> {
-    const result = await this.performLinking(manager, assetId, serialNumbers);
-
-    // Update asset BOM snapshot within the same manager/transaction if provided
-    if (bomSnapshot) {
-      const assetRepo = manager.getRepository(Asset);
-      const asset = await assetRepo.findOne({ where: { id: assetId } });
-      if (asset) {
-        asset.bomSnapshot = bomSnapshot;
-        await assetRepo.save(asset);
-      }
-    }
-
-    return result;
   }
 
   /**
@@ -120,6 +36,7 @@ export class DeviceLinkingService {
     assetId: number,
     serialNumbers: string[]
   ): Promise<{ linked: Device[]; notFound: string[]; alreadyInstalled: string[] }> {
+    this.assertFieldInstallationRequired(serialNumbers);
     return AppDataSource.transaction(async manager => {
       const assetRepo = manager.getRepository(Asset);
 
@@ -128,7 +45,7 @@ export class DeviceLinkingService {
         throw new Error('Obiekt nie znaleziony');
       }
 
-      return this.performLinking(manager, assetId, serialNumbers);
+      return { linked: [], notFound: [], alreadyInstalled: [] };
     });
   }
 
@@ -274,6 +191,7 @@ export class DeviceLinkingService {
     serialNumbers: string[],
     bomSnapshot?: any
   ): Promise<{ asset: Asset; linked: Device[]; notFound: string[]; alreadyInstalled: string[] }> {
+    this.assertFieldInstallationRequired(serialNumbers);
     return AppDataSource.transaction(async manager => {
       const assetRepo = manager.getRepository(Asset);
 
@@ -287,15 +205,13 @@ export class DeviceLinkingService {
         throw new Error('Obiekt nie znaleziony');
       }
 
-      const result = await this.performLinking(manager, assetId, serialNumbers);
-
       // Update asset BOM snapshot if provided
       if (bomSnapshot) {
         asset.bomSnapshot = bomSnapshot;
         await assetRepo.save(asset);
       }
 
-      return { asset, ...result };
+      return { asset, linked: [], notFound: [], alreadyInstalled: [] };
     });
   }
 }
