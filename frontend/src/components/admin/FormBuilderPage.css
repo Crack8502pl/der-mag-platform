@@ -283,6 +283,42 @@
   grid-column: 1 / -1;
 }
 
+.form-builder__advanced {
+  margin-top: 10px;
+  color: var(--text-secondary);
+}
+
+.form-builder__advanced summary {
+  width: fit-content;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.form-builder__advanced label {
+  max-width: 460px;
+}
+
+.form-builder__field-error {
+  margin: 10px 0 0;
+  color: var(--danger-color, #c94040);
+}
+
+.form-builder__option-editor {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--border-color, #454b55);
+  border-radius: 6px;
+}
+
+.form-builder__option-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: end;
+  gap: 8px;
+}
+
 .form-builder__conditions {
   display: grid;
   gap: 10px;
@@ -295,6 +331,21 @@
 .form-builder__condition {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.form-builder__condition-values {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--border-color, #454b55);
+  border-radius: 6px;
+}
+
+.form-builder__condition-value {
+  display: flex;
   align-items: end;
   gap: 8px;
 }
@@ -370,7 +421,8 @@
   .form-builder__create,
   .form-builder__field-grid,
   .form-builder__rule-form,
-  .form-builder__condition {
+  .form-builder__condition,
+  .form-builder__option-row {
     grid-template-columns: 1fr;
   }
 
