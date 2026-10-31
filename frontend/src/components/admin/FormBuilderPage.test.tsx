@@ -337,6 +337,18 @@ describe('FormBuilderPage', () => {
     expect(await screen.findByText('Wersja tylko do odczytu')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Zapisz draft' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '+ Dodaj sekcję' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Przeciągnij: Kontrola' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Przeciągnij: Wynik' })).toBeDisabled();
+  });
+
+  it('disables drag handles when the user cannot update drafts', async () => {
+    permissions.actions = ['read'];
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
+
+    expect(await screen.findByText('Wersja tylko do odczytu')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Przeciągnij: Kontrola' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Przeciągnij: Wynik' })).toBeDisabled();
   });
 
   it('rejects invalid numeric bounds before calling the API', async () => {
