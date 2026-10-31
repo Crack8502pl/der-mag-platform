@@ -14,6 +14,7 @@ import { FormDomainError, FormDomainErrorCode } from '../errors/FormDomainError'
 import { FormTemplateService } from '../services/FormTemplateService';
 import { FormInstanceService } from '../services/FormInstanceService';
 import { FormApprovalService } from '../services/FormApprovalService';
+import { DeviceInstallationWorkflowService } from '../services/DeviceInstallationWorkflowService';
 import { ForbiddenError } from '../utils/AppError';
 
 const statusByCode: Record<FormDomainErrorCode, number> = {
@@ -22,6 +23,7 @@ const statusByCode: Record<FormDomainErrorCode, number> = {
   INVALID_INSTANCE_STATUS: 409, INVALID_DEFINITION: 400, INVALID_RESPONSES: 400,
   INVALID_ASSIGNMENT: 400,
   INVALID_INSTANCE_CONTEXT: 400,
+  INVALID_INSTALLATION_WORKFLOW: 409,
   REJECTION_COMMENT_REQUIRED: 400,
   OVERRIDE_COMMENT_REQUIRED: 400,
 };
@@ -45,6 +47,7 @@ export class FormsController {
   private readonly templates = new FormTemplateService();
   private readonly instances = new FormInstanceService();
   private readonly approvals = new FormApprovalService();
+  private readonly installationWorkflows = new DeviceInstallationWorkflowService();
 
   private handler(operation: (req: Request) => Promise<unknown>, status = 200): RequestHandler {
     return async (req: Request, res: Response, next: NextFunction) => {
@@ -178,4 +181,50 @@ export class FormsController {
   // forms.approve permits decisions across records; the service enforces submitted state.
   approve = this.handler(req => this.approvals.approve(Number(req.params.id), req.userId!, req.body.comment, { override: req.body.override === true }));
   reject = this.handler(req => this.approvals.reject(Number(req.params.id), req.userId!, req.body.comment));
+
+  getInstallationWorkflow = this.handler(async req => {
+    const workflow = await this.installationWorkflows.getWorkflow(Number(req.params.id));
+    await this.scopedInstance(req, undefined, workflow.preconfigurationInstanceId);
+    return workflow;
+  });
+
+  recordInstallationReadiness = this.handler(async req => {
+    return this.installationWorkflows.recordReadiness(
+      req.body.preconfigurationInstanceId,
+      req.userId!,
+      async (manager, instance) => { await this.scopedInstance(req, manager, instance.id); },
+    );
+  }, 201);
+
+  recordFieldInstallation = this.handler(req => this.installationWorkflows.recordInstallation(
+    Number(req.params.id),
+    req.body.taskId,
+    req.body.installationInstanceId,
+    req.userId!,
+    async (manager, workflow) => {
+      await this.scopedInstance(req, manager, workflow.preconfigurationInstanceId);
+      await this.scopedInstance(req, manager, req.body.installationInstanceId);
+    },
+  ));
+
+  recordPostInstallationVerification = this.handler(req => this.installationWorkflows.recordVerification(
+    Number(req.params.id),
+    req.body.verificationInstanceId,
+    req.userId!,
+    async (manager, workflow) => {
+      await this.scopedInstance(req, manager, workflow.preconfigurationInstanceId);
+      await this.scopedInstance(req, manager, req.body.verificationInstanceId);
+    },
+  ));
+
+  commissionDevice = this.handler(req => this.installationWorkflows.commission(
+    Number(req.params.id),
+    req.userId!,
+    async (manager, workflow) => {
+      await this.scopedInstance(req, manager, workflow.preconfigurationInstanceId);
+      if (workflow.verificationInstanceId !== null) {
+        await this.scopedInstance(req, manager, workflow.verificationInstanceId);
+      }
+    },
+  ));
 }

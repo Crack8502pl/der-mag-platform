@@ -13,3 +13,4 @@
 - [Approval + Audit — etap 10](form-checklist-engine/10-approval-audit.md)
 - [Testy — etap 11](form-checklist-engine/11-testing.md)
 - [Przykładowy LPR Installation — etap 12](form-checklist-engine/12-lpr-installation-template.md)
+- [Preconfiguration ≠ assembly — etap 13](form-checklist-engine/13-preconfiguration-assembly.md)

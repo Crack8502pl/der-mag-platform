@@ -1,6 +1,7 @@
 import { DataSource, QueryRunner } from 'typeorm';
 import { AppDataSource } from '../../src/config/database';
 import { CreateFormChecklistEngine1790971200000 } from '../../src/migrations/20261002_create_form_checklist_engine';
+import { CreateDeviceInstallationWorkflows1793432400000 } from '../../src/migrations/20261031_create_device_installation_workflows';
 import { FormTemplate } from '../../src/entities/FormTemplate';
 import { FormTemplateVersion } from '../../src/entities/FormTemplateVersion';
 import { FormInstance } from '../../src/entities/FormInstance';
@@ -16,6 +17,7 @@ describePostgres('Form Engine PostgreSQL migration', () => {
   let runner: QueryRunner;
   const schema = `form_engine_test_${process.pid}`;
   const migration = new CreateFormChecklistEngine1790971200000();
+  const workflowMigration = new CreateDeviceInstallationWorkflows1793432400000();
   const procedure = FormProcedureType.DEVICE_PRECONFIGURATION;
   let templateCounter = 0;
 
@@ -25,7 +27,7 @@ describePostgres('Form Engine PostgreSQL migration', () => {
       url: process.env.FORM_ENGINE_TEST_DATABASE_URL,
       schema,
       entities: AppDataSource.options.entities,
-      migrations: [CreateFormChecklistEngine1790971200000],
+      migrations: [CreateFormChecklistEngine1790971200000, CreateDeviceInstallationWorkflows1793432400000],
       synchronize: false,
       extra: { options: `-c search_path=${schema}` }
     });
@@ -43,7 +45,7 @@ describePostgres('Form Engine PostgreSQL migration', () => {
     }
     await runner.query('CREATE TABLE devices (id INTEGER PRIMARY KEY, installed_asset_id INTEGER)');
     await runner.query('INSERT INTO devices (id) VALUES (1)');
-    expect(await source.runMigrations()).toHaveLength(1);
+    expect(await source.runMigrations()).toHaveLength(2);
     expect(await source.runMigrations()).toHaveLength(0);
   });
 
@@ -295,6 +297,8 @@ describePostgres('Form Engine PostgreSQL migration', () => {
   });
 
   it('rolls back only the new schema objects and can be reapplied', async () => {
+    await workflowMigration.down(runner);
+    expect(await runner.query(`SELECT to_regclass('device_installation_workflows') AS name`)).toEqual([{ name: null }]);
     await migration.down(runner);
     expect(await runner.query(`SELECT to_regclass('form_templates') AS name`)).toEqual([{ name: null }]);
     expect(await runner.query(`SELECT id FROM devices`)).toEqual([{ id: 1 }]);
@@ -302,6 +306,7 @@ describePostgres('Form Engine PostgreSQL migration', () => {
       JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = $1 AND p.proname LIKE 'form_%'`,
     [schema])).toEqual([{ count: 0 }]);
     await migration.up(runner);
+    await workflowMigration.up(runner);
     expect((await draft()).version).toBe(1);
   });
 });

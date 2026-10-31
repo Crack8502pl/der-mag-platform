@@ -2,7 +2,8 @@ import { Router, RequestHandler } from 'express';
 import { FormsController } from '../controllers/FormsController';
 import {
   ApprovalDto, AssignmentRulesDto, CreateInstanceDto, CreateTemplateDto, EmptyFormActionDto,
-  InstanceAssignmentDto, RejectionDto, ResponsesDto, UpdateDraftDto,
+  InstanceAssignmentDto, RecordFieldInstallationDto, RecordInstallationReadinessDto,
+  RecordPostInstallationVerificationDto, RejectionDto, ResponsesDto, UpdateDraftDto,
 } from '../dto/FormsDto';
 import { authenticate } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
@@ -54,5 +55,10 @@ router.put('/instances/:id/values', checkPermission('forms', 'update'), inputs()
 router.post('/instances/:id/complete', checkPermission('forms', 'complete'), inputs(), validate(EmptyFormActionDto), controller.complete);
 router.post('/instances/:id/approve', checkPermission('forms', 'approve'), inputs(), validate(ApprovalDto), controller.approve);
 router.post('/instances/:id/reject', checkPermission('forms', 'approve'), inputs(), validate(RejectionDto), controller.reject);
+router.get('/installation-workflows/:id', checkPermission('forms', 'read'), inputs(), controller.getInstallationWorkflow);
+router.post('/installation-workflows/readiness', checkPermission('forms', 'complete'), inputs(), validate(RecordInstallationReadinessDto), controller.recordInstallationReadiness);
+router.post('/installation-workflows/:id/field-installation', checkPermission('forms', 'complete'), inputs(), validate(RecordFieldInstallationDto), controller.recordFieldInstallation);
+router.post('/installation-workflows/:id/verification', checkPermission('forms', 'complete'), inputs(), validate(RecordPostInstallationVerificationDto), controller.recordPostInstallationVerification);
+router.post('/installation-workflows/:id/commission', checkPermission('forms', 'complete'), inputs(), validate(EmptyFormActionDto), controller.commissionDevice);
 
 export default router;

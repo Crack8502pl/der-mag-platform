@@ -11,7 +11,7 @@ export class FormAuditService {
     manager: EntityManager,
     eventType: string,
     actorId: number,
-    targetType: 'form_template' | 'form_template_version' | 'form_instance' | 'form_field_value' | 'form_approval',
+    targetType: 'form_template' | 'form_template_version' | 'form_instance' | 'form_field_value' | 'form_approval' | 'device_installation_workflow',
     targetId: number,
     changes: FormAuditChange[] = [],
     metadata: Record<string, unknown> = {},
