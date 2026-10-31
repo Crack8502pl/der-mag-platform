@@ -7,6 +7,7 @@ import { FormFieldValue } from '../../../src/entities/FormFieldValue';
 import { FormInstance } from '../../../src/entities/FormInstance';
 import { FormSection } from '../../../src/entities/FormSection';
 import { Task } from '../../../src/entities/Task';
+import { TaskMaterial } from '../../../src/entities/TaskMaterial';
 import { FormTemplate } from '../../../src/entities/FormTemplate';
 import { FormTemplateVersion } from '../../../src/entities/FormTemplateVersion';
 import { FormTrigger } from '../../../src/entities/FormTrigger';
@@ -14,6 +15,7 @@ import { FormApprovalDecision, FormInstanceStatus, FormVersionStatus } from '../
 import { FormDomainError } from '../../../src/errors/FormDomainError';
 import { FormApprovalService } from '../../../src/services/FormApprovalService';
 import { FormInstanceService } from '../../../src/services/FormInstanceService';
+import { FormDataSourceResolver } from '../../../src/services/FormDataSourceResolver';
 import { FormTemplateService } from '../../../src/services/FormTemplateService';
 import {
   assertRelationAllowed, evaluateFormCondition, resolveAssignment, validateFormDefinition, validateFormResponses,
@@ -462,6 +464,43 @@ describe('FormTemplateService', () => {
 
 describe('FormInstanceService', () => {
   const submittedValues = (result: string) => [{ fieldDefinitionId: 10, value: 4 }, { fieldDefinitionId: 11, value: result }];
+
+  it('previews DATA and BOM values from a draft task without persisting an instance or responses', async () => {
+    const dataField = Object.assign(new FormFieldDefinition(), {
+      id: 20, templateVersionId: 7, sectionId: 1, key: 'taskNumber', label: 'Numer zadania',
+      fieldType: 'DATA', required: false, validation: {},
+      options: { source: 'task.number', mode: 'readonly', valueType: 'string' }, conditions: {},
+    });
+    const bomField = Object.assign(new FormFieldDefinition(), {
+      id: 21, templateVersionId: 7, sectionId: 1, key: 'materials', label: 'Materiały',
+      fieldType: 'BOM_TABLE', required: false, validation: {},
+      options: { columns: ['plannedQty', 'installedQty'], filter: 'Urządzenia' }, conditions: {},
+    });
+    const material = Object.assign(new TaskMaterial(), {
+      id: 31, materialName: 'Kamera', unit: 'szt.', plannedQuantity: '2', category: 'Urządzenia',
+    });
+    const materialRepository = repository({ find: jest.fn().mockResolvedValue([material]) });
+    const { dataSource } = harness(repositoryMap([
+      [FormTemplateVersion, repository({ findOne: jest.fn().mockResolvedValue({ id: 7, status: FormVersionStatus.DRAFT }) })],
+      [FormSection, repository({ find: jest.fn().mockResolvedValue([section]) })],
+      [FormFieldDefinition, repository({ find: jest.fn().mockResolvedValue([dataField, bomField]) })],
+      [Task, repository({ findOne: jest.fn().mockResolvedValue({ id: 5, contractId: 2 }) })],
+      [TaskMaterial, materialRepository],
+    ]));
+    const resolve = jest.spyOn(FormDataSourceResolver.prototype, 'resolve').mockResolvedValue('Z00011026');
+
+    const values = await new FormInstanceService(dataSource).previewVersion(7, 5, 9);
+    resolve.mockRestore();
+
+    expect(values).toEqual({
+      taskNumber: 'Z00011026',
+      materials: [{
+        bomItemId: 31, name: 'Kamera', unit: 'szt.', plannedQty: 2,
+        installedQty: null, installed: false, note: '',
+      }],
+    });
+    expect(materialRepository.find).toHaveBeenCalledWith({ where: { taskId: 5 }, order: { id: 'ASC' } });
+  });
 
   it('creates an instance on the requested older published version after a newer one exists', async () => {
     const publishedVersions = [

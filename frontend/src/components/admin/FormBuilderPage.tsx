@@ -15,7 +15,9 @@ import { useFormTemplates } from '../../hooks/useFormTemplates';
 import { DynamicFormRenderer } from '../forms/DynamicFormRenderer';
 import { FormBrandingPreview } from '../forms/FormBrandingPreview';
 import { formsService, type UpdateFormDraftInput } from '../../services/forms.service';
+import taskService from '../../services/task.service';
 import variableEngineService, { type VariableEngineVariable } from '../../services/variableEngine.service';
+import type { Task } from '../../types/task.types';
 import type {
   FormBranding,
   FormAssignmentRule,
@@ -49,7 +51,13 @@ const FIELD_TYPES: Array<{ value: string; label: string }> = [
   { value: 'DATA', label: 'Dane z systemu' },
   { value: 'BOM_TABLE', label: 'Tabela BOM' },
 ];
-const PROCEDURES: FormProcedureType[] = ['CABINET_PREFABRICATION', 'DEVICE_PRECONFIGURATION', 'FIELD_INSTALLATION'];
+const PROCEDURES: Array<{ value: FormProcedureType; label: string }> = [
+  { value: 'CABINET_PREFABRICATION', label: 'Prefabrykacja szafy' },
+  { value: 'DEVICE_PRECONFIGURATION', label: 'Prekonfiguracja urządzenia' },
+  { value: 'FIELD_INSTALLATION', label: 'Montaż w terenie' },
+];
+const procedureLabel = (procedureType: FormProcedureType): string =>
+  PROCEDURES.find(procedure => procedure.value === procedureType)?.label || procedureType;
 const CONDITION_KEYS = ['visibleWhen', 'requiredWhen', 'blockCompletionWhen'] as const;
 type ConditionKey = typeof CONDITION_KEYS[number] | 'when';
 const OPERATOR_LABELS: Record<string, string> = {
@@ -167,7 +175,9 @@ const readError = (error: unknown): { message: string; fieldKey?: string } => {
           : message.includes('section key')
             ? 'Sprawdź klucze sekcji; muszą być poprawne i unikalne.'
             : 'Definicja formularza zawiera nieprawidłowe dane. Sprawdź warunki, klucze i przypisania.',
-      INVALID_RESPONSES: 'Odpowiedzi zawierają nieprawidłowe wartości. Sprawdź wskazane pola.',
+      INVALID_RESPONSES: message.includes('tylko do odczytu')
+        ? message
+        : 'Odpowiedzi zawierają nieprawidłowe wartości. Sprawdź wskazane pola.',
       INVALID_ASSIGNMENT: 'Reguła przypisania jest nieprawidłowa. Sprawdź użytkownika, brygadę i trigger.',
       INVALID_INSTANCE_CONTEXT: 'Nie można połączyć formularza z wybranym elementem.',
       INVALID_INSTANCE_STATUS: 'Nie można wykonać tej operacji dla aktualnego statusu formularza.',
@@ -227,6 +237,32 @@ const draftInput = (version: FormVersion, sections: DefinitionSection[]): Update
   headerId: version.headerId ?? null,
   footerId: version.footerId ?? null,
 });
+
+const samplePreviewValues = (version: FormVersion): Record<string, unknown> => {
+  const values: Record<string, unknown> = {};
+  for (const field of version.fields) {
+    if (field.fieldType.toUpperCase() === 'DATA') {
+      values[field.key] = field.options.source === 'task.number'
+        ? 'Z00011026'
+        : field.options.valueType === 'number'
+          ? 42
+          : field.options.valueType === 'boolean'
+            ? true
+            : 'Przykładowa wartość';
+    } else if (field.fieldType.toUpperCase() === 'BOM_TABLE') {
+      values[field.key] = [{
+        bomItemId: 1,
+        name: 'Przykładowy materiał',
+        unit: 'szt.',
+        plannedQty: 2,
+        installedQty: null,
+        installed: false,
+        note: '',
+      }];
+    }
+  }
+  return values;
+};
 
 const reindex = <T extends { sortOrder: number }>(items: T[]): T[] =>
   items.map((item, sortOrder) => ({ ...item, sortOrder }));
@@ -488,6 +524,13 @@ export const FormBuilderPage: React.FC = () => {
   const [versions, setVersions] = useState<FormVersionSummary[]>([]);
   const [sections, setSections] = useState<DefinitionSection[]>([]);
   const [tab, setTab] = useState<BuilderTab>('builder');
+  const [previewTaskSearch, setPreviewTaskSearch] = useState('');
+  const [previewTasks, setPreviewTasks] = useState<Task[]>([]);
+  const [previewTaskId, setPreviewTaskId] = useState('');
+  const [previewValues, setPreviewValues] = useState<Record<string, unknown>>({});
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState('');
+  const [previewTaskError, setPreviewTaskError] = useState('');
   const [rules, setRules] = useState<FormAssignmentRule[]>([]);
   const [assignmentUsers, setAssignmentUsers] = useState<FormUserOption[]>([]);
   const [assignmentTeams, setAssignmentTeams] = useState<FormTeamOption[]>([]);
@@ -559,6 +602,8 @@ export const FormBuilderPage: React.FC = () => {
       setSections(templateSections(nextVersion));
       setAutoSectionKeys(new Set());
       setAutoFieldKeys(new Set());
+      setPreviewTaskId('');
+      setPreviewTaskSearch('');
       setErrorFieldKey(undefined);
       setTab('builder');
     } catch (error) {
@@ -628,6 +673,50 @@ export const FormBuilderPage: React.FC = () => {
       window.clearTimeout(timer);
     };
   }, [assignmentUserSearch, currentVersionId, tab]);
+
+  useEffect(() => {
+    const search = previewTaskSearch.trim();
+    if (tab !== 'preview' || !search) {
+      setPreviewTasks([]);
+      setPreviewTaskError('');
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setPreviewTaskError('');
+      taskService.getAll({ search, page: 1, limit: 20 }).then(result => {
+        if (!cancelled) setPreviewTasks(result.data);
+      }).catch(() => {
+        if (!cancelled) setPreviewTaskError('Nie udało się wyszukać zadań.');
+      });
+    }, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [previewTaskSearch, tab]);
+
+  useEffect(() => {
+    if (!version || tab !== 'preview') return;
+    const selectedTask = previewTasks.find(task => String(task.id) === previewTaskId);
+    if (!selectedTask) {
+      setPreviewValues(samplePreviewValues(version));
+      setPreviewError('');
+      return;
+    }
+    let cancelled = false;
+    setPreviewLoading(true);
+    setPreviewError('');
+    setPreviewValues({});
+    formsService.previewVersion(version.id, selectedTask.id).then(values => {
+      if (!cancelled) setPreviewValues(values);
+    }).catch(() => {
+      if (!cancelled) setPreviewError('Nie udało się pobrać danych podglądu dla zadania.');
+    }).finally(() => {
+      if (!cancelled) setPreviewLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [previewTaskId, previewTasks, tab, version]);
 
   const createTemplate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -848,15 +937,27 @@ export const FormBuilderPage: React.FC = () => {
       {createOpen && (
         <form className="form-builder__card form-builder__create" onSubmit={createTemplate}>
           <h2>Nowy formularz</h2>
-          <label>Klucz <input required pattern="[A-Za-z0-9_-]+" maxLength={100} value={templateForm.key} onChange={event => setTemplateForm({ ...templateForm, key: event.target.value })} /></label>
-          <label>Nazwa <input required maxLength={255} value={templateForm.name} onChange={event => setTemplateForm({ ...templateForm, name: event.target.value })} /></label>
-          <label>Opis <textarea value={templateForm.description} onChange={event => setTemplateForm({ ...templateForm, description: event.target.value })} /></label>
+            <label>Nazwa <input required maxLength={255} value={templateForm.name} onChange={event => {
+              const name = event.target.value;
+              setTemplateForm(current => ({
+                ...current,
+                name,
+                key: uniqueKey(keyFromLabel(name), templates.map(item => item.key)),
+              }));
+            }} /></label>
+            <label>Opis <textarea value={templateForm.description} onChange={event => setTemplateForm({ ...templateForm, description: event.target.value })} /></label>
           <label>Typ <select value={templateForm.kind} onChange={event => setTemplateForm({ ...templateForm, kind: event.target.value as FormKind })}>
             <option value="FORM">Formularz</option><option value="CHECKLIST">Checklista</option>
           </select></label>
           <label>Procedura <select value={templateForm.procedureType} onChange={event => setTemplateForm({ ...templateForm, procedureType: event.target.value as FormProcedureType })}>
-            {PROCEDURES.map(procedure => <option value={procedure} key={procedure}>{procedure}</option>)}
+            {PROCEDURES.map(procedure => <option value={procedure.value} key={procedure.value}>{procedure.label}</option>)}
           </select></label>
+          <details className="form-builder__advanced form-builder__create-advanced">
+            <summary>Zaawansowane</summary>
+            <label>Klucz techniczny
+              <input required pattern="[A-Za-z0-9_-]+" maxLength={100} value={templateForm.key} onChange={event => setTemplateForm({ ...templateForm, key: event.target.value })} />
+            </label>
+          </details>
           <button className="btn btn-primary" disabled={saving}>{saving ? 'Tworzenie…' : 'Utwórz draft'}</button>
         </form>
       )}
@@ -873,7 +974,7 @@ export const FormBuilderPage: React.FC = () => {
             <div className="form-builder__template-list">
               {templates.map(template => (
                 <button type="button" className="form-builder__template" key={template.id} onClick={() => void openTemplate(template)}>
-                  <span><strong>{template.name}</strong><small>{template.key} · {template.kind} · {template.procedureType}</small></span>
+                  <span><strong>{template.name}</strong><small>{template.key} · {template.kind} · {procedureLabel(template.procedureType)}</small></span>
                   <span aria-hidden="true">›</span>
                 </button>
               ))}
@@ -886,7 +987,7 @@ export const FormBuilderPage: React.FC = () => {
             <button type="button" className="btn btn-secondary" onClick={() => { setSelectedTemplate(null); setVersion(null); setMessage(''); }}>← Lista formularzy</button>
             <div>
               <h2>{selectedTemplate.name}</h2>
-              <p>{selectedTemplate.key} · {selectedTemplate.kind} · {selectedTemplate.procedureType}</p>
+              <p>{selectedTemplate.key} · {selectedTemplate.kind} · {procedureLabel(selectedTemplate.procedureType)}</p>
             </div>
             {version && <span className={`form-builder__status form-builder__status--${version.status.toLowerCase()}`}>{version.status} · v{version.version}</span>}
           </div>
@@ -1031,8 +1132,36 @@ export const FormBuilderPage: React.FC = () => {
             </div>
           ) : tab === 'preview' ? (
             <div className="form-builder__preview">
-              <p className="form-builder__hint">Interaktywny podgląd zapisanej wersji — zapisz zmiany w builderze, aby je zobaczyć. Odpowiedzi w podglądzie nie są zapisywane.</p>
-              <DynamicFormRenderer versionId={version.id} />
+              <p className="form-builder__hint">Podgląd wersji roboczej w trybie tylko do odczytu. Bez wybranego zadania pola systemowe i tabela BOM pokazują dane przykładowe.</p>
+              <div className="form-builder__task-preview">
+                <label>Wyszukaj zadanie po numerze
+                  <input
+                    type="search"
+                    value={previewTaskSearch}
+                    onChange={event => {
+                      setPreviewTaskSearch(event.target.value);
+                      setPreviewTaskId('');
+                    }}
+                    placeholder="np. Z00011026"
+                  />
+                </label>
+                <label>Zadanie
+                  <select
+                    aria-label="Zadanie do podglądu"
+                    value={previewTaskId}
+                    onChange={event => setPreviewTaskId(event.target.value)}
+                  >
+                    <option value="">Dane przykładowe</option>
+                    {previewTasks.map(task => (
+                      <option key={task.id} value={task.id}>{task.taskNumber} — {task.title}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              {previewTaskError && <p className="form-builder__notice form-builder__notice--error" role="alert">{previewTaskError}</p>}
+              {previewError && <p className="form-builder__notice form-builder__notice--error" role="alert">{previewError}</p>}
+              {previewLoading && <p role="status">Pobieranie danych zadania…</p>}
+              <DynamicFormRenderer versionId={version.id} initialValues={previewValues} disabled />
             </div>
           ) : (
             <div className="form-builder__card">

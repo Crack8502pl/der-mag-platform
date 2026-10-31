@@ -137,6 +137,10 @@ export const formsService = {
     return unwrap(await api.get<ApiEnvelope<FormVersion>>(`/forms/versions/${versionId}`));
   },
 
+  async previewVersion(versionId: number, taskId: number): Promise<Record<string, unknown>> {
+    return unwrap(await api.post<ApiEnvelope<Record<string, unknown>>>(`/forms/versions/${versionId}/preview`, { taskId }));
+  },
+
   async createInstance(input: {
     templateVersionId: number;
     taskId?: number;

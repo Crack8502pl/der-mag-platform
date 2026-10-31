@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FormBuilderPage } from './FormBuilderPage';
 import { formsService } from '../../services/forms.service';
+import taskService from '../../services/task.service';
 import { useFormTemplates } from '../../hooks/useFormTemplates';
 import variableEngineService from '../../services/variableEngine.service';
 
@@ -25,6 +26,7 @@ vi.mock('../../services/forms.service', () => ({
     listVersions: vi.fn(),
     createDraft: vi.fn(),
     getVersion: vi.fn(),
+    previewVersion: vi.fn(),
     updateDraft: vi.fn(),
     publishVersion: vi.fn(),
     createNextVersion: vi.fn(),
@@ -34,6 +36,9 @@ vi.mock('../../services/forms.service', () => ({
     listBranding: vi.fn(),
     replaceAssignmentRules: vi.fn(),
   },
+}));
+vi.mock('../../services/task.service', () => ({
+  default: { getAll: vi.fn() },
 }));
 vi.mock('../../services/variableEngine.service', () => ({
   default: { listVariables: vi.fn() },
@@ -97,6 +102,20 @@ describe('FormBuilderPage', () => {
     });
     vi.mocked(formsService.listVersions).mockResolvedValue({ items: [draft], total: 1, page: 1, limit: 20 });
     vi.mocked(formsService.getVersion).mockResolvedValue(draft);
+    vi.mocked(formsService.previewVersion).mockResolvedValue({});
+    vi.mocked(taskService.getAll).mockResolvedValue({
+      data: [{
+        id: 501, taskNumber: 'Z00011026', title: 'Montaż kamer', description: '',
+        taskType: {
+          id: 1, name: 'Montaż', description: '', code: 'INSTALL', active: true,
+          configuration: {}, createdAt: '', updatedAt: '',
+        },
+        taskTypeId: 1, status: 'new', location: '', client: '',
+        contractNumber: '', parentTaskId: 0, contractId: 12, subsystemId: 0, priority: 1,
+        metadata: {}, createdAt: '', updatedAt: '',
+      }],
+      pagination: { page: 1, limit: 20, total: 1, pages: 1 },
+    });
     vi.mocked(formsService.listAssignmentRules).mockResolvedValue([]);
     vi.mocked(formsService.listAssignmentUsers).mockResolvedValue([
       { id: 32, firstName: 'Jan', lastName: 'Kowalski', username: 'jkowalski', email: 'jan@example.test' },
@@ -210,10 +229,41 @@ describe('FormBuilderPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Podgląd' }));
 
     expect(await screen.findByRole('heading', { level: 2, name: 'Kontrola jakości' })).toBeInTheDocument();
-    expect(screen.getByRole('combobox')).not.toBeDisabled();
+    expect(screen.getByRole('combobox', { name: 'Zadanie do podglądu' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'PASS' })).toBeInTheDocument();
-    expect(screen.getByText(/Interaktywny podgląd zapisanej wersji/i)).toBeInTheDocument();
+    expect(screen.getByText(/Podgląd wersji roboczej w trybie tylko do odczytu/i)).toBeInTheDocument();
     expect(formsService.getVersion).toHaveBeenLastCalledWith(draft.id);
+    expect(screen.queryByRole('button', { name: 'Zapisz odpowiedzi' })).not.toBeInTheDocument();
+  });
+
+  it('previews system data from a searched task without creating an instance', async () => {
+    const dataDraft = {
+      ...draft,
+      fields: [{
+        ...draft.fields[0],
+        key: 'taskNumber',
+        label: 'Numer zadania',
+        fieldType: 'DATA',
+        options: { source: 'task.number', mode: 'readonly', valueType: 'string' },
+      }],
+    };
+    vi.mocked(formsService.getVersion).mockResolvedValue(dataDraft);
+    vi.mocked(formsService.previewVersion).mockResolvedValue({ taskNumber: 'Z00011026' });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
+    await screen.findByDisplayValue('Numer zadania');
+    fireEvent.click(screen.getByRole('button', { name: 'Podgląd' }));
+    fireEvent.change(screen.getByLabelText('Wyszukaj zadanie po numerze'), {
+      target: { value: 'Z00011026' },
+    });
+
+    await screen.findByRole('option', { name: 'Z00011026 — Montaż kamer' });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Zadanie do podglądu' }), {
+      target: { value: '501' },
+    });
+
+    await waitFor(() => expect(formsService.previewVersion).toHaveBeenCalledWith(draft.id, 501));
+    expect(await screen.findByText('Z00011026')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Zapisz odpowiedzi' })).not.toBeInTheDocument();
   });
 
@@ -278,12 +328,13 @@ describe('FormBuilderPage', () => {
     vi.mocked(formsService.createDraft).mockResolvedValue(draft);
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: '+ Nowy formularz' }));
-    fireEvent.change(screen.getByLabelText('Klucz'), { target: { value: 'new_form' } });
     fireEvent.change(screen.getByLabelText('Nazwa'), { target: { value: 'Nowy formularz' } });
+    expect(screen.getByLabelText('Klucz techniczny').closest('details')).not.toHaveAttribute('open');
+    expect(screen.getByLabelText('Klucz techniczny')).toHaveValue('NOWY_FORMULARZ');
     fireEvent.click(screen.getByRole('button', { name: 'Utwórz draft' }));
 
     await waitFor(() => expect(formsService.createTemplate).toHaveBeenCalledWith(expect.objectContaining({
-      key: 'NEW_FORM',
+      key: 'NOWY_FORMULARZ',
       name: 'Nowy formularz',
     })));
     expect(formsService.createDraft).toHaveBeenCalledWith(template.id);
@@ -451,7 +502,6 @@ describe('FormBuilderPage', () => {
     vi.mocked(formsService.createTemplate).mockRejectedValue(new Error('offline'));
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: '+ Nowy formularz' }));
-    fireEvent.change(screen.getByLabelText('Klucz'), { target: { value: 'new_form' } });
     fireEvent.change(screen.getByLabelText('Nazwa'), { target: { value: 'Nowy formularz' } });
     fireEvent.click(screen.getByRole('button', { name: 'Utwórz draft' }));
 

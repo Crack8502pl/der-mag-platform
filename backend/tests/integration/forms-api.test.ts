@@ -64,6 +64,7 @@ const services = {
   pdf: jest.spyOn(FormInstancePdfService.prototype, 'generate'),
   createTemplate: jest.spyOn(FormTemplateService.prototype, 'createTemplate'),
   createDraft: jest.spyOn(FormTemplateService.prototype, 'createDraft'),
+  previewVersion: jest.spyOn(FormInstanceService.prototype, 'previewVersion'),
   updateDraft: jest.spyOn(FormTemplateService.prototype, 'updateDraft'),
   publish: jest.spyOn(FormTemplateService.prototype, 'publishVersion'),
   next: jest.spyOn(FormTemplateService.prototype, 'createNextVersion'),
@@ -103,6 +104,7 @@ const endpoints: [string, string, unknown, number, string][] = [
   ['get', '/templates/1/versions', undefined, 200, 'read'],
   ['post', '/templates/1/draft', {}, 201, 'create'],
   ['get', '/versions/1', undefined, 200, 'read'],
+  ['post', '/versions/1/preview', { taskId: 10 }, 200, 'read'],
   ['put', '/versions/1/draft', draftBody, 200, 'update'],
   ['post', '/versions/1/publish', {}, 200, 'publish'],
   ['post', '/versions/1/next', {}, 201, 'create'],
@@ -224,6 +226,8 @@ describe('Forms REST API', () => {
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual(expect.arrayContaining([
       expect.objectContaining({ expression: 'task.location', group: 'Zadanie', usableInForms: true }),
+      expect.objectContaining({ expression: 'task.number', description: 'Numer zadania' }),
+      expect.objectContaining({ expression: 'task.progress', description: 'Postęp zadania w procentach' }),
     ]));
 
     grants = { bom: { read: true } };
@@ -241,6 +245,29 @@ describe('Forms REST API', () => {
     }
     expect(response.body).toMatchObject({ success: true, message: 'OK' });
     expect(response.body.data).toBeDefined();
+  });
+
+  it('previews a draft version for a selected task without creating an instance', async () => {
+    services.previewVersion.mockResolvedValue({ taskNumber: 'Z00011026' });
+
+    const response = await call('post', '/versions/1/preview', { taskId: 10 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual({ taskNumber: 'Z00011026' });
+    expect(services.previewVersion).toHaveBeenCalledWith(1, 10, 7);
+    expect(services.createInstance).not.toHaveBeenCalled();
+  });
+
+  it('returns read-only field errors in Polish', async () => {
+    services.values.mockRejectedValue(new FormDomainError(
+      'INVALID_RESPONSES',
+      'System data field NR_ZADANIA is read-only',
+    ));
+
+    const response = await call('put', '/instances/1/values', { responses: { NR_ZADANIA: 'changed' } });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe('Pole NR_ZADANIA jest tylko do odczytu.');
   });
 
   it.each(endpoints)('%s %s authenticates and denies its missing action', async (method, path, body, _status, action) => {
@@ -588,8 +615,25 @@ describe('Forms REST API', () => {
   ])('maps service error %s/%s without duplicating lifecycle', async (service, method, path, body, code, status) => {
     (services as any)[service].mockRejectedValue(new FormDomainError(code as FormDomainErrorCode, 'Domain message', { errors: ['stored definition error'] }));
     const response = await call(method as string, path as string, body);
+    const messageByCode: Partial<Record<FormDomainErrorCode, string>> = {
+      DRAFT_ALREADY_EXISTS: 'Istnieje już wersja robocza tego formularza.',
+      VERSION_NOT_DRAFT: 'Można edytować tylko wersję roboczą.',
+      INVALID_DEFINITION: 'Definicja formularza zawiera nieprawidłowe dane.',
+      VERSION_NOT_PUBLISHED: 'Ta operacja wymaga opublikowanej wersji formularza.',
+      VERSION_NOT_FOUND: 'Nie znaleziono wersji formularza.',
+      INVALID_ASSIGNMENT: 'Reguła przypisania jest nieprawidłowa.',
+      INSTANCE_NOT_FOUND: 'Nie znaleziono instancji formularza.',
+      INVALID_INSTANCE_STATUS: 'Nie można wykonać tej operacji przy aktualnym statusie formularza.',
+      INVALID_RESPONSES: 'Odpowiedzi formularza zawierają nieprawidłowe wartości.',
+      REJECTION_COMMENT_REQUIRED: 'Przed odrzuceniem formularza dodaj komentarz.',
+    };
     expect(response.status).toBe(status);
-    expect(response.body).toEqual({ success: false, message: 'Domain message', code, details: { errors: ['stored definition error'] } });
+    expect(response.body).toEqual({
+      success: false,
+      message: messageByCode[code as FormDomainErrorCode],
+      code,
+      details: { errors: ['stored definition error'] },
+    });
   });
 
   it.each([
