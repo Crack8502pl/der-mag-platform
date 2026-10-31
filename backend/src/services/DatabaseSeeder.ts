@@ -5,6 +5,7 @@ import { Role } from '../entities/Role';
 import { User } from '../entities/User';
 import { TaskType } from '../entities/TaskType';
 import { RailwayLinesSeed } from '../seeds/RailwayLinesSeed';
+import { LprInstallationSeed } from '../seeds/LprInstallationSeed';
 
 export class DatabaseSeeder {
   
@@ -14,6 +15,7 @@ export class DatabaseSeeder {
     await this.seedTaskTypes();
     await this.seedAdmin();
     await RailwayLinesSeed.seed();
+    await LprInstallationSeed.seed();
     
     console.log('✅ Seedowanie zakończone pomyślnie!');
     console.log('');
@@ -328,6 +330,7 @@ export class DatabaseSeeder {
       await this.seedTaskTypes();
       await this.seedAdmin();
       await RailwayLinesSeed.seed();
+      await LprInstallationSeed.seed();
       
       console.log('✅ Wymuszone seedowanie zakończone pomyślnie!');
     } finally {

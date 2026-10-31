@@ -74,6 +74,10 @@ describe('DatabaseSeeder', () => {
         findOne: jest.fn().mockResolvedValue(null),
       };
     });
+    (AppDataSource as any).transaction = jest.fn((callback: (manager: any) => unknown) => callback({
+      getRepository: AppDataSource.getRepository,
+      query: jest.fn().mockResolvedValue(undefined),
+    }));
   });
 
   afterEach(() => {
