@@ -247,6 +247,11 @@
   cursor: grabbing;
 }
 
+.form-builder__drag-handle:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
 .form-builder__fields {
   display: grid;
   gap: 10px;

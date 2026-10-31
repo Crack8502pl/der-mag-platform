@@ -164,9 +164,9 @@ const decodeConditionValue = (text: string): FormCondition['value'] => {
   }
 };
 
-const DragHandle: React.FC<{ id: string; label: string; children: React.ReactNode }> = ({ id, label, children }) => {
-  const { attributes, listeners, setNodeRef: setDragRef, transform, isDragging } = useDraggable({ id });
-  const { setNodeRef: setDropRef } = useDroppable({ id });
+const DragHandle: React.FC<{ id: string; label: string; disabled: boolean; children: React.ReactNode }> = ({ id, label, disabled, children }) => {
+  const { attributes, listeners, setNodeRef: setDragRef, transform, isDragging } = useDraggable({ id, disabled });
+  const { setNodeRef: setDropRef } = useDroppable({ id, disabled });
   const setNodeRef = (node: HTMLElement | null) => {
     setDragRef(node);
     setDropRef(node);
@@ -181,6 +181,7 @@ const DragHandle: React.FC<{ id: string; label: string; children: React.ReactNod
         type="button"
         className="form-builder__drag-handle"
         aria-label={`Przeciągnij: ${label}`}
+        disabled={disabled}
         {...attributes}
         {...listeners}
       >
@@ -626,7 +627,7 @@ export const FormBuilderPage: React.FC = () => {
               <DndContext sensors={sensors} onDragEnd={event => setSections(current => reorder(current, event))}>
                 <div className="form-builder__sections">
                   {sections.map((section, sectionIndex) => (
-                    <DragHandle key={section.key} id={section.key} label={section.title}>
+                    <DragHandle key={section.key} id={section.key} label={section.title} disabled={readOnly}>
                       <article className="form-builder__section">
                         <div className="form-builder__section-head">
                           <label>Nazwa sekcji
@@ -648,7 +649,7 @@ export const FormBuilderPage: React.FC = () => {
                         <DndContext sensors={sensors} onDragEnd={event => reorderFields(sectionIndex, event)}>
                           <div className="form-builder__fields">
                             {section.fields.map((field, fieldIndex) => (
-                              <DragHandle key={field.key} id={field.key} label={field.label}>
+                              <DragHandle key={field.key} id={field.key} label={field.label} disabled={readOnly}>
                                 <FieldEditor
                                   field={field}
                                   index={fieldIndex}
