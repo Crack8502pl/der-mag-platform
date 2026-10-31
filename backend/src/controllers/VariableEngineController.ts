@@ -1,11 +1,15 @@
 import { Request, Response } from 'express';
+import { FORM_DATA_SOURCES } from '../modules/variable-engine/formDataSources';
 
 type VariableEngineVariable = {
   expression: string;
   type: 'string' | 'number' | 'boolean';
   description: string;
+  label?: string;
+  group?: string;
   provider: string;
   usableInBom: boolean;
+  usableInForms?: boolean;
 };
 
 const VARIABLE_ENGINE_VARIABLES: VariableEngineVariable[] = [
@@ -25,6 +29,11 @@ const VARIABLE_ENGINE_VARIABLES: VariableEngineVariable[] = [
   { expression: 'task.assignee.name', type: 'string', description: 'Przypisana osoba', provider: 'task', usableInBom: false },
   { expression: 'task.due.date', type: 'string', description: 'Termin taska (ISO 8601)', provider: 'task', usableInBom: false },
   { expression: 'task.progress', type: 'number', description: 'Postęp taska w procentach', provider: 'task', usableInBom: false },
+  { expression: 'task.location', type: 'string', description: 'Lokalizacja zadania', provider: 'task', usableInBom: false },
+  { expression: 'task.type.name', type: 'string', description: 'Typ zadania', provider: 'task', usableInBom: false },
+  { expression: 'task.contract.number', type: 'string', description: 'Numer kontraktu powiązanego z zadaniem', provider: 'task', usableInBom: false },
+  { expression: 'task.subsystem.name', type: 'string', description: 'System podsystemu powiązanego z zadaniem', provider: 'task', usableInBom: false },
+  { expression: 'task.brigade.name', type: 'string', description: 'Nazwa brygady przypisanej do zadania', provider: 'task', usableInBom: false },
   { expression: 'contract.number', type: 'string', description: 'Numer kontraktu', provider: 'contract', usableInBom: false },
   { expression: 'contract.status', type: 'string', description: 'Status kontraktu', provider: 'contract', usableInBom: false },
   { expression: 'contract.customer.name', type: 'string', description: 'Nazwa klienta', provider: 'contract', usableInBom: false },
@@ -73,7 +82,25 @@ export class VariableEngineController {
   static async listVariables(_req: Request, res: Response): Promise<void> {
     res.json({
       success: true,
-      data: VARIABLE_ENGINE_VARIABLES
+      data: VARIABLE_ENGINE_VARIABLES.map(variable => ({
+        ...variable,
+        label: variable.description,
+        group: GROUP_LABELS[variable.provider] || variable.provider,
+        usableInForms: FORM_DATA_SOURCES.some(source => source.expression === variable.expression),
+      })),
     });
   }
 }
+
+const GROUP_LABELS: Record<string, string> = {
+  camera: 'Kamery',
+  task: 'Zadanie',
+  contract: 'Kontrakt',
+  fiber: 'Światłowód',
+  switch: 'Switche',
+  ip: 'Sieć IP',
+  warehouse: 'Magazyn',
+  user: 'Użytkownik',
+  ai: 'AI',
+  hierarchy: 'Hierarchia',
+};

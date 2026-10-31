@@ -4,7 +4,14 @@ import { DynamicFormRenderer } from './DynamicFormRenderer';
 import { formsService } from '../../services/forms.service';
 import type { FormVersion } from '../../types/forms.types';
 
-vi.mock('../../services/forms.service', () => ({ formsService: { getVersion: vi.fn() } }));
+vi.mock('../../services/forms.service', () => ({
+  formsService: {
+    getVersion: vi.fn(),
+    getInstanceValues: vi.fn(),
+    refreshInstanceData: vi.fn(),
+    getInstancePdf: vi.fn(),
+  },
+}));
 
 const version: FormVersion = {
   id: 12, templateId: 1, version: 2, status: 'PUBLISHED', title: 'Kontrola',
@@ -33,10 +40,46 @@ const version: FormVersion = {
 beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(formsService.getVersion).mockResolvedValue(structuredClone(version));
+  vi.mocked(formsService.getInstanceValues).mockResolvedValue({});
+  vi.mocked(formsService.refreshInstanceData).mockResolvedValue(undefined);
+  vi.mocked(formsService.getInstancePdf).mockResolvedValue(new Blob(['pdf']));
 });
 afterEach(cleanup);
 
 describe('DynamicFormRenderer', () => {
+  it('renders the immutable custom header/footer snapshots and resolves approved data fields', async () => {
+    vi.mocked(formsService.getVersion).mockResolvedValue({
+      ...version,
+      headerSnapshot: {
+        id: 8, name: 'Firmowy nagłówek', kind: 'HEADER', mode: 'CUSTOM',
+        heightMm: 20, filePath: null, fileMime: null,
+        layout: {
+          columns: {
+            left: [{ type: 'text', text: 'Der-Mag' }],
+            center: [{ type: 'variable', source: 'task.number' }],
+            right: [],
+          },
+          separator: true,
+        },
+      },
+      footerSnapshot: {
+        id: 9, name: 'Stopka', kind: 'FOOTER', mode: 'CUSTOM',
+        heightMm: 15, filePath: null, fileMime: null,
+        layout: { columns: { left: [{ type: 'pageNumber' }], center: [], right: [] }, separator: false },
+      },
+      fields: [
+        ...version.fields,
+        { id: 4, sectionId: 1, key: 'taskNumber', label: 'Numer zadania', fieldType: 'DATA', required: false,
+          sortOrder: 2, validation: {}, options: { source: 'task.number', mode: 'readonly', valueType: 'string' }, conditions: {} },
+      ],
+    });
+    render(<DynamicFormRenderer versionId={12} initialValues={{ taskNumber: 'TSK-22' }} />);
+
+    expect(await screen.findByText('Der-Mag')).toBeInTheDocument();
+    expect(screen.getAllByText('TSK-22')).toHaveLength(2);
+    expect(screen.getByText('1')).toBeInTheDocument();
+  });
+
   it('keeps control, radio option and error IDs distinct for valid suffixed field keys', async () => {
     vi.mocked(formsService.getVersion).mockResolvedValue({
       ...version, sections: [version.sections[0]], fields: [
@@ -71,6 +114,55 @@ describe('DynamicFormRenderer', () => {
     expect(await screen.findByLabelText('Uwagi')).toBeInTheDocument();
     expect(screen.queryByText('Pomiary')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Zapisz odpowiedzi' })).not.toBeInTheDocument();
+  });
+
+  it('loads saved system data for an instance and refreshes its readonly snapshot', async () => {
+    const dataField = {
+      ...version.fields[0],
+      key: 'location',
+      label: 'Lokalizacja',
+      fieldType: 'DATA',
+      required: false,
+      options: { source: 'task.location', mode: 'readonly', valueType: 'string' },
+    };
+    vi.mocked(formsService.getVersion).mockResolvedValue({
+      ...version, sections: [version.sections[0]], fields: [dataField],
+    });
+    vi.mocked(formsService.getInstanceValues)
+      .mockResolvedValueOnce({ location: 'Stacja' })
+      .mockResolvedValueOnce({ location: 'Peron' });
+    render(<DynamicFormRenderer versionId={12} instanceId={44} />);
+
+    expect(await screen.findByRole('textbox', { name: 'Lokalizacja' })).toHaveTextContent('Stacja');
+    expect(formsService.getInstanceValues).toHaveBeenCalledWith(44, expect.objectContaining({ id: 12 }));
+    fireEvent.click(screen.getByRole('button', { name: 'Odśwież dane z zadania' }));
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Lokalizacja' })).toHaveTextContent('Peron'));
+    expect(formsService.refreshInstanceData).toHaveBeenCalledWith(44);
+  });
+
+  it('downloads the generated PDF for an instance', async () => {
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:form-pdf');
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    render(<DynamicFormRenderer versionId={12} instanceId={44} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Pobierz PDF' }));
+    await waitFor(() => expect(formsService.getInstancePdf).toHaveBeenCalledWith(44));
+    expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+    await waitFor(() => expect(revokeObjectURL).toHaveBeenCalledWith('blob:form-pdf'));
+    expect(click).toHaveBeenCalledOnce();
+    click.mockRestore();
+    createObjectURL.mockRestore();
+    revokeObjectURL.mockRestore();
+  });
+
+  it('allows PDF download for a read-only instance and surfaces download failures', async () => {
+    vi.mocked(formsService.getInstancePdf).mockRejectedValue(new Error('PDF failed'));
+    render(<DynamicFormRenderer versionId={12} instanceId={44} disabled />);
+    const download = await screen.findByRole('button', { name: 'Pobierz PDF' });
+    expect(download).toBeEnabled();
+    fireEvent.click(download);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się pobrać formularza PDF.');
+    expect(download).toBeEnabled();
   });
 
   it('validates required values, ranges and retains answers when fields are hidden', async () => {

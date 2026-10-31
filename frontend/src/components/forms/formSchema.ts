@@ -7,6 +7,7 @@ const reservedKeys = new Set([...Object.getOwnPropertyNames(Object.prototype), '
 const supportedTypes = new Set([
   'TEXT', 'STRING', 'TEXTAREA', 'EMAIL', 'DATE', 'SELECT', 'RADIO',
   'NUMBER', 'PASS_FAIL', 'CHECKBOX', 'MULTI_SELECT',
+  'DATA', 'BOM_TABLE',
 ]);
 const operators = new Set([
   'equals', 'notEquals', 'gt', 'gte', 'lt', 'lte',
@@ -121,6 +122,28 @@ export function getDefinitionError(version: FormVersion): string | null {
       return `Unsupported field type: ${field.fieldType}`;
     }
     if (!isObject(field.options)) return `Invalid options on ${field.key}`;
+    if (field.fieldType.toUpperCase() === 'DATA' &&
+        (typeof field.options.source !== 'string' ||
+         !['readonly', 'prefill'].includes(String(field.options.mode)) ||
+         !['string', 'number', 'boolean'].includes(String(field.options.valueType)))) {
+      return `Invalid system data source on ${field.key}`;
+    }
+    if (field.fieldType.toUpperCase() === 'BOM_TABLE') {
+      const columns = field.options.columns;
+      const allowedColumns = ['plannedQty', 'installedQty', 'installed', 'note'];
+      if (
+        !Array.isArray(columns) ||
+        columns.length === 0 ||
+        columns.length > allowedColumns.length ||
+        !columns.every((column, index) =>
+          typeof column === 'string' && allowedColumns.includes(column) && columns.indexOf(column) === index) ||
+        (field.options.filter !== undefined &&
+          (typeof field.options.filter !== 'string' || field.options.filter.length > 100)) ||
+        Object.keys(field.options).some(key => !['columns', 'filter'].includes(key))
+      ) {
+        return `Invalid BOM table options on ${field.key}`;
+      }
+    }
     if (field.fieldType.toUpperCase() === 'NUMBER') {
       const { min, max } = field.validation || {};
       if ((min !== undefined && (typeof min !== 'number' || !Number.isFinite(min))) ||
@@ -169,6 +192,42 @@ function valueError(field: FormField, value: unknown): string | null {
     case 'MULTI_SELECT':
       return Array.isArray(value) && value.every(item => typeof item === 'string')
         ? null : 'must be a list of strings';
+    case 'DATA': {
+      switch (field.options.valueType) {
+        case 'number': return typeof value === 'number' && Number.isFinite(value) ? null : 'must be a finite number';
+        case 'boolean': return typeof value === 'boolean' ? null : 'must be a boolean';
+        default: return typeof value === 'string' ? null : 'must be a string';
+      }
+    }
+    case 'BOM_TABLE': {
+      if (!Array.isArray(value) || value.length > 1000) return 'must be a BOM item list of at most 1000 items';
+      const seen = new Set<number>();
+      for (const row of value) {
+        if (row === null || typeof row !== 'object' || Array.isArray(row)) return 'contains an invalid BOM item';
+        const item = row as Record<string, unknown>;
+        if (
+          Object.keys(item).some(key => ![
+            'bomItemId', 'name', 'unit', 'plannedQty', 'installedQty', 'installed', 'note',
+          ].includes(key)) ||
+          Object.keys(item).length !== 7 ||
+          !Number.isSafeInteger(item.bomItemId) || typeof item.name !== 'string' ||
+          (item.bomItemId as number) < 1 || seen.has(item.bomItemId as number) ||
+          typeof item.unit !== 'string' ||
+          typeof item.plannedQty !== 'number' || !Number.isFinite(item.plannedQty) || item.plannedQty < 0 ||
+          (item.installedQty !== null &&
+            (typeof item.installedQty !== 'number' || !Number.isFinite(item.installedQty) || item.installedQty < 0)) ||
+          typeof item.installed !== 'boolean' || typeof item.note !== 'string'
+        ) return 'contains an invalid BOM item';
+        seen.add(item.bomItemId as number);
+        if (item.installed && !(typeof item.installedQty === 'number' && item.installedQty > 0)) {
+          return 'installed items require an installed quantity greater than zero';
+        }
+        if (typeof item.installedQty === 'number' && item.installedQty > item.plannedQty && item.note.trim() === '') {
+          return 'an installation note is required when installed quantity exceeds the plan';
+        }
+      }
+      return null;
+    }
     default:
       return 'has an unsupported type';
   }

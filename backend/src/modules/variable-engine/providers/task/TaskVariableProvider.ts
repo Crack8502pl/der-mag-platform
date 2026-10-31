@@ -39,7 +39,12 @@ type TaskField =
   | 'priority'
   | 'assignee.name'
   | 'due.date'
-  | 'progress';
+  | 'progress'
+  | 'location'
+  | 'type.name'
+  | 'contract.number'
+  | 'subsystem.name'
+  | 'brigade.name';
 
 const SUPPORTED_FIELDS: ReadonlySet<string> = new Set<TaskField>([
   'number',
@@ -49,6 +54,11 @@ const SUPPORTED_FIELDS: ReadonlySet<string> = new Set<TaskField>([
   'assignee.name',
   'due.date',
   'progress',
+  'location',
+  'type.name',
+  'contract.number',
+  'subsystem.name',
+  'brigade.name',
 ]);
 
 export class TaskVariableProvider extends AbstractVariableProvider {
@@ -108,6 +118,16 @@ export class TaskVariableProvider extends AbstractVariableProvider {
         return data.dueDate;
       case 'progress':
         return data.progress;
+      case 'location':
+        return data.location;
+      case 'type.name':
+        return data.typeName;
+      case 'contract.number':
+        return data.contractNumber;
+      case 'subsystem.name':
+        return data.subsystemName;
+      case 'brigade.name':
+        return data.brigadeName;
     }
   }
 

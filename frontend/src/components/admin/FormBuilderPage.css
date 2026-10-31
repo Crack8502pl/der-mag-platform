@@ -69,6 +69,28 @@
   border-color: var(--danger-color, #c94040);
 }
 
+.form-builder__branding-choice {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 180px;
+  align-items: end;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.form-builder__branding-choice label {
+  display: grid;
+  gap: 6px;
+}
+
+.form-builder__branding-choice select {
+  min-width: 0;
+  padding: 8px;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
 .form-builder__empty,
 .form-builder__card,
 .form-builder__preview {

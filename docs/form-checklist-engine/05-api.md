@@ -34,8 +34,18 @@ Użytkownik z samym `create` może utworzyć samodzielną instancję dla siebie.
 
 Ścieżki poniżej są względne wobec `/api/forms`. Identyfikatory są dodatnimi liczbami całkowitymi w zakresie PostgreSQL `integer` (maksymalnie `2147483647`). Listy przyjmują wyłącznie `page` (1–1000000, domyślnie 1) i `limit` (1–100, domyślnie 20). Nie ma dodatkowych filtrów. Nieznane query params, błędne identyfikatory i przekroczone limity zwracają `400`.
 
+Eksport `GET /instances/:id/pdf` zwraca surowy `application/pdf`, nie kopertę JSON. Nazwa załącznika to `formularz-<id>.pdf`; odpowiedź ma `Cache-Control: private, no-store`. Obowiązuje ten sam zakres autora/wykonawcy/brygady oraz `readAll` jak dla szczegółów instancji. Guard jest sprawdzany po blokadzie odczytu instancji, w transakcji `REPEATABLE READ`, która pobiera spójny zestaw odpowiedzi, statusu i decyzji. Błędy pozostają standardowymi odpowiedziami JSON API.
+
 | Metoda | Ścieżka | Uprawnienie | Operacja |
 |---|---|---|---|
+| GET | `/branding` | `read` | Lista aktywnych nagłówków i stopek. |
+| POST | `/branding` | `create` | Utworzenie pliku lub własnego układu (`201`). |
+| PUT | `/branding/:id` | `update` | Edycja wpisu biblioteki. |
+| DELETE | `/branding/:id` | `update` | Soft-delete wpisu; snapshoty wersji pozostają dostępne. |
+| POST | `/branding/logos` | `update` | Upload logo PNG/JPG do własnego układu (`201`). |
+| GET | `/branding/logos/:fileName` | `read` | Odczyt logo przez uwierzytelniony endpoint. |
+| GET | `/branding/files/:fileName` | `read` | Odczyt historycznego pliku wskazanego przez snapshot. |
+| GET | `/branding/:id/file` | `read` | Odczyt aktualnego pliku wpisu biblioteki. |
 | GET | `/templates` | `read` | Stronicowana lista szablonów. |
 | POST | `/templates` | `create` | Utworzenie szablonu (`201`). |
 | GET | `/templates/:id` | `read` | Szczegóły szablonu. |
@@ -50,8 +60,10 @@ Użytkownik z samym `create` może utworzyć samodzielną instancję dla siebie.
 | GET | `/instances` | `read` | Stronicowana lista w dozwolonym zakresie. |
 | POST | `/instances` | `create` | Instancja przypięta do opublikowanej wersji (`201`). |
 | GET | `/instances/:id` | `read` | Szczegóły dostępnej instancji. |
+| GET | `/instances/:id/pdf` | `read` | PDF A4 ostatnio zapisanych odpowiedzi dostępnej instancji. |
 | GET | `/instances/:id/values` | `read` | Zapisane wartości dostępnej instancji. |
 | PUT | `/instances/:id/values` | `update` | Częściowy zapis odpowiedzi według stabilnych kluczy pól. |
+| POST | `/instances/:id/refresh-data` | `update` | Odświeżenie wyłącznie pól systemowych `DATA` w trybie `readonly`, przed `SUBMITTED`. |
 | PUT | `/instances/:id/assignment` | `assign` | Zmiana wykonawcy instancji w stanie edytowalnym. |
 | POST | `/instances/:id/complete` | `complete` | Walidacja zapisanych odpowiedzi i przejście do `SUBMITTED`. |
 | POST | `/instances/:id/approve` | `approve` | Decyzja `APPROVED`. |
@@ -102,6 +114,25 @@ Wymagane: `key`, `name`, `procedureType`. Opcjonalne: `description`, `kind` (dom
 
 Metadane `title`, `description`, `settings`, `sections` są opcjonalne. Podanie `sections` zastępuje całą definicję sekcji i pól; pominięcie zachowuje ją. Sekcja wymaga `key`, `title`, `fields`; pole wymaga `key`, `label`, `fieldType`. Opcjonalne pola sekcji: `description`, `sortOrder`, `conditions`. Opcjonalne pola definicji: `required`, `sortOrder`, `validation`, `options`, `conditions`. DTO dopuszczają maksymalnie 100 sekcji i 500 pól w sekcji; typy pól podaje się wielkimi literami. Znaczenie typów i warunków opisują [serwisy](04-backend-services.md#walidacja-i-warunki).
 
+`headerId` i `footerId` są opcjonalnymi dodatkami aktualizacji szkicu. ID musi wskazywać aktywny wpis biblioteki właściwego rodzaju; `null` pozostawia rozstrzygnięcie domyślnego elementu do publikacji. Publikacja zapisuje niezmienny snapshot obu wybranych elementów, a brak ID rozwiązuje do aktywnego elementu domyślnego danego rodzaju.
+
+Plik biblioteki przyjmuje PNG/JPG/PDF do 5 MB; typ jest wykrywany z zawartości, nie z nazwy ani deklarowanego MIME. Logo własnego układu przyjmuje wyłącznie PNG/JPG. Własny układ ma `columns.left`, `columns.center`, `columns.right` (maksymalnie 10 elementów na kolumnę) i boolean `separator`. Elementy to `text`, `logo`, `variable`, `pageNumber` i `printDate`; `variable.source` musi należeć do katalogu `FORM_DATA_SOURCES`. Podmiana/usunięcie wpisu nie usuwa plików używanych przez historyczne snapshoty.
+
+Pole `DATA` wymaga `options.source`, `options.mode` (`readonly` lub `prefill`) i zgodnego z katalogiem `options.valueType` (`string`, `number` lub `boolean`). `source` musi być oznaczone w Variable Engine jako dostępne dla formularzy; nieznane źródła i dodatkowe opcje są odrzucane przy publikacji. Kontekst instancji musi zawierać zadanie dla źródeł `task.*`, kontrakt lub zadanie dla `contract.*`, oraz użytkownika lub zadanie dla `user.*`. Wartości są wyliczane przy tworzeniu instancji i zapisywane jako snapshot; brak danych zapisuje się jako `null`.
+
+```json
+{
+  "key": "taskNumber",
+  "label": "Numer zadania",
+  "fieldType": "DATA",
+  "options": {
+    "source": "task.number",
+    "mode": "readonly",
+    "valueType": "string"
+  }
+}
+```
+
 Odczyt `/versions/:id` zwraca metadane wersji oraz osobne tablice `sections`, `fields`, `triggers`, `assignmentRules`; pola wiążą się z sekcjami przez `sectionId`. Szczegóły instancji zwracają jej zapisane metadane z `templateVersionId`; definicję pobiera się przez endpoint wersji, a wartości przez endpoint `values`.
 
 `draft`, `publish`, `next` i `complete` nie przyjmują definicji ani odpowiedzi w payloadzie. Publikacja ponownie sprawdza dane zapisane w bazie. Nie ma operacji cofnięcia opublikowanej wersji do szkicu; poprawki wymagają nowej wersji.
@@ -119,6 +150,8 @@ Opcjonalne referencje instancji: `contractId`, `taskId`, `subsystemTaskId`, `obj
 ```
 
 `PUT /instances/:id/values` aktualizuje tylko podane klucze. Typy, wymagane pola, zakresy liczbowe i warunki zawsze wynikają z wersji przypiętej do instancji. Payload zawierający `definition`, `sections`, inną wersję lub status zostanie odrzucony. Publikacja nowszej wersji nie zmienia walidacji historycznej instancji.
+
+Zmiana wartości `DATA` w trybie `readonly` przez `PUT /instances/:id/values` jest odrzucana. `refresh-data` ponownie oblicza tylko pola `readonly`, w transakcji i z tą samą kontrolą zakresu instancji; pola `prefill` nie są nadpisywane po rozpoczęciu edycji. Odświeżanie jest dostępne w stanach `DRAFT`, `IN_PROGRESS` i `REJECTED`.
 
 Zapis dopuszcza niekompletne odpowiedzi, lecz odrzuca nieznane klucze i błędne typy. `complete` odczytuje zapisane wartości i wymaga spełnienia pełnej walidacji; `FAIL` blokuje ukończenie. Dozwolone przejścia pozostają własnością serwisów:
 
@@ -172,7 +205,7 @@ Błąd domenowy: `{ "success": false, "message": "...", "code": "...", "details"
 
 | HTTP | Kody / przypadki |
 |---|---|
-| 400 | `INVALID_DEFINITION`, `INVALID_RESPONSES`, `INVALID_ASSIGNMENT`, `INVALID_INSTANCE_CONTEXT` (obie referencje BOM), `REJECTION_COMMENT_REQUIRED`, nieprawidłowy payload/ID/query. |
+| 400 | `INVALID_DEFINITION`, `INVALID_RESPONSES`, `INVALID_ASSIGNMENT`, `INVALID_INSTANCE_CONTEXT` (niedozwolony BOM, niespójny task-kontrakt lub brak kontekstu wymaganego przez źródło DATA), `REJECTION_COMMENT_REQUIRED`, nieprawidłowy payload/ID/query. |
 | 401 | Brak tokenu, token nieważny/wygasły albo nieaktywny użytkownik. |
 | 403 | Brak uprawnienia do akcji/przypisania kontekstu. |
 | 404 | `TEMPLATE_NOT_FOUND`, `VERSION_NOT_FOUND`, `INSTANCE_NOT_FOUND` (również poza zakresem dostępu). |
@@ -180,6 +213,10 @@ Błąd domenowy: `{ "success": false, "message": "...", "code": "...", "details"
 | 500 | Nieoczekiwany błąd, obsługiwany przez istniejący centralny error handler. |
 
 Błędy TypeORM/PostgreSQL trafiają do istniejącego sanitizatora; API nie zwraca SQL, parametrów zapytania ani wewnętrznych szczegółów bazy.
+
+`GET /api/variable-engine/variables` zwraca polskie `label` i `group` oraz flagę `usableInForms`. Lista jest dostępna dla ról z `bom.read` albo `forms.read`/`forms.create`/`forms.update`; zachowuje dotychczasowy dostęp BOM. Źródła formularzy obejmują obsługiwane dane zadania, powiązanego kontraktu i przypisanej osoby. `contract.customer.name` korzysta z `task.client` (albo jawnych `customer_name`/`customerName` w metadanych kontraktu) i pozostaje puste, jeśli tych danych nie ma; niezmapowane pola kontraktu nie są oferowane jako źródła formularzy.
+
+Instancja zawierająca pole `BOM_TABLE` wymaga `taskId`. Przy utworzeniu API pobiera wszystkie `task_materials` jednym zapytaniem i zapisuje pozycje jako snapshot. Opcje pola dopuszczają `columns` z listy `plannedQty`, `installedQty`, `installed`, `note` oraz opcjonalny dokładny filtr `filter` po kategorii. Zapis odpowiedzi nie może zmienić składu snapshotu, `bomItemId`, nazwy, jednostki ani ilości planowanej. `installed = true` wymaga ilości rzeczywistej większej od zera; przekroczenie planu wymaga notatki. Częściowa instalacja pozostaje dozwolona, ale UI wyświetla ostrzeżenie. Pole nie aktualizuje stanów magazynowych ani statusu fizycznych urządzeń.
 
 ## Warstwy i zależności
 
@@ -189,6 +226,7 @@ Błędy TypeORM/PostgreSQL trafiają do istniejącego sanitizatora; API nie zwra
 - Walidatory: `backend/src/middleware/formsValidation.ts` (`validateFormBody`, osłona istniejącego `validate`), `backend/src/utils/formJson.ts` (`hasUnsafeFormJson`, `RESERVED_FORM_KEYS`), dekoratory DTO i domenowe funkcje `FormRules`; `FormsPermissions` rozszerza typ istniejącego `Role.permissions`.
 - `FormTemplateService`: `createTemplate`, `createDraft`, `updateDraft`, `publishVersion`, `createNextVersion` oraz transakcyjne zastąpienie reguł przypisań.
 - `FormInstanceService`: `createInstance`, `saveResponses`, `validateResponses`, `complete`, `assignInstance`.
+- `FormDataSourceResolver` uruchamia Variable Engine z adapterami danych dla zadania, jego kontraktu i przypisanej osoby. Adaptery współdzielą odczyt zadania; `FormInstanceService.refreshData` odświeża snapshot `readonly`.
 - `FormApprovalService`: `approve`, `reject`.
 - `FormAuditService`: dotychczasowy audyt w `audit_logs`, w transakcji operacji.
 - Odczyty korzystają z istniejących encji i zbiorczych zapytań, bez eager/lazy loading danych użytkowników i bez N+1 po polach.

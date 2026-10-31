@@ -5,6 +5,7 @@ import { FormJsonValue } from '../entities/FormTypes';
 import { FormResponses } from '../dto/FormServiceDto';
 import { RESERVED_FORM_KEYS } from '../utils/formJson';
 import { VariableParser } from '../modules/variable-engine/parser/VariableParser';
+import { getFormDataSource } from '../modules/variable-engine/formDataSources';
 
 const MAX_CONDITION_DEPTH = 3;
 const MAX_CONDITION_GROUP = 20;
@@ -156,7 +157,7 @@ export function validateFormDefinition(sections: FormSection[], fields: FormFiel
   const sectionIds = new Set(sections.map(section => section.id));
   const supportedTypes = new Set([
     'TEXT', 'STRING', 'TEXTAREA', 'EMAIL', 'DATE', 'SELECT', 'RADIO',
-    'NUMBER', 'PASS_FAIL', 'CHECKBOX', 'MULTI_SELECT',
+    'NUMBER', 'PASS_FAIL', 'CHECKBOX', 'MULTI_SELECT', 'DATA', 'BOM_TABLE',
   ]);
 
   for (const field of fields) {
@@ -165,6 +166,34 @@ export function validateFormDefinition(sections: FormSection[], fields: FormFiel
     }
     if (!supportedTypes.has(field.fieldType.toUpperCase())) {
       throw new FormDomainError('INVALID_DEFINITION', `Unsupported field type: ${field.fieldType}`);
+    }
+    if (field.fieldType.toUpperCase() === 'DATA') {
+      const source = field.options?.source;
+      const mode = field.options?.mode;
+      const sourceDefinition = typeof source === 'string' ? getFormDataSource(source) : undefined;
+      if (
+        !sourceDefinition ||
+        (mode !== 'readonly' && mode !== 'prefill') ||
+        field.options.valueType !== sourceDefinition.type ||
+        Object.keys(field.options).some(key => !['source', 'mode', 'valueType'].includes(key))
+      ) {
+        throw new FormDomainError('INVALID_DEFINITION', `Invalid system data source or mode on ${field.key}`);
+      }
+    }
+    if (field.fieldType.toUpperCase() === 'BOM_TABLE') {
+      const { columns, filter } = field.options || {};
+      const allowedColumns = ['plannedQty', 'installedQty', 'installed', 'note'];
+      if (
+        !Array.isArray(columns) ||
+        columns.length === 0 ||
+        columns.length > allowedColumns.length ||
+        !columns.every((column, index) =>
+          typeof column === 'string' && allowedColumns.includes(column) && columns.indexOf(column) === index) ||
+        (filter !== undefined && (typeof filter !== 'string' || filter.length > 100)) ||
+        Object.keys(field.options || {}).some(key => !['columns', 'filter'].includes(key))
+      ) {
+        throw new FormDomainError('INVALID_DEFINITION', `Invalid BOM table options on ${field.key}`);
+      }
     }
     fieldKeys.add(field.key);
   }
@@ -243,9 +272,67 @@ function valueError(field: FormFieldDefinition, value: FormJsonValue): string | 
       return typeof value === 'boolean' ? null : 'must be a boolean';
     case 'MULTI_SELECT':
       return Array.isArray(value) && value.every(item => typeof item === 'string') ? null : 'must be a list of strings';
+    case 'DATA': {
+      const source = typeof field.options?.source === 'string' ? getFormDataSource(field.options.source) : undefined;
+      if (!source || field.options.valueType !== source.type) return 'has an invalid system data source';
+      if (source.type === 'number') return typeof value === 'number' && Number.isFinite(value) ? null : 'must be a finite number';
+      if (source.type === 'boolean') return typeof value === 'boolean' ? null : 'must be a boolean';
+      return typeof value === 'string' ? null : 'must be a string';
+    }
+    case 'BOM_TABLE': {
+      if (!Array.isArray(value) || value.length > 1000) return 'must be a list of at most 1000 BOM items';
+      const expectedKeys = ['bomItemId', 'name', 'unit', 'plannedQty', 'installedQty', 'installed', 'note'];
+      const seen = new Set<number>();
+      for (const row of value) {
+        if (
+          !isObject(row) ||
+          Object.keys(row).some(key => !expectedKeys.includes(key)) ||
+          Object.keys(row).length !== expectedKeys.length ||
+          !Number.isSafeInteger(row.bomItemId) || (row.bomItemId as number) < 1 ||
+          seen.has(row.bomItemId as number) ||
+          typeof row.name !== 'string' ||
+          typeof row.unit !== 'string' ||
+          typeof row.plannedQty !== 'number' || !Number.isFinite(row.plannedQty) || row.plannedQty < 0 ||
+          (row.installedQty !== null &&
+            (typeof row.installedQty !== 'number' || !Number.isFinite(row.installedQty) || row.installedQty < 0)) ||
+          typeof row.installed !== 'boolean' ||
+          typeof row.note !== 'string'
+        ) return 'contains an invalid BOM item';
+        seen.add(row.bomItemId as number);
+        if (row.installed && !(typeof row.installedQty === 'number' && row.installedQty > 0)) {
+          return 'installed items require an installed quantity greater than zero';
+        }
+        if (typeof row.installedQty === 'number' && row.installedQty > row.plannedQty && row.note.trim() === '') {
+          return 'an installation note is required when installed quantity exceeds the plan';
+        }
+      }
+      return null;
+    }
     default:
       return 'has an unsupported type';
   }
+
+}
+
+export function validateBomTableMutation(original: unknown, submitted: unknown): string | null {
+  if (!Array.isArray(original) || !Array.isArray(submitted) || original.length !== submitted.length) {
+    return 'BOM item identities cannot be changed';
+  }
+  const originalById = new Map<number, Record<string, unknown>>();
+  for (const item of original) {
+    if (!isObject(item) || !Number.isSafeInteger(item.bomItemId)) return 'The original BOM snapshot is invalid';
+    originalById.set(item.bomItemId as number, item);
+  }
+  for (const item of submitted) {
+    if (!isObject(item) || !Number.isSafeInteger(item.bomItemId)) return 'BOM item identities cannot be changed';
+    const saved = originalById.get(item.bomItemId as number);
+    if (!saved) return 'BOM item identities cannot be changed';
+    for (const key of ['bomItemId', 'name', 'unit', 'plannedQty']) {
+      if (item[key] !== saved[key]) return `BOM item ${key} cannot be changed`;
+    }
+    originalById.delete(item.bomItemId as number);
+  }
+  return originalById.size ? 'BOM item identities cannot be changed' : null;
 }
 
 export function validateFormResponses(

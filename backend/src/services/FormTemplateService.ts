@@ -4,17 +4,23 @@ import { FormAssignmentRule } from '../entities/FormAssignmentRule';
 import { FormSection } from '../entities/FormSection';
 import { FormTemplate } from '../entities/FormTemplate';
 import { FormTemplateVersion } from '../entities/FormTemplateVersion';
+import { FormHeaderFooter } from '../entities/FormHeaderFooter';
 import { FormTrigger } from '../entities/FormTrigger';
 import { FormVersionStatus } from '../entities/FormTypes';
 import { CreateFormTemplateDto, DraftSectionDto, FormAssignmentRuleInput, UpdateFormDraftDto } from '../dto/FormServiceDto';
 import { FormDomainError } from '../errors/FormDomainError';
 import { FormAuditService } from './FormAuditService';
+import { FormHeaderFooterService } from './FormHeaderFooterService';
 import { validateFormConditionShape, validateFormDefinition } from './FormRules';
 import { DataSource, EntityManager } from 'typeorm';
 import { RESERVED_FORM_KEYS } from '../utils/formJson';
 
 export class FormTemplateService {
-  constructor(private readonly dataSource: DataSource = AppDataSource) {}
+  private readonly branding: FormHeaderFooterService;
+
+  constructor(private readonly dataSource: DataSource = AppDataSource) {
+    this.branding = new FormHeaderFooterService(dataSource);
+  }
 
   async createTemplate(input: CreateFormTemplateDto, actorId: number): Promise<FormTemplate> {
     return this.dataSource.transaction(async manager => {
@@ -113,6 +119,13 @@ export class FormTemplateService {
     return this.dataSource.transaction(async manager => {
       const version = await this.lockVersion(manager, versionId);
       const changes: Array<{ field: string; previousValue: unknown; newValue: unknown }> = [];
+      for (const [kind, id] of [['HEADER', input.headerId], ['FOOTER', input.footerId]] as const) {
+        if (id === undefined || id === null) continue;
+        const item = await manager.getRepository(FormHeaderFooter).findOne({ where: { id } });
+        if (!item || item.kind !== kind) {
+          throw new FormDomainError('INVALID_DEFINITION', `Wybrany ${kind === 'HEADER' ? 'nagłówek' : 'stopka'} nie istnieje.`);
+        }
+      }
 
       if (input.title !== undefined) {
         changes.push({ field: 'title', previousValue: version.title, newValue: input.title });
@@ -125,6 +138,16 @@ export class FormTemplateService {
       if (input.settings !== undefined) {
         changes.push({ field: 'settings', previousValue: version.settings, newValue: input.settings });
         version.settings = input.settings;
+      }
+      if (input.headerId !== undefined) {
+        changes.push({ field: 'headerId', previousValue: version.headerId, newValue: input.headerId });
+        version.headerId = input.headerId;
+        version.headerSnapshot = null;
+      }
+      if (input.footerId !== undefined) {
+        changes.push({ field: 'footerId', previousValue: version.footerId, newValue: input.footerId });
+        version.footerId = input.footerId;
+        version.footerSnapshot = null;
       }
       if (input.sections !== undefined) {
         this.validateDraftSections(input.sections);
@@ -152,6 +175,14 @@ export class FormTemplateService {
         validateFormConditionShape(rule.conditions, fieldKeys, 'assignment rule', ['when']);
       }
 
+      const [header, footer] = await Promise.all([
+        this.branding.resolveForPublication(manager, 'HEADER', version.headerId ?? null, version.headerSnapshot),
+        this.branding.resolveForPublication(manager, 'FOOTER', version.footerId ?? null, version.footerSnapshot),
+      ]);
+      version.headerId = header.id;
+      version.headerSnapshot = header.snapshot;
+      version.footerId = footer.id;
+      version.footerSnapshot = footer.snapshot;
       const oldStatus = version.status;
       version.status = FormVersionStatus.PUBLISHED;
       version.publishedAt = new Date();
@@ -304,6 +335,10 @@ export class FormTemplateService {
       kind: source.kind,
       procedureType: source.procedureType,
       settings: source.settings,
+      headerId: source.headerId,
+      footerId: source.footerId,
+      headerSnapshot: source.headerSnapshot,
+      footerSnapshot: source.footerSnapshot,
       publishedAt: null,
       createdById: actorId,
     }));

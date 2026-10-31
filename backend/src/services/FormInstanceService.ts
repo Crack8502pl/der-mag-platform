@@ -5,12 +5,22 @@ import { FormFieldDefinition } from '../entities/FormFieldDefinition';
 import { FormFieldValue } from '../entities/FormFieldValue';
 import { FormInstance } from '../entities/FormInstance';
 import { FormSection } from '../entities/FormSection';
-import { FormInstanceStatus, FormVersionStatus } from '../entities/FormTypes';
+import { FormInstanceStatus, FormJsonValue, FormVersionStatus } from '../entities/FormTypes';
 import { Task } from '../entities/Task';
+import { TaskMaterial } from '../entities/TaskMaterial';
 import { FormTemplateVersion } from '../entities/FormTemplateVersion';
 import { FormDomainError } from '../errors/FormDomainError';
 import { FormAuditService } from './FormAuditService';
-import { validateFormResponses } from './FormRules';
+import { validateBomTableMutation, validateFormDefinition, validateFormResponses } from './FormRules';
+import { FormDataSourceContext, FormDataSourceResolver } from './FormDataSourceResolver';
+
+function dataContextForField(field: FormFieldDefinition, context: FormDataSourceContext): boolean {
+  const namespace = String(field.options.source).split('.')[0];
+  if (namespace === 'task') return context.taskId != null;
+  if (namespace === 'contract') return context.taskId != null || context.contractId != null;
+  if (namespace === 'user') return context.taskId != null || context.userId != null;
+  return false;
+}
 
 export type FormInstanceAccessGuard = (manager: EntityManager, instance: FormInstance) => Promise<void>;
 
@@ -33,8 +43,28 @@ export class FormInstanceService {
         throw new FormDomainError('VERSION_NOT_PUBLISHED', 'Form instances require a published version');
       }
 
-      if (input.taskId != null && input.contractId != null) {
-        const task = await manager.getRepository(Task).findOne({ where: { id: input.taskId } });
+      const [sections, fields] = await Promise.all([
+        manager.getRepository(FormSection).find({ where: { templateVersionId: version.id } }),
+        manager.getRepository(FormFieldDefinition).find({ where: { templateVersionId: version.id } }),
+      ]);
+      validateFormDefinition(sections, fields);
+      const dataFields = fields.filter(field => field.fieldType.toUpperCase() === 'DATA');
+      const bomFields = fields.filter(field => field.fieldType.toUpperCase() === 'BOM_TABLE');
+      const taskId = input.taskId;
+      const sourceContext: FormDataSourceContext = {
+        taskId,
+        contractId: input.contractId,
+        userId: input.assignedUserId ?? actorId,
+      };
+      if (dataFields.some(field => !dataContextForField(field, sourceContext))) {
+        throw new FormDomainError('INVALID_INSTANCE_CONTEXT', 'System data source requires a matching task, contract or user context');
+      }
+      if (bomFields.length && taskId == null) {
+        throw new FormDomainError('INVALID_INSTANCE_CONTEXT', 'A task context is required for a BOM table');
+      }
+
+      if (taskId != null && input.contractId != null) {
+        const task = await manager.getRepository(Task).findOne({ where: { id: taskId } });
         if (!task) {
           throw new FormDomainError('INVALID_INSTANCE_CONTEXT', `Task ${input.taskId} was not found`);
         }
@@ -49,6 +79,51 @@ export class FormInstanceService {
         status: FormInstanceStatus.DRAFT,
         createdById: actorId,
       }));
+      if (dataFields.length || bomFields.length) {
+        const resolver = new FormDataSourceResolver(manager);
+        const bomMaterials = bomFields.length && taskId != null
+          ? await manager.getRepository(TaskMaterial).find({
+            where: { taskId },
+            order: { id: 'ASC' },
+          })
+          : [];
+        type Snapshot = { field: FormFieldDefinition; value: FormJsonValue };
+        const snapshots = (await Promise.all(fields.map(async (field): Promise<Snapshot | null> => {
+          if (field.fieldType.toUpperCase() === 'DATA') {
+            return { field, value: await resolver.resolve(String(field.options.source), sourceContext) };
+          }
+          if (field.fieldType.toUpperCase() === 'BOM_TABLE') {
+            const filter = typeof field.options.filter === 'string' ? field.options.filter.trim() : '';
+            const value: FormJsonValue = bomMaterials
+              .filter(material => !filter || material.category === filter)
+              .map(material => ({
+                bomItemId: material.id,
+                name: material.materialName,
+                unit: material.unit ?? '',
+                plannedQty: Number(material.plannedQuantity),
+                installedQty: null,
+                installed: false,
+                note: '',
+              }));
+            return { field, value };
+          }
+          return null;
+        }))).filter((snapshot): snapshot is Snapshot => snapshot !== null);
+        const initialValues = snapshots.map(({ field, value }) => manager.getRepository(FormFieldValue).create({
+          instanceId: instance.id,
+          templateVersionId: instance.templateVersionId,
+          fieldDefinitionId: field.id,
+          value,
+          updatedById: actorId,
+        }));
+        await manager.getRepository(FormFieldValue).save(initialValues);
+        await FormAuditService.record(manager, 'FORM_DATA_SNAPSHOT_CREATED', actorId, 'form_instance', instance.id,
+          initialValues.map((value, index) => ({
+            field: snapshots[index].field.key,
+            previousValue: null,
+            newValue: value.value,
+          })));
+      }
       await FormAuditService.record(manager, 'FORM_INSTANCE_CREATED', actorId, 'form_instance', instance.id, [
         { field: 'templateVersionId', previousValue: null, newValue: instance.templateVersionId },
         { field: 'status', previousValue: null, newValue: instance.status },
@@ -77,6 +152,25 @@ export class FormInstanceService {
 
       const fieldsByKey = new Map(fields.map(field => [field.key, field]));
       const valuesByFieldId = new Map(existingValues.map(value => [value.fieldDefinitionId, value]));
+      for (const [key, value] of Object.entries(responses)) {
+        const field = fieldsByKey.get(key)!;
+        if (field.fieldType.toUpperCase() !== 'BOM_TABLE') continue;
+        const original = valuesByFieldId.get(field.id)?.value;
+        const mutationError = validateBomTableMutation(original, value);
+        if (mutationError) {
+          throw new FormDomainError('INVALID_RESPONSES', `BOM table ${key} is invalid`, { errors: [`${key}: ${mutationError}`] });
+        }
+      }
+      for (const [key, value] of Object.entries(responses)) {
+        const field = fieldsByKey.get(key)!;
+        if (
+          field.fieldType.toUpperCase() === 'DATA' &&
+          field.options.mode === 'readonly' &&
+          JSON.stringify(valuesByFieldId.get(field.id)?.value ?? null) !== JSON.stringify(value ?? null)
+        ) {
+          throw new FormDomainError('INVALID_RESPONSES', `System data field ${key} is read-only`);
+        }
+      }
       const changes: Array<{ field: string; previousValue: unknown; newValue: unknown }> = [];
       const failed: string[] = [];
       const toSave = Object.entries(responses).map(([key, value]) => {
@@ -123,6 +217,61 @@ export class FormInstanceService {
     const [sections, fields, existingValues] = await this.loadDefinitionAndValues(manager, instance);
     const values = this.buildResponseMap(fields, existingValues, {});
     return validateFormResponses(sections, fields, values, true);
+  }
+
+  async refreshData(
+    instanceId: number,
+    actorId: number,
+    accessGuard?: FormInstanceAccessGuard,
+  ): Promise<FormFieldValue[]> {
+    return this.dataSource.transaction(async manager => {
+      const instance = await this.lockInstance(manager, instanceId);
+      await accessGuard?.(manager, instance);
+      if (![FormInstanceStatus.DRAFT, FormInstanceStatus.IN_PROGRESS, FormInstanceStatus.REJECTED].includes(instance.status)) {
+        throw new FormDomainError('INVALID_INSTANCE_STATUS', 'System data can only be refreshed before approval');
+      }
+
+      const [sections, fields, existingValues] = await this.loadDefinitionAndValues(manager, instance);
+      validateFormDefinition(sections, fields);
+      const readonlyFields = fields.filter(field =>
+        field.fieldType.toUpperCase() === 'DATA' && field.options.mode === 'readonly');
+      if (!readonlyFields.length) return [];
+      const sourceContext: FormDataSourceContext = {
+        taskId: instance.taskId,
+        contractId: instance.contractId,
+        userId: instance.assignedUserId ?? instance.createdById,
+      };
+      if (readonlyFields.some(field => !dataContextForField(field, sourceContext))) {
+        throw new FormDomainError('INVALID_INSTANCE_CONTEXT', 'System data source requires a matching task, contract or user context');
+      }
+
+      const resolver = new FormDataSourceResolver(manager);
+      const valuesByFieldId = new Map(existingValues.map(value => [value.fieldDefinitionId, value]));
+      const results = await Promise.all(readonlyFields.map(async field => {
+        const existing = valuesByFieldId.get(field.id);
+        const value = await resolver.resolve(String(field.options.source), sourceContext);
+        return {
+          update: manager.getRepository(FormFieldValue).create({
+            ...(existing ? { id: existing.id } : {}),
+            instanceId: instance.id,
+            templateVersionId: instance.templateVersionId,
+            fieldDefinitionId: field.id,
+            value,
+            updatedById: actorId,
+          }),
+          change: JSON.stringify(existing?.value ?? null) !== JSON.stringify(value)
+            ? { field: field.key, previousValue: existing?.value ?? null, newValue: value }
+            : null,
+        };
+      }));
+      const updates = results.map(result => result.update);
+      const changes = results.flatMap(result => result.change ? [result.change] : []);
+      const saved = await manager.getRepository(FormFieldValue).save(updates);
+      if (changes.length) {
+        await FormAuditService.record(manager, 'FORM_DATA_SNAPSHOT_REFRESHED', actorId, 'form_instance', instance.id, changes);
+      }
+      return saved;
+    });
   }
 
   async complete(instanceId: number, actorId: number, accessGuard?: FormInstanceAccessGuard): Promise<FormInstance> {

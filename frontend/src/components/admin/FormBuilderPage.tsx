@@ -13,8 +13,11 @@ import { useNavigate } from 'react-router-dom';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useFormTemplates } from '../../hooks/useFormTemplates';
 import { DynamicFormRenderer } from '../forms/DynamicFormRenderer';
+import { FormBrandingPreview } from '../forms/FormBrandingPreview';
 import { formsService, type UpdateFormDraftInput } from '../../services/forms.service';
+import variableEngineService, { type VariableEngineVariable } from '../../services/variableEngine.service';
 import type {
+  FormBranding,
   FormAssignmentRule,
   FormCondition,
   FormField,
@@ -43,6 +46,8 @@ const FIELD_TYPES: Array<{ value: string; label: string }> = [
   { value: 'PASS_FAIL', label: 'OK / Nie OK' },
   { value: 'CHECKBOX', label: 'Pole wyboru' },
   { value: 'MULTI_SELECT', label: 'Lista wielokrotnego wyboru' },
+  { value: 'DATA', label: 'Dane z systemu' },
+  { value: 'BOM_TABLE', label: 'Tabela BOM' },
 ];
 const PROCEDURES: FormProcedureType[] = ['CABINET_PREFABRICATION', 'DEVICE_PRECONFIGURATION', 'FIELD_INSTALLATION'];
 const CONDITION_KEYS = ['visibleWhen', 'requiredWhen', 'blockCompletionWhen'] as const;
@@ -101,6 +106,12 @@ const definitionError = (sections: DefinitionSection[]): string => {
       const max = field.validation.max;
       if (typeof min === 'number' && typeof max === 'number' && min > max) {
         return `Minimum pola "${field.key}" nie może przekraczać maksimum.`;
+      }
+      if (field.fieldType === 'DATA' &&
+          (typeof field.options.source !== 'string' ||
+           !['readonly', 'prefill'].includes(String(field.options.mode)) ||
+           !['string', 'number', 'boolean'].includes(String(field.options.valueType)))) {
+        return `Wybierz prawidłowe źródło danych systemowych dla pola "${field.key}".`;
       }
     }
   }
@@ -213,6 +224,8 @@ const draftInput = (version: FormVersion, sections: DefinitionSection[]): Update
       conditions: field.conditions,
     })),
   })),
+  headerId: version.headerId ?? null,
+  footerId: version.footerId ?? null,
 });
 
 const reindex = <T extends { sortOrder: number }>(items: T[]): T[] =>
@@ -484,6 +497,10 @@ export const FormBuilderPage: React.FC = () => {
   const [assignmentTeamSearch, setAssignmentTeamSearch] = useState('');
   const [assignmentTriggerSearch, setAssignmentTriggerSearch] = useState('');
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [systemDataSources, setSystemDataSources] = useState<VariableEngineVariable[]>([]);
+  const [systemDataSourceError, setSystemDataSourceError] = useState('');
+  const [brandingItems, setBrandingItems] = useState<FormBranding[]>([]);
+  const [brandingError, setBrandingError] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [errorFieldKey, setErrorFieldKey] = useState<string>();
@@ -497,6 +514,26 @@ export const FormBuilderPage: React.FC = () => {
   const [ruleForm, setRuleForm] = useState({
     assignedUserId: '', assignedTeamId: '', triggerId: '', priority: '0', conditions: {} as Record<string, FormCondition>,
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    variableEngineService.listVariables().then(variables => {
+      if (!cancelled) setSystemDataSources(variables.filter(variable => variable.usableInForms));
+    }).catch(() => {
+      if (!cancelled) setSystemDataSourceError('Nie udało się pobrać źródeł danych systemowych.');
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    formsService.listBranding().then(items => {
+      if (!cancelled) setBrandingItems(items);
+    }).catch(() => {
+      if (!cancelled) setBrandingError('Nie udało się pobrać biblioteki nagłówków i stopek.');
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   const readOnly = !canUpdate || version?.status !== 'DRAFT';
   const currentVersionId = version?.id;
@@ -885,6 +922,37 @@ export const FormBuilderPage: React.FC = () => {
               <label className="form-builder__title-input">Opis wersji
                 <textarea value={version.description || ''} disabled={readOnly} onChange={event => setVersion({ ...version, description: event.target.value })} />
               </label>
+              <section className="form-builder__branding" aria-labelledby="form-branding-heading">
+                <div className="form-builder__section-actions">
+                  <h3 id="form-branding-heading">Nagłówek i stopka</h3>
+                  {canUpdate && <button type="button" className="btn btn-secondary" onClick={() => navigate('/admin/forms/branding')}>Biblioteka brandingu</button>}
+                </div>
+                {brandingError && <p className="form-builder__notice form-builder__notice--error" role="alert">{brandingError}</p>}
+                {(['HEADER', 'FOOTER'] as const).map(kind => {
+                  const key = kind === 'HEADER' ? 'headerId' : 'footerId';
+                  const title = kind === 'HEADER' ? 'Nagłówek' : 'Stopka';
+                  const selected = brandingItems.find(item => item.id === version[key])
+                    ?? (kind === 'HEADER' ? version.headerSnapshot : version.footerSnapshot);
+                  return <div className="form-builder__branding-choice" key={kind}>
+                    <label>{title}
+                      <select
+                        value={version[key] ?? ''}
+                        disabled={readOnly}
+                        onChange={event => setVersion({
+                          ...version,
+                          [key]: event.target.value ? Number(event.target.value) : null,
+                        })}
+                      >
+                        <option value="">Domyślny element (jeśli ustawiony)</option>
+                        {brandingItems.filter(item => item.kind === kind).map(item => (
+                          <option value={item.id} key={item.id}>{item.name}{item.isDefault ? ' · domyślny' : ''}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <FormBrandingPreview snapshot={selected} compact />
+                  </div>;
+                })}
+              </section>
               <div className="form-builder__section-actions">
                 <h3>Sekcje</h3>
                 {!readOnly && <button type="button" className="btn btn-secondary" onClick={() => {
@@ -928,6 +996,8 @@ export const FormBuilderPage: React.FC = () => {
                                   field={field}
                                   index={fieldIndex}
                                   fields={conditionFields}
+                                  dataSources={systemDataSources}
+                                  dataSourceError={systemDataSourceError}
                                   disabled={readOnly}
                                   error={errorFieldKey === field.key ? message : ''}
                                   onLabelChange={label => changeFieldLabel(sectionIndex, fieldIndex, label)}
@@ -1027,6 +1097,8 @@ const FieldEditor: React.FC<{
   field: FormField;
   index: number;
   fields: FormField[];
+  dataSources: VariableEngineVariable[];
+  dataSourceError: string;
   disabled: boolean;
   error: string;
   onLabelChange: (label: string) => void;
@@ -1034,21 +1106,57 @@ const FieldEditor: React.FC<{
   onChange: (update: Partial<FormField>) => void;
   onDuplicate: () => void;
   onDelete: () => void;
-}> = ({ field, index, fields, disabled, error, onLabelChange, onKeyChange, onChange, onDuplicate, onDelete }) => {
+}> = ({
+  field, index, fields, dataSources, dataSourceError, disabled, error,
+  onLabelChange, onKeyChange, onChange, onDuplicate, onDelete,
+}) => {
   const optionValues = Array.isArray(field.options.values)
     ? field.options.values.filter((option): option is string => typeof option === 'string')
     : [];
   const validationMin = typeof field.validation.min === 'number' ? field.validation.min : '';
   const validationMax = typeof field.validation.max === 'number' ? field.validation.max : '';
   const updateOptions = (values: string[]) => onChange({ options: { ...field.options, values } });
+  const bomColumns = ['plannedQty', 'installedQty', 'installed', 'note'] as const;
+  const selectedBomColumns = Array.isArray(field.options.columns)
+    ? field.options.columns.filter((column): column is typeof bomColumns[number] =>
+      typeof column === 'string' && bomColumns.includes(column as typeof bomColumns[number]))
+    : [...bomColumns];
+  const bomColumnLabels: Record<typeof bomColumns[number], string> = {
+    plannedQty: 'Ilość planowana',
+    installedQty: 'Ilość zamontowana',
+    installed: 'Zainstalowane',
+    note: 'Uwagi',
+  };
   const moveOption = (from: number, to: number) => updateOptions(moveItem(optionValues, from, to));
   const fieldTypeLabel = (type: string) => FIELD_TYPES.find(item => item.value === type)?.label || type;
+  const groupedDataSources = [...new Set(dataSources.map(source => source.group || source.provider))].map(group => ({
+    group,
+    sources: dataSources.filter(source => (source.group || source.provider) === group),
+  }));
+  const selectedDataSource = dataSources.find(source => source.expression === field.options.source);
+  const selectedGroup = selectedDataSource?.group || selectedDataSource?.provider || groupedDataSources[0]?.group || '';
+  const sourcesInGroup = groupedDataSources.find(item => item.group === selectedGroup)?.sources || [];
   return (
     <fieldset className="form-builder__field">
       <legend>{field.label || `Pole ${index + 1}`}</legend>
       <div className="form-builder__field-grid">
         <label>Etykieta <input value={field.label} disabled={disabled} onChange={event => onLabelChange(event.target.value)} /></label>
-        <label>Typ <select value={field.fieldType} disabled={disabled} onChange={event => onChange({ fieldType: event.target.value })}>
+        <label>Typ <select value={field.fieldType} disabled={disabled} onChange={event => {
+          if (event.target.value === 'DATA') {
+            const source = dataSources[0];
+            onChange({
+              fieldType: 'DATA',
+              options: { source: source?.expression || '', mode: 'readonly', valueType: source?.type || 'string' },
+            });
+          } else if (event.target.value === 'BOM_TABLE') {
+            onChange({
+              fieldType: 'BOM_TABLE',
+              options: { columns: [...bomColumns] },
+            });
+          } else {
+            onChange({ fieldType: event.target.value });
+          }
+        }}>
           {field.fieldType === 'STRING' && <option value="STRING">Tekst (starszy typ)</option>}
           {FIELD_TYPES.map(type => <option value={type.value} key={type.value}>{type.label}</option>)}
         </select></label>
@@ -1059,7 +1167,85 @@ const FieldEditor: React.FC<{
             <label>Maksimum <input type="number" value={validationMax} disabled={disabled} onChange={event => onChange({ validation: { ...field.validation, max: event.target.value === '' ? undefined : Number(event.target.value) } })} /></label>
           </>
         )}
-        <label>Jednostka <input value={typeof field.options.unit === 'string' ? field.options.unit : ''} disabled={disabled} onChange={event => onChange({ options: { ...field.options, unit: event.target.value } })} /></label>
+        {field.fieldType === 'DATA' ? (
+          <fieldset className="form-builder__option-editor form-builder__wide" disabled={disabled}>
+            <legend>Dane z systemu</legend>
+            <label>Grupa
+              <select
+                value={selectedGroup}
+                disabled={disabled || dataSources.length === 0}
+                onChange={event => {
+                  const source = groupedDataSources.find(item => item.group === event.target.value)?.sources[0];
+                  if (source) onChange({ options: { ...field.options, source: source.expression, valueType: source.type } });
+                }}
+              >
+                {groupedDataSources.map(({ group }) => <option key={group} value={group}>{group}</option>)}
+              </select>
+            </label>
+            <label>Pole
+              <select
+                value={typeof field.options.source === 'string' ? field.options.source : ''}
+                disabled={disabled || sourcesInGroup.length === 0}
+                onChange={event => {
+                  const source = sourcesInGroup.find(item => item.expression === event.target.value);
+                  if (source) onChange({ options: { ...field.options, source: source.expression, valueType: source.type } });
+                }}
+              >
+                {sourcesInGroup.map(source => (
+                  <option key={source.expression} value={source.expression}>{source.label || source.description}</option>
+                ))}
+                {!selectedDataSource && typeof field.options.source === 'string' && field.options.source !== '' && (
+                  <option value={field.options.source}>{field.options.source} (niedostępne)</option>
+                )}
+              </select>
+            </label>
+            {dataSourceError && <p className="form-builder__field-error" role="alert">{dataSourceError}</p>}
+            {!dataSources.length && !dataSourceError && <p>Brak dostępnych źródeł danych systemowych.</p>}
+            {selectedDataSource && <p>{selectedDataSource.description}</p>}
+            <label>Tryb
+              <select
+                value={field.options.mode === 'prefill' ? 'prefill' : 'readonly'}
+                disabled={disabled}
+                onChange={event => onChange({ options: { ...field.options, mode: event.target.value } })}
+              >
+                <option value="readonly">Tylko do odczytu</option>
+                <option value="prefill">Wartość początkowa (można zmienić)</option>
+              </select>
+            </label>
+          </fieldset>
+        ) : (
+          <label>Jednostka <input value={typeof field.options.unit === 'string' ? field.options.unit : ''} disabled={disabled} onChange={event => onChange({ options: { ...field.options, unit: event.target.value } })} /></label>
+        )}
+        {field.fieldType === 'BOM_TABLE' && (
+          <fieldset className="form-builder__option-editor form-builder__wide" disabled={disabled}>
+            <legend>Kolumny tabeli BOM</legend>
+            {bomColumns.map(column => (
+              <label className="form-builder__checkbox" key={column}>
+                <input
+                  type="checkbox"
+                  checked={selectedBomColumns.includes(column)}
+                  disabled={selectedBomColumns.length === 1 && selectedBomColumns.includes(column)}
+                  onChange={event => {
+                    const nextColumns = event.target.checked
+                      ? [...selectedBomColumns, column]
+                      : selectedBomColumns.filter(item => item !== column);
+                    onChange({ options: { ...field.options, columns: nextColumns } });
+                  }}
+                />
+                {bomColumnLabels[column]}
+              </label>
+            ))}
+            <label>Kategoria materiału (opcjonalnie)
+              <input
+                maxLength={100}
+                value={typeof field.options.filter === 'string' ? field.options.filter : ''}
+                onChange={event => onChange({
+                  options: { ...field.options, filter: event.target.value || undefined },
+                })}
+              />
+            </label>
+          </fieldset>
+        )}
         {['SELECT', 'RADIO', 'MULTI_SELECT'].includes(field.fieldType) && (
           <fieldset className="form-builder__option-editor form-builder__wide" disabled={disabled}>
             <legend>Opcje listy</legend>

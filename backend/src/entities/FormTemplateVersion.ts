@@ -6,6 +6,7 @@ import { FormTrigger } from './FormTrigger';
 import { FormAssignmentRule } from './FormAssignmentRule';
 import { FormInstance } from './FormInstance';
 import { User } from './User';
+import { FormHeaderFooter } from './FormHeaderFooter';
 import { FormJsonObject, FormKind, FormProcedureType, FormVersionStatus } from './FormTypes';
 
 @Entity('form_template_versions')
@@ -45,6 +46,26 @@ export class FormTemplateVersion {
 
   @Column({ type: 'jsonb', default: {} })
   settings: FormJsonObject;
+
+  @Column({ name: 'header_id', type: 'int', nullable: true })
+  headerId: number | null;
+
+  @ManyToOne(() => FormHeaderFooter, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'header_id' })
+  header: FormHeaderFooter | null;
+
+  @Column({ name: 'footer_id', type: 'int', nullable: true })
+  footerId: number | null;
+
+  @ManyToOne(() => FormHeaderFooter, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'footer_id' })
+  footer: FormHeaderFooter | null;
+
+  @Column({ name: 'header_snapshot', type: 'jsonb', nullable: true })
+  headerSnapshot: FormJsonObject | null;
+
+  @Column({ name: 'footer_snapshot', type: 'jsonb', nullable: true })
+  footerSnapshot: FormJsonObject | null;
 
   @Column({ name: 'published_at', type: 'timestamp', nullable: true })
   publishedAt: Date | null;

@@ -19,17 +19,17 @@ export interface ContractData {
   /** Current contract status (e.g. `"active"`, `"pending"`, `"closed"`). */
   readonly status: string;
   /** Full name of the contracting customer / company. */
-  readonly customerName: string;
+  readonly customerName?: string;
   /** Customer tax identification number (NIP). */
-  readonly customerNip: string;
+  readonly customerNip?: string;
   /** Net contract value (before tax). */
-  readonly valueNet: number;
+  readonly valueNet?: number;
   /** Gross contract value (after tax). */
-  readonly valueGross: number;
+  readonly valueGross?: number;
   /** Contract start date as an ISO 8601 string. */
-  readonly dateStart: string;
+  readonly dateStart?: string;
   /** Contract end date as an ISO 8601 string. */
-  readonly dateEnd: string;
+  readonly dateEnd?: string;
 }
 
 export interface IContractDataService {

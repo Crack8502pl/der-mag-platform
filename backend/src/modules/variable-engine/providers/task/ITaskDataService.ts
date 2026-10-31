@@ -27,6 +27,11 @@ export interface TaskData {
   readonly dueDate: string;
   /** Completion progress expressed as an integer percentage (0–100). */
   readonly progress: number;
+  readonly location?: string;
+  readonly typeName?: string;
+  readonly contractNumber?: string;
+  readonly subsystemName?: string;
+  readonly brigadeName?: string;
 }
 
 export interface ITaskDataService {

@@ -16,6 +16,8 @@ import { FormInstanceService } from '../services/FormInstanceService';
 import { FormApprovalService } from '../services/FormApprovalService';
 import { DeviceInstallationWorkflowService } from '../services/DeviceInstallationWorkflowService';
 import { ForbiddenError } from '../utils/AppError';
+import { FormHeaderFooterService, FormBrandingInput } from '../services/FormHeaderFooterService';
+import { FormInstancePdfService } from '../services/FormInstancePdfService';
 
 const statusByCode: Record<FormDomainErrorCode, number> = {
   TEMPLATE_NOT_FOUND: 404, VERSION_NOT_FOUND: 404, INSTANCE_NOT_FOUND: 404,
@@ -48,6 +50,8 @@ export class FormsController {
   private readonly instances = new FormInstanceService();
   private readonly approvals = new FormApprovalService();
   private readonly installationWorkflows = new DeviceInstallationWorkflowService();
+  private readonly branding = new FormHeaderFooterService();
+  private readonly pdf = new FormInstancePdfService();
 
   private handler(operation: (req: Request) => Promise<unknown>, status = 200): RequestHandler {
     return async (req: Request, res: Response, next: NextFunction) => {
@@ -70,6 +74,35 @@ export class FormsController {
     const template = await AppDataSource.getRepository(FormTemplate).findOne({ where: { id } });
     if (!template) throw new FormDomainError('TEMPLATE_NOT_FOUND', 'Form template was not found');
     return template;
+  }
+
+  private brandingInput(body: Record<string, unknown>): FormBrandingInput {
+    const allowed = new Set(['name', 'kind', 'mode', 'heightMm', 'isDefault', 'layout']);
+    if (Object.keys(body).some(key => !allowed.has(key))) {
+      throw new FormDomainError('INVALID_DEFINITION', 'Żądanie zawiera nieobsługiwane pola.');
+    }
+    let layout = body.layout as FormBrandingInput['layout'];
+    if (typeof layout === 'string') {
+      try {
+        layout = JSON.parse(layout) as FormBrandingInput['layout'];
+      } catch {
+        throw new FormDomainError('INVALID_DEFINITION', 'Układ brandingu zawiera nieprawidłowy JSON.');
+      }
+    }
+    const heightMm = typeof body.heightMm === 'number' ? body.heightMm : Number(body.heightMm);
+    const isDefault = body.isDefault === true || body.isDefault === 'true'
+      ? true
+      : body.isDefault === false || body.isDefault === 'false'
+        ? false
+        : body.isDefault as boolean;
+    return {
+      name: body.name as string,
+      kind: body.kind as FormBrandingInput['kind'],
+      mode: body.mode as FormBrandingInput['mode'],
+      heightMm,
+      isDefault,
+      layout: layout as FormBrandingInput['layout'],
+    };
   }
 
   private async version(id: number): Promise<FormTemplateVersion> {
@@ -96,6 +129,76 @@ export class FormsController {
   createTemplate = this.handler(req => this.templates.createTemplate(req.body, req.userId!), 201);
   getTemplate = this.handler(req => this.template(Number(req.params.id)));
 
+  listBranding = this.handler(() => this.branding.list());
+  createBranding = this.handler(req => this.branding.create(
+    this.brandingInput(req.body), req.userId!, req.file,
+  ), 201);
+  updateBranding = this.handler(req => this.branding.update(
+    Number(req.params.id), this.brandingInput(req.body), req.userId!, req.file,
+  ));
+  deleteBranding = this.handler(async req => {
+    await this.branding.delete(Number(req.params.id), req.userId!);
+    return { deleted: true };
+  });
+  uploadBrandingLogo = this.handler(req => {
+    if (!req.file) throw new FormDomainError('INVALID_DEFINITION', 'Wybierz plik logo.');
+    return this.branding.uploadLogo(req.file);
+  }, 201);
+
+  getBrandingFile: RequestHandler = async (req, res, next) => {
+    try {
+      const file = await this.branding.getStoredFile(Number(req.params.id));
+      res.setHeader('Content-Type', file.mime);
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Disposition', 'inline');
+      res.sendFile(file.path, error => { if (error) next(error); });
+    } catch (error) {
+      if (error instanceof FormDomainError) {
+        res.status(statusByCode[error.code]).json({
+          success: false, message: error.message, code: error.code, details: error.details,
+        });
+        return;
+      }
+      next(error);
+    }
+  };
+
+  getBrandingLogo: RequestHandler = async (req, res, next) => {
+    try {
+      const file = await this.branding.getLogoFile(req.params.fileName);
+      res.setHeader('Content-Type', file.mime);
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Disposition', 'inline');
+      res.sendFile(file.path, error => { if (error) next(error); });
+    } catch (error) {
+      if (error instanceof FormDomainError) {
+        res.status(statusByCode[error.code]).json({
+          success: false, message: error.message, code: error.code, details: error.details,
+        });
+        return;
+      }
+      next(error);
+    }
+  };
+
+  getBrandingSnapshotFile: RequestHandler = async (req, res, next) => {
+    try {
+      const file = await this.branding.getSnapshotFile(req.params.fileName);
+      res.setHeader('Content-Type', file.mime);
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Disposition', 'inline');
+      res.sendFile(file.path, error => { if (error) next(error); });
+    } catch (error) {
+      if (error instanceof FormDomainError) {
+        res.status(statusByCode[error.code]).json({
+          success: false, message: error.message, code: error.code, details: error.details,
+        });
+        return;
+      }
+      next(error);
+    }
+  };
+
   listVersions = this.handler(async req => {
     const templateId = Number(req.params.id);
     await this.template(templateId);
@@ -111,13 +214,15 @@ export class FormsController {
   getVersion = this.handler(async req => {
     const version = await this.version(Number(req.params.id));
     const where = { templateVersionId: version.id };
-    const [sections, fields, triggers, assignmentRules] = await Promise.all([
+    const [sections, fields, triggers, assignmentRules, headerSnapshot, footerSnapshot] = await Promise.all([
       AppDataSource.getRepository(FormSection).find({ where, order: { sortOrder: 'ASC', id: 'ASC' } }),
       AppDataSource.getRepository(FormFieldDefinition).find({ where, order: { sortOrder: 'ASC', id: 'ASC' } }),
       AppDataSource.getRepository(FormTrigger).find({ where, order: { id: 'ASC' } }),
       AppDataSource.getRepository(FormAssignmentRule).find({ where, order: { priority: 'ASC', id: 'ASC' } }),
+      this.branding.getVersionBranding(version, 'HEADER'),
+      this.branding.getVersionBranding(version, 'FOOTER'),
     ]);
-    return { ...version, sections, fields, triggers, assignmentRules };
+    return { ...version, headerSnapshot, footerSnapshot, sections, fields, triggers, assignmentRules };
   });
 
   updateDraft = this.handler(req => this.templates.updateDraft(Number(req.params.id), req.body, req.userId!));
@@ -159,6 +264,28 @@ export class FormsController {
 
   getInstance = this.handler(req => this.scopedInstance(req));
 
+  getInstancePdf: RequestHandler = async (req, res, next) => {
+    try {
+      const instanceId = Number(req.params.id);
+      const pdf = await this.pdf.generate(instanceId, async (manager, instance) => {
+        await this.scopedInstance(req, manager, instance.id);
+      });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="formularz-${instanceId}.pdf"`);
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.send(pdf);
+    } catch (error) {
+      if (error instanceof FormDomainError) {
+        res.status(statusByCode[error.code]).json({
+          success: false, message: error.message, code: error.code, details: error.details,
+        });
+        return;
+      }
+      next(error);
+    }
+  };
+
   // Like rule management, instance reassignment is a cross-record forms.assign privilege.
   assignInstance = this.handler(req => this.instances.assignInstance(Number(req.params.id), req.body, req.userId!));
 
@@ -170,6 +297,12 @@ export class FormsController {
   // Authorize through the transaction manager while the row lock serializes reassignment.
   updateValues = this.handler(req => this.instances.saveResponses(
     Number(req.params.id), req.body.responses, req.userId!,
+    async (manager, instance) => { await this.scopedInstance(req, manager, instance.id); },
+  ));
+
+  refreshData = this.handler(req => this.instances.refreshData(
+    Number(req.params.id),
+    req.userId!,
     async (manager, instance) => { await this.scopedInstance(req, manager, instance.id); },
   ));
 

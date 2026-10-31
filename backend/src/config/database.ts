@@ -109,6 +109,7 @@ import { FormInstance } from '../entities/FormInstance';
 import { FormFieldValue } from '../entities/FormFieldValue';
 import { FormApproval } from '../entities/FormApproval';
 import { DeviceInstallationWorkflow } from '../entities/DeviceInstallationWorkflow';
+import { FormHeaderFooter } from '../entities/FormHeaderFooter';
 // Migrations
 import { InitialSchema1600000000000 } from '../migrations/1600000000000-InitialSchema';
 import { AddBrigadeIdToTasks1714000000000 } from '../migrations/1714000000000-AddBrigadeIdToTasks';
@@ -126,6 +127,8 @@ import { AddCompletedAtToTasks1787529600000 } from '../migrations/20260824_add_c
 import { CreateFormChecklistEngine1790971200000 } from '../migrations/20261002_create_form_checklist_engine';
 import { MigrateLegacyData1793318400000 } from '../migrations/1793318400000-MigrateLegacyData';
 import { CreateDeviceInstallationWorkflows1793432400000 } from '../migrations/20261031_create_device_installation_workflows';
+import { CreateFormHeaderFooters1793454000000 } from '../migrations/20261031_create_form_header_footers';
+import { CreateFormAuditLogs1793454000001 } from '../migrations/20261031_create_form_audit_logs';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -262,6 +265,7 @@ export const AppDataSource = new DataSource({
     FormInstance,
     FormFieldValue,
     FormApproval,
+    FormHeaderFooter,
     DeviceInstallationWorkflow,
   ],
   subscribers: [],
@@ -282,6 +286,8 @@ export const AppDataSource = new DataSource({
     CreateFormChecklistEngine1790971200000,
     MigrateLegacyData1793318400000,
     CreateDeviceInstallationWorkflows1793432400000,
+    CreateFormHeaderFooters1793454000000,
+    CreateFormAuditLogs1793454000001,
   ],
 });
 
