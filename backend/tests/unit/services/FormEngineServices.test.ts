@@ -397,6 +397,122 @@ describe('FormInstanceService', () => {
     expect(instanceRepository.create).toHaveBeenCalledWith(expect.objectContaining({ templateVersionId: 7 }));
   });
 
+  it('keeps an existing instance on V1 after V2 is edited and published', async () => {
+    const version1 = {
+      id: 7, templateId: 3, version: 1, status: FormVersionStatus.PUBLISHED,
+      title: 'Installation', description: null, kind: 'FORM', procedureType: 'FIELD_INSTALLATION',
+      settings: {},
+    };
+    const sectionsByVersion = new Map<number, any[]>([[7, [{
+      id: 1, templateVersionId: 7, key: 'main', title: 'Main', sortOrder: 0, conditions: {},
+    }]]]);
+    const fieldsByVersion = new Map<number, any[]>([[7, [{
+      id: 40, templateVersionId: 7, sectionId: 1, key: 'reading', label: 'Reading',
+      fieldType: 'TEXT', required: false, sortOrder: 0, validation: {}, options: {}, conditions: {},
+    }]]]);
+    const versions = [version1];
+    let nextSectionId = 2;
+    let nextFieldId = 41;
+    const versionRepository = repository({
+      findOne: jest.fn(async ({ where }: any) => versions.find(version => version.id === where.id) ?? null),
+      find: jest.fn(async ({ where }: any) => versions.filter(version => version.templateId === where.templateId)),
+      save: jest.fn(async (value: any) => {
+        if (!value.id) value.id = 8;
+        const existing = versions.find(version => version.id === value.id);
+        if (existing) Object.assign(existing, value);
+        else versions.push(value);
+        return value;
+      }),
+    });
+    const sectionRepository = repository({
+      find: jest.fn(async ({ where }: any) => sectionsByVersion.get(where.templateVersionId) || []),
+      delete: jest.fn(async ({ templateVersionId }: any) => {
+        sectionsByVersion.delete(templateVersionId);
+        return { affected: 1 };
+      }),
+      save: jest.fn(async (values: any[]) => {
+        const saved = values.map(value => ({ id: nextSectionId++, ...value }));
+        sectionsByVersion.set(saved[0]?.templateVersionId, saved);
+        return saved;
+      }),
+    });
+    const fieldRepository = repository({
+      find: jest.fn(async ({ where }: any) => fieldsByVersion.get(where.templateVersionId) || []),
+      delete: jest.fn(async ({ templateVersionId }: any) => {
+        fieldsByVersion.delete(templateVersionId);
+        return { affected: 1 };
+      }),
+      save: jest.fn(async (values: any[]) => {
+        const saved = values.map(value => ({ id: nextFieldId++, ...value }));
+        fieldsByVersion.set(saved[0]?.templateVersionId, saved);
+        return saved;
+      }),
+    });
+    const templateRepository = repository({ findOne: jest.fn().mockResolvedValue({ id: 3 }) });
+    const emptyRepository = repository();
+    const templateHarness = harness(repositoryMap([
+      [FormTemplateVersion, versionRepository],
+      [FormTemplate, templateRepository],
+      [FormSection, sectionRepository],
+      [FormFieldDefinition, fieldRepository],
+      [FormTrigger, emptyRepository],
+      [FormAssignmentRule, emptyRepository],
+    ]));
+    const templateService = new FormTemplateService(templateHarness.dataSource);
+
+    let pinnedInstance: any = null;
+    const instanceRepository = repository({
+      findOne: jest.fn(async () => pinnedInstance),
+      save: jest.fn(async (value: any) => {
+        pinnedInstance = { id: 20, ...value };
+        return pinnedInstance;
+      }),
+    });
+    const savedValues: any[] = [];
+    const valueRepository = repository({
+      find: jest.fn(async () => savedValues),
+      save: jest.fn(async (values: any[]) => {
+        for (const value of values) {
+          const index = savedValues.findIndex(saved => saved.fieldDefinitionId === value.fieldDefinitionId);
+          if (index < 0) savedValues.push(value);
+          else savedValues[index] = value;
+        }
+        return values;
+      }),
+    });
+    const instanceHarness = harness(repositoryMap([
+      [FormTemplateVersion, repository({ findOne: jest.fn().mockResolvedValue(version1) })],
+      [FormInstance, instanceRepository],
+      [FormSection, sectionRepository],
+      [FormFieldDefinition, fieldRepository],
+      [FormFieldValue, valueRepository],
+    ]));
+    const instanceService = new FormInstanceService(instanceHarness.dataSource);
+    const instance = await instanceService.createInstance({ templateVersionId: 7 }, 9);
+    await instanceService.saveResponses(instance.id, { reading: 'Recorded on V1' }, 9);
+
+    const draftV2 = await templateService.createNextVersion(7, 9);
+    await templateService.updateDraft(draftV2.id, {
+      sections: [{
+        key: 'main',
+        title: 'Main',
+        fields: [{
+          key: 'reading', label: 'Reading', fieldType: 'NUMBER', required: false, validation: { min: 10 },
+        }],
+      }],
+    }, 9);
+    await templateService.publishVersion(draftV2.id, 9);
+
+    expect(versions.find(version => version.id === 7)?.status).toBe(FormVersionStatus.PUBLISHED);
+    expect(versions.find(version => version.id === draftV2.id)?.status).toBe(FormVersionStatus.PUBLISHED);
+    expect(fieldsByVersion.get(draftV2.id)?.[0]).toMatchObject({ fieldType: 'NUMBER', validation: { min: 10 } });
+    expect(fieldsByVersion.get(7)?.[0]).toMatchObject({ fieldType: 'TEXT' });
+    await expect(instanceService.saveResponses(instance.id, { reading: 'Updated using V1 rules' }, 9))
+      .resolves.toEqual([expect.objectContaining({ templateVersionId: 7, fieldDefinitionId: 40 })]);
+    await expect(instanceService.validateResponses(instance.id)).resolves.toEqual([]);
+    expect(fieldRepository.find).toHaveBeenCalledWith({ where: { templateVersionId: 7 } });
+  });
+
   it('rejects a task that does not belong to the supplied contract and keeps traceability otherwise', async () => {
     const versionRepository = repository({ findOne: jest.fn().mockResolvedValue({ id: 7, status: FormVersionStatus.PUBLISHED }) });
     const taskRepository = repository({ findOne: jest.fn().mockResolvedValue({ id: 5, contractId: 2 }) });
