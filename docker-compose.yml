@@ -64,7 +64,7 @@ services:
     env_file: .env
     environment: *backend_environment
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "${APP_BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-3000}:3000"
     volumes:
       - app_uploads:/app/backend/uploads
     depends_on:
@@ -75,7 +75,62 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  proxy:
+    image: nginx:1.28-alpine
+    restart: unless-stopped
+    profiles: ["https"]
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+      NGINX_ENVSUBST_FILTER: '^(DOMAIN)$'
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ${LETSENCRYPT_DIR:-/etc/letsencrypt}:/etc/letsencrypt:ro
+    depends_on:
+      app:
+        condition: service_healthy
+
+  certbot:
+    image: certbot/certbot:v4.2.0
+    profiles: ["certbot"]
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+      CERTBOT_EMAIL: ${CERTBOT_EMAIL:-}
+    ports:
+      - "80:80"
+    volumes:
+      - ${LETSENCRYPT_DIR:-/etc/letsencrypt}:/etc/letsencrypt
+    entrypoint: ["certbot"]
+    command: ["--version"]
+
+  backup:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGDATABASE: ${DB_NAME:-dermag_platform}
+      PGUSER: ${DB_USER:-dermag_user}
+      PGPASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      BACKUP_DIR: /backups
+      BACKUP_TIME: ${BACKUP_TIME:-02:00}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      TZ: UTC
+    command: ["bash", "/usr/local/bin/backup.sh", "schedule"]
+    volumes:
+      - ./docker/backup/backup.sh:/usr/local/bin/backup.sh:ro
+      - ./docker/backup/restore.sh:/usr/local/bin/restore.sh:ro
+      - db_backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
 volumes:
   postgres_data:
   redis_data:
   app_uploads:
+  db_backups:

@@ -36,6 +36,10 @@ dodać do `.env` i są przekazywane bez zmian.
 Zatrzymanie usług bez usuwania danych: `docker compose down`. Pełne usunięcie
 również danych trwałych: `docker compose down --volumes`.
 
+Konfiguracja Nginx/Let's Encrypt, odnawianie certyfikatów, harmonogram
+backupów oraz procedura odtworzenia bazy są opisane w
+[przewodniku wdrożenia Docker Compose](docs/DEPLOYMENT_DOCKER.md).
+
 ### Uruchomienie bez Dockera
 
 Można nadal użyć skryptów A1 i lokalnego PostgreSQL. Ustaw konfigurację bazy,
@@ -588,7 +592,9 @@ Wrażliwe pola (`password`, `token`, `secret`, `authorization`, `cookie`, `credi
 
 ## 💾 System Backup-u Bazy Danych
 
-Platforma Grover zawiera kompletny system automatycznych backupów bazy PostgreSQL.
+W instalacjach bez Dockera można użyć poniższych skryptów lokalnych. W instalacji
+Compose harmonogram i procedurę odtworzenia opisuje
+[przewodnik wdrożenia Docker Compose](docs/DEPLOYMENT_DOCKER.md).
 
 ### Dostępne skrypty
 
