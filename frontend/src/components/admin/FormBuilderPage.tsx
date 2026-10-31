@@ -21,7 +21,9 @@ import type {
   FormKind,
   FormProcedureType,
   FormSection,
+  FormTeamOption,
   FormTemplate,
+  FormUserOption,
   FormVersion,
   FormVersionSummary,
 } from '../../types/forms.types';
@@ -30,10 +32,39 @@ import './FormBuilderPage.css';
 type BuilderTab = 'builder' | 'versions' | 'preview' | 'rules';
 type DefinitionSection = FormSection & { id?: number };
 
-const FIELD_TYPES = ['TEXT', 'STRING', 'TEXTAREA', 'EMAIL', 'DATE', 'SELECT', 'RADIO', 'NUMBER', 'PASS_FAIL', 'CHECKBOX', 'MULTI_SELECT'];
+const FIELD_TYPES: Array<{ value: string; label: string }> = [
+  { value: 'TEXT', label: 'Tekst' },
+  { value: 'TEXTAREA', label: 'Długi tekst' },
+  { value: 'EMAIL', label: 'Adres e-mail' },
+  { value: 'DATE', label: 'Data' },
+  { value: 'SELECT', label: 'Lista wyboru' },
+  { value: 'RADIO', label: 'Wybór jednej opcji' },
+  { value: 'NUMBER', label: 'Liczba' },
+  { value: 'PASS_FAIL', label: 'OK / Nie OK' },
+  { value: 'CHECKBOX', label: 'Pole wyboru' },
+  { value: 'MULTI_SELECT', label: 'Lista wielokrotnego wyboru' },
+];
 const PROCEDURES: FormProcedureType[] = ['CABINET_PREFABRICATION', 'DEVICE_PRECONFIGURATION', 'FIELD_INSTALLATION'];
 const CONDITION_KEYS = ['visibleWhen', 'requiredWhen', 'blockCompletionWhen'] as const;
-const OPERATORS = ['equals', 'notEquals', 'gt', 'gte', 'lt', 'lte', 'in', 'notIn', 'isEmpty', 'isNotEmpty'];
+type ConditionKey = typeof CONDITION_KEYS[number] | 'when';
+const OPERATOR_LABELS: Record<string, string> = {
+  equals: 'równa się',
+  notEquals: 'nie równa się',
+  gt: 'większe niż',
+  gte: 'większe lub równe',
+  lt: 'mniejsze niż',
+  lte: 'mniejsze lub równe',
+  in: 'jest jedną z wartości',
+  notIn: 'nie jest żadną z wartości',
+  isEmpty: 'jest puste',
+  isNotEmpty: 'nie jest puste',
+};
+const CONDITION_LABELS: Record<ConditionKey, string> = {
+  visibleWhen: 'Widoczność zależy od',
+  requiredWhen: 'Pole wymagane, gdy',
+  blockCompletionWhen: 'Blokuj ukończenie, gdy',
+  when: 'Warunek przypisania',
+};
 const RESERVED_KEYS = new Set([...Object.getOwnPropertyNames(Object.prototype), 'prototype']);
 
 const uniqueKey = (base: string, used: string[]): string => {
@@ -44,6 +75,12 @@ const uniqueKey = (base: string, used: string[]): string => {
     suffix += 1;
   }
   return candidate;
+};
+
+const keyFromLabel = (label: string): string => {
+  const key = label.replace(/[Łł]/g, letter => letter === 'Ł' ? 'L' : 'l').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 100);
+  return key || 'POLE';
 };
 
 const definitionError = (sections: DefinitionSection[]): string => {
@@ -71,7 +108,7 @@ const definitionError = (sections: DefinitionSection[]): string => {
 };
 
 const emptySection = (index: number): DefinitionSection => ({
-  key: `section_${index + 1}`,
+  key: keyFromLabel(`Sekcja ${index + 1}`),
   title: `Sekcja ${index + 1}`,
   description: '',
   sortOrder: index,
@@ -80,7 +117,7 @@ const emptySection = (index: number): DefinitionSection => ({
 });
 
 const emptyField = (index: number): FormField => ({
-  key: `field_${index + 1}`,
+  key: keyFromLabel(`Pole ${index + 1}`),
   label: `Pole ${index + 1}`,
   fieldType: 'TEXT',
   required: false,
@@ -90,15 +127,47 @@ const emptyField = (index: number): FormField => ({
   conditions: {},
 });
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const readError = (error: unknown): string => {
+const readError = (error: unknown): { message: string; fieldKey?: string } => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
-    const response = (error as { response?: { data?: { message?: string } } }).response;
-    if (response?.data?.message) return response.data.message;
+    const response = (error as { response?: { data?: { code?: string; message?: string } } }).response;
+    const code = response?.data?.code;
+    const message = response?.data?.message || '';
+    const fieldMatch = message.match(/(?:field key:|field:)\s*([A-Za-z0-9_-]+)/i)
+      || message.match(/on field\s+([A-Za-z0-9_-]+)/i)
+      || message.match(/numeric bounds on\s+([A-Za-z0-9_-]+)/i);
+    const fieldKey = fieldMatch?.[1];
+    const domainMessages: Record<string, string> = {
+      TEMPLATE_NOT_FOUND: 'Nie znaleziono formularza.',
+      VERSION_NOT_FOUND: 'Nie znaleziono wersji formularza.',
+      INSTANCE_NOT_FOUND: 'Nie znaleziono formularza do wypełnienia.',
+      VERSION_NOT_DRAFT: 'Opublikowana wersja jest tylko do odczytu.',
+      VERSION_NOT_PUBLISHED: 'Ta operacja wymaga opublikowanej wersji.',
+      DRAFT_ALREADY_EXISTS: 'Istnieje już wersja robocza tego formularza.',
+      INVALID_DEFINITION: message.includes('numeric bounds')
+        ? `Sprawdź zakres liczbowy pola „${fieldKey || ''}”.`
+        : message.includes('assignment rule must have')
+          ? 'Wybierz użytkownika lub brygadę dla reguły przypisania.'
+          : message.includes('Assignment trigger')
+            ? 'Wybrany trigger nie należy do tej wersji formularza.'
+            : fieldKey && message.toLowerCase().includes('condition')
+              ? `Sprawdź warunek pola „${fieldKey}”.`
+        : message.includes('field key') || message.includes('field:')
+          ? `Sprawdź klucz lub konfigurację pola „${fieldKey || ''}”.`
+          : message.includes('section key')
+            ? 'Sprawdź klucze sekcji; muszą być poprawne i unikalne.'
+            : 'Definicja formularza zawiera nieprawidłowe dane. Sprawdź warunki, klucze i przypisania.',
+      INVALID_RESPONSES: 'Odpowiedzi zawierają nieprawidłowe wartości. Sprawdź wskazane pola.',
+      INVALID_ASSIGNMENT: 'Reguła przypisania jest nieprawidłowa. Sprawdź użytkownika, brygadę i trigger.',
+      INVALID_INSTANCE_CONTEXT: 'Nie można połączyć formularza z wybranym elementem.',
+      INVALID_INSTANCE_STATUS: 'Nie można wykonać tej operacji dla aktualnego statusu formularza.',
+      INVALID_INSTALLATION_WORKFLOW: 'Nieprawidłowy etap instalacji dla tego formularza.',
+      REJECTION_COMMENT_REQUIRED: 'Przed odrzuceniem dodaj komentarz.',
+      OVERRIDE_COMMENT_REQUIRED: 'Przed nadpisaniem wyniku dodaj komentarz.',
+    };
+    if (code && domainMessages[code]) return { message: domainMessages[code], fieldKey };
+    if (message && !code) return { message };
   }
-  return 'Nie udało się wykonać operacji. Sprawdź połączenie i spróbuj ponownie.';
+  return { message: 'Nie udało się wykonać operacji. Sprawdź połączenie i spróbuj ponownie.' };
 };
 
 const templateSections = (version: FormVersion): DefinitionSection[] =>
@@ -156,14 +225,6 @@ const moveItem = <T,>(items: T[], from: number, to: number): T[] => {
   return next;
 };
 
-const decodeConditionValue = (text: string): FormCondition['value'] => {
-  try {
-    return JSON.parse(text) as FormCondition['value'];
-  } catch {
-    return text;
-  }
-};
-
 const DragHandle: React.FC<{ id: string; label: string; disabled: boolean; children: React.ReactNode }> = ({ id, label, disabled, children }) => {
   const { attributes, listeners, setNodeRef: setDragRef, transform, isDragging } = useDraggable({ id, disabled });
   const { setNodeRef: setDropRef } = useDroppable({ id, disabled });
@@ -194,15 +255,28 @@ const DragHandle: React.FC<{ id: string; label: string; disabled: boolean; child
 
 const ConditionEditor: React.FC<{
   value: Record<string, FormCondition>;
-  fieldKeys: string[];
+  fields: FormField[];
   section?: boolean;
+  conditionKeys?: ConditionKey[];
   disabled: boolean;
   onChange: (conditions: Record<string, FormCondition>) => void;
-}> = ({ value, fieldKeys, section = false, disabled, onChange }) => {
-  const allowed = section ? ['visibleWhen'] : CONDITION_KEYS;
+}> = ({ value, fields, section = false, conditionKeys, disabled, onChange }) => {
+  const allowed: ConditionKey[] = conditionKeys || (section ? ['visibleWhen'] : [...CONDITION_KEYS]);
+  const targetFields = fields;
+  const selectedFields = (key: ConditionKey) => {
+    const selectedKey = value[key]?.field;
+    return selectedKey ? targetFields.find(field => field.key === selectedKey) : undefined;
+  };
+  const optionsFor = (field?: FormField): string[] =>
+    field && Array.isArray(field.options.values)
+      ? field.options.values.filter((option): option is string => typeof option === 'string')
+      : [];
+  const operatorOptions = (field?: FormField) => field?.fieldType === 'NUMBER'
+    ? ['equals', 'notEquals', 'gt', 'gte', 'lt', 'lte', 'in', 'notIn', 'isEmpty', 'isNotEmpty']
+    : ['equals', 'notEquals', 'in', 'notIn', 'isEmpty', 'isNotEmpty'];
   const addCondition = (key: string) => onChange({
     ...value,
-    [key]: { field: fieldKeys[0] || '', operator: 'equals', value: '' },
+    [key]: { field: targetFields[0]?.key || '', operator: 'equals', value: '' },
   });
 
   return (
@@ -213,21 +287,49 @@ const ConditionEditor: React.FC<{
         if (!condition) {
           return (
             <button key={key} type="button" className="btn btn-secondary form-builder__small-button" onClick={() => addCondition(key)}>
-              + {key}
+              + {CONDITION_LABELS[key]}
             </button>
           );
         }
+        const target = selectedFields(key);
+        const options = optionsFor(target);
+        const requiresValue = !['isEmpty', 'isNotEmpty'].includes(condition.operator);
+        const isMembershipOperator = ['in', 'notIn'].includes(condition.operator);
+        const legacyValue = typeof condition.value === 'string' ? condition.value : '';
+        const conditionValues = Array.isArray(condition.value)
+          ? condition.value
+          : condition.value === undefined ? [] : [condition.value];
+        const updateValue = (raw: string) => {
+          const parsed = target?.fieldType === 'NUMBER' && raw !== '' ? Number(raw) : raw;
+          onChange({ ...value, [key]: { ...condition, value: parsed } });
+        };
+        const updateValueList = (nextValues: string[]) => {
+          const parsed = target?.fieldType === 'NUMBER'
+            ? nextValues.filter(item => item !== '').map(Number)
+            : target?.fieldType === 'CHECKBOX'
+              ? nextValues.map(item => item === 'true')
+              : nextValues;
+          onChange({ ...value, [key]: { ...condition, value: parsed } });
+        };
+        const operatorChoices = operatorOptions(target);
+        if (!operatorChoices.includes(condition.operator)) operatorChoices.push(condition.operator);
         return (
           <div className="form-builder__condition" key={key}>
             <label>
-              {key}
+              {CONDITION_LABELS[key]} — pole
               <select
                 aria-label={`${key} pole`}
                 value={condition.field}
-                onChange={event => onChange({ ...value, [key]: { ...condition, field: event.target.value } })}
+                onChange={event => {
+                  const nextField = targetFields.find(field => field.key === event.target.value);
+                  onChange({
+                    ...value,
+                    [key]: { field: event.target.value, operator: 'equals', value: nextField?.fieldType === 'CHECKBOX' ? true : '' },
+                  });
+                }}
               >
                 <option value="">Wybierz pole</option>
-                {fieldKeys.map(fieldKey => <option key={fieldKey} value={fieldKey}>{fieldKey}</option>)}
+                {targetFields.map(field => <option key={field.key} value={field.key}>{field.label} ({field.key})</option>)}
               </select>
             </label>
             <label>
@@ -235,20 +337,109 @@ const ConditionEditor: React.FC<{
               <select
                 aria-label={`${key} operator`}
                 value={condition.operator}
-                onChange={event => onChange({ ...value, [key]: { ...condition, operator: event.target.value } })}
+                onChange={event => {
+                  const operator = event.target.value;
+                  onChange({ ...value, [key]: { ...condition, operator, value: ['isEmpty', 'isNotEmpty'].includes(operator) ? undefined : condition.value } });
+                }}
               >
-                {OPERATORS.map(operator => <option key={operator} value={operator}>{operator}</option>)}
+                {operatorChoices.map(operator => <option key={operator} value={operator}>{OPERATOR_LABELS[operator] || operator}</option>)}
               </select>
             </label>
-            {!['isEmpty', 'isNotEmpty'].includes(condition.operator) && (
+            {requiresValue && target?.fieldType === 'CHECKBOX' && (
               <label>
-                Wartość (tekst lub JSON)
-                <input
+                Wartość
+                <select
                   aria-label={`${key} wartość`}
-                  value={condition.value === undefined ? '' : typeof condition.value === 'string' ? condition.value : JSON.stringify(condition.value)}
-                  onChange={event => onChange({ ...value, [key]: { ...condition, value: decodeConditionValue(event.target.value) } })}
-                />
+                  multiple={isMembershipOperator}
+                  value={isMembershipOperator ? conditionValues.map(String) : condition.value === true ? 'true' : condition.value === false ? 'false' : ''}
+                  onChange={event => isMembershipOperator
+                    ? updateValueList(Array.from(event.currentTarget.selectedOptions, option => option.value))
+                    : onChange({ ...value, [key]: { ...condition, value: event.target.value === '' ? undefined : event.target.value === 'true' } })}
+                >
+                  {!isMembershipOperator && <option value="">Wybierz</option>}
+                  <option value="true">Zaznaczone</option><option value="false">Niezaznaczone</option>
+                </select>
               </label>
+            )}
+            {requiresValue && target?.fieldType === 'PASS_FAIL' && (
+              <label>Wartość
+                <select
+                  aria-label={`${key} wartość`}
+                  multiple={isMembershipOperator}
+                  value={isMembershipOperator ? conditionValues.map(String) : legacyValue}
+                  onChange={event => isMembershipOperator
+                    ? updateValueList(Array.from(event.currentTarget.selectedOptions, option => option.value))
+                    : updateValue(event.target.value)}
+                >
+                  {!isMembershipOperator && <option value="">Wybierz</option>}
+                  <option value="PASS">OK</option><option value="FAIL">Nie OK</option>
+                </select>
+              </label>
+            )}
+            {requiresValue && ['SELECT', 'RADIO'].includes(target?.fieldType || '') && (
+              <label>Wartość
+                <select
+                  aria-label={`${key} wartość`}
+                  multiple={isMembershipOperator}
+                  value={isMembershipOperator ? conditionValues.map(String) : legacyValue}
+                  onChange={event => isMembershipOperator
+                    ? onChange({ ...value, [key]: { ...condition, value: Array.from(event.currentTarget.selectedOptions, option => option.value).filter(Boolean) } })
+                    : updateValue(event.target.value)}
+                >
+                  {!isMembershipOperator && <option value="">Wybierz</option>}
+                  {!options.includes(legacyValue) && legacyValue && <option value={legacyValue}>{legacyValue}</option>}
+                  {options.map(option => <option key={option} value={option}>{option}</option>)}
+                </select>
+              </label>
+            )}
+            {requiresValue && target?.fieldType === 'MULTI_SELECT' && (
+              <label>Wartość
+                <select
+                  aria-label={`${key} wartość`}
+                  multiple
+                  value={Array.isArray(condition.value) ? condition.value.map(String) : legacyValue ? [legacyValue] : []}
+                  onChange={event => {
+                    const selected = Array.from(event.currentTarget.selectedOptions, option => option.value);
+                    onChange({ ...value, [key]: { ...condition, value: selected } });
+                  }}
+                >
+                  {options.map(option => <option key={option} value={option}>{option}</option>)}
+                </select>
+              </label>
+            )}
+            {requiresValue && target?.fieldType === 'NUMBER' && !isMembershipOperator && (
+              <label>Wartość
+                <input type="number" aria-label={`${key} wartość`} value={typeof condition.value === 'number' ? condition.value : ''} onChange={event => updateValue(event.target.value)} />
+              </label>
+            )}
+            {requiresValue && target?.fieldType === 'NUMBER' && isMembershipOperator && (
+              <fieldset className="form-builder__condition-values">
+                <legend>Wartości</legend>
+                {conditionValues.map((item, index) => (
+                  <div className="form-builder__condition-value" key={index}>
+                    <input type="number" aria-label={`${key} wartość ${index + 1}`} value={typeof item === 'number' ? item : ''} onChange={event => updateValueList(conditionValues.map((current, currentIndex) => currentIndex === index ? event.target.value : String(current)))} />
+                    <button type="button" className="btn btn-secondary" aria-label={`Usuń wartość ${index + 1}`} onClick={() => updateValueList(conditionValues.filter((_, currentIndex) => currentIndex !== index).map(String))}>Usuń</button>
+                  </div>
+                ))}
+                <button type="button" className="btn btn-secondary" onClick={() => updateValueList([...conditionValues.map(String), '0'])}>+ Dodaj wartość</button>
+              </fieldset>
+            )}
+            {requiresValue && (!target || !['CHECKBOX', 'PASS_FAIL', 'SELECT', 'RADIO', 'MULTI_SELECT', 'NUMBER'].includes(target.fieldType)) && !isMembershipOperator && (
+              <label>Wartość
+                <input aria-label={`${key} wartość`} value={legacyValue} onChange={event => updateValue(event.target.value)} />
+              </label>
+            )}
+            {requiresValue && (!target || !['CHECKBOX', 'PASS_FAIL', 'SELECT', 'RADIO', 'MULTI_SELECT', 'NUMBER'].includes(target.fieldType)) && isMembershipOperator && (
+              <fieldset className="form-builder__condition-values">
+                <legend>Wartości</legend>
+                {conditionValues.map((item, index) => (
+                  <div className="form-builder__condition-value" key={index}>
+                    <input aria-label={`${key} wartość ${index + 1}`} value={String(item ?? '')} onChange={event => updateValueList(conditionValues.map((current, currentIndex) => currentIndex === index ? event.target.value : String(current)))} />
+                    <button type="button" className="btn btn-secondary" aria-label={`Usuń wartość ${index + 1}`} onClick={() => updateValueList(conditionValues.filter((_, currentIndex) => currentIndex !== index).map(String))}>Usuń</button>
+                  </div>
+                ))}
+                <button type="button" className="btn btn-secondary" onClick={() => updateValueList([...conditionValues.map(String), ''])}>+ Dodaj wartość</button>
+              </fieldset>
             )}
             <button
               type="button"
@@ -285,21 +476,37 @@ export const FormBuilderPage: React.FC = () => {
   const [sections, setSections] = useState<DefinitionSection[]>([]);
   const [tab, setTab] = useState<BuilderTab>('builder');
   const [rules, setRules] = useState<FormAssignmentRule[]>([]);
+  const [assignmentUsers, setAssignmentUsers] = useState<FormUserOption[]>([]);
+  const [assignmentTeams, setAssignmentTeams] = useState<FormTeamOption[]>([]);
+  const [assignmentLookupsLoading, setAssignmentLookupsLoading] = useState(false);
+  const [assignmentLookupErrors, setAssignmentLookupErrors] = useState({ users: '', teams: '' });
+  const [assignmentUserSearch, setAssignmentUserSearch] = useState('');
+  const [assignmentTeamSearch, setAssignmentTeamSearch] = useState('');
+  const [assignmentTriggerSearch, setAssignmentTriggerSearch] = useState('');
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [errorFieldKey, setErrorFieldKey] = useState<string>();
+  const [autoSectionKeys, setAutoSectionKeys] = useState<Set<string>>(new Set());
+  const [autoFieldKeys, setAutoFieldKeys] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
   const [templateForm, setTemplateForm] = useState({
     key: '', name: '', description: '', kind: 'FORM' as FormKind,
     procedureType: 'CABINET_PREFABRICATION' as FormProcedureType,
   });
   const [ruleForm, setRuleForm] = useState({
-    assignedUserId: '', assignedTeamId: '', triggerId: '', priority: '0', conditions: '{}',
+    assignedUserId: '', assignedTeamId: '', triggerId: '', priority: '0', conditions: {} as Record<string, FormCondition>,
   });
 
   const readOnly = !canUpdate || version?.status !== 'DRAFT';
-  const fieldKeys = useMemo(() => sections.flatMap(section => section.fields.map(field => field.key)), [sections]);
+  const currentVersionId = version?.id;
+  const conditionFields = useMemo(() => sections.flatMap(section => section.fields), [sections]);
   const draftDefinitionError = useMemo(() => definitionError(sections), [sections]);
+  const showError = useCallback((error: unknown) => {
+    const result = readError(error);
+    setMessage(result.message);
+    setErrorFieldKey(result.fieldKey);
+  }, []);
 
   const loadVersion = useCallback(async (selected: FormTemplate, versionId: number) => {
     setLoadingDetail(true);
@@ -313,13 +520,16 @@ export const FormBuilderPage: React.FC = () => {
       setVersion(nextVersion);
       setVersions(nextVersions.items);
       setSections(templateSections(nextVersion));
+      setAutoSectionKeys(new Set());
+      setAutoFieldKeys(new Set());
+      setErrorFieldKey(undefined);
       setTab('builder');
     } catch (error) {
-      setMessage(readError(error));
+      showError(error);
     } finally {
       setLoadingDetail(false);
     }
-  }, []);
+  }, [showError]);
 
   const openTemplate = async (template: FormTemplate) => {
     setLoadingDetail(true);
@@ -337,7 +547,7 @@ export const FormBuilderPage: React.FC = () => {
         setTab('versions');
       }
     } catch (error) {
-      setMessage(readError(error));
+      showError(error);
     } finally {
       setLoadingDetail(false);
     }
@@ -352,10 +562,35 @@ export const FormBuilderPage: React.FC = () => {
     formsService.listAssignmentRules(version.id).then(result => {
       if (!cancelled) setRules(result);
     }).catch(error => {
-      if (!cancelled) setMessage(readError(error));
+      if (!cancelled) showError(error);
     });
     return () => { cancelled = true; };
-  }, [version]);
+  }, [showError, version]);
+
+  useEffect(() => {
+    if (!currentVersionId || tab !== 'rules') return;
+    let cancelled = false;
+    setAssignmentLookupsLoading(true);
+    setAssignmentLookupErrors({ users: '', teams: '' });
+    const timer = window.setTimeout(() => {
+      Promise.allSettled([
+        formsService.listAssignmentUsers(assignmentUserSearch),
+        formsService.listAssignmentTeams(),
+      ]).then(([usersResult, teamsResult]) => {
+        if (cancelled) return;
+        if (usersResult.status === 'fulfilled') setAssignmentUsers(usersResult.value);
+        else setAssignmentLookupErrors(current => ({ ...current, users: 'Nie udało się pobrać listy użytkowników. Sprawdź uprawnienie users.read.' }));
+        if (teamsResult.status === 'fulfilled') setAssignmentTeams(teamsResult.value);
+        else setAssignmentLookupErrors(current => ({ ...current, teams: 'Nie udało się pobrać listy brygad. Sprawdź uprawnienie brigades.read.' }));
+      }).finally(() => {
+        if (!cancelled) setAssignmentLookupsLoading(false);
+      });
+    }, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [assignmentUserSearch, currentVersionId, tab]);
 
   const createTemplate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -373,7 +608,7 @@ export const FormBuilderPage: React.FC = () => {
       const draft = await formsService.createDraft(template.id);
       await loadVersion(template, draft.id);
     } catch (error) {
-      setMessage(readError(error));
+      showError(error);
     } finally {
       setSaving(false);
     }
@@ -392,7 +627,7 @@ export const FormBuilderPage: React.FC = () => {
       await loadVersion(selectedTemplate!, updated.id);
       setMessage('Wersja robocza została zapisana.');
     } catch (error) {
-      setMessage(readError(error));
+      showError(error);
     } finally {
       setSaving(false);
     }
@@ -412,7 +647,7 @@ export const FormBuilderPage: React.FC = () => {
       await loadVersion(selectedTemplate!, published.id);
       setMessage('Wersja została opublikowana.');
     } catch (error) {
-      setMessage(readError(error));
+      showError(error);
     } finally {
       setSaving(false);
     }
@@ -426,7 +661,7 @@ export const FormBuilderPage: React.FC = () => {
       const draft = await formsService.createNextVersion(sourceVersionId);
       await loadVersion(selectedTemplate, draft.id);
     } catch (error) {
-      setMessage(readError(error));
+      showError(error);
     } finally {
       setSaving(false);
     }
@@ -435,10 +670,49 @@ export const FormBuilderPage: React.FC = () => {
   const changeSection = (index: number, update: Partial<DefinitionSection>) =>
     setSections(current => current.map((section, sectionIndex) => sectionIndex === index ? { ...section, ...update } : section));
 
+  const changeSectionTitle = (index: number, title: string) => {
+    const section = sections[index];
+    if (!section || !autoSectionKeys.has(section.key)) {
+      changeSection(index, { title });
+      return;
+    }
+    const key = uniqueKey(keyFromLabel(title), sections.filter((_, sectionIndex) => sectionIndex !== index).map(item => item.key));
+    setAutoSectionKeys(current => new Set([...Array.from(current).filter(value => value !== section.key), key]));
+    changeSection(index, { title, key });
+  };
+
+  const changeSectionKey = (index: number, key: string) => {
+    const previousKey = sections[index]?.key;
+    if (previousKey) {
+      setAutoSectionKeys(current => new Set(Array.from(current).filter(value => value !== previousKey)));
+    }
+    changeSection(index, { key });
+  };
+
   const changeField = (sectionIndex: number, fieldIndex: number, update: Partial<FormField>) =>
     setSections(current => current.map((section, currentSectionIndex) => currentSectionIndex === sectionIndex
       ? { ...section, fields: section.fields.map((field, currentFieldIndex) => currentFieldIndex === fieldIndex ? { ...field, ...update } : field) }
       : section));
+
+  const changeFieldLabel = (sectionIndex: number, fieldIndex: number, label: string) => {
+    const field = sections[sectionIndex]?.fields[fieldIndex];
+    if (!field || !autoFieldKeys.has(field.key)) {
+      changeField(sectionIndex, fieldIndex, { label });
+      return;
+    }
+    const used = sections.flatMap(section => section.fields.map(item => item.key)).filter(key => key !== field.key);
+    const key = uniqueKey(keyFromLabel(label), used);
+    setAutoFieldKeys(current => new Set([...Array.from(current).filter(value => value !== field.key), key]));
+    changeField(sectionIndex, fieldIndex, { label, key });
+  };
+
+  const changeFieldKey = (sectionIndex: number, fieldIndex: number, key: string) => {
+    const previousKey = sections[sectionIndex]?.fields[fieldIndex]?.key;
+    if (previousKey) {
+      setAutoFieldKeys(current => new Set(Array.from(current).filter(value => value !== previousKey)));
+    }
+    changeField(sectionIndex, fieldIndex, { key });
+  };
 
   const reorder = (items: DefinitionSection[], event: DragEndEvent): DefinitionSection[] => {
     if (!event.over || event.active.id === event.over.id) return items;
@@ -465,7 +739,7 @@ export const FormBuilderPage: React.FC = () => {
       setRules(saved);
       setMessage('Reguły przypisań zostały zapisane.');
     } catch (error) {
-      setMessage(readError(error));
+      showError(error);
     } finally {
       setSaving(false);
     }
@@ -473,50 +747,45 @@ export const FormBuilderPage: React.FC = () => {
 
   const addRule = (event: React.FormEvent) => {
     event.preventDefault();
-    try {
-      const conditions = JSON.parse(ruleForm.conditions);
-      if (!isObject(conditions)) throw new Error();
-      setRules(current => [...current, {
-        assignedUserId: ruleForm.assignedUserId ? Number(ruleForm.assignedUserId) : null,
-        assignedTeamId: ruleForm.assignedTeamId ? Number(ruleForm.assignedTeamId) : null,
-        triggerId: ruleForm.triggerId ? Number(ruleForm.triggerId) : null,
-        priority: Number(ruleForm.priority) || 0,
-        active: true,
-        conditions,
-      }]);
-      setRuleForm({ assignedUserId: '', assignedTeamId: '', triggerId: '', priority: '0', conditions: '{}' });
-    } catch {
-      setMessage('Warunki reguły muszą być poprawnym obiektem JSON.');
-    }
+    setRules(current => [...current, {
+      assignedUserId: ruleForm.assignedUserId ? Number(ruleForm.assignedUserId) : null,
+      assignedTeamId: ruleForm.assignedTeamId ? Number(ruleForm.assignedTeamId) : null,
+      triggerId: ruleForm.triggerId ? Number(ruleForm.triggerId) : null,
+      priority: Number(ruleForm.priority) || 0,
+      active: true,
+      conditions: ruleForm.conditions.when ? { when: ruleForm.conditions.when } : {},
+    }]);
+    setRuleForm({ assignedUserId: '', assignedTeamId: '', triggerId: '', priority: '0', conditions: {} });
   };
 
   const addField = (sectionIndex: number) => {
-    setSections(current => current.map((section, index) => index === sectionIndex
-      ? {
-        ...section,
-        fields: [...section.fields, {
-          ...emptyField(section.fields.length),
-          key: uniqueKey(`field_${section.fields.length + 1}`, current.flatMap(item => item.fields.map(field => field.key))),
-        }],
-      }
-      : section));
+    const section = sections[sectionIndex];
+    if (!section) return;
+    const field = emptyField(section.fields.length);
+    const key = uniqueKey(keyFromLabel(field.label), sections.flatMap(item => item.fields.map(itemField => itemField.key)));
+    setAutoFieldKeys(current => new Set([...current, key]));
+    setSections(current => current.map((item, index) => index === sectionIndex
+      ? { ...item, fields: [...item.fields, { ...field, key }] }
+      : item));
   };
 
   const duplicateField = (sectionIndex: number, fieldIndex: number) => {
-    setSections(current => current.map((section, index) => {
-      if (index !== sectionIndex) return section;
-      const original = section.fields[fieldIndex];
-      const baseKey = original.key.replace(/(?:_copy(?:_\d+)?)+$/, '');
-      const key = uniqueKey(`${baseKey}_copy`, current.flatMap(item => item.fields.map(field => field.key)));
-      return { ...section, fields: [...section.fields, { ...original, key, label: `${original.label} (kopia)`, sortOrder: section.fields.length }] };
-    }));
+    const section = sections[sectionIndex];
+    const original = section?.fields[fieldIndex];
+    if (!section || !original) return;
+    const label = `${original.label} (kopia)`;
+    const key = uniqueKey(keyFromLabel(label), sections.flatMap(item => item.fields.map(field => field.key)));
+    setAutoFieldKeys(current => new Set([...current, key]));
+    setSections(current => current.map((item, index) => index === sectionIndex
+      ? { ...item, fields: [...item.fields, { ...original, key, label, sortOrder: item.fields.length }] }
+      : item));
   };
 
   const tabs: Array<{ id: BuilderTab; label: string }> = [
-    { id: 'builder', label: 'Form Builder' },
-    { id: 'versions', label: 'Versions' },
-    { id: 'preview', label: 'Preview' },
-    { id: 'rules', label: 'Assignments / Rules' },
+    { id: 'builder', label: 'Edytor' },
+    { id: 'versions', label: 'Wersje' },
+    { id: 'preview', label: 'Podgląd' },
+    { id: 'rules', label: 'Przypisania i reguły' },
   ];
 
   return (
@@ -525,7 +794,7 @@ export const FormBuilderPage: React.FC = () => {
         <button type="button" className="btn btn-secondary" onClick={() => navigate('/admin')}>← Panel administratora</button>
         <div className="form-builder__heading">
           <div>
-            <h1>Form Builder</h1>
+            <h1>Edytor formularzy</h1>
             <p>Definicje formularzy i checklist — wersjonowane przez istniejące API.</p>
           </div>
           {canCreate && !selectedTemplate && (
@@ -536,7 +805,7 @@ export const FormBuilderPage: React.FC = () => {
         </div>
       </header>
 
-      {message && <div className="form-builder__notice" role="status">{message}</div>}
+      {message && <div className={`form-builder__notice${errorFieldKey ? ' form-builder__notice--error' : ''}`} role={errorFieldKey ? 'alert' : 'status'}>{message}</div>}
       {listError && <div className="form-builder__notice form-builder__notice--error" role="alert">{listError}</div>}
 
       {createOpen && (
@@ -595,7 +864,7 @@ export const FormBuilderPage: React.FC = () => {
                 if (!selectedTemplate) return;
                 setSaving(true);
                 try { const draft = await formsService.createDraft(selectedTemplate.id); await loadVersion(selectedTemplate, draft.id); }
-                catch (error) { setMessage(readError(error)); }
+                catch (error) { showError(error); }
                 finally { setSaving(false); }
               })()}>Utwórz draft</button>}
             </div>
@@ -618,10 +887,12 @@ export const FormBuilderPage: React.FC = () => {
               </label>
               <div className="form-builder__section-actions">
                 <h3>Sekcje</h3>
-                {!readOnly && <button type="button" className="btn btn-secondary" onClick={() => setSections(current => [...current, {
-                  ...emptySection(current.length),
-                  key: uniqueKey(`section_${current.length + 1}`, current.map(section => section.key)),
-                }])}>+ Dodaj sekcję</button>}
+                {!readOnly && <button type="button" className="btn btn-secondary" onClick={() => {
+                  const section = emptySection(sections.length);
+                  const key = uniqueKey(keyFromLabel(section.title), sections.map(item => item.key));
+                  setAutoSectionKeys(current => new Set([...current, key]));
+                  setSections(current => [...current, { ...section, key }]);
+                }}>+ Dodaj sekcję</button>}
               </div>
               {sections.length === 0 && <p className="form-builder__hint">Dodaj sekcję, aby rozpocząć budowanie formularza.</p>}
               <DndContext sensors={sensors} onDragEnd={event => setSections(current => reorder(current, event))}>
@@ -631,17 +902,20 @@ export const FormBuilderPage: React.FC = () => {
                       <article className="form-builder__section">
                         <div className="form-builder__section-head">
                           <label>Nazwa sekcji
-                            <input value={section.title} disabled={readOnly} onChange={event => changeSection(sectionIndex, { title: event.target.value })} />
-                          </label>
-                          <label>Klucz
-                            <input value={section.key} disabled={readOnly} onChange={event => changeSection(sectionIndex, { key: event.target.value })} />
+                            <input value={section.title} disabled={readOnly} onChange={event => changeSectionTitle(sectionIndex, event.target.value)} />
                           </label>
                           {!readOnly && <button type="button" className="btn btn-secondary" aria-label={`Usuń sekcję ${section.title}`} onClick={() => setSections(current => current.filter((_, index) => index !== sectionIndex))}>Usuń sekcję</button>}
                         </div>
+                        <details className="form-builder__advanced">
+                          <summary>Zaawansowane</summary>
+                          <label>Klucz techniczny sekcji
+                            <input value={section.key} disabled={readOnly} onChange={event => changeSectionKey(sectionIndex, event.target.value)} />
+                          </label>
+                        </details>
                         <label>Opis
                           <input value={section.description || ''} disabled={readOnly} onChange={event => changeSection(sectionIndex, { description: event.target.value })} />
                         </label>
-                        <ConditionEditor value={section.conditions} fieldKeys={fieldKeys} section disabled={readOnly} onChange={conditions => changeSection(sectionIndex, { conditions })} />
+                        <ConditionEditor value={section.conditions} fields={conditionFields} section disabled={readOnly} onChange={conditions => changeSection(sectionIndex, { conditions })} />
                         <div className="form-builder__section-actions">
                           <h4>Pola ({section.fields.length})</h4>
                           {!readOnly && <button type="button" className="btn btn-secondary" onClick={() => addField(sectionIndex)}>+ Dodaj pole</button>}
@@ -653,8 +927,11 @@ export const FormBuilderPage: React.FC = () => {
                                 <FieldEditor
                                   field={field}
                                   index={fieldIndex}
-                                  fieldKeys={fieldKeys}
+                                  fields={conditionFields}
                                   disabled={readOnly}
+                                  error={errorFieldKey === field.key ? message : ''}
+                                  onLabelChange={label => changeFieldLabel(sectionIndex, fieldIndex, label)}
+                                  onKeyChange={key => changeFieldKey(sectionIndex, fieldIndex, key)}
                                   onChange={update => changeField(sectionIndex, fieldIndex, update)}
                                   onDuplicate={() => duplicateField(sectionIndex, fieldIndex)}
                                   onDelete={() => changeSection(sectionIndex, { fields: section.fields.filter((_, index) => index !== fieldIndex) })}
@@ -690,14 +967,18 @@ export const FormBuilderPage: React.FC = () => {
           ) : (
             <div className="form-builder__card">
               <div className="form-builder__section-actions">
-                <div><h3>Assignments / Rules</h3><p>Konfiguracja deklaratywnych reguł wersji. Automatyczne wykonywanie należy do etapu 8.</p></div>
+                <div>                <h3>Przypisania i reguły</h3><p>Konfiguracja reguł przypisań. Automatyczne wykonywanie należy do etapu 8.</p></div>
                 {canAssign && version.status === 'DRAFT' && <button className="btn btn-primary" disabled={saving} onClick={() => void saveRules()}>{saving ? 'Zapisywanie…' : 'Zapisz reguły'}</button>}
               </div>
               {rules.length === 0 && <p>Brak reguł przypisań.</p>}
               <div className="form-builder__rules">
                 {rules.map((rule, index) => (
                   <div className="form-builder__rule" key={rule.id ?? `${rule.priority}-${index}`}>
-                    <span>Priorytet {rule.priority} · {rule.active ? 'aktywna' : 'nieaktywna'} · użytkownik: {rule.assignedUserId ?? '—'} · zespół: {rule.assignedTeamId ?? '—'} · trigger: {rule.triggerId ?? '—'}</span>
+                    <span>Priorytet {rule.priority} · {rule.active ? 'aktywna' : 'nieaktywna'} · użytkownik: {assignmentUsers.find(user => user.id === rule.assignedUserId)?.firstName
+                      ? `${assignmentUsers.find(user => user.id === rule.assignedUserId)?.firstName} ${assignmentUsers.find(user => user.id === rule.assignedUserId)?.lastName}`
+                      : rule.assignedUserId ? `ID ${rule.assignedUserId}` : '—'} · brygada: {assignmentTeams.find(team => team.id === rule.assignedTeamId)?.name
+                      || (rule.assignedTeamId ? `ID ${rule.assignedTeamId}` : '—')} · trigger: {version.triggers?.find(trigger => trigger.id === rule.triggerId)?.eventType
+                      || (rule.triggerId ? `ID ${rule.triggerId}` : '—')}</span>
                     {canAssign && version.status === 'DRAFT' && <button className="btn btn-secondary" aria-label={`Usuń regułę ${index + 1}`} onClick={() => setRules(current => current.filter((_, ruleIndex) => ruleIndex !== index))}>Usuń</button>}
                   </div>
                 ))}
@@ -705,11 +986,31 @@ export const FormBuilderPage: React.FC = () => {
               {canAssign && version.status === 'DRAFT' && (
                 <form className="form-builder__rule-form" onSubmit={addRule}>
                   <h4>Dodaj regułę</h4>
-                  <label>ID użytkownika <input inputMode="numeric" pattern="[1-9][0-9]*" value={ruleForm.assignedUserId} onChange={event => setRuleForm({ ...ruleForm, assignedUserId: event.target.value })} /></label>
-                  <label>ID zespołu <input inputMode="numeric" pattern="[1-9][0-9]*" value={ruleForm.assignedTeamId} onChange={event => setRuleForm({ ...ruleForm, assignedTeamId: event.target.value })} /></label>
-                  <label>ID triggera (opcjonalnie) <input inputMode="numeric" pattern="[1-9][0-9]*" value={ruleForm.triggerId} onChange={event => setRuleForm({ ...ruleForm, triggerId: event.target.value })} /></label>
+                  <label>Szukaj użytkownika <input type="search" value={assignmentUserSearch} onChange={event => setAssignmentUserSearch(event.target.value)} /></label>
+                  <label>Użytkownik <select value={ruleForm.assignedUserId} disabled={assignmentLookupsLoading} onChange={event => setRuleForm({ ...ruleForm, assignedUserId: event.target.value })}>
+                    <option value="">{assignmentLookupsLoading ? 'Ładowanie…' : 'Nie przypisuj użytkownika'}</option>
+                    {assignmentUsers.map(user => <option value={user.id} key={user.id}>{user.firstName} {user.lastName} ({user.username})</option>)}
+                  </select></label>
+                  <label>Szukaj brygady <input type="search" value={assignmentTeamSearch} onChange={event => setAssignmentTeamSearch(event.target.value)} /></label>
+                  <label>Brygada <select value={ruleForm.assignedTeamId} disabled={assignmentLookupsLoading} onChange={event => setRuleForm({ ...ruleForm, assignedTeamId: event.target.value })}>
+                    <option value="">{assignmentLookupsLoading ? 'Ładowanie…' : 'Nie przypisuj brygady'}</option>
+                    {assignmentTeams.filter(team => `${team.name} ${team.code}`.toLocaleLowerCase().includes(assignmentTeamSearch.toLocaleLowerCase())).map(team => <option value={team.id} key={team.id}>{team.name} ({team.code})</option>)}
+                  </select></label>
+                  <label>Szukaj triggera <input type="search" value={assignmentTriggerSearch} onChange={event => setAssignmentTriggerSearch(event.target.value)} /></label>
+                  <label>Trigger wersji (opcjonalnie) <select value={ruleForm.triggerId} onChange={event => setRuleForm({ ...ruleForm, triggerId: event.target.value })}>
+                    <option value="">Bez triggera</option>
+                    {(version.triggers || []).filter(trigger => trigger.eventType.toLocaleLowerCase().includes(assignmentTriggerSearch.toLocaleLowerCase())).map(trigger => <option value={trigger.id} key={trigger.id}>{trigger.eventType}{trigger.active ? '' : ' (nieaktywny)'}</option>)}
+                  </select></label>
                   <label>Priorytet <input type="number" value={ruleForm.priority} onChange={event => setRuleForm({ ...ruleForm, priority: event.target.value })} /></label>
-                  <label>Warunki (JSON) <textarea value={ruleForm.conditions} onChange={event => setRuleForm({ ...ruleForm, conditions: event.target.value })} /></label>
+                  <ConditionEditor
+                    value={ruleForm.conditions}
+                    fields={conditionFields}
+                    conditionKeys={['when']}
+                    disabled={false}
+                    onChange={conditions => setRuleForm(current => ({ ...current, conditions }))}
+                  />
+                  {assignmentLookupErrors.users && <p className="form-builder__notice form-builder__notice--error" role="alert">{assignmentLookupErrors.users}</p>}
+                  {assignmentLookupErrors.teams && <p className="form-builder__notice form-builder__notice--error" role="alert">{assignmentLookupErrors.teams}</p>}
                   <button className="btn btn-secondary" disabled={!ruleForm.assignedUserId && !ruleForm.assignedTeamId}>Dodaj regułę</button>
                 </form>
               )}
@@ -725,23 +1026,31 @@ export const FormBuilderPage: React.FC = () => {
 const FieldEditor: React.FC<{
   field: FormField;
   index: number;
-  fieldKeys: string[];
+  fields: FormField[];
   disabled: boolean;
+  error: string;
+  onLabelChange: (label: string) => void;
+  onKeyChange: (key: string) => void;
   onChange: (update: Partial<FormField>) => void;
   onDuplicate: () => void;
   onDelete: () => void;
-}> = ({ field, index, fieldKeys, disabled, onChange, onDuplicate, onDelete }) => {
-  const optionValues = Array.isArray(field.options.values) ? field.options.values : [];
+}> = ({ field, index, fields, disabled, error, onLabelChange, onKeyChange, onChange, onDuplicate, onDelete }) => {
+  const optionValues = Array.isArray(field.options.values)
+    ? field.options.values.filter((option): option is string => typeof option === 'string')
+    : [];
   const validationMin = typeof field.validation.min === 'number' ? field.validation.min : '';
   const validationMax = typeof field.validation.max === 'number' ? field.validation.max : '';
+  const updateOptions = (values: string[]) => onChange({ options: { ...field.options, values } });
+  const moveOption = (from: number, to: number) => updateOptions(moveItem(optionValues, from, to));
+  const fieldTypeLabel = (type: string) => FIELD_TYPES.find(item => item.value === type)?.label || type;
   return (
     <fieldset className="form-builder__field">
-      <legend>Pole {index + 1}</legend>
+      <legend>{field.label || `Pole ${index + 1}`}</legend>
       <div className="form-builder__field-grid">
-        <label>Etykieta <input value={field.label} disabled={disabled} onChange={event => onChange({ label: event.target.value })} /></label>
-        <label>Klucz <input value={field.key} disabled={disabled} onChange={event => onChange({ key: event.target.value })} /></label>
+        <label>Etykieta <input value={field.label} disabled={disabled} onChange={event => onLabelChange(event.target.value)} /></label>
         <label>Typ <select value={field.fieldType} disabled={disabled} onChange={event => onChange({ fieldType: event.target.value })}>
-          {FIELD_TYPES.map(type => <option value={type} key={type}>{type}</option>)}
+          {field.fieldType === 'STRING' && <option value="STRING">Tekst (starszy typ)</option>}
+          {FIELD_TYPES.map(type => <option value={type.value} key={type.value}>{type.label}</option>)}
         </select></label>
         <label className="form-builder__checkbox"><input type="checkbox" checked={field.required} disabled={disabled} onChange={event => onChange({ required: event.target.checked })} /> Wymagane</label>
         {field.fieldType === 'NUMBER' && (
@@ -752,12 +1061,31 @@ const FieldEditor: React.FC<{
         )}
         <label>Jednostka <input value={typeof field.options.unit === 'string' ? field.options.unit : ''} disabled={disabled} onChange={event => onChange({ options: { ...field.options, unit: event.target.value } })} /></label>
         {['SELECT', 'RADIO', 'MULTI_SELECT'].includes(field.fieldType) && (
-          <label className="form-builder__wide">Opcje (jedna na linię)
-            <textarea value={optionValues.join('\n')} disabled={disabled} onChange={event => onChange({ options: { ...field.options, values: event.target.value.split('\n').map(value => value.trim()).filter(Boolean) } })} />
-          </label>
+          <fieldset className="form-builder__option-editor form-builder__wide" disabled={disabled}>
+            <legend>Opcje listy</legend>
+            {optionValues.map((option, optionIndex) => (
+              <div className="form-builder__option-row" key={`${optionIndex}-${option}`}>
+                <label>Opcja {optionIndex + 1}
+                  <input value={option} onChange={event => updateOptions(optionValues.map((item, index) => index === optionIndex ? event.target.value : item))} />
+                </label>
+                <button type="button" className="btn btn-secondary" aria-label={`Przesuń opcję ${optionIndex + 1} w górę`} disabled={optionIndex === 0} onClick={() => moveOption(optionIndex, optionIndex - 1)}>↑</button>
+                <button type="button" className="btn btn-secondary" aria-label={`Przesuń opcję ${optionIndex + 1} w dół`} disabled={optionIndex === optionValues.length - 1} onClick={() => moveOption(optionIndex, optionIndex + 1)}>↓</button>
+                <button type="button" className="btn btn-secondary" aria-label={`Usuń opcję ${optionIndex + 1}`} onClick={() => updateOptions(optionValues.filter((_, index) => index !== optionIndex))}>Usuń</button>
+              </div>
+            ))}
+            <button type="button" className="btn btn-secondary" onClick={() => updateOptions([...optionValues, `Opcja ${optionValues.length + 1}`])}>+ Dodaj opcję</button>
+          </fieldset>
         )}
       </div>
-      <ConditionEditor value={field.conditions} fieldKeys={fieldKeys} disabled={disabled} onChange={conditions => onChange({ conditions })} />
+      <details className="form-builder__advanced">
+        <summary>Zaawansowane</summary>
+        <label>Klucz techniczny pola
+          <input value={field.key} disabled={disabled} onChange={event => onKeyChange(event.target.value)} />
+        </label>
+        <span>Typ pola: {fieldTypeLabel(field.fieldType)}</span>
+      </details>
+      {error && <p className="form-builder__field-error" role="alert">{error}</p>}
+      <ConditionEditor value={field.conditions} fields={fields} disabled={disabled} onChange={conditions => onChange({ conditions })} />
       {!disabled && <div className="form-builder__field-actions">
         <button type="button" className="btn btn-secondary" onClick={onDuplicate}>Kopiuj pole</button>
         <button type="button" className="btn btn-secondary" onClick={onDelete}>Usuń pole</button>

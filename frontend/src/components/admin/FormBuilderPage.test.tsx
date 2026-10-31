@@ -28,6 +28,8 @@ vi.mock('../../services/forms.service', () => ({
     publishVersion: vi.fn(),
     createNextVersion: vi.fn(),
     listAssignmentRules: vi.fn(),
+    listAssignmentUsers: vi.fn(),
+    listAssignmentTeams: vi.fn(),
     replaceAssignmentRules: vi.fn(),
   },
 }));
@@ -91,6 +93,12 @@ describe('FormBuilderPage', () => {
     vi.mocked(formsService.listVersions).mockResolvedValue({ items: [draft], total: 1, page: 1, limit: 20 });
     vi.mocked(formsService.getVersion).mockResolvedValue(draft);
     vi.mocked(formsService.listAssignmentRules).mockResolvedValue([]);
+    vi.mocked(formsService.listAssignmentUsers).mockResolvedValue([
+      { id: 32, firstName: 'Jan', lastName: 'Kowalski', username: 'jkowalski', email: 'jan@example.test' },
+    ]);
+    vi.mocked(formsService.listAssignmentTeams).mockResolvedValue([
+      { id: 8, name: 'Brygada A', code: 'BR-A' },
+    ]);
     vi.mocked(formsService.updateDraft).mockResolvedValue(draft);
   });
 
@@ -112,7 +120,7 @@ describe('FormBuilderPage', () => {
     renderPage();
 
     fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
-    expect(await screen.findByRole('heading', { name: 'Form Builder' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Edytor formularzy' })).toBeInTheDocument();
     expect(await screen.findByDisplayValue('Wynik')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Wymagane' }));
@@ -133,9 +141,12 @@ describe('FormBuilderPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
     await screen.findByDisplayValue('Wynik');
     fireEvent.change(screen.getByLabelText('Typ'), { target: { value: 'SELECT' } });
-    fireEvent.change(screen.getByLabelText('Opcje (jedna na linię)'), { target: { value: 'PASS\nFAIL' } });
+    fireEvent.click(screen.getByRole('button', { name: '+ Dodaj opcję' }));
+    fireEvent.change(screen.getByLabelText('Opcja 1'), { target: { value: 'PASS' } });
+    fireEvent.click(screen.getByRole('button', { name: '+ Dodaj opcję' }));
+    fireEvent.change(screen.getByLabelText('Opcja 2'), { target: { value: 'FAIL' } });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Podgląd' }));
 
     expect(await screen.findByRole('heading', { level: 2, name: 'Kontrola jakości' })).toBeInTheDocument();
     expect(screen.getByRole('combobox')).not.toBeDisabled();
@@ -182,8 +193,8 @@ describe('FormBuilderPage', () => {
       sections: [expect.objectContaining({
         fields: [
           expect.objectContaining({ key: 'result' }),
-          expect.objectContaining({ key: 'result_copy' }),
-          expect.objectContaining({ key: 'result_copy_2' }),
+          expect.objectContaining({ key: 'WYNIK_KOPIA' }),
+          expect.objectContaining({ key: 'WYNIK_KOPIA_KOPIA' }),
         ],
       })],
     })));
@@ -193,7 +204,8 @@ describe('FormBuilderPage', () => {
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
     await screen.findByDisplayValue('Wynik');
-    fireEvent.change(screen.getAllByLabelText('Klucz')[1], { target: { value: '__proto__' } });
+    fireEvent.click(screen.getAllByText('Zaawansowane')[1]);
+    fireEvent.change(screen.getByLabelText('Klucz techniczny pola'), { target: { value: '__proto__' } });
 
     expect(screen.getByRole('alert')).toHaveTextContent('Nieprawidłowy klucz pola');
     expect(screen.getByRole('button', { name: 'Zapisz draft' })).toBeDisabled();
@@ -223,22 +235,26 @@ describe('FormBuilderPage', () => {
     await screen.findByDisplayValue('Wynik');
     fireEvent.click(screen.getByRole('button', { name: '+ Dodaj sekcję' }));
     fireEvent.click(screen.getAllByRole('button', { name: '+ Dodaj pole' })[1]);
-    fireEvent.change(screen.getAllByLabelText('Etykieta')[1], { target: { value: 'Wybór' } });
+    fireEvent.change(screen.getAllByLabelText('Etykieta')[1], { target: { value: 'Łącze' } });
     fireEvent.change(screen.getAllByLabelText('Typ')[1], { target: { value: 'SELECT' } });
     fireEvent.change(screen.getAllByLabelText('Jednostka')[1], { target: { value: 'szt.' } });
-    fireEvent.change(screen.getByLabelText('Opcje (jedna na linię)'), { target: { value: 'Tak\nNie' } });
-    fireEvent.click(screen.getAllByRole('button', { name: '+ visibleWhen' })[1]);
+    fireEvent.click(screen.getByRole('button', { name: '+ Dodaj opcję' }));
+    fireEvent.change(screen.getByLabelText('Opcja 1'), { target: { value: 'Tak' } });
+    fireEvent.click(screen.getByRole('button', { name: '+ Dodaj opcję' }));
+    fireEvent.change(screen.getByLabelText('Opcja 2'), { target: { value: 'Nie' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Przesuń opcję 1 w dół' }));
+    fireEvent.click(screen.getAllByRole('button', { name: '+ Widoczność zależy od' })[1]);
     fireEvent.change(screen.getByLabelText('visibleWhen pole'), { target: { value: 'result' } });
     fireEvent.change(screen.getByLabelText('visibleWhen wartość'), { target: { value: 'PASS' } });
     fireEvent.click(screen.getByRole('button', { name: 'Zapisz draft' }));
 
     await waitFor(() => expect(formsService.updateDraft).toHaveBeenCalledWith(14, expect.objectContaining({
       sections: expect.arrayContaining([expect.objectContaining({
-        key: 'section_2',
+        key: 'SEKCJA_2',
         fields: [expect.objectContaining({
-          key: 'field_1',
+          key: 'LACZE',
           fieldType: 'SELECT',
-          options: { unit: 'szt.', values: ['Tak', 'Nie'] },
+          options: { unit: 'szt.', values: ['Nie', 'Tak'] },
         })],
       }), expect.objectContaining({
         key: 'inspection',
@@ -250,19 +266,27 @@ describe('FormBuilderPage', () => {
     })));
   });
 
-  it('saves assignment rules and reports malformed rule JSON', async () => {
+  it('saves assignment rules with searchable targets and declarative conditions', async () => {
     vi.mocked(formsService.replaceAssignmentRules).mockImplementation(async (_id, rules) => rules);
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
     await screen.findByDisplayValue('Wynik');
-    fireEvent.click(screen.getByRole('button', { name: 'Assignments / Rules' }));
-    fireEvent.change(screen.getByLabelText('ID użytkownika'), { target: { value: '32' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Przypisania i reguły' }));
+    expect(await screen.findByRole('option', { name: /Jan Kowalski/ })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Użytkownik'), { target: { value: '32' } });
+    fireEvent.click(screen.getByRole('button', { name: '+ Warunek przypisania' }));
+    fireEvent.change(screen.getByLabelText('when pole'), { target: { value: 'result' } });
+    fireEvent.change(screen.getByLabelText('when wartość'), { target: { value: 'PASS' } });
     fireEvent.click(screen.getByRole('button', { name: 'Dodaj regułę' }));
-    expect(screen.getByText(/użytkownik: 32/)).toBeInTheDocument();
+    expect(screen.getByText(/użytkownik: Jan Kowalski/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Zapisz reguły' }));
 
     await waitFor(() => expect(formsService.replaceAssignmentRules).toHaveBeenCalledWith(14, [
-      expect.objectContaining({ assignedUserId: 32, active: true, conditions: {} }),
+      expect.objectContaining({
+        assignedUserId: 32,
+        active: true,
+        conditions: { when: { field: 'result', operator: 'equals', value: 'PASS' } },
+      }),
     ]));
 
     fireEvent.click(screen.getByRole('button', { name: 'Usuń regułę 1' }));
@@ -270,10 +294,8 @@ describe('FormBuilderPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Zapisz reguły' }));
     await waitFor(() => expect(formsService.replaceAssignmentRules).toHaveBeenLastCalledWith(14, []));
 
-    fireEvent.change(screen.getByLabelText('ID użytkownika'), { target: { value: '32' } });
-    fireEvent.change(screen.getByLabelText('Warunki (JSON)'), { target: { value: '[' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Dodaj regułę' }));
-    expect(screen.getByRole('status')).toHaveTextContent('Warunki reguły muszą być poprawnym obiektem JSON.');
+    expect(screen.queryByLabelText('Warunki (JSON)')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('ID użytkownika')).not.toBeInTheDocument();
   });
 
   it('creates a follow-up version from the versions view', async () => {
@@ -287,7 +309,7 @@ describe('FormBuilderPage', () => {
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
     await screen.findByDisplayValue('Wynik');
-    fireEvent.click(screen.getByRole('button', { name: 'Versions' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Wersje' }));
     fireEvent.click(screen.getByRole('button', { name: 'Utwórz kolejną wersję' }));
 
     await waitFor(() => expect(formsService.createNextVersion).toHaveBeenCalledWith(13));
@@ -373,6 +395,54 @@ describe('FormBuilderPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Utwórz draft' }));
 
     expect(await screen.findByRole('status')).toHaveTextContent('Nie udało się wykonać operacji.');
+  });
+
+  it('shows friendly field types and keeps technical keys in the advanced section', async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
+    await screen.findByDisplayValue('Wynik');
+    const typeSelect = screen.getByLabelText('Typ');
+
+    expect(screen.getByRole('option', { name: 'Tekst' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'STRING' })).not.toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Lista wyboru' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Klucz techniczny pola').closest('details')).not.toHaveAttribute('open');
+    expect(typeSelect).toHaveValue('PASS_FAIL');
+  });
+
+  it('keeps saved STRING fields available as a legacy type', async () => {
+    const legacyDraft = {
+      ...draft,
+      fields: [{ ...draft.fields[0], fieldType: 'STRING' }],
+    };
+    vi.mocked(formsService.getVersion).mockResolvedValue(legacyDraft);
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
+
+    expect(await screen.findByDisplayValue('Wynik')).toBeInTheDocument();
+    expect(screen.getByLabelText('Typ')).toHaveValue('STRING');
+    expect(screen.getByRole('option', { name: 'Tekst (starszy typ)' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz draft' }));
+
+    await waitFor(() => expect(formsService.updateDraft).toHaveBeenCalledWith(14, expect.objectContaining({
+      sections: [expect.objectContaining({ fields: [expect.objectContaining({ fieldType: 'STRING' })] })],
+    })));
+  });
+
+  it('translates domain validation errors and associates them with the affected field', async () => {
+    vi.mocked(formsService.updateDraft).mockRejectedValue({
+      response: { data: { code: 'INVALID_DEFINITION', message: 'Invalid numeric bounds on result' } },
+    });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
+    await screen.findByDisplayValue('Wynik');
+    fireEvent.change(screen.getByLabelText('Typ'), { target: { value: 'NUMBER' } });
+    fireEvent.change(screen.getByLabelText('Minimum'), { target: { value: '1' } });
+    fireEvent.change(screen.getByLabelText('Maksimum'), { target: { value: '3' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz draft' }));
+
+    expect(await screen.findAllByText('Sprawdź zakres liczbowy pola „result”.')).toHaveLength(2);
+    expect(screen.getAllByRole('alert').length).toBeGreaterThan(1);
   });
 
 });

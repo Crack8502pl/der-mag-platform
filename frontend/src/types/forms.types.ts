@@ -51,7 +51,28 @@ export interface FormVersion {
   publishedAt: string | null;
   sections: Array<Omit<FormSection, 'fields'> & { id: number }>;
   fields: Array<FormField & { id: number; sectionId: number }>;
+  triggers?: FormTrigger[];
   assignmentRules: FormAssignmentRule[];
+}
+
+export interface FormTrigger {
+  id: number;
+  eventType: string;
+  active: boolean;
+}
+
+export interface FormUserOption {
+  id: number;
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+}
+
+export interface FormTeamOption {
+  id: number;
+  code: string;
+  name: string;
 }
 
 export type FormVersionSummary = Pick<

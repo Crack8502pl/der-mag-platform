@@ -4,6 +4,8 @@ import type {
   FormKind,
   FormProcedureType,
   FormTemplate,
+  FormTeamOption,
+  FormUserOption,
   FormVersion,
   FormVersionSummary,
   Paginated,
@@ -81,6 +83,20 @@ export const formsService = {
 
   async listAssignmentRules(versionId: number): Promise<FormAssignmentRule[]> {
     return unwrap(await api.get<ApiEnvelope<FormAssignmentRule[]>>(`/forms/versions/${versionId}/assignment-rules`));
+  },
+
+  async listAssignmentUsers(search = ''): Promise<FormUserOption[]> {
+    const response = await api.get<ApiEnvelope<{ users: FormUserOption[] }>>('/users', {
+      params: { status: 'active', limit: 100, search: search || undefined },
+    });
+    return response.data.data.users;
+  },
+
+  async listAssignmentTeams(): Promise<FormTeamOption[]> {
+    const response = await api.get<ApiEnvelope<FormTeamOption[]>>('/brigades', {
+      params: { active: true, limit: 100 },
+    });
+    return response.data.data;
   },
 
   async replaceAssignmentRules(versionId: number, rules: FormAssignmentRule[]): Promise<FormAssignmentRule[]> {

@@ -5,12 +5,12 @@
 
 ## Zakres
 
-Panel administracyjny dostępny pod `/admin/forms` zapewnia listę szablonów oraz cztery widoki wybranej wersji:
+Panel administracyjny dostępny pod `/admin/forms` zapewnia listę szablonów oraz cztery widoki wybranej wersji. Edytor używa polskich, przyjaznych nazw typów pól i warunków; pola `STRING` są ukryte przy wyborze nowych typów, ale pozostają obsługiwane w istniejących definicjach.
 
-- **Form Builder** — edycja tytułu, opisu, sekcji i pól wersji roboczej; przeciąganie sekcji i pól, kopiowanie/usuwanie pól, required, typy, walidacja liczbowa, jednostki, opcje wyboru i deklaratywne warunki.
-- **Versions** — lista wersji, otwieranie istniejących wersji i tworzenie następnej wersji na podstawie opublikowanej.
-- **Preview** — od etapu 7 interaktywny [DynamicFormRenderer](07-dynamic-form-renderer.md) zapisanej wersji, z warunkami widoczności; bez zapisu odpowiedzi.
-- **Assignments / Rules** — odczyt i zapis reguł przypisań wyłącznie dla draftów.
+- **Edytor** — edycja tytułu, opisu, sekcji i pól wersji roboczej; przeciąganie sekcji i pól, kopiowanie/usuwanie pól, wymagane pola, typy, walidacja liczbowa, jednostki, deklaratywne warunki i opcje list edytowane jako wiersze. Klucze sekcji i pól są generowane z nazw/etykiet jako unikalne `UPPER_SNAKE_CASE`; ręczna edycja jest dostępna w zwijanej sekcji „Zaawansowane”.
+- **Wersje** — lista wersji, otwieranie istniejących wersji i tworzenie następnej wersji na podstawie opublikowanej.
+- **Podgląd** — od etapu 7 interaktywny [DynamicFormRenderer](07-dynamic-form-renderer.md) zapisanej wersji, z warunkami widoczności; bez zapisu odpowiedzi.
+- **Przypisania i reguły** — odczyt i zapis reguł przypisań wyłącznie dla draftów; użytkownicy, brygady i triggery wersji są wybierani z wyszukiwanych list. Warunek przypisania korzysta z tego samego edytora warunków, co pola i sekcje.
 
 Tworzenie nowego formularza wymaga klucza, nazwy, rodzaju `FORM`/`CHECKLIST` i jednej z obsługiwanych procedur. Nie są dodawane przykładowe formularze biznesowe ani zależności od konkretnych procedur poza dozwolonymi wartościami domenowymi.
 
@@ -18,7 +18,7 @@ Tworzenie nowego formularza wymaga klucza, nazwy, rodzaju `FORM`/`CHECKLIST` i j
 
 - `frontend/src/components/admin/FormBuilderPage.tsx` udostępnia panel i edytor.
 - `frontend/src/components/admin/FormBuilderPage.css` korzysta z tokenów motywu i wspiera `grover` oraz `husky`.
-- `frontend/src/services/forms.service.ts` typuje wywołania API; `frontend/src/hooks/useFormTemplates.ts` pobiera listę i udostępnia odświeżenie.
+- `frontend/src/services/forms.service.ts` typuje wywołania API formularzy oraz listy wyboru użytkowników i brygad; triggery są odczytywane z odpowiedzi szczegółów wersji. `frontend/src/hooks/useFormTemplates.ts` pobiera listę i udostępnia odświeżenie.
 - `frontend/src/types/forms.types.ts` zawiera minimalne modele UI. `permissions.types.ts`, route `/admin/forms` i karta panelu administratora używają istniejącego modułu uprawnień `forms`.
 - `backend/src/controllers/RoleController.ts` wystawia akcje `forms` w istniejącym schemacie macierzy uprawnień, aby administratorzy mogli przydzielać je przez UI RBAC.
 - Drag & drop korzysta z istniejącego `@dnd-kit/core`. Nie dodano zależności; brak `@dnd-kit/sortable` nie blokuje sortowania prostym mechanizmem core.
@@ -30,10 +30,11 @@ Role potrzebują `forms.read` do otwarcia panelu; akcje są prezentowane zależn
 
 ## Ograniczenia i ryzyka
 
-- Warunki są edytowane jako ograniczone deklaratywne dane pól/sekcji. Sekcje obsługują tylko `visibleWhen`; pola: `visibleWhen`, `requiredWhen`, `blockCompletionWhen`. Publikacja ponownie waliduje referencje i operatory według API.
+- Warunki są edytowane jako ograniczone deklaratywne dane pól/sekcji/reguł przypisań, z kontrolkami wartości dopasowanymi do typu wskazanego pola. Sekcje obsługują tylko `visibleWhen`; pola: `visibleWhen`, `requiredWhen`, `blockCompletionWhen`; reguły przypisań: `when`. Publikacja ponownie waliduje referencje i operatory według API.
 - `options.values` przechowuje wybrane opcje, a `options.unit` jednostkę prezentacyjną. Etap 5 nie egzekwuje jeszcze wyboru z listy opcji podczas walidacji odpowiedzi.
 - Podgląd używa zapisanej wersji: niezapisane edycje nie są widoczne. Pełny Variable Engine i triggery nadal pozostają poza zakresem.
 - Reguły przypisań są konfigurowane, ale nie wykonywane automatycznie (etap 8). Wymagane cele i zgodność triggera z wersją są ostatecznie walidowane przez API.
+- Pobieranie list użytkowników i brygad wymaga odpowiednio `users.read` i `brigades.read`; błędy są pokazywane obok selektorów. Lista użytkowników jest filtrowana przez istniejący parametr wyszukiwania API, a brygady i triggery są wyszukiwane w pobranych pozycjach.
 - Trasy API listują do 100 szablonów na stronę; UI korzysta z pierwszej strony. Dla dużych katalogów należy dodać paginację UI z istniejącymi `page`/`limit`, bez nowych filtrów API.
 - Nowe wersje opublikowanej definicji pozostają osobnymi snapshotami; edycja i publikacja starszej wersji nie są oferowane.
 - Obsługa załączników, wykonanie instancji i pełne reguły runtime nie należą do tego etapu.
