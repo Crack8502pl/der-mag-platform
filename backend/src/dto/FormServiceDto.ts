@@ -33,6 +33,8 @@ export interface UpdateFormDraftDto {
   description?: string | null;
   settings?: FormJsonObject;
   sections?: DraftSectionDto[];
+  headerId?: number | null;
+  footerId?: number | null;
 }
 
 export interface CreateFormInstanceDto {

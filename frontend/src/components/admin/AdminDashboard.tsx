@@ -83,6 +83,13 @@ export const AdminDashboard: React.FC = () => {
       permission: { module: 'forms', action: 'read' },
     },
     {
+      title: 'Nagłówki i stopki formularzy',
+      description: 'Zarządzaj biblioteką brandingu używaną w formularzach',
+      icon: '📄',
+      path: '/admin/forms/branding',
+      permission: { module: 'forms', action: 'update' },
+    },
+    {
       title: 'Import materiałów',
       description: 'Importuj materiały z plików CSV/Excel',
       icon: '📥',

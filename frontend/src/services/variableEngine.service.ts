@@ -4,8 +4,11 @@ export interface VariableEngineVariable {
   expression: string;
   type: 'string' | 'number' | 'boolean';
   description: string;
+  label?: string;
+  group?: string;
   provider: string;
   usableInBom: boolean;
+  usableInForms?: boolean;
 }
 
 export const variableEngineService = {

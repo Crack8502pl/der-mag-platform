@@ -59,6 +59,28 @@ Formularz jest wersjonowany i składa się z warstw:
 **Praktyka:**
 - `DRAFT` = edycja,
 - `PUBLISHED` = wersja operacyjna.
+- `header_id` i `footer_id` wskazują wybrane elementy biblioteki. Publikacja zapisuje także `header_snapshot` i `footer_snapshot`, dzięki czemu późniejsza edycja wpisu nie zmienia już wydanej wersji.
+
+## Biblioteka nagłówków i stopek
+
+W panelu administratora wybierz **Nagłówki i stopki formularzy** (`/admin/forms/branding`). Element ma rodzaj nagłówka albo stopki i jeden z trybów:
+
+- **Plik** — obraz PNG/JPG lub PDF o maksymalnym rozmiarze 5 MB. Serwer sprawdza rzeczywisty typ pliku i jego poprawność; nazwa pliku ani deklarowany MIME nie są źródłem zaufania.
+- **Własny układ** — trzy kolumny z tekstem, logo PNG/JPG, zatwierdzonymi zmiennymi systemowymi, numerem strony lub datą wydruku. Źródła zmiennych pochodzą z katalogu `usableInForms`.
+
+Można ustawić po jednym aktywnym domyślnym elemencie dla nagłówka i stopki. W edytorze wersji wybierz konkretny wpis albo pozostaw „Domyślny element”; w tym drugim przypadku aktywny default jest kopiowany do snapshotu przy publikacji. Kopia nowej wersji zachowuje ustawienia źródłowej wersji. Usunięcie wpisu jest miękkie; pliki są zachowywane, aby historyczne wersje nadal działały.
+
+**Możliwe błędy:** format niezgodny z zawartością, uszkodzony PDF/obraz, plik większy niż 5 MB, niezatwierdzone źródło zmiennej, brak istniejącego logo w układzie lub wybór wpisu niewłaściwego rodzaju blokuje zapis/publikację. Użytkownik zarządzający biblioteką potrzebuje `forms.read` oraz `forms.update`; dodanie nowego wpisu dodatkowo wymaga `forms.create`, a publikacja `forms.publish`.
+
+## Pobieranie wypełnionego formularza PDF
+
+W widoku instancji wybierz **Pobierz PDF**. Najpierw zapisz zmienione odpowiedzi: eksport obejmuje dane zapisane na serwerze. Przycisk działa również dla formularza zatwierdzonego/tylko do odczytu; potrzebne jest `forms.read` oraz dostęp do danej instancji.
+
+Dokument A4 automatycznie dzieli treść i tabele BOM na strony. Nagłówek i stopka powtarzają się na każdej stronie; papier firmowy PDF używa wyłącznie pierwszej strony pliku. Polskie znaki obsługuje osadzony Noto Sans. `FAIL` jest pogrubione, a blok akceptacji zawiera ostatnią decyzję, osobę, datę i komentarz. Każdy status inny niż `APPROVED` oznacza znak wodny **PROJEKT**.
+
+**Możliwe błędy:** odebrane uprawnienia lub przypisanie blokują pobieranie; brak historycznego pliku logo/brandingu na wolumenie albo brak fontów po wdrożeniu powoduje błąd generowania, a nie niepełny dokument. Nie usuwaj plików brandingu używanych w snapshotach. Bardzo rozbudowane układy nagłówków/stopek są pomniejszane do wybranej wysokości; zwiększ wysokość, jeśli tekst staje się nieczytelny.
+
+**Stan planu:** B2, B3, C1 i C2 są zaimplementowane; B4 (podgląd szkicu na wybranym zadaniu bez zapisu instancji) pozostaje otwarte.
 
 ## C) Sekcja (`form_sections`)
 
@@ -78,6 +100,29 @@ Formularz jest wersjonowany i składa się z warstw:
 - **`validation`** (JSONB) — reguły walidacji (min/max/regex itp.).
 - **`options`** (JSONB) — opcje dla pól wyboru.
 - **`conditions`** (JSONB) — warunki dynamicznej widoczności/aktywności.
+
+Typ `DATA` automatycznie pobiera wartość ze źródła systemowego przy tworzeniu instancji:
+
+```json
+{
+  "source": "task.number",
+  "mode": "readonly",
+  "valueType": "string"
+}
+```
+
+W edytorze wybierz grupę (`Zadanie`, `Kontrakt` lub `Użytkownik`), pole i tryb. `readonly` pokazuje wartość wraz ze źródłem, odrzuca modyfikację API i można ją odświeżyć przed wysłaniem formularza. `prefill` wstawia wartość początkową, którą wykonawca może zmienić; późniejsze odświeżanie nie nadpisuje tej edycji. Pole DATA wymaga odpowiedniego kontekstu instancji (`taskId`, `contractId` lub użytkownika). Brak danych jest zapisywany jako `null` i wyświetlany jako „brak danych w zadaniu”. Katalog dopuszcza tylko źródła, dla których model ma wiarygodne mapowanie; np. `contract.customer.name` korzysta z `task.client` lub jawnych metadanych klienta, a nie z nazwy kontraktu.
+
+Typ `BOM_TABLE` zapisuje snapshot pozycji BOM zadania i odpowiedzi instalacyjne w jednej wartości JSON:
+
+```json
+{
+  "columns": ["plannedQty", "installedQty", "installed", "note"],
+  "filter": "Urządzenia"
+}
+```
+
+Źródłem snapshotu jest `task_materials` (encja `TaskMaterial`), nie `task_warehouse_stock`: tabela wykonawcza nie odczytuje ani nie zmienia rezerwacji i stanów magazynowych. Dla każdej pozycji zapisuje `bomItemId`, nazwę, jednostkę, ilość planowaną, a początkowo `installedQty: null`, `installed: false` i pustą notatkę. Opcjonalny filtr porównuje dokładnie kategorię materiału. Nazwa, jednostka, ID i plan są niemodyfikowalne przez API; odpowiedź nie może usuwać ani dodawać pozycji. `installed = true` wymaga `installedQty > 0`, a ilość ponad plan wymaga notatki. Dodatnia ilość z `installed = false` jest ostrzeżeniem o częściowym montażu, a nie blokadą. Przycisk „Wszystko zgodnie z planem” uzupełnia ilości i zaznacza pozycje, ale nie aktualizuje urządzeń ani magazynu.
 
 ## E) Wartość pola (`form_field_values`)
 

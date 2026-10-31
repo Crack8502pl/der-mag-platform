@@ -27,6 +27,7 @@ import { HoneypotDashboardPage } from './components/admin/HoneypotDashboardPage'
 import { PermissionDebugTool } from './components/admin/PermissionDebugTool';
 import { SessionsManagementPage } from './components/admin/SessionsManagementPage';
 import { FormBuilderPage } from './components/admin/FormBuilderPage';
+import { FormBrandingLibraryPage } from './components/admin/FormBrandingLibraryPage';
 import { SubsystemsPage } from './components/modules/SubsystemsPage';
 import { TasksPage } from './components/modules/TasksPage';
 import { PrefabricationPage } from './components/modules/PrefabricationPage';
@@ -514,6 +515,16 @@ function App() {
             <ProtectedRoute>
               <RoleBasedRoute requiredPermission={{ module: 'bom', action: 'create' }}>
                 <MaterialImportPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/forms/branding"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'forms', action: 'update' }}>
+                <FormBrandingLibraryPage />
               </RoleBasedRoute>
             </ProtectedRoute>
           }

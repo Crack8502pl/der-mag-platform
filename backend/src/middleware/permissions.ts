@@ -158,6 +158,55 @@ export const checkAnyPermission = (module: string, actions: string[]) => {
   };
 };
 
+export const checkAnyModulePermission = (requirements: Array<{ module: string; actions: string[] }>) => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      try {
+        if (!req.userId) {
+          res.status(401).json({ success: false, message: 'Brak autoryzacji' });
+          return;
+        }
+
+        const user = await AppDataSource.getRepository(User).findOne({
+          where: { id: req.userId },
+          relations: ['role'],
+        });
+        if (!user || !user.role) {
+          res.status(403).json({ success: false, message: 'Brak przypisanej roli' });
+          return;
+        }
+
+        const permissions = user.role.permissions as RolePermissions;
+        const granted = permissions.all === true || requirements.some(({ module, actions }) => {
+          const modulePermissions = permissions[module];
+          if (!modulePermissions || typeof modulePermissions !== 'object') return false;
+          return actions.some(action => {
+            const permission = modulePermissions[action];
+            return permission === true || (typeof permission === 'string' && permission.length > 0);
+          });
+        });
+
+        if (!granted) {
+          res.status(403).json({
+            success: false,
+            message: 'Brak wymaganych uprawnień',
+            code: 'NO_REQUIRED_PERMISSIONS',
+            requiredPermissions: requirements.flatMap(({ module, actions }) =>
+              actions.map(action => `${module}.${action}`)),
+          });
+          return;
+        }
+
+        next();
+      } catch (error) {
+        console.error('Błąd sprawdzania uprawnień:', error);
+        res.status(500).json({
+          success: false,
+          message: 'Błąd serwera podczas sprawdzania uprawnień',
+        });
+      }
+  };
+};
+
 /**
  * Middleware dla warunkowych uprawnień Coordinator (tylko zadania SERWIS)
  * Używane przy tworzeniu zadań

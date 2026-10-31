@@ -1,6 +1,7 @@
 import { AppDataSource } from '../../../src/config/database';
 import { FormApproval } from '../../../src/entities/FormApproval';
 import { FormAssignmentRule } from '../../../src/entities/FormAssignmentRule';
+import { FormHeaderFooter } from '../../../src/entities/FormHeaderFooter';
 import { FormFieldDefinition } from '../../../src/entities/FormFieldDefinition';
 import { FormFieldValue } from '../../../src/entities/FormFieldValue';
 import { FormInstance } from '../../../src/entities/FormInstance';
@@ -16,6 +17,7 @@ import { FormInstanceService } from '../../../src/services/FormInstanceService';
 import { FormTemplateService } from '../../../src/services/FormTemplateService';
 import {
   assertRelationAllowed, evaluateFormCondition, resolveAssignment, validateFormDefinition, validateFormResponses,
+  validateBomTableMutation,
 } from '../../../src/services/FormRules';
 
 jest.mock('../../../src/config/database', () => ({ AppDataSource: {} }));
@@ -159,6 +161,57 @@ describe('FormRules', () => {
       { ...fields[2], key: 'choices', fieldType: 'MULTI_SELECT' } as FormFieldDefinition,
     ], { choices: [1] as any }, false)).toContain('choices: must be a list of strings');
   });
+
+  it('validates DATA sources against the form catalog and enforces their declared value types', () => {
+    const dataField = {
+      ...fields[3],
+      key: 'location',
+      fieldType: 'DATA',
+      options: { source: 'task.location', mode: 'readonly', valueType: 'string' },
+      conditions: {},
+    } as FormFieldDefinition;
+    expect(() => validateFormDefinition([section], [dataField])).not.toThrow();
+    expect(validateFormResponses([section], [dataField], { location: 'Warszawa' }, false)).toEqual([]);
+    expect(validateFormResponses([section], [dataField], { location: 42 as any }, false))
+      .toContain('location: must be a string');
+    expect(() => validateFormDefinition([section], [{
+      ...dataField,
+      options: { source: 'task.unknown', mode: 'readonly', valueType: 'string' },
+    }])).toThrow(FormDomainError);
+    expect(() => validateFormDefinition([section], [{
+      ...dataField,
+      options: { source: 'task.location', mode: 'overwrite', valueType: 'string' },
+    }])).toThrow(FormDomainError);
+  });
+
+  it('validates BOM table definition, installation quantities and immutable item metadata', () => {
+    const bomField = {
+      ...fields[3],
+      key: 'materials',
+      fieldType: 'BOM_TABLE',
+      options: { columns: ['plannedQty', 'installedQty', 'installed', 'note'] },
+      conditions: {},
+    } as FormFieldDefinition;
+    const row = {
+      bomItemId: 21, name: 'Kamera', unit: 'szt.', plannedQty: 2,
+      installedQty: 1, installed: false, note: '',
+    };
+
+    expect(() => validateFormDefinition([section], [bomField])).not.toThrow();
+    expect(validateFormResponses([section], [bomField], { materials: [row] }, false)).toEqual([]);
+    expect(validateFormResponses([section], [bomField], {
+      materials: [{ ...row, installed: true, installedQty: 0 }],
+    }, false)).toContain('materials: installed items require an installed quantity greater than zero');
+    expect(validateFormResponses([section], [bomField], {
+      materials: [{ ...row, installedQty: 3 }],
+    }, false)).toContain('materials: an installation note is required when installed quantity exceeds the plan');
+    expect(validateBomTableMutation([row], [{ ...row, plannedQty: 3 }])).toBe('BOM item plannedQty cannot be changed');
+    expect(validateBomTableMutation([row], [])).toBe('BOM item identities cannot be changed');
+    expect(() => validateFormDefinition([section], [{
+      ...bomField,
+      options: { columns: ['unsupported'] },
+    }])).toThrow(FormDomainError);
+  });
 });
 
 describe('FormTemplateService', () => {
@@ -231,6 +284,7 @@ describe('FormTemplateService', () => {
       findOne: jest.fn().mockResolvedValue(draft),
       save: jest.fn(async (value: any) => value),
     });
+
     const sectionRepository = repository({ find: jest.fn().mockResolvedValue([section]) });
     const fieldRepository = repository({ find: jest.fn().mockResolvedValue(fields) });
     const { dataSource, manager } = harness(repositoryMap([
@@ -238,6 +292,7 @@ describe('FormTemplateService', () => {
       [FormSection, sectionRepository],
       [FormFieldDefinition, fieldRepository],
       [FormAssignmentRule, repository()],
+      [FormHeaderFooter, repository({ findOne: jest.fn().mockResolvedValue(null) })],
     ]));
     const service = new FormTemplateService(dataSource);
 
@@ -249,6 +304,40 @@ describe('FormTemplateService', () => {
       'FORM_VERSION_PUBLISHED',
       9,
     ]));
+  });
+
+  it('resolves default branding and stores its immutable snapshot during publication', async () => {
+    const draft = {
+      id: 7, templateId: 3, version: 1, status: FormVersionStatus.DRAFT,
+      publishedAt: null, headerId: null, footerId: null, headerSnapshot: null, footerSnapshot: null,
+    };
+    const defaultHeader = {
+      id: 21, name: 'Firmowy', kind: 'HEADER', mode: 'CUSTOM', isDefault: true,
+      heightMm: 22, filePath: null, fileMime: null,
+      layout: { columns: { left: [], center: [], right: [] }, separator: true },
+      deletedAt: null,
+    };
+    const { dataSource } = harness(repositoryMap([
+      [FormTemplateVersion, repository({
+        findOne: jest.fn().mockResolvedValue(draft),
+        save: jest.fn(async value => value),
+      })],
+      [FormSection, repository({ find: jest.fn().mockResolvedValue([]) })],
+      [FormFieldDefinition, repository({ find: jest.fn().mockResolvedValue([]) })],
+      [FormAssignmentRule, repository({ find: jest.fn().mockResolvedValue([]) })],
+      [FormHeaderFooter, repository({
+        findOne: jest.fn(async ({ where }: any) => where.kind === 'HEADER' ? defaultHeader : null),
+      })],
+    ]));
+
+    await expect(new FormTemplateService(dataSource).publishVersion(7, 9)).resolves.toMatchObject({
+      headerId: 21,
+      headerSnapshot: {
+        id: 21, name: 'Firmowy', filePath: null, layout: defaultHeader.layout,
+      },
+      footerId: null,
+      footerSnapshot: null,
+    });
   });
 
   it('rejects publishing a draft with unsupported definition data', async () => {
@@ -389,6 +478,8 @@ describe('FormInstanceService', () => {
     const { dataSource } = harness(repositoryMap([
       [FormTemplateVersion, versionRepository],
       [FormInstance, instanceRepository],
+      [FormSection, repository({ find: jest.fn().mockResolvedValue([]) })],
+      [FormFieldDefinition, repository({ find: jest.fn().mockResolvedValue([]) })],
     ]));
 
     await expect(new FormInstanceService(dataSource).createInstance({ templateVersionId: 7 }, 9)).resolves.toMatchObject({
@@ -457,6 +548,7 @@ describe('FormInstanceService', () => {
       [FormFieldDefinition, fieldRepository],
       [FormTrigger, emptyRepository],
       [FormAssignmentRule, emptyRepository],
+      [FormHeaderFooter, repository({ findOne: jest.fn().mockResolvedValue(null) })],
     ]));
     const templateService = new FormTemplateService(templateHarness.dataSource);
 
@@ -519,6 +611,8 @@ describe('FormInstanceService', () => {
     const instanceRepository = repository({ save: jest.fn(async (value: any) => ({ id: 20, ...value })) });
     const { dataSource } = harness(repositoryMap([
       [FormTemplateVersion, versionRepository], [Task, taskRepository], [FormInstance, instanceRepository],
+      [FormSection, repository({ find: jest.fn().mockResolvedValue([]) })],
+      [FormFieldDefinition, repository({ find: jest.fn().mockResolvedValue([]) })],
     ]));
     const service = new FormInstanceService(dataSource);
 

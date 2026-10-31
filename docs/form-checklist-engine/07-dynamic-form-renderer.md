@@ -9,19 +9,22 @@ Etap 7, issue #692, parent #685. Wspólny runtime dla `FORM` i `CHECKLIST`, bez 
 - `formSchema.ts` buduje schemat Zod z pól snapshotu; resolver pracuje na aktualnych odpowiedziach. Nie implementuje serwisów domenowych, lifecycle, triggerów, Variable Engine ani approval.
 - `DynamicFormRenderer.css` korzysta z istniejących tokenów `grover-theme.css` (ciemny) i `husky-theme.css` (jasny; w repo nazwa to **husky**, nie huskey).
 - Zakładka **Preview** w `/admin/forms` korzysta z tego samego renderera. Pola są interaktywne, warunki działają, ale odpowiedzi nie są zapisywane. Najpierw trzeba zapisać edycję definicji w builderze.
+- Opublikowane snapshoty nagłówka i stopki są renderowane nad i pod formularzem. Własny układ obsługuje tekst, logo, wartości pól DATA odpowiadające wybranej zmiennej, numer strony i datę; renderer pobiera pliki przez uwierzytelnione endpointy blob. Papier firmowy PDF jest przycinany do skonfigurowanego pasa strony; eksport C2 powtarza branding na wszystkich stronach.
+- Dla `instanceId` przycisk **Pobierz PDF** pobiera uwierzytelniony blob z `GET /forms/instances/:id/pdf`. Dostępny jest również w trybie tylko do odczytu. Eksport zawiera ostatnio zapisane odpowiedzi, nie niezapisany stan kontrolek; błąd pobrania jest wyświetlany użytkownikowi, a URL blob zostaje zwolniony po pobraniu.
 
 ```tsx
 <DynamicFormRenderer
   versionId={instance.templateVersionId}
+  instanceId={instance.id}
   initialValues={responses}
   requireRequired={false}
   onSubmit={saveResponses}
 />
 ```
 
-`initialValues` jest mapą odpowiedzi według stabilnych kluczy; renderer pomija nieznane klucze. Zmiana tych danych resetuje kontrolki (np. po pobraniu odpowiedzi), więc host powinien utrzymywać stabilny obiekt i nie zmieniać go podczas edycji. Zmiana `versionId` ładuje nowy snapshot i odrzuca spóźnione wyniki poprzednich zapytań.
+`initialValues` jest mapą odpowiedzi według stabilnych kluczy; renderer pomija nieznane klucze. Opcjonalne `instanceId` pobiera wartości instancji po sprawdzeniu zgodności `templateVersionId`; udostępnia też przycisk odświeżenia pól systemowych. Zmiana `initialValues` resetuje kontrolki, więc host powinien utrzymywać stabilny obiekt i nie zmieniać go podczas edycji. Zmiana `versionId` ładuje nowy snapshot i odrzuca spóźnione wyniki poprzednich zapytań.
 
-`onSubmit(responses, version)` jest opcjonalnym, asynchronicznym adapterem hosta. Jego brak oznacza podgląd bez przycisku zapisu. Host wykonania instancji ma pobrać jej `templateVersionId` z istniejącego API, zmapować `GET /instances/:id/values` na klucze pól i przekazać odpowiedzi do istniejącego `PUT /instances/:id/values` jako `{ responses }`. Renderer nie tworzy instancji, nie wybiera innej wersji i nie wywołuje `complete` ani `approve`. Pełny ekran wykonania instancji należy do etapu 9.
+`onSubmit(responses, version)` jest opcjonalnym, asynchronicznym adapterem hosta. Jego brak oznacza podgląd bez przycisku zapisu. Host wykonania instancji może podać `instanceId`, by pobrać zapisane odpowiedzi według stabilnych kluczy. Zapis nadal obsługuje callback `onSubmit`, zwykle delegujący do `PUT /instances/:id/values` jako `{ responses }`. Renderer nie tworzy instancji, nie wybiera innej wersji i nie wywołuje `complete` ani `approve`. Pełny ekran wykonania instancji należy do etapu 9.
 
 Domyślnie schemat egzekwuje wymagalność widocznych pól. `requireRequired={false}` umożliwia częściowy zapis zgodnie z API etapu 5, zachowując kontrolę typów i zakresów. `disabled` zapewnia tryb tylko do odczytu. `submitLabel` pozwala dostosować etykietę akcji. Sukces jest pokazywany dopiero po rozwiązaniu callbacka; odrzucenie daje bezpieczny komunikat błędu bez szczegółów serwera.
 
@@ -36,12 +39,15 @@ Domyślnie schemat egzekwuje wymagalność widocznych pól. `requireRequired={fa
 | SELECT | Select z `options.values` | string |
 | RADIO | Grupa radio z `options.values` | string |
 | MULTI_SELECT | Select multiple | string[] |
+| DATA (readonly) | Tekst wartości i źródło; brak wartości pokazuje „brak danych w zadaniu” | string / number / boolean / null |
+| DATA (prefill) | Kontrolka edytowalna dobrana do typu źródła | string / number / boolean / null |
+| BOM_TABLE | Tabela z pozycjami snapshotu BOM, ilością, checkboxem i notatką; na telefonie karty | lista pozycji BOM |
 | PASS_FAIL | Wybór PASS / FAIL | `"PASS"` / `"FAIL"` |
 | CHECKBOX | Wybór Tak / Nie / brak odpowiedzi | true / false / null |
 
 `CHECKBOX` świadomie rozróżnia **false** i brak odpowiedzi: wymagane pole boolean nie oznacza konieczności zaznaczenia „Tak”. Nie wstawiamy automatycznej odpowiedzi false do nietkniętego pola. Puste odpowiedzi mają semantykę backendu (`null`, brak, pusty/whitespace string, pusta tablica); 0 i false nie są puste.
 
-Opcje pochodzą ze snapshotu. Istniejące wartości spoza listy są prezentowane bez utraty danych, ponieważ API etapu 5 nie egzekwuje jeszcze membership. Schemat nie dodaje nowych reguł EMAIL/DATE, regexów ani walidacji opcji nieobecnych w backendzie. Natywna walidacja submitu jest wyłączona; Zod zapewnia jednolite komunikaty i ARIA.
+Opcje pochodzą ze snapshotu. Istniejące wartości spoza listy są prezentowane bez utraty danych, ponieważ API etapu 5 nie egzekwuje jeszcze membership. Schemat nie dodaje nowych reguł EMAIL/DATE, regexów ani walidacji opcji nieobecnych w backendzie. Natywna walidacja submitu jest wyłączona; Zod zapewnia jednolite komunikaty i ARIA. Wartości `readonly` są widoczne jako tekst i nie są edytowalne; `prefill` jest inicjalizowane snapshotem, ale można je zmienić. Odświeżanie instancji ponownie wylicza tylko pola `readonly` i działa przed `SUBMITTED`.
 
 ## Warunki i schemat
 
@@ -60,6 +66,7 @@ Backend pozostaje źródłem prawdy: ponownie sprawdza zapis względem wersji in
 - Brak RBAC lub utrata dostępu skutkuje błędem API. Rozwiązaniem jest prawidłowe nadanie istniejących uprawnień, nigdy pominięcie autoryzacji.
 - Ukryte, ale błędnie typowane historyczne dane mogą blokować zapis. Host powinien pokazać poprawny snapshot i umożliwić korektę danych; nie usuwać ich automatycznie.
 - Zmiana warunków może odsłonić nowe wymagane pola. Walidacja przy submit zawsze używa aktualnych wartości, nie wcześniej wyliczonej widoczności.
+- `BOM_TABLE` prezentuje snapshot z `task_materials`, a nie rezerwacje `task_warehouse_stock`. „Wszystko zgodnie z planem” aktualizuje wyłącznie odpowiedzi formularza. Częściowy montaż jest ostrzeżeniem; ilość większa od planu wymaga uwag, a `installed = true` wymaga ilości dodatniej. API chroni identyfikatory, nazwy, jednostki, plan oraz skład listy.
 - Brak uploadu/ACL załączników i kontraktu specjalnych pól urządzeń: registry obsługuje wszystkie typy dopuszczone obecnie przez backend, bez fikcyjnych endpointów. Rozszerzenie wymaga najpierw wersjonowanego kontraktu API.
 - Renderer nie zmienia statusów urządzeń/zadań i nie tworzy `installedIn`; zachowuje PRECONFIGURATION ≠ ASSEMBLY.
 

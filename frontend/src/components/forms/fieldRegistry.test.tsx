@@ -37,7 +37,7 @@ describe('fieldRegistry', () => {
   it('registers only the supported persisted types', () => {
     expect(Object.keys(fieldRegistry).sort()).toEqual([
       'TEXT', 'STRING', 'TEXTAREA', 'EMAIL', 'DATE', 'SELECT', 'RADIO',
-      'NUMBER', 'PASS_FAIL', 'CHECKBOX', 'MULTI_SELECT',
+      'NUMBER', 'PASS_FAIL', 'CHECKBOX', 'MULTI_SELECT', 'DATA', 'BOM_TABLE',
     ].sort());
   });
 
@@ -63,7 +63,7 @@ describe('fieldRegistry', () => {
     expect(vi.mocked(props.inputRef).mock.calls.at(-1)?.[0]).toBeNull();
   });
 
-  it.each(Object.keys(fieldRegistry))('passes accessibility, required, disabled and ref attributes for %s', type => {
+  it.each(Object.keys(fieldRegistry).filter(type => type !== 'BOM_TABLE'))('passes accessibility, required, disabled and ref attributes for %s', type => {
     const props = makeProps(type, { required: true, disabled: true, errorId: 'answer-error' });
     renderField(props);
     const input = document.getElementById(props.id)!;
@@ -180,5 +180,43 @@ describe('fieldRegistry', () => {
     expect(props.onChange).toHaveBeenLastCalledWith(value === 'PASS' ? 'FAIL' : 'PASS');
     fireEvent.change(select, { target: { value: '' } });
     expect(props.onChange).toHaveBeenLastCalledWith('');
+  });
+
+  it('renders read-only system data as text with its source and missing-value message', () => {
+    const props = makeProps('DATA', {
+      field: {
+        ...makeProps('DATA').field,
+        options: { source: 'task.location', mode: 'readonly', valueType: 'string' },
+      },
+    });
+    renderField(props);
+    expect(screen.getByRole('textbox', { name: 'Odpowiedź' })).toHaveTextContent('brak danych w zadaniu');
+    expect(screen.getByText('Źródło: task.location')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Odpowiedź' })).not.toHaveAttribute('contenteditable');
+  });
+
+  it('renders editable BOM rows, partial-installation warning and the bulk completion action on narrow screens', () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
+    const row = {
+      bomItemId: 31, name: 'Kamera', unit: 'szt.', plannedQty: 2,
+      installedQty: 1, installed: false, note: '',
+    };
+    const props = makeProps('BOM_TABLE', {
+      value: [row],
+      field: {
+        ...makeProps('BOM_TABLE').field,
+        options: { columns: ['plannedQty', 'installedQty', 'installed', 'note'] },
+      },
+    });
+    renderField(props);
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getAllByTestId('bom-table-row')).toHaveLength(1);
+    expect(screen.getByRole('status')).toHaveTextContent(/częściowy montaż/i);
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Kamera: zamontowano' }), {
+      target: { value: '2' },
+    });
+    expect(props.onChange).toHaveBeenLastCalledWith([{ ...row, installedQty: 2 }]);
+    fireEvent.click(screen.getByRole('button', { name: 'Wszystko zgodnie z planem' }));
+    expect(props.onChange).toHaveBeenLastCalledWith([{ ...row, installedQty: 2, installed: true }]);
   });
 });

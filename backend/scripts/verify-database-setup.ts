@@ -6,6 +6,8 @@ import bcrypt from 'bcrypt';
 async function verifyDatabaseSetup(): Promise<void> {
   try {
     await AppDataSource.initialize();
+    await AppDataSource.query('SELECT event_type, user_id, details, created_at FROM audit_logs LIMIT 0');
+    await AppDataSource.query('SELECT header_id, footer_id, header_snapshot, footer_snapshot FROM form_template_versions LIMIT 0');
     const [counts] = await AppDataSource.query(`
       SELECT
         (SELECT COUNT(*) FROM task_types) AS task_type_count,

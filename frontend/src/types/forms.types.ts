@@ -1,6 +1,40 @@
 export type FormKind = 'FORM' | 'CHECKLIST';
 export type FormProcedureType = 'CABINET_PREFABRICATION' | 'DEVICE_PRECONFIGURATION' | 'FIELD_INSTALLATION';
 export type FormVersionStatus = 'DRAFT' | 'PUBLISHED';
+export type FormBrandingKind = 'HEADER' | 'FOOTER';
+export type FormBrandingMode = 'FILE' | 'CUSTOM';
+
+export interface FormBrandingElement {
+  type: 'text' | 'logo' | 'variable' | 'pageNumber' | 'printDate';
+  text?: string;
+  assetPath?: string;
+  alt?: string;
+  source?: string;
+}
+
+export interface FormBrandingLayout {
+  columns: {
+    left: FormBrandingElement[];
+    center: FormBrandingElement[];
+    right: FormBrandingElement[];
+  };
+  separator: boolean;
+}
+
+export interface FormBrandingSnapshot {
+  id: number;
+  name: string;
+  kind: FormBrandingKind;
+  mode: FormBrandingMode;
+  heightMm: number;
+  filePath: string | null;
+  fileMime: string | null;
+  layout: FormBrandingLayout | null;
+}
+
+export interface FormBranding extends FormBrandingSnapshot {
+  isDefault: boolean;
+}
 
 export interface FormTemplate {
   id: number;
@@ -48,6 +82,10 @@ export interface FormVersion {
   kind: FormKind;
   procedureType: FormProcedureType;
   settings: Record<string, unknown>;
+  headerId?: number | null;
+  footerId?: number | null;
+  headerSnapshot?: FormBrandingSnapshot | null;
+  footerSnapshot?: FormBrandingSnapshot | null;
   publishedAt: string | null;
   sections: Array<Omit<FormSection, 'fields'> & { id: number }>;
   fields: Array<FormField & { id: number; sectionId: number }>;
@@ -88,6 +126,18 @@ export interface FormAssignmentRule {
   priority: number;
   active: boolean;
   conditions: Record<string, unknown>;
+}
+
+export interface FormInstance {
+  id: number;
+  templateVersionId: number;
+  taskId: number | null;
+  status: string;
+}
+
+export interface FormInstanceValue {
+  fieldDefinitionId: number;
+  value: unknown;
 }
 
 export interface Paginated<T> {

@@ -80,13 +80,17 @@ describe('visibility and required rules', () => {
 });
 
 describe('definition safety', () => {
-  it('accepts the eleven supported types, lowercase types and safe key characters', () => {
+  it('accepts the supported types, lowercase types and safe key characters', () => {
     for (const fieldType of [
       'TEXT', 'STRING', 'TEXTAREA', 'EMAIL', 'DATE', 'SELECT', 'RADIO',
       'NUMBER', 'PASS_FAIL', 'CHECKBOX', 'MULTI_SELECT', 'number',
     ]) {
       expect(getDefinitionError(version([field({ fieldType, key: 'a_1-Z' })]))).toBeNull();
     }
+    expect(getDefinitionError(version([field({
+      fieldType: 'DATA',
+      options: { source: 'task.location', mode: 'readonly', valueType: 'string' },
+    })]))).toBeNull();
     expect(getDefinitionError(version([]))).toBeNull();
   });
   it.each([
@@ -187,6 +191,32 @@ describe('response schema', () => {
     ['MULTI_SELECT', ['a', 'b'], true], ['MULTI_SELECT', [1], false], ['MULTI_SELECT', 'a', false],
   ])('validates %s answer %j', (fieldType, answer, valid) => {
     expect(buildFormSchema(version([field({ fieldType })])).safeParse({ answer }).success).toBe(valid);
+  });
+  it.each([
+    ['string', 'Warszawa', true],
+    ['number', 65, true],
+    ['boolean', false, true],
+    ['number', '65', false],
+  ])('validates DATA values with type %s', (valueType, value, valid) => {
+    const schema = buildFormSchema(version([field({
+      fieldType: 'DATA',
+      options: { source: 'task.progress', mode: 'prefill', valueType },
+    })]));
+    expect(schema.safeParse({ answer: value }).success).toBe(valid);
+  });
+  it('validates BOM table installation rules and immutable row shape', () => {
+    const schema = buildFormSchema(version([field({
+      fieldType: 'BOM_TABLE',
+      options: { columns: ['plannedQty', 'installedQty', 'installed', 'note'] },
+    })]));
+    const item = {
+      bomItemId: 31, name: 'Kamera', unit: 'szt.', plannedQty: 2,
+      installedQty: 1, installed: false, note: '',
+    };
+    expect(schema.safeParse({ answer: [item] }).success).toBe(true);
+    expect(schema.safeParse({ answer: [{ ...item, installed: true, installedQty: 0 }] }).success).toBe(false);
+    expect(schema.safeParse({ answer: [{ ...item, installedQty: 3 }] }).success).toBe(false);
+    expect(schema.safeParse({ answer: [{ ...item, plannedQty: '2' }] }).success).toBe(false);
   });
   it('enforces inclusive numeric bounds without coercion', () => {
     const schema = buildFormSchema(version([field({

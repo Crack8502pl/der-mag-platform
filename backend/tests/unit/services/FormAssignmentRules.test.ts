@@ -3,6 +3,7 @@ import { FormFieldDefinition } from '../../../src/entities/FormFieldDefinition';
 import { FormTemplateVersion } from '../../../src/entities/FormTemplateVersion';
 import { FormTrigger } from '../../../src/entities/FormTrigger';
 import { FormSection } from '../../../src/entities/FormSection';
+import { FormHeaderFooter } from '../../../src/entities/FormHeaderFooter';
 import { FormTemplateService } from '../../../src/services/FormTemplateService';
 import { FormAuditService } from '../../../src/services/FormAuditService';
 import { RESERVED_FORM_KEYS } from '../../../src/utils/formJson';
@@ -30,6 +31,7 @@ describe('FormTemplateService.replaceAssignmentRules', () => {
     triggers = { find: jest.fn().mockResolvedValue([{ id: 5 }]) };
     const repositories = new Map<unknown, any>([
       [FormTemplateVersion, versions], [FormAssignmentRule, rules], [FormFieldDefinition, fields], [FormTrigger, triggers],
+      [FormHeaderFooter, { findOne: jest.fn().mockResolvedValue(null) }],
     ]);
     manager = { getRepository: jest.fn(entity => repositories.get(entity)), query: jest.fn().mockResolvedValue(undefined) };
     service = new FormTemplateService({ transaction: jest.fn(callback => callback(manager)) } as any);

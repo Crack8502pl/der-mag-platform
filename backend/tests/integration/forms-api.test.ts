@@ -13,13 +13,16 @@ import { FormTrigger } from '../../src/entities/FormTrigger';
 import { FormInstance } from '../../src/entities/FormInstance';
 import { DeviceInstallationWorkflow, DeviceInstallationStatus } from '../../src/entities/DeviceInstallationWorkflow';
 import { FormFieldValue } from '../../src/entities/FormFieldValue';
+import { FormHeaderFooter } from '../../src/entities/FormHeaderFooter';
 import { FormDomainError, FormDomainErrorCode } from '../../src/errors/FormDomainError';
 import { FormTemplateService } from '../../src/services/FormTemplateService';
 import { FormInstanceService } from '../../src/services/FormInstanceService';
 import { FormApprovalService } from '../../src/services/FormApprovalService';
+import { FormInstancePdfService } from '../../src/services/FormInstancePdfService';
 import { DeviceInstallationWorkflowService } from '../../src/services/DeviceInstallationWorkflowService';
 import { errorHandler } from '../../src/middleware/errorHandler';
 import formsRoutes from '../../src/routes/forms.routes';
+import variableEngineRoutes from '../../src/routes/variableEngine.routes';
 import { RESERVED_FORM_KEYS } from '../../src/utils/formJson';
 
 jest.mock('../../src/config/database', () => ({ AppDataSource: { getRepository: jest.fn(), transaction: jest.fn() } }));
@@ -58,6 +61,7 @@ const realSaveResponses = FormInstanceService.prototype.saveResponses;
 const realComplete = FormInstanceService.prototype.complete;
 
 const services = {
+  pdf: jest.spyOn(FormInstancePdfService.prototype, 'generate'),
   createTemplate: jest.spyOn(FormTemplateService.prototype, 'createTemplate'),
   createDraft: jest.spyOn(FormTemplateService.prototype, 'createDraft'),
   updateDraft: jest.spyOn(FormTemplateService.prototype, 'updateDraft'),
@@ -67,6 +71,7 @@ const services = {
   createInstance: jest.spyOn(FormInstanceService.prototype, 'createInstance'),
   assignInstance: jest.spyOn(FormInstanceService.prototype, 'assignInstance'),
   values: jest.spyOn(FormInstanceService.prototype, 'saveResponses'),
+  refreshData: jest.spyOn(FormInstanceService.prototype, 'refreshData'),
   complete: jest.spyOn(FormInstanceService.prototype, 'complete'),
   approve: jest.spyOn(FormApprovalService.prototype, 'approve'),
   reject: jest.spyOn(FormApprovalService.prototype, 'reject'),
@@ -80,6 +85,7 @@ const services = {
 const app = express();
 app.use(express.json({ strict: false }));
 app.use('/api/forms', formsRoutes);
+app.use('/api/variable-engine', variableEngineRoutes);
 app.use(errorHandler);
 
 function call(method: string, path: string, body?: unknown, token: string | null = 'valid') {
@@ -90,6 +96,7 @@ function call(method: string, path: string, body?: unknown, token: string | null
 }
 
 const endpoints: [string, string, unknown, number, string][] = [
+  ['get', '/branding', undefined, 200, 'read'],
   ['get', '/templates', undefined, 200, 'read'],
   ['post', '/templates', templateBody, 201, 'create'],
   ['get', '/templates/1', undefined, 200, 'read'],
@@ -104,9 +111,11 @@ const endpoints: [string, string, unknown, number, string][] = [
   ['get', '/instances', undefined, 200, 'read'],
   ['post', '/instances', { templateVersionId: 1 }, 201, 'create'],
   ['get', '/instances/1', undefined, 200, 'read'],
+  ['get', '/instances/1/pdf', undefined, 200, 'read'],
   ['put', '/instances/1/assignment', { assignedUserId: 9 }, 200, 'assign'],
   ['get', '/instances/1/values', undefined, 200, 'read'],
   ['put', '/instances/1/values', { responses: { result: 'PASS' } }, 200, 'update'],
+  ['post', '/instances/1/refresh-data', {}, 200, 'update'],
   ['post', '/instances/1/complete', {}, 200, 'complete'],
   ['post', '/instances/1/approve', { comment: ' Approved ' }, 200, 'approve'],
   ['post', '/instances/1/reject', { comment: ' Rework ' }, 200, 'approve'],
@@ -132,6 +141,11 @@ beforeEach(() => {
     spy.mockReset();
     (spy as jest.Mock).mockResolvedValue({ id: 1 });
   }
+  services.pdf.mockImplementation(async (id, guard) => {
+    await guard?.({ getRepository: AppDataSource.getRepository } as unknown as import('typeorm').EntityManager,
+      Object.assign(new FormInstance(), { id }));
+    return Buffer.from('%PDF-1.7\n');
+  });
   services.getInstallationWorkflow.mockResolvedValue(workflowRecord());
   services.recordInstallationReadiness.mockImplementation(async (_instance, _actor, guard) => {
     await guard?.({ getRepository: AppDataSource.getRepository } as any, { id: 1 } as unknown as FormInstance);
@@ -188,6 +202,10 @@ beforeEach(() => {
     [FormTrigger, repository({ id: 1, templateVersionId: 1 })],
     [FormAssignmentRule, repository({ id: 1, templateVersionId: 1, assignedUserId: 9 })],
     [FormFieldValue, repository({ id: 1, instanceId: 1, value: 'PASS', updatedById: 7 })],
+    [FormHeaderFooter, {
+      findOne: jest.fn().mockResolvedValue(null),
+      find: jest.fn().mockResolvedValue([]),
+    }],
     [FormInstance, { createQueryBuilder: jest.fn(() => query), findOne: jest.fn(), save: jest.fn() }],
   ]);
   (AppDataSource.getRepository as jest.Mock).mockImplementation(entity => repositories.get(entity));
@@ -200,9 +218,27 @@ afterAll(() => {
 });
 
 describe('Forms REST API', () => {
+  it('allows form editors and legacy BOM readers to list the variable catalog', async () => {
+    grants = { forms: { read: true } };
+    const response = await request(app).get('/api/variable-engine/variables').set('Authorization', 'Bearer valid');
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({ expression: 'task.location', group: 'Zadanie', usableInForms: true }),
+    ]));
+
+    grants = { bom: { read: true } };
+    expect((await request(app).get('/api/variable-engine/variables').set('Authorization', 'Bearer valid')).status).toBe(200);
+    grants = { forms: { read: false }, bom: { read: false } };
+    expect((await request(app).get('/api/variable-engine/variables').set('Authorization', 'Bearer valid')).status).toBe(403);
+  });
+
   it.each(endpoints)('%s %s succeeds with its action grant', async (method, path, body, status) => {
     const response = await call(method, path, body);
     expect(response.status).toBe(status);
+    if (path.endsWith('/pdf')) {
+      expect(Buffer.isBuffer(response.body)).toBe(true);
+      return;
+    }
     expect(response.body).toMatchObject({ success: true, message: 'OK' });
     expect(response.body.data).toBeDefined();
   });
@@ -461,6 +497,7 @@ describe('Forms REST API', () => {
     expect(listed.body.data.items).toHaveLength(allowed ? 1 : 0);
     for (const [method, path, body] of [
       ['get', '/instances/1', undefined], ['get', '/instances/1/values', undefined],
+      ['get', '/instances/1/pdf', undefined],
       ['put', '/instances/1/values', { responses: {} }], ['post', '/instances/1/complete', {}],
     ] as const) {
       expect((await call(method, path, body)).status).toBe(allowed ? 200 : 404);
@@ -480,11 +517,22 @@ describe('Forms REST API', () => {
     records = [{ id: 1, createdById: 99 }];
     expect((await call('get', '/instances')).body.data.items).toHaveLength(1);
     expect((await call('get', '/instances/1')).status).toBe(200);
+    expect((await call('get', '/instances/1/pdf')).status).toBe(200);
     expect((await call('put', '/instances/1/values', { responses: {} })).status).toBe(200);
     expect((await call('post', '/instances/1/complete', {})).status).toBe(200);
     expect(query.andWhere.mock.calls.some(([sql]: [string]) => sql.includes('EXISTS'))).toBe(false);
     grants = { forms: { readAll: true } };
     expect((await call('get', '/instances')).status).toBe(403);
+  });
+
+  it('returns the PDF as a private downloadable attachment', async () => {
+    const response = await call('get', '/instances/1/pdf');
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toMatch(/^application\/pdf/);
+    expect(response.headers['content-disposition']).toBe('attachment; filename="formularz-1.pdf"');
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect(Buffer.isBuffer(response.body)).toBe(true);
   });
 
   it('approve/reject/assign privileges are cross-record and do not require ownership', async () => {

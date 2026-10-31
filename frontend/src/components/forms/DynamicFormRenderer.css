@@ -24,6 +24,66 @@
   border-radius: 8px;
 }
 
+.dynamic-form__branding {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  min-height: 24px;
+  align-items: center;
+  padding: 8px 0;
+  margin: 8px 0;
+}
+
+.dynamic-form__branding--header.has-separator {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dynamic-form__branding--footer.has-separator {
+  border-top: 1px solid var(--border-color);
+}
+
+.dynamic-form__branding > div {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.dynamic-form__branding > div:nth-child(2) {
+  justify-content: center;
+  text-align: center;
+}
+
+.dynamic-form__branding > div:nth-child(3) {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.dynamic-form__branding img {
+  display: block;
+  max-width: 100%;
+  max-height: 80px;
+  object-fit: contain;
+}
+
+.dynamic-form__branding--pdf {
+  position: relative;
+  display: block;
+  overflow: hidden;
+}
+
+.dynamic-form__branding--pdf iframe {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 297mm;
+  border: 0;
+}
+
+.dynamic-form__branding--pdf.dynamic-form__branding--footer iframe {
+  top: auto;
+  bottom: 0;
+}
+
 .dynamic-form__field {
   display: grid;
   gap: 8px;
@@ -65,8 +125,78 @@
   border-color: var(--error);
 }
 
+.dynamic-form__bom {
+  display: grid;
+  gap: 12px;
+}
+
+.dynamic-form__bom-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dynamic-form__bom-table :is(th, td) {
+  padding: 8px;
+  text-align: left;
+  vertical-align: top;
+  border: 1px solid var(--border-color);
+}
+
+.dynamic-form__bom-table textarea {
+  min-width: 140px;
+}
+
+.dynamic-form__bom-warning {
+  color: var(--error);
+}
+
 @media (max-width: 720px) {
   .dynamic-form__section {
     padding: 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .dynamic-form__bom-table,
+  .dynamic-form__bom-table tbody,
+  .dynamic-form__bom-table tr,
+  .dynamic-form__bom-table th,
+  .dynamic-form__bom-table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .dynamic-form__bom-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .dynamic-form__bom-table tr {
+    margin: 12px 0;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-card);
+  }
+
+  .dynamic-form__bom-table :is(th, td) {
+    display: grid;
+    grid-template-columns: minmax(100px, 40%) 1fr;
+    gap: 8px;
+    border: 0;
+  }
+
+  .dynamic-form__bom-table td::before {
+    content: attr(data-label);
+    color: var(--text-secondary);
+    font-weight: 600;
   }
 }

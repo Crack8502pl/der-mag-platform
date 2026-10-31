@@ -29,6 +29,11 @@ const DEFAULT_DATA: TaskData = {
   assigneeName: 'Jan Kowalski',
   dueDate: '2024-06-30',
   progress: 65,
+  location: 'Warszawa',
+  typeName: 'Montaż',
+  contractNumber: 'C-2024-01',
+  subsystemName: 'CCTV',
+  brigadeName: 'Brygada A',
 };
 
 function makeService(data: TaskData = DEFAULT_DATA): ITaskDataService {
@@ -131,6 +136,17 @@ describe('TaskVariableProvider', () => {
     it('returns progress percentage', async () => {
       const provider = new TaskVariableProvider(makeService());
       expect(await provider.resolve('task.progress', ctx(1))).toBe(65);
+    });
+
+    it.each([
+      ['task.location', 'Warszawa'],
+      ['task.type.name', 'Montaż'],
+      ['task.contract.number', 'C-2024-01'],
+      ['task.subsystem.name', 'CCTV'],
+      ['task.brigade.name', 'Brygada A'],
+    ])('resolves %s', async (expression, expected) => {
+      const provider = new TaskVariableProvider(makeService());
+      await expect(provider.resolve(expression, ctx(1))).resolves.toBe(expected);
     });
   });
 

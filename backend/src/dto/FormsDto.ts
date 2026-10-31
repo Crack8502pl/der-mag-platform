@@ -36,7 +36,7 @@ export class DraftFieldBody {
   @Transform(trim) @IsString() @MinLength(1) @MaxLength(255)
   label: string;
 
-  @IsIn(['TEXT', 'STRING', 'TEXTAREA', 'EMAIL', 'DATE', 'SELECT', 'RADIO', 'NUMBER', 'PASS_FAIL', 'CHECKBOX', 'MULTI_SELECT'])
+  @IsIn(['TEXT', 'STRING', 'TEXTAREA', 'EMAIL', 'DATE', 'SELECT', 'RADIO', 'NUMBER', 'PASS_FAIL', 'CHECKBOX', 'MULTI_SELECT', 'DATA', 'BOM_TABLE'])
   fieldType: string;
 
   @ValidateIf(supplied) @IsBoolean()
@@ -87,6 +87,12 @@ export class UpdateDraftDto {
 
   @ValidateIf(supplied) @IsArray() @ArrayMaxSize(100) @ValidateNested({ each: true }) @Type(() => DraftSectionBody)
   sections?: DraftSectionBody[];
+
+  @ValidateIf(nullable) @IsInt() @Min(1) @Max(pgMax)
+  headerId?: number | null;
+
+  @ValidateIf(nullable) @IsInt() @Min(1) @Max(pgMax)
+  footerId?: number | null;
 }
 
 export class CreateInstanceDto {

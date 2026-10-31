@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FormBuilderPage } from './FormBuilderPage';
 import { formsService } from '../../services/forms.service';
 import { useFormTemplates } from '../../hooks/useFormTemplates';
+import variableEngineService from '../../services/variableEngine.service';
 
 const permissions = vi.hoisted(() => ({ actions: ['read', 'create', 'update', 'publish', 'assign'] }));
 
@@ -30,8 +31,12 @@ vi.mock('../../services/forms.service', () => ({
     listAssignmentRules: vi.fn(),
     listAssignmentUsers: vi.fn(),
     listAssignmentTeams: vi.fn(),
+    listBranding: vi.fn(),
     replaceAssignmentRules: vi.fn(),
   },
+}));
+vi.mock('../../services/variableEngine.service', () => ({
+  default: { listVariables: vi.fn() },
 }));
 
 const template = {
@@ -100,9 +105,16 @@ describe('FormBuilderPage', () => {
       { id: 8, name: 'Brygada A', code: 'BR-A' },
     ]);
     vi.mocked(formsService.updateDraft).mockResolvedValue(draft);
+    vi.mocked(formsService.listBranding).mockResolvedValue([]);
+    vi.mocked(variableEngineService.listVariables).mockResolvedValue([
+      {
+        expression: 'task.location', type: 'string', description: 'Lokalizacja zadania',
+        label: 'Lokalizacja', group: 'Zadanie', provider: 'task', usableInBom: false, usableInForms: true,
+      },
+    ]);
   });
 
-  it('shows an empty state when the API returns no templates', () => {
+  it('shows an empty state when the API returns no templates', async () => {
     vi.mocked(useFormTemplates).mockReturnValue({
       templates: [],
       loading: false,
@@ -112,6 +124,7 @@ describe('FormBuilderPage', () => {
 
     renderPage();
 
+    await act(async () => { await Promise.resolve(); });
     expect(screen.getByText('Brak formularzy')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '+ Nowy formularz' })).toBeInTheDocument();
   });
@@ -134,6 +147,54 @@ describe('FormBuilderPage', () => {
       })],
     })));
     expect(await screen.findByText('Wersja robocza została zapisana.')).toBeInTheDocument();
+  });
+
+  it('saves selected header and footer library entries with the draft', async () => {
+    vi.mocked(formsService.listBranding).mockResolvedValue([
+      {
+        id: 41, name: 'Nagłówek', kind: 'HEADER', mode: 'CUSTOM', isDefault: false,
+        heightMm: 20, filePath: null, fileMime: null, layout: {
+          columns: { left: [], center: [], right: [] }, separator: true,
+        },
+      },
+      {
+        id: 42, name: 'Stopka', kind: 'FOOTER', mode: 'CUSTOM', isDefault: false,
+        heightMm: 15, filePath: null, fileMime: null, layout: {
+          columns: { left: [], center: [], right: [] }, separator: true,
+        },
+      },
+    ]);
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
+    await screen.findByText('Sekcje');
+    fireEvent.change(screen.getByLabelText('Nagłówek'), { target: { value: '41' } });
+    fireEvent.change(screen.getByLabelText('Stopka'), { target: { value: '42' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz draft' }));
+
+    await waitFor(() => expect(formsService.updateDraft).toHaveBeenCalledWith(
+      draft.id,
+      expect.objectContaining({ headerId: 41, footerId: 42 }),
+    ));
+  });
+
+  it('configures a system data field source and mode', async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
+    await screen.findByDisplayValue('Wynik');
+    fireEvent.change(screen.getByLabelText('Typ'), { target: { value: 'DATA' } });
+    expect(await screen.findByLabelText('Grupa')).toHaveValue('Zadanie');
+    expect(screen.getByLabelText('Pole')).toHaveValue('task.location');
+    fireEvent.change(screen.getByLabelText('Tryb'), { target: { value: 'prefill' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz draft' }));
+
+    await waitFor(() => expect(formsService.updateDraft).toHaveBeenCalledWith(14, expect.objectContaining({
+      sections: [expect.objectContaining({
+        fields: [expect.objectContaining({
+          fieldType: 'DATA',
+          options: { source: 'task.location', mode: 'prefill', valueType: 'string' },
+        })],
+      })],
+    })));
   });
 
   it('shows an interactive preview of the saved version, not unsaved edits', async () => {
@@ -444,5 +505,26 @@ describe('FormBuilderPage', () => {
     expect(await screen.findAllByText('Sprawdź zakres liczbowy pola „result”.')).toHaveLength(2);
     expect(screen.getAllByRole('alert').length).toBeGreaterThan(1);
   });
+});
 
+it('configures a BOM table with selectable columns and category filter', async () => {
+  renderPage();
+  fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
+  await screen.findByDisplayValue('Wynik');
+  fireEvent.change(screen.getByLabelText('Typ'), { target: { value: 'BOM_TABLE' } });
+  expect(await screen.findByText('Kolumny tabeli BOM')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Uwagi' }));
+  fireEvent.change(screen.getByLabelText('Kategoria materiału (opcjonalnie)'), {
+    target: { value: 'Urządzenia' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Zapisz draft' }));
+
+  await waitFor(() => expect(formsService.updateDraft).toHaveBeenCalledWith(14, expect.objectContaining({
+    sections: [expect.objectContaining({
+      fields: [expect.objectContaining({
+        fieldType: 'BOM_TABLE',
+        options: { columns: ['plannedQty', 'installedQty', 'installed'], filter: 'Urządzenia' },
+      })],
+    })],
+  })));
 });

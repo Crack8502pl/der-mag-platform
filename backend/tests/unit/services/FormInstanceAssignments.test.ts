@@ -40,7 +40,11 @@ describe('FormInstanceService.assignInstance', () => {
       { bomItemId: null, workflowBomItemId: 3 },
       { bomItemId: null, workflowBomItemId: null },
     ])('permits a single BOM context with an omitted/null counterpart (%j)', async context => {
-      const instances = { create: jest.fn(value => value), save: jest.fn(async value => ({ id: 1, ...value })) };
+      const instances = {
+        create: jest.fn(value => value),
+        save: jest.fn(async value => ({ id: 1, ...value })),
+        find: jest.fn().mockResolvedValue([]),
+      };
       const versions = { findOne: jest.fn().mockResolvedValue({ id: 1, status: 'PUBLISHED' }) };
       const manager = {
         getRepository: jest.fn(entity => entity === FormTemplateVersion ? versions : instances),
