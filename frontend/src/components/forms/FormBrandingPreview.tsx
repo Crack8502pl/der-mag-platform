@@ -83,9 +83,16 @@ export function FormBrandingPreview({ snapshot, compact = false, file }: FormBra
     if (item.type === 'logo') return item.assetPath && assets[item.assetPath]
       ? <img key={`logo-${index}`} src={assets[item.assetPath]} alt={item.alt || ''} />
       : <span key={`logo-${index}`}>{item.alt || 'Logo'}</span>;
-    if (item.type === 'variable') return <span key={`variable-${index}`}>{item.source}</span>;
+    if (item.type === 'variable') return <span key={`variable-${index}`}>
+      {compact && item.source === 'task.number' ? 'Z00011026' : item.source}
+    </span>;
     if (item.type === 'pageNumber') return <span key={`page-${index}`}>Strona 1 z 2</span>;
-    return <span key={`date-${index}`}>{new Date().toLocaleDateString()}</span>;
+    return <span key={`date-${index}`}>{new Intl.DateTimeFormat('pl-PL', {
+      timeZone: 'Europe/Warsaw',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(new Date())}</span>;
   };
 
   return <div

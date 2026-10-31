@@ -92,6 +92,21 @@ describe('FormTemplateService.replaceAssignmentRules', () => {
     expect(audit).not.toHaveBeenCalled();
   });
 
+  it('rejects an invalid DATA source while saving a draft instead of waiting for publication', async () => {
+    await expect(service.updateDraft(1, { sections: [{
+      key: 'main',
+      title: 'Main',
+      fields: [{
+        key: 'taskNumber',
+        label: 'Numer zadania',
+        fieldType: 'DATA',
+        options: { source: 'task.unknown', mode: 'readonly', valueType: 'string' },
+      }],
+    }] }, 9)).rejects.toMatchObject({ code: 'INVALID_DEFINITION' });
+    expect(manager.getRepository).not.toHaveBeenCalledWith(FormSection);
+    expect(manager.getRepository).not.toHaveBeenCalledWith(FormFieldDefinition);
+  });
+
   it.each([
     [{}],
     [{ assignedUserId: 7, triggerId: 99 }],

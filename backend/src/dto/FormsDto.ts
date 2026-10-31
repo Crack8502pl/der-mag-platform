@@ -127,6 +127,11 @@ export class CreateInstanceDto {
   assignedTeamId?: number;
 }
 
+export class PreviewVersionDto {
+  @IsInt() @Min(1) @Max(pgMax)
+  taskId: number;
+}
+
 export class ResponsesDto {
   @IsObject()
   responses: FormResponses;

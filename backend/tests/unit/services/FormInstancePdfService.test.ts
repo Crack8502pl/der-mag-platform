@@ -2,7 +2,8 @@ import { execFileSync } from 'child_process';
 import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
-import { PDFDocument, StandardFonts } from 'pdf-lib';
+import { inflateSync } from 'zlib';
+import { PDFDict, PDFDocument, PDFName, PDFRawStream, StandardFonts } from 'pdf-lib';
 import sharp from 'sharp';
 import { DataSource, EntityManager } from 'typeorm';
 import { FormApproval } from '../../../src/entities/FormApproval';
@@ -132,6 +133,7 @@ describe('FormInstancePdfService', () => {
       expect(page.text).toContain(`Strona ${index + 1} z 3`);
       expect(page.text).toContain('PROJEKT');
     });
+    expect(pages[0].text).toContain('Utworzono: 31.10.2026, 13:00');
     expect(pages.map(page => page.text).join(' ')).toContain('Zażółć gęślą jaźń');
     expect(pages[0].fonts.FAIL).not.toBe(pages[0].fonts['Wiersz 1: Zażółć gęślą jaźń']);
     expect(FormDataSourceResolver.prototype.resolve).toHaveBeenCalledWith('task.number', {
@@ -150,7 +152,7 @@ describe('FormInstancePdfService', () => {
     const [page] = extractPages(await service.generate(44));
     expect(page.text).not.toContain('PROJEKT');
     expect(page.text).toContain('Kto: Anna Żółć');
-    expect(page.text).toContain('Kiedy:');
+    expect(page.text).toContain('Kiedy: 31.10.2026, 13:10');
     expect(page.text).toContain('Decyzja: Zatwierdzono');
     expect(page.text).toContain('Komentarz: Zażółć gęślą jaźń');
   });
@@ -168,6 +170,39 @@ describe('FormInstancePdfService', () => {
     tablePages.forEach(page => expect(page.text).toContain('Materiał'));
     expect(pages.map(page => page.text).join(' ')).toContain('KONIEC UWAG');
     expect(pages.map(page => page.text).join(' ')).toContain('Przewód');
+  });
+
+  it('embeds full FontFile2 programs instead of subsets', async () => {
+    const { service } = fixture();
+    const document = await PDFDocument.load(await service.generate(44));
+    const descriptors = document.context.enumerateIndirectObjects()
+      .map(([, object]) => object)
+      .filter((object): object is PDFDict => object instanceof PDFDict &&
+        object.get(PDFName.of('Type'))?.toString() === '/FontDescriptor');
+    const fontSizes = descriptors.flatMap(descriptor => {
+      const reference = descriptor.get(PDFName.of('FontFile2'));
+      if (!reference) return [];
+      const stream = document.context.lookup(reference);
+      if (!(stream instanceof PDFRawStream)) return [];
+      const contents = Buffer.from(stream.getContents());
+      const filter = stream.dict.get(PDFName.of('Filter'))?.toString();
+      return [filter === '/FlateDecode' ? inflateSync(contents).length : contents.length];
+    });
+
+    expect(fontSizes.length).toBeGreaterThan(0);
+    expect(fontSizes.every(size => size > 500_000)).toBe(true);
+  });
+
+  it('prints partial BOM installation as a warning', async () => {
+    const { service, fields, values } = fixture();
+    fields[1].fieldType = 'BOM_TABLE';
+    values[1].value = [{
+      bomItemId: 31, name: 'Kamera', unit: 'szt.', plannedQty: 3,
+      installedQty: 1, installed: false, note: '',
+    }];
+
+    const [page] = extractPages(await service.generate(44));
+    expect(page.text).toContain('Ostrzeżenie: częściowy montaż');
   });
 
   it('respects visibility conditions and prints rejected approval details', async () => {

@@ -4,7 +4,7 @@ import { FormsController } from '../controllers/FormsController';
 import {
   ApprovalDto, AssignmentRulesDto, CreateInstanceDto, CreateTemplateDto, EmptyFormActionDto,
   InstanceAssignmentDto, RecordFieldInstallationDto, RecordInstallationReadinessDto,
-  RecordPostInstallationVerificationDto, RejectionDto, ResponsesDto, UpdateDraftDto,
+  RecordPostInstallationVerificationDto, PreviewVersionDto, RejectionDto, ResponsesDto, UpdateDraftDto,
 } from '../dto/FormsDto';
 import { authenticate } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
@@ -70,6 +70,7 @@ router.get('/templates/:id', checkPermission('forms', 'read'), inputs(), control
 router.get('/templates/:id/versions', checkPermission('forms', 'read'), inputs(true), controller.listVersions);
 router.post('/templates/:id/draft', checkPermission('forms', 'create'), inputs(), validate(EmptyFormActionDto), controller.createDraft);
 router.get('/versions/:id', checkPermission('forms', 'read'), inputs(), controller.getVersion);
+router.post('/versions/:id/preview', checkPermission('forms', 'read'), inputs(), validate(PreviewVersionDto), controller.previewVersion);
 router.put('/versions/:id/draft', checkPermission('forms', 'update'), inputs(), validate(UpdateDraftDto), controller.updateDraft);
 router.post('/versions/:id/publish', checkPermission('forms', 'publish'), inputs(), validate(EmptyFormActionDto), controller.publish);
 router.post('/versions/:id/next', checkPermission('forms', 'create'), inputs(), validate(EmptyFormActionDto), controller.nextVersion);

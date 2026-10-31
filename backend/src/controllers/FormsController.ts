@@ -32,6 +32,62 @@ const statusByCode: Record<FormDomainErrorCode, number> = {
 
 const permissions = (req: Request): RolePermissions => req.user!.permissions;
 
+function polishFormErrorMessage(error: FormDomainError): string {
+  const readonlyField = error.message.match(/System data field ([A-Za-z0-9_-]+) is read-only/i);
+  if (readonlyField) return `Pole ${readonlyField[1]} jest tylko do odczytu.`;
+
+  const numericBounds = error.message.match(/Invalid numeric bounds on ([A-Za-z0-9_-]+)/i);
+  if (numericBounds) return `Sprawdź zakres liczbowy pola „${numericBounds[1]}”.`;
+  const invalidSource = error.message.match(/Invalid system data source or mode on ([A-Za-z0-9_-]+)/i);
+  if (invalidSource) return `Wybierz prawidłowe źródło danych systemowych dla pola „${invalidSource[1]}”.`;
+  const invalidBom = error.message.match(/Invalid BOM table options on ([A-Za-z0-9_-]+)/i);
+  if (invalidBom) return `Sprawdź ustawienia tabeli BOM w polu „${invalidBom[1]}”.`;
+  if (/[ąćęłńóśźż]/i.test(error.message)) return error.message;
+
+  const messages: Record<FormDomainErrorCode, string> = {
+    TEMPLATE_NOT_FOUND: 'Nie znaleziono szablonu formularza.',
+    VERSION_NOT_FOUND: 'Nie znaleziono wersji formularza.',
+    INSTANCE_NOT_FOUND: 'Nie znaleziono instancji formularza.',
+    VERSION_NOT_DRAFT: 'Można edytować tylko wersję roboczą.',
+    VERSION_NOT_PUBLISHED: 'Ta operacja wymaga opublikowanej wersji formularza.',
+    DRAFT_ALREADY_EXISTS: 'Istnieje już wersja robocza tego formularza.',
+    INVALID_DEFINITION: 'Definicja formularza zawiera nieprawidłowe dane.',
+    INVALID_RESPONSES: 'Odpowiedzi formularza zawierają nieprawidłowe wartości.',
+    INVALID_ASSIGNMENT: 'Reguła przypisania jest nieprawidłowa.',
+    INVALID_INSTANCE_CONTEXT: 'Nie można połączyć formularza z wybranym zadaniem lub innym elementem.',
+    INVALID_INSTANCE_STATUS: 'Nie można wykonać tej operacji przy aktualnym statusie formularza.',
+    INVALID_INSTALLATION_WORKFLOW: 'Nie można wykonać tej operacji na tym etapie instalacji.',
+    REJECTION_COMMENT_REQUIRED: 'Przed odrzuceniem formularza dodaj komentarz.',
+    OVERRIDE_COMMENT_REQUIRED: 'Przed nadpisaniem wyniku dodaj komentarz.',
+  };
+  return messages[error.code];
+}
+
+function polishFormErrorDetails(details?: Record<string, unknown>): Record<string, unknown> | undefined {
+  if (!details || !Array.isArray(details.errors)) return details;
+  const translations: Record<string, string> = {
+    'is required': 'to pole jest wymagane',
+    'must be a string': 'musi być tekstem',
+    'must be a finite number': 'musi być poprawną liczbą',
+    'must be a boolean': 'musi mieć wartość tak albo nie',
+    'must be a list of strings': 'musi być listą tekstów',
+    'must be PASS or FAIL': 'musi mieć wartość OK albo Nie OK',
+    'installed items require an installed quantity greater than zero': 'dla zamontowanej pozycji podaj ilość większą od zera',
+    'an installation note is required when installed quantity exceeds the plan': 'przy ilości większej od planu dodaj uwagę',
+    'BOM item identities cannot be changed': 'nie można zmieniać pozycji BOM',
+  };
+  return {
+    ...details,
+    errors: details.errors.map((item: unknown) => {
+      if (typeof item !== 'string') return item;
+      const match = item.match(/^([^:]+): (.*)$/);
+      if (!match) return item;
+      const translated = translations[match[2]] || match[2];
+      return `${match[1]}: ${translated}`;
+    }),
+  };
+}
+
 // Identical SQL predicate for paginated lists and individual-record reads/mutations.
 export function scopeFormInstances(query: SelectQueryBuilder<FormInstance>, req: Request): SelectQueryBuilder<FormInstance> {
   const grants = permissions(req);
@@ -53,6 +109,15 @@ export class FormsController {
   private readonly branding = new FormHeaderFooterService();
   private readonly pdf = new FormInstancePdfService();
 
+  private sendFormError(res: Response, error: FormDomainError): void {
+    res.status(statusByCode[error.code]).json({
+      success: false,
+      message: polishFormErrorMessage(error),
+      code: error.code,
+      details: polishFormErrorDetails(error.details),
+    });
+  }
+
   private handler(operation: (req: Request) => Promise<unknown>, status = 200): RequestHandler {
     return async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -60,9 +125,7 @@ export class FormsController {
         res.status(status).json({ success: true, message: 'OK', data });
       } catch (error) {
         if (error instanceof FormDomainError) {
-          res.status(statusByCode[error.code]).json({
-            success: false, message: error.message, code: error.code, details: error.details,
-          });
+          this.sendFormError(res, error);
           return;
         }
         next(error);
@@ -154,9 +217,7 @@ export class FormsController {
       res.sendFile(file.path, error => { if (error) next(error); });
     } catch (error) {
       if (error instanceof FormDomainError) {
-        res.status(statusByCode[error.code]).json({
-          success: false, message: error.message, code: error.code, details: error.details,
-        });
+        this.sendFormError(res, error);
         return;
       }
       next(error);
@@ -172,9 +233,7 @@ export class FormsController {
       res.sendFile(file.path, error => { if (error) next(error); });
     } catch (error) {
       if (error instanceof FormDomainError) {
-        res.status(statusByCode[error.code]).json({
-          success: false, message: error.message, code: error.code, details: error.details,
-        });
+        this.sendFormError(res, error);
         return;
       }
       next(error);
@@ -190,9 +249,7 @@ export class FormsController {
       res.sendFile(file.path, error => { if (error) next(error); });
     } catch (error) {
       if (error instanceof FormDomainError) {
-        res.status(statusByCode[error.code]).json({
-          success: false, message: error.message, code: error.code, details: error.details,
-        });
+        this.sendFormError(res, error);
         return;
       }
       next(error);
@@ -210,6 +267,10 @@ export class FormsController {
   });
 
   createDraft = this.handler(req => this.templates.createDraft(Number(req.params.id), req.userId!), 201);
+
+  previewVersion = this.handler(req => this.instances.previewVersion(
+    Number(req.params.id), req.body.taskId, req.userId!,
+  ));
 
   getVersion = this.handler(async req => {
     const version = await this.version(Number(req.params.id));
@@ -277,9 +338,7 @@ export class FormsController {
       res.send(pdf);
     } catch (error) {
       if (error instanceof FormDomainError) {
-        res.status(statusByCode[error.code]).json({
-          success: false, message: error.message, code: error.code, details: error.details,
-        });
+        this.sendFormError(res, error);
         return;
       }
       next(error);

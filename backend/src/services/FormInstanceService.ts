@@ -80,35 +80,7 @@ export class FormInstanceService {
         createdById: actorId,
       }));
       if (dataFields.length || bomFields.length) {
-        const resolver = new FormDataSourceResolver(manager);
-        const bomMaterials = bomFields.length && taskId != null
-          ? await manager.getRepository(TaskMaterial).find({
-            where: { taskId },
-            order: { id: 'ASC' },
-          })
-          : [];
-        type Snapshot = { field: FormFieldDefinition; value: FormJsonValue };
-        const snapshots = (await Promise.all(fields.map(async (field): Promise<Snapshot | null> => {
-          if (field.fieldType.toUpperCase() === 'DATA') {
-            return { field, value: await resolver.resolve(String(field.options.source), sourceContext) };
-          }
-          if (field.fieldType.toUpperCase() === 'BOM_TABLE') {
-            const filter = typeof field.options.filter === 'string' ? field.options.filter.trim() : '';
-            const value: FormJsonValue = bomMaterials
-              .filter(material => !filter || material.category === filter)
-              .map(material => ({
-                bomItemId: material.id,
-                name: material.materialName,
-                unit: material.unit ?? '',
-                plannedQty: Number(material.plannedQuantity),
-                installedQty: null,
-                installed: false,
-                note: '',
-              }));
-            return { field, value };
-          }
-          return null;
-        }))).filter((snapshot): snapshot is Snapshot => snapshot !== null);
+        const snapshots = await this.resolveInitialValues(manager, fields, sourceContext);
         const initialValues = snapshots.map(({ field, value }) => manager.getRepository(FormFieldValue).create({
           instanceId: instance.id,
           templateVersionId: instance.templateVersionId,
@@ -129,6 +101,30 @@ export class FormInstanceService {
         { field: 'status', previousValue: null, newValue: instance.status },
       ]);
       return instance;
+    });
+  }
+
+  async previewVersion(versionId: number, taskId: number, userId: number): Promise<FormResponses> {
+    return this.dataSource.transaction(async manager => {
+      const version = await manager.getRepository(FormTemplateVersion).findOne({ where: { id: versionId } });
+      if (!version) throw new FormDomainError('VERSION_NOT_FOUND', `Form version ${versionId} was not found`);
+      const [sections, fields, task] = await Promise.all([
+        manager.getRepository(FormSection).find({ where: { templateVersionId: version.id } }),
+        manager.getRepository(FormFieldDefinition).find({ where: { templateVersionId: version.id } }),
+        manager.getRepository(Task).findOne({ where: { id: taskId } }),
+      ]);
+      if (!task) throw new FormDomainError('INVALID_INSTANCE_CONTEXT', `Task ${taskId} was not found`);
+      validateFormDefinition(sections, fields);
+      const context: FormDataSourceContext = {
+        taskId: task.id,
+        contractId: task.contractId,
+        userId,
+      };
+      if (fields.some(field => field.fieldType.toUpperCase() === 'DATA' && !dataContextForField(field, context))) {
+        throw new FormDomainError('INVALID_INSTANCE_CONTEXT', 'System data source requires a matching task, contract or user context');
+      }
+      const snapshots = await this.resolveInitialValues(manager, fields, context);
+      return Object.fromEntries(snapshots.map(({ field, value }) => [field.key, value]));
     });
   }
 
@@ -333,6 +329,50 @@ export class FormInstanceService {
     });
     if (!instance) throw new FormDomainError('INSTANCE_NOT_FOUND', `Form instance ${instanceId} was not found`);
     return instance;
+  }
+
+  private async resolveInitialValues(
+    manager: EntityManager,
+    fields: FormFieldDefinition[],
+    context: FormDataSourceContext,
+  ): Promise<Array<{ field: FormFieldDefinition; value: FormJsonValue }>> {
+    const bomFields = fields.filter(field => field.fieldType.toUpperCase() === 'BOM_TABLE');
+    const resolver = new FormDataSourceResolver(manager);
+    const bomMaterials = bomFields.length && context.taskId != null
+      ? await manager.getRepository(TaskMaterial).find({
+        where: { taskId: context.taskId },
+        order: { id: 'ASC' },
+      })
+      : [];
+    const snapshots = await Promise.all(fields.map(async (field): Promise<{
+      field: FormFieldDefinition;
+      value: FormJsonValue;
+    } | undefined> => {
+      if (field.fieldType.toUpperCase() === 'DATA') {
+        return {
+          field,
+          value: await resolver.resolve(String(field.options.source), context),
+        };
+      }
+      if (field.fieldType.toUpperCase() === 'BOM_TABLE') {
+        const filter = typeof field.options.filter === 'string' ? field.options.filter.trim() : '';
+        const value: FormJsonValue = bomMaterials
+          .filter(material => !filter || material.category === filter)
+          .map(material => ({
+            bomItemId: material.id,
+            name: material.materialName,
+            unit: material.unit ?? '',
+            plannedQty: Number(material.plannedQuantity),
+            installedQty: null,
+            installed: false,
+            note: '',
+          }));
+        return { field, value };
+      }
+      return undefined;
+    }));
+    return snapshots.filter((snapshot): snapshot is { field: FormFieldDefinition; value: FormJsonValue } =>
+      snapshot !== undefined);
   }
 
   private async loadDefinitionAndValues(

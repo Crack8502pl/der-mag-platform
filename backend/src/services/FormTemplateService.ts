@@ -12,6 +12,7 @@ import { FormDomainError } from '../errors/FormDomainError';
 import { FormAuditService } from './FormAuditService';
 import { FormHeaderFooterService } from './FormHeaderFooterService';
 import { validateFormConditionShape, validateFormDefinition } from './FormRules';
+import { getFormDataSource } from '../modules/variable-engine/formDataSources';
 import { DataSource, EntityManager } from 'typeorm';
 import { RESERVED_FORM_KEYS } from '../utils/formJson';
 
@@ -256,6 +257,18 @@ export class FormTemplateService {
       for (const field of section.fields || []) {
         if (!field.key || RESERVED_FORM_KEYS.includes(field.key) || fieldKeys.has(field.key)) {
           throw new FormDomainError('INVALID_DEFINITION', `Duplicate, empty or reserved field key: ${field.key}`);
+        }
+        if (field.fieldType.toUpperCase() === 'DATA') {
+          const options = field.options ?? {};
+          const source = typeof options.source === 'string' ? getFormDataSource(options.source) : undefined;
+          if (
+            !source ||
+            (options.mode !== 'readonly' && options.mode !== 'prefill') ||
+            options.valueType !== source.type ||
+            Object.keys(options).some(key => !['source', 'mode', 'valueType'].includes(key))
+          ) {
+            throw new FormDomainError('INVALID_DEFINITION', `Invalid system data source or mode on ${field.key}`);
+          }
         }
         fieldKeys.add(field.key);
       }

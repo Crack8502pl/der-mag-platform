@@ -54,9 +54,29 @@ function valueToText(value: unknown): string {
   if (value === null || value === undefined || value === '') return '—';
   if (typeof value === 'boolean') return value ? 'Tak' : 'Nie';
   if (typeof value === 'number') return Number.isFinite(value) ? String(value) : '—';
-  if (typeof value === 'string') return value;
+  if (typeof value === 'string') return formatPdfDateValue(value);
   if (Array.isArray(value)) return value.map(valueToText).join(', ');
   return JSON.stringify(value);
+}
+
+function formatPdfDateTime(value: Date): string {
+  return new Intl.DateTimeFormat('pl-PL', {
+    timeZone: 'Europe/Warsaw',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(value);
+}
+
+function formatPdfDateValue(value: string): string {
+  const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnly) return `${dateOnly[3]}.${dateOnly[2]}.${dateOnly[1]}`;
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(value)) return value;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : formatPdfDateTime(parsed);
 }
 
 function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
@@ -106,8 +126,8 @@ export class FormInstancePdfService {
       fs.readFile(path.join(__dirname, '../assets/fonts/NotoSans-Regular.ttf')),
       fs.readFile(path.join(__dirname, '../assets/fonts/NotoSans-Bold.ttf')),
     ]);
-    const regular = await document.embedFont(regularBytes, { subset: true });
-    const bold = await document.embedFont(boldBytes, { subset: true });
+    const regular = await document.embedFont(regularBytes, { subset: false });
+    const bold = await document.embedFont(boldBytes, { subset: false });
     const header = await this.loadBranding(snapshot.version, 'HEADER');
     const footer = await this.loadBranding(snapshot.version, 'FOOTER');
     const valuesByFieldId = new Map(snapshot.values.map(value => [value.fieldDefinitionId, value.value]));
@@ -151,9 +171,9 @@ export class FormInstancePdfService {
     writeLines(snapshot.version.title, bold, 18);
     if (snapshot.version.description) writeLines(snapshot.version.description, regular);
     writeLines(`Instancja #${snapshot.instance.id} · status: ${snapshot.instance.status}`, regular, 9, MUTED);
-    writeLines(`Utworzono: ${snapshot.instance.createdAt.toLocaleString('pl-PL')}`, regular, 9, MUTED);
+    writeLines(`Utworzono: ${formatPdfDateTime(snapshot.instance.createdAt)}`, regular, 9, MUTED);
     if (snapshot.instance.submittedAt) {
-      writeLines(`Wysłano do akceptacji: ${snapshot.instance.submittedAt.toLocaleString('pl-PL')}`, regular, 9, MUTED);
+      writeLines(`Wysłano do akceptacji: ${formatPdfDateTime(snapshot.instance.submittedAt)}`, regular, 9, MUTED);
     }
     space(9);
 
@@ -193,7 +213,7 @@ export class FormInstancePdfService {
       : undefined;
     writeLines(`Status: ${snapshot.instance.status === FormInstanceStatus.APPROVED ? 'Zatwierdzony' : 'Do zatwierdzenia'}`, regular);
     writeLines(`Kto: ${approver ? `${approver.firstName} ${approver.lastName}`.trim() : '—'}`, regular);
-    writeLines(`Kiedy: ${lastApproval?.decidedAt.toLocaleString('pl-PL') ?? '—'}`, regular);
+    writeLines(`Kiedy: ${lastApproval ? formatPdfDateTime(lastApproval.decidedAt) : '—'}`, regular);
     writeLines(`Decyzja: ${lastApproval?.decision === FormApprovalDecision.APPROVED
       ? 'Zatwierdzono'
       : lastApproval?.decision === FormApprovalDecision.REJECTED ? 'Odrzucono' : '—'}`, regular);
@@ -343,13 +363,17 @@ export class FormInstancePdfService {
     if (getCurrent().y - headerHeight - 17 < bottomLimit) setCurrent(newPage());
     drawRow(header, bold);
     for (const row of rows) {
+      const partialInstallation = row.installed === false && Number(row.installedQty) > 0;
+      const note = typeof row.note === 'string' ? row.note : '';
       const wrapped = [
         valueToText(row.name),
         valueToText(row.unit),
         valueToText(row.plannedQty),
         valueToText(row.installedQty),
-        row.installed === true ? 'Tak' : 'Nie',
-        valueToText(row.note),
+        row.installed === true ? 'Tak' : partialInstallation ? 'Częściowy montaż' : 'Nie',
+        partialInstallation
+          ? `Ostrzeżenie: częściowy montaż${note ? ` · ${note}` : ''}`
+          : valueToText(row.note),
       ].map((cell, index) => wrapText(cell, regular, 8, widths[index] - 8));
       let offset = 0;
       const lineCount = Math.max(...wrapped.map(lines => lines.length));
@@ -426,7 +450,14 @@ export class FormInstancePdfService {
           text = valueToText(variables.get(item.source));
         }
         if (item.type === 'pageNumber') text = `Strona ${pageNumber} z ${totalPages}`;
-        if (item.type === 'printDate') text = new Date().toLocaleDateString('pl-PL');
+        if (item.type === 'printDate') {
+          text = new Intl.DateTimeFormat('pl-PL', {
+            timeZone: 'Europe/Warsaw',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+          }).format(new Date());
+        }
         if (item.type === 'logo' && typeof item.assetPath === 'string') {
           const stored = await this.branding.getLogoFile(path.basename(item.assetPath));
           const bytes = await fs.readFile(stored.path);

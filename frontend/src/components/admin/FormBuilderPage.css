@@ -140,6 +140,22 @@
   grid-column: 1 / -1;
 }
 
+.form-builder__create-advanced {
+  grid-column: 1 / -1;
+}
+
+.form-builder__create-advanced label {
+  max-width: 520px;
+  margin-top: 12px;
+}
+
+.form-builder__task-preview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
 .form-builder label {
   display: grid;
   gap: 6px;
@@ -441,6 +457,7 @@
   }
 
   .form-builder__create,
+  .form-builder__task-preview,
   .form-builder__field-grid,
   .form-builder__rule-form,
   .form-builder__condition,

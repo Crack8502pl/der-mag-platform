@@ -1,5 +1,22 @@
 # Wdrożenie Docker Compose
 
+## Hasła i sekrety w pliku `.env`
+
+Wartości sekretów zapisuj w pojedynczych cudzysłowach. Compose traktuje
+wartości ujęte w pojedyncze cudzysłowy jako literały, dzięki czemu znaki `$`
+nie są rozwijane jako zmienne. Przykład:
+
+```env
+DB_PASSWORD='silne-haslo-z-$-w-srodku'
+REDIS_PASSWORD='inne-silne-haslo'
+JWT_ACCESS_SECRET='co-najmniej-32-znaki'
+JWT_REFRESH_SECRET='inny-sekret-minimum-32-znaki'
+ENCRYPTION_KEY='losowy-klucz-szyfrujacy'
+```
+
+Wartości z `.env.example` są puste — ustaw własne sekrety przed uruchomieniem
+Compose. Nie używaj tych przykładowych wartości w środowisku produkcyjnym.
+
 ## Publiczny HTTPS przez Nginx
 
 Compose domyślnie udostępnia aplikację tylko na `127.0.0.1:3000`. To pozwala
@@ -51,6 +68,36 @@ i na końcu uruchom proxy: `docker compose --profile https up -d proxy`.
 Nie ustawiaj
 `APP_BIND_ADDRESS=0.0.0.0` w publicznym wdrożeniu; ruch zewnętrzny powinien
 przechodzić przez proxy.
+
+## HTTPS w sieci lokalnej bez domeny
+
+Jeśli serwer jest dostępny wyłącznie w sieci lokalnej, ustaw jego adres IP
+lub nazwę hosta w `SERVER_HOST` i uruchom profil `https-lan`:
+
+```env
+SERVER_HOST=192.168.2.38
+CORS_ORIGIN=https://192.168.2.38
+FRONTEND_URL=https://192.168.2.38
+```
+
+```bash
+docker compose --profile https-lan up --build -d
+```
+
+Proxy wygeneruje certyfikat self-signed z adresem `SERVER_HOST` w polu SAN
+i zachowa go w wolumenie `lan_certs`. Certyfikat nie jest podpisany przez
+publiczne centrum zaufania, dlatego aby usunąć ostrzeżenie przeglądarki,
+zainstaluj go jako zaufany certyfikat na każdym urządzeniu w sieci:
+
+```bash
+docker compose --profile https-lan cp proxy-lan:/etc/nginx/certs/server.crt ./der-mag-lan.crt
+```
+
+Nie udostępniaj ani nie commituj prywatnego klucza `server.key`. Po zmianie
+`SERVER_HOST` proxy automatycznie wygeneruje nowy certyfikat. Profile `https`
+i `https-lan` korzystają z tych samych portów 80/443, więc nie uruchamiaj ich
+jednocześnie. Przy zatrzymywaniu użyj `docker compose --profile https-lan down`;
+wolumen certyfikatów pozostanie zachowany.
 
 ## Kopie zapasowe
 
