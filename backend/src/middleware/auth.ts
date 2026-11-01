@@ -9,6 +9,7 @@ import { RefreshToken } from '../entities/RefreshToken';
 import { Role } from '../entities/Role';
 import { serverLogger } from '../utils/logger';
 import { logSecurityEvent } from '../utils/securityLogger';
+import { EffectivePermissionsService } from '../modules/function-groups/services/EffectivePermissionsService';
 
 // Rozszerzenie typu Request o dane użytkownika
 declare global {
@@ -83,11 +84,12 @@ export const authenticate = async (
         return;
       }
 
-      // Ustaw req.user z pełnymi danymi użytkownika i uprawnieniami z roli
+      // Ustaw req.user z pełnymi danymi użytkownika i uprawnieniami efektywnymi (rola + aktywne funkcje)
+      const effective = await EffectivePermissionsService.forRequest(req);
       req.user = {
         ...payload,
         role: user.role as any,
-        permissions: user.role.permissions
+        permissions: effective?.permissions ?? user.role.permissions
       };
 
       // Paranoid mode: verify token exists in database and is not revoked

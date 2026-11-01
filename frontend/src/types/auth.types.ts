@@ -13,6 +13,7 @@ export interface User {
   employeeCode?: string;
   role: string;
   permissions: RolePermissions;
+  functionGroups?: Array<{ key: string; name: string }>;
   lastLogin?: string;
 }
 

@@ -4,6 +4,7 @@ import { AppDataSource } from '../../../src/config/database';
 import { Role } from '../../../src/entities/Role';
 import { User } from '../../../src/entities/User';
 import { TaskType } from '../../../src/entities/TaskType';
+import { FunctionGroup } from '../../../src/modules/function-groups/entities/FunctionGroup';
 import bcrypt from 'bcrypt';
 
 // Mock dependencies
@@ -164,6 +165,32 @@ describe('DatabaseSeeder', () => {
       );
 
       delete process.env.ADMIN_EMAIL;
+    });
+
+    it('should seed function groups idempotently without members or permissions', async () => {
+      const groupsByKey = new Map<string, any>();
+      const functionGroupRepository = {
+        create: jest.fn((data) => data),
+        save: jest.fn((data) => {
+          groupsByKey.set(data.key, data);
+          return Promise.resolve(data);
+        }),
+        findOne: jest.fn(({ where }: any) => Promise.resolve(groupsByKey.get(where.key) ?? null)),
+      };
+      const defaultImplementation = (AppDataSource.getRepository as jest.Mock).getMockImplementation()!;
+      (AppDataSource.getRepository as jest.Mock).mockImplementation((entity: any) =>
+        entity === FunctionGroup ? functionGroupRepository : defaultImplementation(entity));
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword123');
+
+      await DatabaseSeeder.seed();
+      await DatabaseSeeder.seed();
+
+      expect(functionGroupRepository.save).toHaveBeenCalledTimes(3);
+      expect([...groupsByKey.values()]).toEqual([
+        { key: 'PROCESS_BUILDERS', name: 'Budowniczowie procesów', permissions: {}, active: true },
+        { key: 'PROCESS_AUDITORS', name: 'Audytorzy procesów', permissions: {}, active: true },
+        { key: 'TECHNICAL_REVIEW', name: 'Dział techniczny', permissions: {}, active: true },
+      ]);
     });
 
     it('should create all required roles', async () => {

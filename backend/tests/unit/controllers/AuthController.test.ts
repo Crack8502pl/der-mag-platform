@@ -437,8 +437,39 @@ describe('AuthController', () => {
           phone: '123456789',
           role: 'admin',
           permissions: { all: true },
+          functionGroups: [],
           lastLogin: mockUser.lastLogin,
         },
+      });
+    });
+
+    it('should return effective permissions and active function groups', async () => {
+      const now = Date.now();
+      const group = (id: number, key: string, name: string, active: boolean, permissions: any) =>
+        ({ id, key, name, active, permissions });
+      mockUserRepository.findOne.mockResolvedValue({
+        id: 2,
+        username: 'viewer',
+        active: true,
+        role: { id: 10, name: 'viewer', permissions: { contracts: { read: true } } },
+        functionGroupMemberships: [
+          { validFrom: new Date(now - 1000), validTo: null,
+            functionGroup: group(1, 'PROCESS_AUDITORS', 'Audytorzy procesów', true, { contracts: { create: true } }) },
+          { validFrom: new Date(now - 2000), validTo: new Date(now - 1000),
+            functionGroup: group(2, 'TECHNICAL_REVIEW', 'Dział techniczny', true, { contracts: { delete: true } }) },
+        ],
+      });
+      req.userId = 2;
+
+      await AuthController.me(req as Request, res as Response);
+
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        data: expect.objectContaining({
+          role: 'viewer',
+          permissions: { contracts: { read: true, create: true } },
+          functionGroups: [{ key: 'PROCESS_AUDITORS', name: 'Audytorzy procesów' }],
+        }),
       });
     });
 

@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import adminService from '../../services/admin.service';
 import type { User, CreateUserDto, Role } from '../../types/admin.types';
+import { UserRoleAndFunctions } from '../users/UserRoleAndFunctions';
 
 export const UserManagementPage: React.FC = () => {
   const navigate = useNavigate();
@@ -183,7 +184,7 @@ export const UserManagementPage: React.FC = () => {
             <tr>
               <th>Użytkownik</th>
               <th>Email</th>
-              <th>Rola</th>
+              <th>Rola i funkcje</th>
               <th>Status</th>
               <th>Automat e-mail</th>
               <th>Ostatnie logowanie</th>
@@ -202,7 +203,7 @@ export const UserManagementPage: React.FC = () => {
                 </td>
                 <td>{user.email}</td>
                 <td>
-                  <span className="badge">{user.role?.name || 'N/A'}</span>
+                  <UserRoleAndFunctions roleName={user.role?.name} functionGroups={user.functionGroups} />
                 </td>
                 <td>
                   <span className={`status ${user.active ? 'active' : 'inactive'}`}>

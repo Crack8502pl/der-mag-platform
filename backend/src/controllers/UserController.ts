@@ -9,6 +9,7 @@ import { IsNull } from 'typeorm';
 import EmailService from '../services/EmailService';
 import { NotificationService } from '../services/NotificationService';
 import { EmployeeCodeGenerator } from '../services/EmployeeCodeGenerator';
+import { FunctionGroupService } from '../modules/function-groups/services/FunctionGroupService';
 import bcrypt from 'bcrypt';
 
 export class UserController {
@@ -81,10 +82,12 @@ export class UserController {
         .take(limitNum)
         .getManyAndCount();
 
+      const functionGroups = await FunctionGroupService.activeGroupsByUser(users.map(u => u.id));
+
       res.json({
         success: true,
         data: {
-          users,
+          users: users.map(u => ({ ...u, functionGroups: functionGroups.get(u.id) ?? [] })),
           pagination: {
             page: pageNum,
             limit: limitNum,
@@ -155,6 +158,7 @@ export class UserController {
       qb.skip((pageNum - 1) * limitNum).take(limitNum);
 
       const [users, total] = await qb.getManyAndCount();
+      const functionGroups = await FunctionGroupService.activeGroupsByUser(users.map(u => u.id));
 
       res.json({
         success: true,
@@ -167,6 +171,7 @@ export class UserController {
             lastName: u.lastName,
             employeeCode: u.employeeCode,
             role: u.role ? { id: u.role.id, name: u.role.name, description: u.role.description } : null,
+            functionGroups: functionGroups.get(u.id) ?? [],
             active: u.active,
             createdAt: u.createdAt,
             lastLogin: u.lastLogin,

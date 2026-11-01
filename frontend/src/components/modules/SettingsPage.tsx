@@ -4,6 +4,7 @@ import { ModuleIcon } from '../common/ModuleIcon';
 import { MODULE_ICONS } from '../../config/moduleIcons';
 import { useAuth } from '../../hooks/useAuth';
 import { ProfileSection } from '../settings/ProfileSection';
+import { UserRoleAndFunctions } from '../users/UserRoleAndFunctions';
 import { PasswordSection } from '../settings/PasswordSection';
 import { AppearanceSection } from '../settings/AppearanceSection';
 import { NotificationsSection } from '../settings/NotificationsSection';
@@ -98,6 +99,9 @@ export const SettingsPage: React.FC = () => {
           <>
             {activeTab === 'profile' && (
               <section aria-label="Profil użytkownika">
+                <div className="settings-section" aria-label="Rola i funkcje">
+                  <UserRoleAndFunctions roleName={user?.role} functionGroups={user?.functionGroups} />
+                </div>
                 <ProfileSection initialData={profileData} />
               </section>
             )}

@@ -13,6 +13,7 @@ import { CompletionController } from '../controllers/CompletionController';
 import { AdminSessionsController } from '../controllers/AdminSessionsController';
 import { EmailAutomationAdminController } from '../controllers/EmailAutomationAdminController';
 import cronConfigRouter from './cronConfig.routes';
+import functionGroupRoutes from '../modules/function-groups/routes/functionGroup.routes';
 
 const router = Router();
 
@@ -61,6 +62,12 @@ router.post('/users/:id/deactivate', UserController.deactivate);
 // Reset user password (generates new OTP)
 router.post('/users/:id/reset-password', UserController.resetPassword);
 router.patch('/users/:id/email-automation', EmailAutomationAdminController.updateUserPause);
+
+// ============================================
+// Function Groups (funkcje nadawane osobowo obok ról)
+// ============================================
+
+router.use(functionGroupRoutes);
 
 // ============================================
 // Role Management Routes

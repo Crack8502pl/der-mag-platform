@@ -8,6 +8,7 @@ import { RolePermissions } from '../entities/Role';
 import { TaskType } from '../entities/TaskType';
 import { Task } from '../entities/Task';
 import { TaskAssignment } from '../entities/TaskAssignment';
+import { EffectivePermissionsService } from '../modules/function-groups/services/EffectivePermissionsService';
 
 /**
  * Sprawdź czy użytkownik ma uprawnienie do modułu i akcji
@@ -23,13 +24,9 @@ export const checkPermission = (module: string, action: string) => {
         return;
       }
 
-      const userRepository = AppDataSource.getRepository(User);
-      const user = await userRepository.findOne({
-        where: { id: req.userId },
-        relations: ['role']
-      });
+      const effective = await EffectivePermissionsService.forRequest(req);
 
-      if (!user || !user.role) {
+      if (!effective) {
         res.status(403).json({
           success: false,
           message: 'Brak przypisanej roli'
@@ -37,7 +34,7 @@ export const checkPermission = (module: string, action: string) => {
         return;
       }
 
-      const permissions = user.role.permissions as RolePermissions;
+      const permissions = effective.permissions;
 
       // Admin ma wszystko
       if (permissions.all === true) {
@@ -97,13 +94,9 @@ export const checkAnyPermission = (module: string, actions: string[]) => {
         return;
       }
 
-      const userRepository = AppDataSource.getRepository(User);
-      const user = await userRepository.findOne({
-        where: { id: req.userId },
-        relations: ['role']
-      });
+      const effective = await EffectivePermissionsService.forRequest(req);
 
-      if (!user || !user.role) {
+      if (!effective) {
         res.status(403).json({
           success: false,
           message: 'Brak przypisanej roli'
@@ -111,7 +104,7 @@ export const checkAnyPermission = (module: string, actions: string[]) => {
         return;
       }
 
-      const permissions = user.role.permissions as RolePermissions;
+      const permissions = effective.permissions;
 
       // Admin ma wszystko
       if (permissions.all === true) {
@@ -166,16 +159,13 @@ export const checkAnyModulePermission = (requirements: Array<{ module: string; a
           return;
         }
 
-        const user = await AppDataSource.getRepository(User).findOne({
-          where: { id: req.userId },
-          relations: ['role'],
-        });
-        if (!user || !user.role) {
+        const effective = await EffectivePermissionsService.forRequest(req);
+        if (!effective) {
           res.status(403).json({ success: false, message: 'Brak przypisanej roli' });
           return;
         }
 
-        const permissions = user.role.permissions as RolePermissions;
+        const permissions = effective.permissions;
         const granted = permissions.all === true || requirements.some(({ module, actions }) => {
           const modulePermissions = permissions[module];
           if (!modulePermissions || typeof modulePermissions !== 'object') return false;

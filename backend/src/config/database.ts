@@ -130,6 +130,9 @@ import { CreateDeviceInstallationWorkflows1793432400000 } from '../migrations/20
 import { CreateFormHeaderFooters1793454000000 } from '../migrations/20261031_create_form_header_footers';
 import { CreateFormAuditLogs1793454000001 } from '../migrations/20261031_create_form_audit_logs';
 import { FormTimestampsWithTimeZone1793491800000 } from '../migrations/20261101_form_timestamps_with_time_zone';
+import { CreateFunctionGroups1793553600000 } from '../migrations/20261101_create_function_groups';
+import { FunctionGroup } from '../modules/function-groups/entities/FunctionGroup';
+import { UserFunctionGroup } from '../modules/function-groups/entities/UserFunctionGroup';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -268,6 +271,8 @@ export const AppDataSource = new DataSource({
     FormApproval,
     FormHeaderFooter,
     DeviceInstallationWorkflow,
+    FunctionGroup,
+    UserFunctionGroup,
   ],
   subscribers: [],
   migrations: [
@@ -290,6 +295,7 @@ export const AppDataSource = new DataSource({
     CreateFormHeaderFooters1793454000000,
     CreateFormAuditLogs1793454000001,
     FormTimestampsWithTimeZone1793491800000,
+    CreateFunctionGroups1793553600000,
   ],
 });
 

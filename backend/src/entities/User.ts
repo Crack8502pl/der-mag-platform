@@ -4,6 +4,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, BeforeInsert, BeforeUpdate, OneToMany } from 'typeorm';
 import { Role } from './Role';
 import { TaskAssignment } from './TaskAssignment';
+import { UserFunctionGroup } from '../modules/function-groups/entities/UserFunctionGroup';
 import bcrypt from 'bcrypt';
 
 @Entity('users')
@@ -67,6 +68,9 @@ export class User {
 
   @OneToMany(() => TaskAssignment, assignment => assignment.user)
   taskAssignments: TaskAssignment[];
+
+  @OneToMany(() => UserFunctionGroup, membership => membership.user)
+  functionGroupMemberships: UserFunctionGroup[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

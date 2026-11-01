@@ -1,6 +1,6 @@
 name: Regression
 
-# Lista regresji R1-R12 (docs/etap-2/REGRESJA.md) sprawdzana przy każdym PR i pushu na main
+# Lista regresji R1-R13 (docs/etap-2/REGRESJA.md) sprawdzana przy każdym PR i pushu na main
 # na zbudowanej aplikacji i czystej bazie. Celowo BEZ filtra ścieżek.
 on:
   pull_request:
@@ -173,7 +173,7 @@ jobs:
           tail -n 100 logs/*.log 2>/dev/null || true
           exit 1
 
-      - name: R2-R9, R12 – regression tests
+      - name: R2-R9, R12-R13 – regression tests
         working-directory: backend
         env:
           REGRESSION_BASE_URL: http://127.0.0.1:3000

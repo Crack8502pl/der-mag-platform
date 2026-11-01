@@ -34,6 +34,13 @@ export const AdminDashboard: React.FC = () => {
       adminOnly: true,
     },
     {
+      title: 'Funkcje',
+      description: 'Funkcje nadawane osobom obok ról (np. Audytorzy procesów) – członkowie i uprawnienia',
+      icon: '👥',
+      path: '/admin/function-groups',
+      adminOnly: true,
+    },
+    {
       title: 'Debuger uprawnień 🔍',
       description: 'Odkoduj kod błędu uprawnień otrzymany od użytkownika',
       icon: '🔍',
