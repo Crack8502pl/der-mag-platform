@@ -1,6 +1,7 @@
 import { AppDataSource } from '../../../src/config/database';
 import { FormApproval } from '../../../src/entities/FormApproval';
 import { FormAssignmentRule } from '../../../src/entities/FormAssignmentRule';
+import { AutomationChain } from '../../../src/modules/automation/entities/AutomationChain';
 import { FormHeaderFooter } from '../../../src/entities/FormHeaderFooter';
 import { FormFieldDefinition } from '../../../src/entities/FormFieldDefinition';
 import { FormFieldValue } from '../../../src/entities/FormFieldValue';
@@ -440,6 +441,7 @@ describe('FormTemplateService', () => {
       [FormFieldDefinition, fieldRepository],
       [FormTrigger, triggerRepository],
       [FormAssignmentRule, assignmentRepository],
+      [AutomationChain, repository({ find: jest.fn().mockResolvedValue([]) })],
     ]));
 
     await expect(new FormTemplateService(dataSource).createNextVersion(7, 9)).resolves.toMatchObject({
@@ -587,6 +589,7 @@ describe('FormInstanceService', () => {
       [FormFieldDefinition, fieldRepository],
       [FormTrigger, emptyRepository],
       [FormAssignmentRule, emptyRepository],
+      [AutomationChain, emptyRepository],
       [FormHeaderFooter, repository({ findOne: jest.fn().mockResolvedValue(null) })],
     ]));
     const templateService = new FormTemplateService(templateHarness.dataSource);

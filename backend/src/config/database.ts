@@ -133,6 +133,10 @@ import { FormTimestampsWithTimeZone1793491800000 } from '../migrations/20261101_
 import { CreateFunctionGroups1793553600000 } from '../migrations/20261101_create_function_groups';
 import { FunctionGroup } from '../modules/function-groups/entities/FunctionGroup';
 import { UserFunctionGroup } from '../modules/function-groups/entities/UserFunctionGroup';
+import { CreateAutomation1793640000000 } from '../migrations/20261102_create_automation';
+import { AutomationChain } from '../modules/automation/entities/AutomationChain';
+import { AutomationRun } from '../modules/automation/entities/AutomationRun';
+import { AutomationRunStep } from '../modules/automation/entities/AutomationRunStep';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -273,6 +277,9 @@ export const AppDataSource = new DataSource({
     DeviceInstallationWorkflow,
     FunctionGroup,
     UserFunctionGroup,
+    AutomationChain,
+    AutomationRun,
+    AutomationRunStep,
   ],
   subscribers: [],
   migrations: [
@@ -296,6 +303,7 @@ export const AppDataSource = new DataSource({
     CreateFormAuditLogs1793454000001,
     FormTimestampsWithTimeZone1793491800000,
     CreateFunctionGroups1793553600000,
+    CreateAutomation1793640000000,
   ],
 });
 

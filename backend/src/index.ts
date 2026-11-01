@@ -13,6 +13,7 @@ import { DatabaseSeeder } from './services/DatabaseSeeder';
 import { ShipmentBomTemplatesSeed } from './seeds/shipmentBomTemplates.seed';
 import EmailService from './services/EmailService';
 import EmailQueueService from './services/EmailQueueService';
+import { initializeAutomation, shutdownAutomation } from './modules/automation/runtime';
 import NotificationSchedulerService from './services/NotificationSchedulerService';
 import { startSymfoniaStockSyncJob, stopSymfoniaStockSyncJob } from './jobs/symfoniaStockSync.job';
 import { scheduleWarehouseCleanup, stopWarehouseCleanupJob } from './jobs/warehouseCleanupJob';
@@ -54,6 +55,9 @@ const startServer = async () => {
     serverLogger.info('📧 Inicjalizacja systemu emaili...');
     await EmailService.initialize();
     await EmailQueueService.initialize();
+
+    // Automatyzacje: subskrypcja zdarzeń domenowych i kolejka Bull (bez Redisa – tryb synchroniczny)
+    await initializeAutomation();
 
     // Inicjalizacja schedulera powiadomień
     serverLogger.info('⏰ Inicjalizacja schedulera powiadomień...');
@@ -158,6 +162,12 @@ const gracefulShutdown = async (signal: 'SIGTERM' | 'SIGINT'): Promise<void> => 
   stopSymfoniaCarSyncJob();
   stopWarehouseCleanupJob();
   stopCleanExpiredDraftsJob();
+
+  try {
+    await shutdownAutomation();
+  } catch (error) {
+    serverLogger.warn('⚠️  Automation queue close error (non-fatal):', error);
+  }
 
   try {
     await EmailQueueService.close();

@@ -15,6 +15,7 @@ import { validateFormConditionShape, validateFormDefinition } from './FormRules'
 import { getFormDataSource } from '../modules/variable-engine/formDataSources';
 import { DataSource, EntityManager } from 'typeorm';
 import { RESERVED_FORM_KEYS } from '../utils/formJson';
+import { cloneChainsForVersion } from '../modules/automation/services/cloneChains';
 
 export class FormTemplateService {
   private readonly branding: FormHeaderFooterService;
@@ -415,6 +416,7 @@ export class FormTemplateService {
         }),
       ));
     }
+    await cloneChainsForVersion(manager, source.id, draft.id);
     return draft;
   }
 }

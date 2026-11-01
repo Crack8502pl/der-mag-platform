@@ -5,6 +5,7 @@ import { FormInstance } from '../entities/FormInstance';
 import { FormApprovalDecision, FormInstanceStatus } from '../entities/FormTypes';
 import { FormDomainError } from '../errors/FormDomainError';
 import { FormAuditService } from './FormAuditService';
+import { domainEventBus } from '../modules/events/DomainEventBus';
 
 export interface FormApprovalOptions {
   override?: boolean;
@@ -37,7 +38,7 @@ export class FormApprovalService {
     comment?: string,
     options: FormApprovalOptions = {},
   ): Promise<FormApproval> {
-    return this.dataSource.transaction(async manager => {
+    return domainEventBus.afterCommit(this.dataSource, async (manager, emit) => {
       const instanceRepository = manager.getRepository(FormInstance);
       const instance = await instanceRepository.findOne({
         where: { id: instanceId },
@@ -83,6 +84,20 @@ export class FormApprovalService {
           { field: 'comment', previousValue: null, newValue: approval.comment },
         ], { instanceId, round });
       }
+      emit({
+        type: decision === FormApprovalDecision.APPROVED ? 'FORM_APPROVED' : 'FORM_REJECTED',
+        actorId,
+        subject: { type: 'FORM_INSTANCE', id: instance.id },
+        payload: {
+          instanceId: instance.id,
+          templateVersionId: instance.templateVersionId,
+          taskId: instance.taskId,
+          contractId: instance.contractId,
+          approvalId: approval.id,
+          round,
+          override: options.override === true,
+        },
+      });
       return approval;
     });
   }

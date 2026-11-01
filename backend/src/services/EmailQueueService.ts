@@ -102,6 +102,13 @@ class EmailQueueService {
   }
 
   /**
+   * Czy kolejka jest zainicjalizowana (w przeciwnym razie addToQueue niczego nie wysyła)
+   */
+  isReady(): boolean {
+    return this.queue !== null;
+  }
+
+  /**
    * Dodaje email do kolejki
    */
   async addToQueue(emailOptions: EmailOptions, delay = 0): Promise<void> {
