@@ -1,7 +1,7 @@
 // Wspólne narzędzia testów regresji R (docs/etap-2/REGRESJA.md).
 // Testy wołają PRAWDZIWY, uruchomiony serwer po HTTP – bez mocków.
 // Adres serwera: REGRESSION_BASE_URL (domyślnie http://127.0.0.1:3000).
-import { randomBytes } from 'crypto';
+import { randomBytes, randomInt } from 'crypto';
 
 export const BASE_URL = (process.env.REGRESSION_BASE_URL || 'http://127.0.0.1:3000').replace(/\/+$/, '');
 export const ADMIN_CREDENTIALS = { username: 'admin', password: 'Admin123!' } as const;
@@ -132,7 +132,7 @@ export async function roleIdByName(admin: ApiSession, name: string): Promise<num
 
 function randomLetters(length: number): string {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  return [...randomBytes(length)].map(byte => alphabet[byte % alphabet.length]).join('');
+  return Array.from({ length }, () => alphabet[randomInt(alphabet.length)]).join('');
 }
 
 /** Tworzy użytkownika z podaną rolą i zwraca jego dane logowania. */
