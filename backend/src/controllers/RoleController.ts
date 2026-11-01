@@ -353,6 +353,11 @@ export class RoleController {
           actions: ['read', 'create', 'update', 'publish', 'complete', 'approve', 'assign', 'readAll']
         },
         {
+          name: 'automation',
+          displayName: 'Automatyzacje',
+          actions: ['read', 'build', 'run']
+        },
+        {
           name: 'map',
           displayName: 'Mapa',
           actions: ['read', 'viewAll']

@@ -32,6 +32,7 @@ export interface EmailOptions {
  */
 export enum EmailTemplate {
   TASK_CREATED = 'task-created',
+  AUTOMATION_MESSAGE = 'automation-message',
   TASK_ASSIGNED = 'task-assigned',
   TASK_COMPLETED = 'task-completed',
   TASK_OVERDUE = 'task-overdue',
