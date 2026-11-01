@@ -29,6 +29,8 @@ module.exports = {
     '^.+\\.js$': ['babel-jest', { plugins: ['@babel/plugin-transform-modules-commonjs'] }],
   },
   testMatch: ['**/*.{test,spec}.ts'],
+  // Testy regresji wymagają uruchomionego serwera – tylko przez `npm run test:regression`.
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/tests/regression/'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   coverageProvider: 'v8',
 

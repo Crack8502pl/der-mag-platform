@@ -1,0 +1,7 @@
+{
+  "description": "Progi testu regresji (W0b). Wartości wolno zmieniać tylko w górę. Liczby testów zmierzone na main (jest: numTotalTests, vitest: numTotalTests); próg PDF = 70% udziału ciemnych pikseli w górnych 60% strony 1 przy 50 dpi (zmierzono 0.02298).",
+  "backendTests": 2156,
+  "frontendTests": 481,
+  "pdfDarkPixelRatioMeasured": 0.02298,
+  "pdfDarkPixelRatioMin": 0.01608
+}
