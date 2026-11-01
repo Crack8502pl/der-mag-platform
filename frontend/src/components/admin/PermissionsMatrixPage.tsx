@@ -15,8 +15,19 @@ interface PermissionModule {
   actions: string[];
 }
 
-export const PermissionsMatrixPage: React.FC = () => {
+interface PermissionsMatrixPageProps {
+  /**
+   * 'roles' – macierz uprawnień ról (domyślnie),
+   * 'functionGroups' – macierz uprawnień funkcji: bez opcji „wszystko”, funkcje tylko dodają uprawnienia.
+   */
+  variant?: 'roles' | 'functionGroups';
+}
+
+export const PermissionsMatrixPage: React.FC<PermissionsMatrixPageProps> = ({ variant = 'roles' }) => {
   const navigate = useNavigate();
+  const isFunctionGroups = variant === 'functionGroups';
+  const backPath = isFunctionGroups ? '/admin/function-groups' : '/admin';
+  const pageTitle = isFunctionGroups ? 'Uprawnienia funkcji' : 'Macierz uprawnień';
   const [roles, setRoles] = useState<Role[]>([]);
   const [editedRoles, setEditedRoles] = useState<Role[]>([]);
   const [permissionsSchema, setPermissionsSchema] = useState<PermissionModule[]>([]);
@@ -38,7 +49,12 @@ export const PermissionsMatrixPage: React.FC = () => {
     try {
       setLoading(true);
       const [rolesData, schemaData] = await Promise.all([
-        adminService.getRoles(),
+        isFunctionGroups
+          ? adminService.getFunctionGroups().then((groups) =>
+              groups
+                .filter((group) => group.active)
+                .map((group) => ({ id: group.id, name: group.name, description: group.description ?? undefined, permissions: group.permissions || {} })))
+          : adminService.getRoles(),
         adminService.getPermissionsSchema(),
       ]);
       setRoles(rolesData);
@@ -53,8 +69,8 @@ export const PermissionsMatrixPage: React.FC = () => {
   };
 
   const getPermissionValue = (role: Role, moduleName: string, actionKey: string): boolean | null => {
-    // Admin ma wszystkie uprawnienia
-    if (role.permissions?.all === true) {
+    // Admin ma wszystkie uprawnienia (funkcja nigdy nie ma „wszystko”)
+    if (!isFunctionGroups && role.permissions?.all === true) {
       return true;
     }
 
@@ -77,10 +93,40 @@ export const PermissionsMatrixPage: React.FC = () => {
         if (role.id !== roleId) return role;
 
         // Don't allow editing admin permissions
-        if (role.name === 'admin') return role;
+        if (!isFunctionGroups && role.name === 'admin') return role;
 
         const currentValue = getPermissionValue(role, moduleName, actionKey);
         let newValue: boolean;
+
+        if (isFunctionGroups) {
+          // Funkcja tylko dodaje uprawnienia: brak wpisu <-> przyznane
+          const newPermissions = { ...role.permissions };
+          const moduleActions = { ...(newPermissions[moduleName] || {}) };
+          if (currentValue === true) {
+            delete moduleActions[actionKey];
+          } else {
+            moduleActions[actionKey] = true;
+          }
+          if (Object.keys(moduleActions).length) {
+            newPermissions[moduleName] = moduleActions;
+          } else {
+            delete newPermissions[moduleName];
+          }
+
+          const cellKey = `${roleId}-${moduleName}-${actionKey}`;
+          setChangedCells((prev) => {
+            const newSet = new Set(prev);
+            const originalValue = getPermissionValue(roles.find((r) => r.id === roleId)!, moduleName, actionKey);
+            if (originalValue !== (moduleActions[actionKey] ?? null)) {
+              newSet.add(cellKey);
+            } else {
+              newSet.delete(cellKey);
+            }
+            return newSet;
+          });
+
+          return { ...role, permissions: newPermissions };
+        }
 
         // Cycle: null -> true -> false -> null
         if (currentValue === null) {
@@ -153,9 +199,13 @@ export const PermissionsMatrixPage: React.FC = () => {
 
       // Update each changed role
       for (const role of changedRoles) {
-        await adminService.updateRole(role.id, {
-          permissions: role.permissions,
-        });
+        if (isFunctionGroups) {
+          await adminService.updateFunctionGroup(role.id, { permissions: role.permissions });
+        } else {
+          await adminService.updateRole(role.id, {
+            permissions: role.permissions,
+          });
+        }
       }
 
       // Reload data
@@ -214,10 +264,10 @@ export const PermissionsMatrixPage: React.FC = () => {
     return (
       <div className="permissions-matrix-page">
         <div className="page-header">
-          <button onClick={() => navigate('/admin')} className="back-button">
+          <button onClick={() => navigate(backPath)} className="back-button">
             ← Powrót
           </button>
-          <h1>Macierz uprawnień</h1>
+          <h1>{pageTitle}</h1>
         </div>
         <div className="loading-spinner">
           <div className="spinner"></div>
@@ -230,10 +280,10 @@ export const PermissionsMatrixPage: React.FC = () => {
     return (
       <div className="permissions-matrix-page">
         <div className="page-header">
-          <button onClick={() => navigate('/admin')} className="back-button">
+          <button onClick={() => navigate(backPath)} className="back-button">
             ← Powrót
           </button>
-          <h1>Macierz uprawnień</h1>
+          <h1>{pageTitle}</h1>
         </div>
         <div className="error-message">{error}</div>
       </div>
@@ -243,13 +293,15 @@ export const PermissionsMatrixPage: React.FC = () => {
   return (
     <div className="permissions-matrix-page">
       <div className="page-header">
-        <button onClick={() => navigate('/admin')} className="back-button">
+        <button onClick={() => navigate(backPath)} className="back-button">
           ← Powrót
         </button>
-        <h1>Macierz uprawnień 🔑</h1>
+        <h1>{pageTitle} 🔑</h1>
         <p className="subtitle">
           {editMode
             ? 'Tryb edycji - kliknij w komórkę aby zmienić uprawnienie'
+            : isFunctionGroups
+            ? 'Uprawnienia dodawane osobom przez funkcje (obok ich roli)'
             : 'Przegląd uprawnień wszystkich ról w systemie'}
         </p>
       </div>
@@ -270,7 +322,7 @@ export const PermissionsMatrixPage: React.FC = () => {
             className={`sort-btn ${sortBy === 'role' ? 'active' : ''}`}
             onClick={() => setSortBy('role')}
           >
-            👤 Sortuj po roli
+            👤 {isFunctionGroups ? 'Sortuj po funkcji' : 'Sortuj po roli'}
           </button>
         </div>
 
@@ -294,12 +346,14 @@ export const PermissionsMatrixPage: React.FC = () => {
             </>
           ) : (
             <>
-              <button
-                className="btn btn-primary"
-                onClick={() => setShowAddRoleModal(true)}
-              >
-                ➕ Dodaj rolę
-              </button>
+              {!isFunctionGroups && (
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setShowAddRoleModal(true)}
+                >
+                  ➕ Dodaj rolę
+                </button>
+              )}
               <button
                 className="btn btn-secondary"
                 onClick={() => setEditMode(true)}
@@ -326,9 +380,9 @@ export const PermissionsMatrixPage: React.FC = () => {
           </div>
 
           <div className="filter-group">
-            <label>Filtruj po roli:</label>
+            <label>{isFunctionGroups ? 'Filtruj po funkcji:' : 'Filtruj po roli:'}</label>
             <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)}>
-              <option value="">Wszystkie role</option>
+              <option value="">{isFunctionGroups ? 'Wszystkie funkcje' : 'Wszystkie role'}</option>
               {roles.map((r) => (
                 <option key={r.id} value={r.id.toString()}>
                   {r.name}
@@ -344,10 +398,12 @@ export const PermissionsMatrixPage: React.FC = () => {
           <span className="legend-icon">✅</span>
           <span>Uprawnienie przyznane (true)</span>
         </div>
-        <div className="legend-item">
-          <span className="legend-icon">❌</span>
-          <span>Uprawnienie zabronione (false)</span>
-        </div>
+        {!isFunctionGroups && (
+          <div className="legend-item">
+            <span className="legend-icon">❌</span>
+            <span>Uprawnienie zabronione (false)</span>
+          </div>
+        )}
         <div className="legend-item">
           <span className="legend-icon">⬜</span>
           <span>Brak wpisu (undefined/null)</span>
@@ -371,7 +427,7 @@ export const PermissionsMatrixPage: React.FC = () => {
               {filteredRoles.map((role) => (
                 <th key={role.id} className="sticky-header role-header">
                   <div className="role-name">{role.name}</div>
-                  {role.permissions?.all && (
+                  {!isFunctionGroups && role.permissions?.all && (
                     <div className="admin-badge">ADMIN</div>
                   )}
                 </th>
@@ -394,7 +450,7 @@ export const PermissionsMatrixPage: React.FC = () => {
                   {filteredRoles.map((role) => {
                     const value = getPermissionValue(role, module.name, action);
                     const isChanged = isCellChanged(role.id, module.name, action);
-                    const isEditable = editMode && role.name !== 'admin';
+                    const isEditable = editMode && (isFunctionGroups || role.name !== 'admin');
 
                     return (
                       <td
@@ -423,12 +479,14 @@ export const PermissionsMatrixPage: React.FC = () => {
         </table>
       </div>
 
-      <AddRoleModal
-        isOpen={showAddRoleModal}
-        onClose={() => setShowAddRoleModal(false)}
-        onSave={handleAddRole}
-        permissionsSchema={permissionsSchema}
-      />
+      {!isFunctionGroups && (
+        <AddRoleModal
+          isOpen={showAddRoleModal}
+          onClose={() => setShowAddRoleModal(false)}
+          onSave={handleAddRole}
+          permissionsSchema={permissionsSchema}
+        />
+      )}
     </div>
   );
 };

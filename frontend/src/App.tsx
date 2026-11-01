@@ -20,6 +20,7 @@ import { AdminPasswordChange } from './components/admin/AdminPasswordChange';
 import { MaterialImportPage } from './components/admin/MaterialImportPage';
 import { BOMBuilderPage } from './components/admin/BOMBuilderPage';
 import { PermissionsMatrixPage } from './components/admin/PermissionsMatrixPage';
+import { FunctionGroupsPage } from './components/admin/FunctionGroupsPage';
 import { SymfoniaIntegrationPage } from './components/admin/SymfoniaIntegrationPage';
 import { SymfoniaSyncPage } from './components/admin/SymfoniaSyncPage';
 import { SerialPatternSettings } from './components/admin/SerialPatternSettings';
@@ -545,6 +546,26 @@ function App() {
             <ProtectedRoute>
               <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
                 <PermissionsMatrixPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/function-groups"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
+                <FunctionGroupsPage />
+              </RoleBasedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/function-groups/permissions"
+          element={
+            <ProtectedRoute>
+              <RoleBasedRoute requiredPermission={{ module: 'all', action: 'access' }}>
+                <PermissionsMatrixPage variant="functionGroups" />
               </RoleBasedRoute>
             </ProtectedRoute>
           }

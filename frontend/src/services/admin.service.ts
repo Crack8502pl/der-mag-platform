@@ -12,6 +12,8 @@ import type {
   ChangePasswordDto,
   Role,
   EmailAutomationSettings,
+  FunctionGroup,
+  FunctionGroupMembership,
 } from '../types/admin.types';
 import type { AdminSession, SessionStats, SessionHistoryResponse } from '../types/sessions.types';
 import { FALLBACK_ROLES } from '../constants/roles';
@@ -126,6 +128,66 @@ export class AdminService {
    */
   async deleteRole(roleId: number): Promise<void> {
     await api.delete(`/admin/roles/${roleId}`);
+  }
+
+  // ============================================
+  // Function Groups (funkcje obok ról)
+  // ============================================
+
+  async getFunctionGroups(): Promise<FunctionGroup[]> {
+    const response = await api.get('/admin/function-groups');
+    return response.data.data || [];
+  }
+
+  async createFunctionGroup(data: {
+    key: string;
+    name: string;
+    description?: string;
+    permissions?: Record<string, any>;
+  }): Promise<FunctionGroup> {
+    const response = await api.post('/admin/function-groups', data);
+    return response.data.data;
+  }
+
+  async updateFunctionGroup(
+    id: number,
+    data: Partial<Pick<FunctionGroup, 'name' | 'description' | 'permissions' | 'active'>>,
+  ): Promise<FunctionGroup> {
+    const response = await api.put(`/admin/function-groups/${id}`, data);
+    return response.data.data;
+  }
+
+  async deactivateFunctionGroup(id: number): Promise<FunctionGroup> {
+    const response = await api.post(`/admin/function-groups/${id}/deactivate`);
+    return response.data.data;
+  }
+
+  async getFunctionGroupMembers(id: number): Promise<FunctionGroupMembership[]> {
+    const response = await api.get(`/admin/function-groups/${id}/members`);
+    return response.data.data || [];
+  }
+
+  async addFunctionGroupMember(
+    id: number,
+    data: { userId: number; validFrom?: string; validTo?: string },
+  ): Promise<FunctionGroupMembership> {
+    const response = await api.post(`/admin/function-groups/${id}/members`, data);
+    return response.data.data;
+  }
+
+  async removeFunctionGroupMember(id: number, userId: number): Promise<void> {
+    await api.delete(`/admin/function-groups/${id}/members/${userId}`);
+  }
+
+  async getUserFunctionGroups(userId: number): Promise<FunctionGroupMembership[]> {
+    const response = await api.get(`/admin/users/${userId}/function-groups`);
+    return response.data.data || [];
+  }
+
+  async searchUsers(search: string): Promise<User[]> {
+    const response = await api.get('/admin/users', { params: { search, status: 'active', limit: 20 } });
+    const data = response.data.data;
+    return Array.isArray(data) ? data : (data?.users || []);
   }
 
   // ============================================

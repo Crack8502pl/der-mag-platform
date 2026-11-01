@@ -12,6 +12,7 @@ import { ResetPasswordModal } from './ResetPasswordModal';
 import { DeactivateUserModal } from './DeactivateUserModal';
 import { DeleteUserModal } from './DeleteUserModal';
 import { UserStatusBadge } from './UserStatusBadge';
+import { UserRoleAndFunctions } from './UserRoleAndFunctions';
 import api from '../../services/api';
 import { FALLBACK_ROLES } from '../../constants/roles';
 import { useAuth } from '../../hooks/useAuth';
@@ -32,6 +33,7 @@ interface User {
     name: string;
     description: string;
   };
+  functionGroups?: Array<{ key: string; name: string }>;
   lastLogin?: string;
   createdAt: string;
   forcePasswordChange: boolean;
@@ -309,7 +311,7 @@ export const UserListPage: React.FC = () => {
                 Login {getSortIcon('username')}
               </th>
               <th>Kod</th>
-              <th>Rola</th>
+              <th>Rola i funkcje</th>
               <th>Status</th>
               <th onClick={() => handleSort('createdAt')} className="sortable">
                 Data utworzenia {getSortIcon('createdAt')}
@@ -345,7 +347,11 @@ export const UserListPage: React.FC = () => {
                     <code>{user.employeeCode || '-'}</code>
                   </td>
                   <td>
-                    <span className="role-badge">{user.role?.name || 'N/A'}</span>
+                    <UserRoleAndFunctions
+                      roleName={user.role?.name}
+                      functionGroups={user.functionGroups}
+                      roleClassName="role-badge"
+                    />
                   </td>
                   <td>
                     <UserStatusBadge user={user} />

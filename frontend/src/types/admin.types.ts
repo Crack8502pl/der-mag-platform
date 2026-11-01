@@ -15,6 +15,7 @@ export interface User {
   altEmployeeCode3?: string | null;
   roleId: number;
   role?: Role;
+  functionGroups?: FunctionGroupLabel[];
   active: boolean;
   forcePasswordChange: boolean;
   lastLogin?: string;
@@ -32,6 +33,39 @@ export interface Role {
   name: string;
   description?: string;
   permissions: Record<string, any>;
+}
+
+/** Funkcja (grupa funkcyjna) – dodaje uprawnienia obok roli. */
+export interface FunctionGroupLabel {
+  id?: number;
+  key: string;
+  name: string;
+}
+
+export interface FunctionGroup {
+  id: number;
+  key: string;
+  name: string;
+  description?: string | null;
+  permissions: Record<string, any>;
+  active: boolean;
+  activeMemberCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface FunctionGroupMembership {
+  id: number;
+  userId: number;
+  functionGroupId: number;
+  validFrom: string;
+  validTo: string | null;
+  grantedById: number | null;
+  createdAt: string;
+  isActive: boolean;
+  user?: { id: number; username: string; firstName: string; lastName: string; email: string };
+  grantedBy?: { id: number; firstName: string; lastName: string } | null;
+  functionGroup?: { id: number; key: string; name: string; active: boolean };
 }
 
 export interface CreateUserDto {
