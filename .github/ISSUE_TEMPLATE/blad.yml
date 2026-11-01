@@ -1,0 +1,42 @@
+name: Zgłoszenie błędu
+description: Zgłoś błąd znaleziony podczas weryfikacji
+title: "[Błąd]: "
+labels:
+  - "typ:błąd"
+body:
+  - type: textarea
+    id: co-sie-dzieje
+    attributes:
+      label: Co się dzieje
+      description: Opisz zaobserwowane zachowanie.
+    validations:
+      required: true
+  - type: textarea
+    id: czego-oczekiwano
+    attributes:
+      label: Czego oczekiwano
+      description: Opisz oczekiwane zachowanie.
+    validations:
+      required: true
+  - type: textarea
+    id: kroki
+    attributes:
+      label: Kroki
+      description: Opisz kolejne kroki pozwalające odtworzyć problem.
+    validations:
+      required: true
+  - type: input
+    id: znalezione-w
+    attributes:
+      label: Znalezione w (numer V)
+      description: Podaj numer zgłoszenia weryfikacyjnego, w którym znaleziono błąd.
+      placeholder: "np. #726"
+    validations:
+      required: true
+  - type: input
+    id: wersja-commit
+    attributes:
+      label: Wersja/commit
+      description: Podaj wersję aplikacji lub skrót commitu.
+    validations:
+      required: true

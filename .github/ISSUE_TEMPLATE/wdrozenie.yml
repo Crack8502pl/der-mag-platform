@@ -1,0 +1,56 @@
+name: Wdrożenie Etapu 2
+description: Zgłoszenie zadania wdrożeniowego Etapu 2
+title: "[W]: "
+labels:
+  - "typ:wdrożenie"
+  - "etap-2"
+body:
+  - type: textarea
+    id: wymaga
+    attributes:
+      label: Wymaga
+      description: Wypisz wymagane wcześniejsze zadania lub wpisz „nic”.
+    validations:
+      required: true
+  - type: textarea
+    id: cel
+    attributes:
+      label: Cel
+      description: Opisz oczekiwany rezultat zadania.
+    validations:
+      required: true
+  - type: textarea
+    id: przeczytaj
+    attributes:
+      label: Przeczytaj najpierw
+      description: Wypisz pliki lub materiały, które trzeba przeczytać przed pracą.
+    validations:
+      required: true
+  - type: textarea
+    id: zakres
+    attributes:
+      label: Zakres
+      description: Wypisz zmiany, które należy wykonać.
+    validations:
+      required: true
+  - type: textarea
+    id: testy
+    attributes:
+      label: Testy
+      description: Opisz wymagane testy i sposób ich uruchomienia.
+    validations:
+      required: true
+  - type: textarea
+    id: kryteria-akceptacji
+    attributes:
+      label: Kryteria akceptacji
+      description: Wypisz warunki, które muszą być spełnione.
+    validations:
+      required: true
+  - type: textarea
+    id: poza-zakresem
+    attributes:
+      label: Poza zakresem
+      description: Wypisz elementy, których nie należy zmieniać.
+    validations:
+      required: true

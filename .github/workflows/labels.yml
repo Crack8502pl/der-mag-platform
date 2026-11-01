@@ -1,0 +1,68 @@
+name: Labels
+
+on:
+  pull_request:
+    paths:
+      - .github/labels.yml
+  push:
+    branches:
+      - main
+    paths:
+      - .github/labels.yml
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate labels
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate labels file (dry-run)
+        run: |
+          ruby <<'RUBY'
+          require "yaml"
+
+          labels = YAML.safe_load(File.read(".github/labels.yml"), aliases: false)
+          abort "Plik musi zawierać listę etykiet." unless labels.is_a?(Array)
+          names = labels.map do |label|
+            abort "Każda etykieta musi mieć nazwę." unless label.is_a?(Hash) && label["name"].is_a?(String)
+            label["name"]
+          end
+          abort "Nazwy etykiet muszą być unikalne." unless names.uniq.length == names.length
+          labels.each do |label|
+            abort "Każda etykieta musi mieć kolor i opis." unless
+              label["color"].is_a?(String) && label["description"].is_a?(String)
+          end
+          puts "Poprawny plik etykiet (dry-run): #{labels.length} etykiet."
+          RUBY
+
+  sync:
+    name: Sync labels
+    if: github.event_name == 'push'
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create or update labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ruby <<'RUBY'
+          require "yaml"
+
+          labels = YAML.safe_load(File.read(".github/labels.yml"), aliases: false)
+          labels.each do |label|
+            success = system(
+              "gh", "label", "create", label.fetch("name"),
+              "--color", label.fetch("color"),
+              "--description", label.fetch("description"),
+              "--force"
+            )
+            abort "Nie udało się zsynchronizować etykiety: #{label.fetch("name")}" unless success
+          end
+          RUBY
