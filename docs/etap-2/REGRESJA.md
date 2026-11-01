@@ -17,4 +17,6 @@ To 12 rzeczy, które działają dziś i muszą działać po każdym PR. W0b zami
 | R11 | Docker | `docker compose up` na pustych wolumenach, logowanie działa; `down` + `up` zachowuje dane i wgrane pliki | CI (istniejący test) + V przy zmianach w Dockerze |
 | R12 | Istniejące kreatory i wyzwalacze | `POST` i `GET /api/wizard-drafts/:wizardType` zapisuje i zwraca wersję roboczą kreatora kontraktu; `GET /api/bom-triggers` = 200 dla admina | CI |
 
+Automatyzacja: workflow `.github/workflows/regression.yml` (job `Regression`), testy w `backend/tests/regression/rNN-*.test.ts` (jeden plik na punkt), progi w `backend/tests/regression/baseline.json` i `frontend/.eslint-baseline`. Uruchomienie lokalne: sekcja „Test regresji” w `README.md`. Nowy punkt R = nowy plik testu w `backend/tests/regression/`.
+
 To, co dziś jest znanym błędem, nie trafia na listę jako wymóg. Na przykład nieznana ścieżka `/api/...` zwraca stronę HTML zamiast JSON 404. Takie rzeczy mają być osobnymi zgłoszeniami błędów poza Etapem 2.

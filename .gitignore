@@ -37,3 +37,6 @@ temp/
 # Upload directories (keep structure but ignore content)
 uploads/*
 !uploads/.gitkeep
+
+# Artefakty testu regresji (R7, logi serwera)
+regression-artifacts/

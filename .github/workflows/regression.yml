@@ -1,0 +1,194 @@
+name: Regression
+
+# Lista regresji R1-R12 (docs/etap-2/REGRESJA.md) sprawdzana przy każdym PR i pushu na main
+# na zbudowanej aplikacji i czystej bazie. Celowo BEZ filtra ścieżek.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    name: Regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dermag_regression
+          POSTGRES_PASSWORD: regression-test-db-password
+          POSTGRES_DB: dermag_regression
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dermag_regression -d dermag_regression"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      ARTIFACTS_DIR: ${{ github.workspace }}/regression-artifacts
+      REDIS_TEST_PASSWORD: regression-test-redis-password
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install PDF and OCR tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends poppler-utils tesseract-ocr tesseract-ocr-pol
+
+      - name: Configure Redis password
+        # Kontenery usług nie przyjmują argumentów polecenia, więc hasło ustawiamy po starcie.
+        run: docker exec ${{ job.services.redis.id }} redis-cli CONFIG SET requirepass "$REDIS_TEST_PASSWORD"
+
+      - name: Prepare application environment
+        # Środowisko aplikacji tylko dla R1 i serwera – testy jednostkowe (R10) mają własne ustawienia.
+        run: |
+          mkdir -p "$ARTIFACTS_DIR" "$RUNNER_TEMP/uploads"
+          cat > "$RUNNER_TEMP/regression.env" <<EOF
+          NODE_ENV=production
+          PORT=3000
+          USE_HTTPS=false
+          DB_HOST=127.0.0.1
+          DB_PORT=5432
+          DB_NAME=dermag_regression
+          DB_USER=dermag_regression
+          DB_PASSWORD=regression-test-db-password
+          REDIS_HOST=127.0.0.1
+          REDIS_PORT=6379
+          REDIS_PASSWORD=$REDIS_TEST_PASSWORD
+          JWT_ACCESS_SECRET=regression-test-access-secret-at-least-32-chars
+          JWT_REFRESH_SECRET=regression-test-refresh-secret-at-least-32-chars
+          ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          CORS_ORIGIN=http://127.0.0.1:3000
+          UPLOAD_DIR=$RUNNER_TEMP/uploads
+          SYMFONIA_SYNC_ENABLED=false
+          RATE_LIMIT_MAX_REQUESTS=100000
+          RATE_LIMIT_AUTH_MAX_REQUESTS=100000
+          RATE_LIMIT_READ_MAX_REQUESTS=100000
+          EOF
+
+      - name: Install dependencies
+        run: |
+          npm ci --prefix backend
+          npm ci --prefix frontend
+
+      - name: Build backend
+        working-directory: backend
+        run: npm run build
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: R9 – npm audit (high)
+        run: |
+          (cd backend && npm audit --audit-level=high)
+          (cd frontend && npm audit --audit-level=high)
+
+      - name: R9 – ESLint errors not above baseline
+        run: node scripts/check-eslint-baseline.mjs
+
+      - name: R10 – backend unit tests
+        working-directory: backend
+        run: npm test -- --json --outputFile="$RUNNER_TEMP/jest.json"
+
+      - name: R10 – frontend unit tests
+        working-directory: frontend
+        run: npx vitest run --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/vitest.json"
+
+      - name: R10 – test count not below baseline
+        run: |
+          base_ref=""
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}" && base_ref=FETCH_HEAD
+          elif [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            git fetch --no-tags --depth=1 origin "${{ github.event.before }}" && base_ref=FETCH_HEAD
+          fi
+          node scripts/check-test-baseline.mjs \
+            --backend "$RUNNER_TEMP/jest.json" \
+            --frontend "$RUNNER_TEMP/vitest.json" \
+            ${base_ref:+--base-ref "$base_ref"}
+
+      - name: R1 – clean install (migrate-and-seed twice)
+        working-directory: backend
+        run: |
+          set -a; . "$RUNNER_TEMP/regression.env"; set +a
+          node dist/scripts/migrate-and-seed.js
+          node dist/scripts/migrate-and-seed.js
+          export PGPASSWORD="$DB_PASSWORD"
+          query() { psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -tA -v ON_ERROR_STOP=1 -c "$1"; }
+          check() {
+            actual=$(query "$2")
+            echo "$1: $actual (oczekiwano $3)"
+            if [ "$actual" != "$3" ]; then echo "::error::R1: $1 = $actual, oczekiwano $3"; exit 1; fi
+          }
+          check "administratorzy" "SELECT count(*) FROM users u JOIN roles r ON r.id = u.role_id WHERE r.name = 'admin' AND u.deleted_at IS NULL" 1
+          check "role" "SELECT count(*) FROM roles" 10
+          check "typy zadań" "SELECT count(*) FROM task_types" 13
+
+      - name: Start application (NODE_ENV=production)
+        working-directory: backend
+        run: |
+          set -a; . "$RUNNER_TEMP/regression.env"; set +a
+          nohup node dist/index.js > "$ARTIFACTS_DIR/server-stdout.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/server.pid"
+          for attempt in $(seq 1 60); do
+            if curl --silent --fail --output /dev/null http://127.0.0.1:3000/api/health; then
+              echo "Serwer odpowiada po ${attempt} s."
+              exit 0
+            fi
+            if ! kill -0 "$(cat "$RUNNER_TEMP/server.pid")" 2>/dev/null; then
+              echo "::error::Serwer zakończył działanie przed startem."
+              break
+            fi
+            sleep 1
+          done
+          echo "::error::/api/health nie odpowiedział w 60 s."
+          tail -n 100 "$ARTIFACTS_DIR/server-stdout.log" || true
+          tail -n 100 logs/*.log 2>/dev/null || true
+          exit 1
+
+      - name: R2-R9, R12 – regression tests
+        working-directory: backend
+        env:
+          REGRESSION_BASE_URL: http://127.0.0.1:3000
+          REGRESSION_ARTIFACTS_DIR: ${{ github.workspace }}/regression-artifacts
+        run: npm run test:regression
+
+      - name: Collect server logs
+        if: failure()
+        run: cp -r backend/logs "$ARTIFACTS_DIR/server-logs" 2>/dev/null || true
+
+      - name: Upload regression artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-artifacts
+          path: regression-artifacts
+          if-no-files-found: ignore
+          retention-days: 14

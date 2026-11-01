@@ -290,6 +290,67 @@ curl -X POST http://localhost:3000/api/admin/seed-database
 
 📖 **Detailed documentation:** See [backend/docs/DB_RESET_SUDO_SETUP.md](backend/docs/DB_RESET_SUDO_SETUP.md)
 
+## 🧪 Test regresji
+
+Lista [docs/etap-2/REGRESJA.md](docs/etap-2/REGRESJA.md) (R1–R12) jest sprawdzana automatycznie
+przez job **Regression** (`.github/workflows/regression.yml`) przy każdym PR i pushu na `main`.
+
+| Punkt | Gdzie sprawdzany |
+| --- | --- |
+| R1 | krok workflow (`migrate-and-seed` 2×, zapytania SQL) + `backend/tests/regression/r01-clean-install.test.ts` |
+| R2–R8, R12 | `backend/tests/regression/rNN-*.test.ts` (HTTP do uruchomionego serwera) |
+| R9 | kroki workflow (build, `npm audit`, `scripts/check-eslint-baseline.mjs`) + `r09-build.test.ts` |
+| R10 | kroki workflow (`npm test` w backend i frontend, `scripts/check-test-baseline.mjs`) |
+| R11 | osobny workflow `docker-compose-integration.yml` |
+
+Domyślne `npm test` **nie** uruchamia testów regresji – wymagają one działającego serwera.
+
+### Uruchomienie lokalne
+
+Wymagania: PostgreSQL 16, Redis 7 oraz narzędzia do PDF i OCR:
+
+```bash
+sudo apt-get install poppler-utils tesseract-ocr tesseract-ocr-pol
+```
+
+1. Utwórz **pustą** bazę (np. `dermag_regression`) i ustaw zmienne środowiskowe backendu
+   (`NODE_ENV=production`, `DB_*`, `REDIS_*`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`,
+   `ENCRYPTION_KEY`, `CORS_ORIGIN=http://127.0.0.1:3000`, `UPLOAD_DIR` poza repozytorium).
+   Testy wysyłają dużo żądań, więc podnieś limity:
+   `RATE_LIMIT_MAX_REQUESTS`, `RATE_LIMIT_AUTH_MAX_REQUESTS`, `RATE_LIMIT_READ_MAX_REQUESTS` (np. `100000`).
+   Pełna lista wartości używanych w CI: krok „Prepare application environment” w `regression.yml`.
+2. Zbuduj aplikację, przygotuj bazę (R1) i uruchom serwer:
+
+   ```bash
+   (cd frontend && npm ci && npm run build)
+   cd backend && npm ci && npm run build
+   node dist/scripts/migrate-and-seed.js   # dwukrotne uruchomienie musi zakończyć się kodem 0
+   node dist/scripts/migrate-and-seed.js
+   node dist/index.js > /tmp/server.log 2>&1 &
+   curl http://127.0.0.1:3000/api/health
+   ```
+
+3. Uruchom testy (adres serwera: `REGRESSION_BASE_URL`, domyślnie `http://127.0.0.1:3000`;
+   pliki PDF/PNG z R7 trafiają do `REGRESSION_ARTIFACTS_DIR`):
+
+   ```bash
+   cd backend && npm run test:regression
+   ```
+
+### Progi (R7, R9, R10)
+
+- `backend/tests/regression/baseline.json` – minimalna liczba testów backendu i frontendu oraz
+  minimalny udział ciemnych pikseli w PDF (R7). Wartości wolno tylko **podnosić**.
+- `frontend/.eslint-baseline` – liczba błędów ESLint frontendu. Więcej błędów = błąd joba;
+  mniej = zaktualizuj plik w tym samym PR: `node scripts/check-eslint-baseline.mjs --update`.
+- Sprawdzenie liczby testów lokalnie:
+
+  ```bash
+  (cd backend && npx jest --json --outputFile=/tmp/jest.json)
+  (cd frontend && npx vitest run --reporter=json --outputFile.json=/tmp/vitest.json)
+  node scripts/check-test-baseline.mjs --backend /tmp/jest.json --frontend /tmp/vitest.json
+  ```
+
 ## 🔐 HTTPS Setup
 
 ### Generowanie certyfikatów SSL

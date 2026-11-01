@@ -15,6 +15,7 @@
     "test:coverage": "jest --coverage",
     "test:unit": "jest --testPathPattern=unit",
     "test:integration": "jest --testPathPattern=integration",
+    "test:regression": "jest --config jest.regression.config.js --runInBand",
     "migrate:all": "bash scripts/run-all-migrations.sh",
     "migration:run": "tsx scripts/run-migrations.ts",
     "db:migrate": "node dist/scripts/migrate-and-seed.js",
