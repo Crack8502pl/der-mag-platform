@@ -2,6 +2,44 @@
 import { createUser, currentUserId, expectStatus, login, loginAdmin, unique } from './helpers';
 
 describe('R13: funkcje nadawane osobowo', () => {
+  it('zachowuje poprzednie pola /me i uprawnienia wszystkich 10 ról bez funkcji', async () => {
+    const admin = await loginAdmin();
+    const rolesResponse = expectStatus(await admin.get('/api/admin/roles'), 200, 'GET /api/admin/roles');
+    const roles = rolesResponse.data ?? rolesResponse;
+
+    expect(roles).toHaveLength(10);
+
+    for (const role of roles) {
+      const user = await createUser(admin, role.name);
+      const { session, response } = await login(user.username, user.password);
+      expectStatus(response, 200, `logowanie ${role.name}`);
+
+      const me = expectStatus(await session.get('/api/auth/me'), 200, 'GET /api/auth/me').data;
+      expect(me).toMatchObject({
+        id: user.id,
+        username: user.username,
+        email: `${user.username}@example.test`,
+        firstName: 'Test',
+        lastName: 'Regresji',
+        role: role.name,
+        permissions: role.permissions,
+        functionGroups: [],
+      });
+      for (const field of ['phone', 'employeeCode', 'lastLogin']) {
+        expect(me).toHaveProperty(field);
+      }
+
+      const expectedContractRead = role.permissions?.all === true || role.permissions?.contracts?.read === true
+        ? 200
+        : 403;
+      expect((await session.get('/api/contracts')).status).toBe(expectedContractRead);
+    }
+
+    const adminMe = expectStatus(await admin.get('/api/auth/me'), 200, 'GET /api/auth/me admin');
+    expect(adminMe.data.permissions.all).toBe(true);
+    expect((await admin.get('/api/admin/users')).status).toBe(200);
+  });
+
   it('viewer z funkcją contracts.create tworzy kontrakt; po odebraniu funkcji dostaje 403', async () => {
     const admin = await loginAdmin();
     const viewer = await createUser(admin, 'viewer');
@@ -36,8 +74,9 @@ describe('R13: funkcje nadawane osobowo', () => {
     expect(me.data.functionGroups).toEqual([{ key, name: group.name }]);
 
     expectStatus(await session.post('/api/contracts', contractPayload()), 201, 'POST /api/contracts (viewer z funkcją)');
-    expect((await session.get('/api/admin/users')).status).toBe(403);
-    expect((await session.get('/api/admin/function-groups')).status).toBe(403);
+    for (const path of ['/api/admin/users', '/api/admin/roles', '/api/admin/config/portal', '/api/admin/function-groups']) {
+      expect({ path, status: (await session.get(path)).status }).toEqual({ path, status: 403 });
+    }
 
     expectStatus(await admin.delete(`/api/admin/function-groups/${group.id}/members/${viewer.id}`), 200,
       'DELETE /api/admin/function-groups/:id/members/:userId');
