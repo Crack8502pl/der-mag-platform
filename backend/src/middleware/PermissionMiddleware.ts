@@ -2,9 +2,8 @@
 // Middleware do walidacji granularnych uprawnień
 
 import { Request, Response, NextFunction } from 'express';
-import { AppDataSource } from '../config/database';
-import { User } from '../entities/User';
-import { Role, RolePermissions } from '../entities/Role';
+import { RolePermissions } from '../entities/Role';
+import { EffectivePermissionsService } from '../modules/function-groups/services/EffectivePermissionsService';
 
 /**
  * Middleware do sprawdzania granularnych uprawnień
@@ -22,14 +21,10 @@ export const requirePermission = (module: string, action: string) => {
         return;
       }
 
-      // Pobierz użytkownika z rolą
-      const userRepository = AppDataSource.getRepository(User);
-      const user = await userRepository.findOne({
-        where: { id: req.userId },
-        relations: ['role']
-      });
+      // Uprawnienia efektywne: rola + aktywne funkcje
+      const effective = await EffectivePermissionsService.forRequest(req);
 
-      if (!user || !user.role) {
+      if (!effective) {
         res.status(401).json({
           success: false,
           message: 'Użytkownik lub rola nie istnieje'
@@ -37,7 +32,7 @@ export const requirePermission = (module: string, action: string) => {
         return;
       }
 
-      const permissions = user.role.permissions as RolePermissions;
+      const permissions = effective.permissions;
 
       // Sprawdź czy użytkownik ma pełny dostęp (admin)
       if (permissions.all === true) {
@@ -94,13 +89,9 @@ export const requireAnyPermission = (...checks: [string, string][]) => {
         return;
       }
 
-      const userRepository = AppDataSource.getRepository(User);
-      const user = await userRepository.findOne({
-        where: { id: req.userId },
-        relations: ['role']
-      });
+      const effective = await EffectivePermissionsService.forRequest(req);
 
-      if (!user || !user.role) {
+      if (!effective) {
         res.status(401).json({
           success: false,
           message: 'Użytkownik lub rola nie istnieje'
@@ -108,7 +99,7 @@ export const requireAnyPermission = (...checks: [string, string][]) => {
         return;
       }
 
-      const permissions = user.role.permissions as RolePermissions;
+      const permissions = effective.permissions;
 
       // Admin ma zawsze dostęp
       if (permissions.all === true) {

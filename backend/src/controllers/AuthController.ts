@@ -14,6 +14,7 @@ import { NotificationService } from '../services/NotificationService';
 import { generateCsrfToken } from '../middleware/csrf';
 import { UserSessionLog } from '../entities/UserSessionLog';
 import { getJwtConfig } from '../config/jwtConfig';
+import { EffectivePermissionsService } from '../modules/function-groups/services/EffectivePermissionsService';
 
 const jwtConfig = getJwtConfig();
 
@@ -653,6 +654,9 @@ export class AuthController {
         return;
       }
 
+      // Uprawnienia efektywne: rola + aktywne funkcje
+      const effective = await EffectivePermissionsService.forRequest(req);
+
       res.json({
         success: true,
         data: {
@@ -664,7 +668,8 @@ export class AuthController {
           phone: user.phone,
           employeeCode: user.employeeCode,
           role: user.role.name,
-          permissions: user.role.permissions,
+          permissions: effective?.permissions ?? user.role.permissions,
+          functionGroups: (effective?.functionGroups ?? []).map(({ key, name }) => ({ key, name })),
           lastLogin: user.lastLogin
         }
       });

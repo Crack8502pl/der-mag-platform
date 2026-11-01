@@ -3,7 +3,7 @@
 
 import { AppDataSource } from '../config/database';
 import { CompletionOrder } from '../entities/CompletionOrder';
-import { User } from '../entities/User';
+import { EffectivePermissionsService } from '../modules/function-groups/services/EffectivePermissionsService';
 import { RolePermissions } from '../entities/Role';
 
 export type CompletionAccessResult = 'allowed' | 'not_found' | 'unauthorized';
@@ -29,8 +29,8 @@ export function canAccessCompletionOrder(
 }
 
 export async function checkCompletionOrderAccess(userId: number, orderId: number): Promise<CompletionAccessResult> {
-  const user = await AppDataSource.getRepository(User).findOne({ where: { id: userId }, relations: ['role'] });
-  if (!user) return 'unauthorized';
+  const effective = await EffectivePermissionsService.get(userId);
+  if (!effective) return 'unauthorized';
 
   const order = await AppDataSource.getRepository(CompletionOrder).findOne({
     where: { id: orderId },
@@ -39,5 +39,7 @@ export async function checkCompletionOrderAccess(userId: number, orderId: number
   if (!order) return 'not_found';
 
   // Brak dostępu jest raportowany jako 404, aby nie ujawniać istnienia zasobu
-  return canAccessCompletionOrder(user, order) ? 'allowed' : 'not_found';
+  return canAccessCompletionOrder({ id: effective.userId, role: { permissions: effective.permissions } }, order)
+    ? 'allowed'
+    : 'not_found';
 }

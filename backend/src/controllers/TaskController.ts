@@ -1004,8 +1004,8 @@ export class TaskController {
       const userId = (req as any).user?.id || req.userId;
       const user = (req as any).user;
 
-      // Determine if the user can see all tasks (has tasks.assign or is admin)
-      const permissions = user?.role?.permissions || {};
+      // Determine if the user can see all tasks (has tasks.assign or is admin) – effective permissions
+      const permissions = user?.permissions || {};
       const isAdmin = permissions.all === true;
       const canSeeAll = isAdmin || permissions.tasks?.assign === true;
 

@@ -6,6 +6,7 @@ import { User } from '../entities/User';
 import { TaskType } from '../entities/TaskType';
 import { RailwayLinesSeed } from '../seeds/RailwayLinesSeed';
 import { LprInstallationSeed } from '../seeds/LprInstallationSeed';
+import { FunctionGroup } from '../modules/function-groups/entities/FunctionGroup';
 
 export class DatabaseSeeder {
   
@@ -14,6 +15,7 @@ export class DatabaseSeeder {
     await this.seedRoles();
     await this.seedTaskTypes();
     await this.seedAdmin();
+    await this.seedFunctionGroups();
     await RailwayLinesSeed.seed();
     await LprInstallationSeed.seed();
     
@@ -224,6 +226,26 @@ export class DatabaseSeeder {
     console.log('   ✅ Sprawdzono wymagane role (10)');
   }
   
+  /**
+   * Funkcje (grupy funkcyjne) Etapu 2 – bez członków i bez uprawnień. Idempotentnie po kluczu.
+   */
+  private static async seedFunctionGroups(): Promise<void> {
+    const functionGroupRepo = AppDataSource.getRepository(FunctionGroup);
+    const functionGroups = [
+      { key: 'PROCESS_BUILDERS', name: 'Budowniczowie procesów' },
+      { key: 'PROCESS_AUDITORS', name: 'Audytorzy procesów' },
+      { key: 'TECHNICAL_REVIEW', name: 'Dział techniczny' },
+    ];
+
+    for (const group of functionGroups) {
+      const existing = await functionGroupRepo.findOne({ where: { key: group.key } });
+      if (existing) continue;
+      await functionGroupRepo.save(functionGroupRepo.create({ ...group, permissions: {}, active: true }));
+    }
+
+    console.log(`   ✅ Sprawdzono wymagane funkcje (${functionGroups.length})`);
+  }
+
   private static async seedTaskTypes(): Promise<void> {
     const taskTypeRepo = AppDataSource.getRepository(TaskType);
     
@@ -313,6 +335,7 @@ export class DatabaseSeeder {
       await AppDataSource.query('TRUNCATE TABLE bom_triggers CASCADE');
       await AppDataSource.query('TRUNCATE TABLE refresh_tokens CASCADE');
       await AppDataSource.query('TRUNCATE TABLE audit_logs CASCADE');
+      await AppDataSource.query('TRUNCATE TABLE user_function_groups CASCADE');
       
       // Usuń główne dane seedowe - UŻYJ clear() zamiast delete({})
       const userRepo = AppDataSource.getRepository(User);
@@ -329,6 +352,7 @@ export class DatabaseSeeder {
       await this.seedRoles();
       await this.seedTaskTypes();
       await this.seedAdmin();
+      await this.seedFunctionGroups();
       await RailwayLinesSeed.seed();
       await LprInstallationSeed.seed();
       
