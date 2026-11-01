@@ -129,6 +129,7 @@ import { MigrateLegacyData1793318400000 } from '../migrations/1793318400000-Migr
 import { CreateDeviceInstallationWorkflows1793432400000 } from '../migrations/20261031_create_device_installation_workflows';
 import { CreateFormHeaderFooters1793454000000 } from '../migrations/20261031_create_form_header_footers';
 import { CreateFormAuditLogs1793454000001 } from '../migrations/20261031_create_form_audit_logs';
+import { FormTimestampsWithTimeZone1793491800000 } from '../migrations/20261101_form_timestamps_with_time_zone';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -288,6 +289,7 @@ export const AppDataSource = new DataSource({
     CreateDeviceInstallationWorkflows1793432400000,
     CreateFormHeaderFooters1793454000000,
     CreateFormAuditLogs1793454000001,
+    FormTimestampsWithTimeZone1793491800000,
   ],
 });
 

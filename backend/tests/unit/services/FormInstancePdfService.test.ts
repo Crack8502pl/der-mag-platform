@@ -134,6 +134,11 @@ describe('FormInstancePdfService', () => {
       expect(page.text).toContain('PROJEKT');
     });
     expect(pages[0].text).toContain('Utworzono: 31.10.2026, 13:00');
+    expect(pages[0].text).toMatch(/\d{2}\.\d{2}\.\d{4}, \d{2}:\d{2}/);
+    expect(pages[0].text).toContain('status: Roboczy');
+    expect(pages[0].text).toContain('Nie OK');
+    expect(pages.map(page => page.text).join(' ')).not.toContain('APPROVED');
+    expect(pages.map(page => page.text).join(' ')).not.toContain('FAIL');
     expect(pages.map(page => page.text).join(' ')).toContain('Zażółć gęślą jaźń');
     expect(pages[0].fonts.FAIL).not.toBe(pages[0].fonts['Wiersz 1: Zażółć gęślą jaźń']);
     expect(FormDataSourceResolver.prototype.resolve).toHaveBeenCalledWith('task.number', {
@@ -151,10 +156,44 @@ describe('FormInstancePdfService', () => {
     }));
     const [page] = extractPages(await service.generate(44));
     expect(page.text).not.toContain('PROJEKT');
+    expect(page.text).toContain('status: Zatwierdzony');
+    expect(page.text).not.toContain('APPROVED');
     expect(page.text).toContain('Kto: Anna Żółć');
     expect(page.text).toContain('Kiedy: 31.10.2026, 13:10');
     expect(page.text).toContain('Decyzja: Zatwierdzono');
     expect(page.text).toContain('Komentarz: Zażółć gęślą jaźń');
+  });
+
+  it('prints PASS as OK for PASS_FAIL fields', async () => {
+    const { service, values } = fixture();
+    values[0].value = 'PASS';
+
+    const [page] = extractPages(await service.generate(44));
+
+    expect(page.text).toContain('OK');
+    expect(page.text).not.toContain('PASS');
+  });
+
+  it('formats all PDF timestamps in Warsaw time across the daylight-saving transition', async () => {
+    const { service, instance, approvals } = fixture();
+    const previousTimezone = process.env.TZ;
+    process.env.TZ = 'Pacific/Honolulu';
+    instance.createdAt = new Date('2026-03-29T00:30:00Z');
+    instance.submittedAt = new Date('2026-03-29T01:30:00Z');
+    approvals.push(Object.assign(new FormApproval(), {
+      decidedById: 7, decidedAt: new Date('2026-03-29T02:30:00Z'),
+      decision: FormApprovalDecision.APPROVED, comment: null,
+    }));
+
+    try {
+      const [page] = extractPages(await service.generate(44));
+      expect(page.text).toContain('Utworzono: 29.03.2026, 01:30');
+      expect(page.text).toContain('Wysłano do akceptacji: 29.03.2026, 03:30');
+      expect(page.text).toContain('Kiedy: 29.03.2026, 04:30');
+    } finally {
+      if (previousTimezone === undefined) delete process.env.TZ;
+      else process.env.TZ = previousTimezone;
+    }
   });
 
   it('splits oversized BOM rows and repeats the table headings without losing the final note', async () => {
@@ -206,13 +245,16 @@ describe('FormInstancePdfService', () => {
   });
 
   it('respects visibility conditions and prints rejected approval details', async () => {
-    const { service, fields, approvals } = fixture();
+    const { service, fields, approvals, instance } = fixture();
     fields[1].conditions = { visibleWhen: { field: 'result', operator: 'equals', value: 'PASS' } };
+    instance.status = FormInstanceStatus.REJECTED;
     approvals.push(Object.assign(new FormApproval(), {
       decidedById: 7, decidedAt: new Date(), decision: FormApprovalDecision.REJECTED, comment: 'Poprawić',
     }));
     const [page] = extractPages(await service.generate(44));
     expect(page.text).not.toContain('Uwagi');
+    expect(page.text).toContain('status: Odrzucony');
+    expect(page.text).toContain('Status: Odrzucony');
     expect(page.text).toContain('Decyzja: Odrzucono');
     expect(page.text).toContain('PROJEKT');
   });

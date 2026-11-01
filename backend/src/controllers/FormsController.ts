@@ -63,7 +63,7 @@ function polishFormErrorMessage(error: FormDomainError): string {
   return messages[error.code];
 }
 
-function polishFormErrorDetails(details?: Record<string, unknown>): Record<string, unknown> | undefined {
+export function polishFormErrorDetails(details?: Record<string, unknown>): Record<string, unknown> | undefined {
   if (!details || !Array.isArray(details.errors)) return details;
   const translations: Record<string, string> = {
     'is required': 'to pole jest wymagane',
@@ -75,15 +75,20 @@ function polishFormErrorDetails(details?: Record<string, unknown>): Record<strin
     'installed items require an installed quantity greater than zero': 'dla zamontowanej pozycji podaj ilość większą od zera',
     'an installation note is required when installed quantity exceeds the plan': 'przy ilości większej od planu dodaj uwagę',
     'BOM item identities cannot be changed': 'nie można zmieniać pozycji BOM',
+    'FAIL blocks completion': 'odpowiedź „Nie OK” uniemożliwia ukończenie formularza',
   };
   return {
     ...details,
     errors: details.errors.map((item: unknown) => {
       if (typeof item !== 'string') return item;
       const match = item.match(/^([^:]+): (.*)$/);
-      if (!match) return item;
-      const translated = translations[match[2]] || match[2];
-      return `${match[1]}: ${translated}`;
+      const field = match?.[1];
+      const message = match?.[2] ?? item;
+      const plannedQuantityChanged = message === 'BOM item plannedQty cannot be changed';
+      const translated = plannedQuantityChanged
+        ? 'nie można zmieniać planowanej ilości pozycji BOM'
+        : translations[message] || message;
+      return field ? `${field}: ${translated}` : translated;
     }),
   };
 }

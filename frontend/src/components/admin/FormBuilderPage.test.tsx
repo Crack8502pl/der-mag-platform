@@ -267,6 +267,39 @@ describe('FormBuilderPage', () => {
     expect(screen.queryByRole('button', { name: 'Zapisz odpowiedzi' })).not.toBeInTheDocument();
   });
 
+  it('shows sample system and BOM data when no task is selected', async () => {
+    const sampleDraft = {
+      ...draft,
+      fields: [
+        {
+          ...draft.fields[0],
+          key: 'taskNumber',
+          label: 'Numer zadania',
+          fieldType: 'DATA',
+          options: { source: 'task.number', mode: 'readonly', valueType: 'string' },
+        },
+        {
+          ...draft.fields[0],
+          id: 6,
+          key: 'materials',
+          label: 'Materiały',
+          fieldType: 'BOM_TABLE',
+          options: { columns: ['plannedQty', 'installedQty', 'installed', 'note'] },
+        },
+      ],
+    };
+    vi.mocked(formsService.getVersion).mockResolvedValue(sampleDraft);
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
+    await screen.findByDisplayValue('Numer zadania');
+    fireEvent.click(screen.getByRole('button', { name: 'Podgląd' }));
+
+    expect(await screen.findByText('Z00011026')).toBeInTheDocument();
+    expect(await screen.findByText('Przykładowy materiał')).toBeInTheDocument();
+    expect(formsService.previewVersion).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Zapisz odpowiedzi' })).not.toBeInTheDocument();
+  });
+
   it('saves current edits before publishing the immutable version', async () => {
     const sequence: string[] = [];
     vi.mocked(formsService.updateDraft).mockImplementation(async () => {

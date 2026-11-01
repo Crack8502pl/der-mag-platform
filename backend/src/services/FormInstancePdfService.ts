@@ -79,6 +79,18 @@ function formatPdfDateValue(value: string): string {
   return Number.isNaN(parsed.getTime()) ? value : formatPdfDateTime(parsed);
 }
 
+function formatInstanceStatus(status: FormInstanceStatus): string {
+  const labels: Record<FormInstanceStatus, string> = {
+    [FormInstanceStatus.DRAFT]: 'Roboczy',
+    [FormInstanceStatus.IN_PROGRESS]: 'W trakcie',
+    [FormInstanceStatus.SUBMITTED]: 'Wysłany do akceptacji',
+    [FormInstanceStatus.APPROVED]: 'Zatwierdzony',
+    [FormInstanceStatus.REJECTED]: 'Odrzucony',
+    [FormInstanceStatus.CANCELLED]: 'Anulowany',
+  };
+  return labels[status];
+}
+
 function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
   const lines: string[] = [];
   for (const paragraph of text.split(/\r?\n/)) {
@@ -170,7 +182,7 @@ export class FormInstancePdfService {
 
     writeLines(snapshot.version.title, bold, 18);
     if (snapshot.version.description) writeLines(snapshot.version.description, regular);
-    writeLines(`Instancja #${snapshot.instance.id} · status: ${snapshot.instance.status}`, regular, 9, MUTED);
+    writeLines(`Instancja #${snapshot.instance.id} · status: ${formatInstanceStatus(snapshot.instance.status)}`, regular, 9, MUTED);
     writeLines(`Utworzono: ${formatPdfDateTime(snapshot.instance.createdAt)}`, regular, 9, MUTED);
     if (snapshot.instance.submittedAt) {
       writeLines(`Wysłano do akceptacji: ${formatPdfDateTime(snapshot.instance.submittedAt)}`, regular, 9, MUTED);
@@ -196,8 +208,11 @@ export class FormInstancePdfService {
         if (field.fieldType.toUpperCase() === 'BOM_TABLE') {
           this.drawBomTable(() => current, page => { current = page; }, value, regular, bold, newPage, bottomLimit);
         } else {
-          const text = valueToText(value);
-          const isFail = field.fieldType.toUpperCase() === 'PASS_FAIL' && value === 'FAIL';
+          const fieldType = field.fieldType.toUpperCase();
+          const text = fieldType === 'PASS_FAIL' && value === 'PASS'
+            ? 'OK'
+            : fieldType === 'PASS_FAIL' && value === 'FAIL' ? 'Nie OK' : valueToText(value);
+          const isFail = fieldType === 'PASS_FAIL' && value === 'FAIL';
           writeLines(text, isFail ? bold : regular, CONTENT_SIZE, isFail ? FAIL_COLOR : DARK, 8);
         }
         space(7);
@@ -211,7 +226,7 @@ export class FormInstancePdfService {
     const approver = lastApproval
       ? snapshot.users.find(user => user.id === lastApproval.decidedById)
       : undefined;
-    writeLines(`Status: ${snapshot.instance.status === FormInstanceStatus.APPROVED ? 'Zatwierdzony' : 'Do zatwierdzenia'}`, regular);
+    writeLines(`Status: ${formatInstanceStatus(snapshot.instance.status)}`, regular);
     writeLines(`Kto: ${approver ? `${approver.firstName} ${approver.lastName}`.trim() : '—'}`, regular);
     writeLines(`Kiedy: ${lastApproval ? formatPdfDateTime(lastApproval.decidedAt) : '—'}`, regular);
     writeLines(`Decyzja: ${lastApproval?.decision === FormApprovalDecision.APPROVED
@@ -456,6 +471,9 @@ export class FormInstancePdfService {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hourCycle: 'h23',
           }).format(new Date());
         }
         if (item.type === 'logo' && typeof item.assetPath === 'string') {
