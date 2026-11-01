@@ -1,0 +1,41 @@
+name: "Etap 2: załóż zgłoszenia"
+
+# Uruchamiane ręcznie: Actions -> "Etap 2: załóż zgłoszenia" -> Run workflow.
+# Najpierw zostaw "proba" zaznaczone i przejrzyj log, potem uruchom bez próby.
+
+on:
+  workflow_dispatch:
+    inputs:
+      proba:
+        description: "Próba - nic nie zakładaj, tylko pokaż plan"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: etap2-create-issues
+  cancel-in-progress: false
+
+jobs:
+  create:
+    name: Załóż epik, sub-issues i zależności
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Załóż zgłoszenia
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          DRY_RUN: ${{ inputs.proba }}
+        run: python3 .github/etap-2-issues/create_issues.py
+
+      - name: Podgląd treści (tylko w próbie)
+        if: ${{ inputs.proba }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: podglad-zgloszen
+          path: .github/etap-2-issues/rendered/

@@ -1,0 +1,423 @@
+{
+  "milestone": "Etap 2 – Workflow",
+  "labels": {
+    "etap-2": [
+      "0e8a16",
+      "Etap 2: kreator workflow, automatyzacje, audyt"
+    ],
+    "epik": [
+      "5319e7",
+      "Zgłoszenie zbiorcze z sub-issues"
+    ],
+    "typ:wdrożenie": [
+      "1d76db",
+      "Zadanie wdrożeniowe dla AI"
+    ],
+    "typ:weryfikacja": [
+      "fbca04",
+      "Weryfikacja i testy regresji, bez zmian kodu produkcyjnego"
+    ],
+    "typ:błąd": [
+      "d73a4a",
+      "Błąd znaleziony w weryfikacji"
+    ],
+    "obszar:backend": [
+      "c5def5",
+      "Backend (Node.js / TypeORM)"
+    ],
+    "obszar:frontend": [
+      "c5def5",
+      "Frontend (React)"
+    ],
+    "obszar:baza": [
+      "c5def5",
+      "Migracje i schemat bazy"
+    ],
+    "obszar:ci": [
+      "c5def5",
+      "GitHub Actions / testy w CI"
+    ],
+    "obszar:repo": [
+      "c5def5",
+      "Szablony, zasady, dokumentacja repo"
+    ],
+    "ryzyko:wysokie": [
+      "b60205",
+      "Zmiana wrażliwa: uprawnienia, audyt, dane"
+    ]
+  },
+  "epic": {
+    "key": "EPIK",
+    "title": "[EPIK] Etap 2: kreator workflow, automatyzacje i audyt",
+    "file": "00-EPIK.md",
+    "labels": [
+      "etap-2",
+      "epik"
+    ]
+  },
+  "issues": [
+    {
+      "key": "W0a",
+      "title": "W0a: Szablony zgłoszeń, szablon PR, etykiety i zasady Etapu 2",
+      "file": "01-W0a.md",
+      "labels": [
+        "etap-2",
+        "typ:wdrożenie",
+        "obszar:repo"
+      ],
+      "blocked_by": []
+    },
+    {
+      "key": "W0b",
+      "title": "W0b: Automatyczny test regresji R1-R12 w CI (job \"Regression\")",
+      "file": "02-W0b.md",
+      "labels": [
+        "etap-2",
+        "typ:wdrożenie",
+        "obszar:ci"
+      ],
+      "blocked_by": [
+        "W0a"
+      ]
+    },
+    {
+      "key": "V0",
+      "title": "V0: Weryfikacja W0a, W0b - regresja i punkty specyficzne",
+      "file": "03-V0.md",
+      "labels": [
+        "etap-2",
+        "typ:weryfikacja"
+      ],
+      "blocked_by": [
+        "W0b"
+      ]
+    },
+    {
+      "key": "W1",
+      "title": "W1: Funkcje (grupy funkcyjne) nadawane osobowo obok ról",
+      "file": "04-W1.md",
+      "labels": [
+        "etap-2",
+        "typ:wdrożenie",
+        "obszar:backend",
+        "obszar:frontend",
+        "obszar:baza",
+        "ryzyko:wysokie"
+      ],
+      "blocked_by": [
+        "V0"
+      ]
+    },
+    {
+      "key": "V1",
+      "title": "V1: Weryfikacja W1 - regresja i punkty specyficzne",
+      "file": "05-V1.md",
+      "labels": [
+        "etap-2",
+        "typ:weryfikacja"
+      ],
+      "blocked_by": [
+        "W1"
+      ]
+    },
+    {
+      "key": "W2a",
+      "title": "W2a: Automatyzacje - rejestr klocków, zdarzenia domenowe, wykonanie przez kolejkę i dziennik uruchomień (backend)",
+      "file": "06-W2a.md",
+      "labels": [
+        "etap-2",
+        "typ:wdrożenie",
+        "obszar:backend",
+        "obszar:baza"
+      ],
+      "blocked_by": [
+        "V1"
+      ]
+    },
+    {
+      "key": "V2a",
+      "title": "V2a: Weryfikacja W2a - regresja i punkty specyficzne",
+      "file": "07-V2a.md",
+      "labels": [
+        "etap-2",
+        "typ:weryfikacja"
+      ],
+      "blocked_by": [
+        "W2a"
+      ]
+    },
+    {
+      "key": "W2b",
+      "title": "W2b: Pole \"Automatyzacje\" w edytorze formularzy (UI)",
+      "file": "08-W2b.md",
+      "labels": [
+        "etap-2",
+        "typ:wdrożenie",
+        "obszar:frontend"
+      ],
+      "blocked_by": [
+        "V2a"
+      ]
+    },
+    {
+      "key": "V2b",
+      "title": "V2b: Weryfikacja W2b - regresja i punkty specyficzne",
+      "file": "09-V2b.md",
+      "labels": [
+        "etap-2",
+        "typ:weryfikacja"
+      ],
+      "blocked_by": [
+        "W2b"
+      ]
+    },
+    {
+      "key": "W3a",
+      "title": "W3a: Workflow - model definicji z wersjami, walidacja i API wersji roboczej (backend)",
+      "file": "10-W3a.md",
+      "labels": [
+        "etap-2",
+        "typ:wdrożenie",
+        "obszar:backend",
+        "obszar:baza"
+      ],
+      "blocked_by": [
+        "V2b"
+      ]
+    },
+    {
+      "key": "V3a",
+      "title": "V3a: Weryfikacja W3a - regresja i punkty specyficzne",
+      "file": "11-V3a.md",
+      "labels": [
+        "etap-2",
+        "typ:weryfikacja"
+      ],
+      "blocked_by": [
+        "W3a"
+      ]
+    },
+    {
+      "key": "W3b",
+      "title": "W3b: Workflow - realizacje: start, etapy, formularze etapów, przejścia, powroty, wymuszenie (backend)",
+      "file": "12-W3b.md",
+      "labels": [
+        "etap-2",
+        "typ:wdrożenie",
+        "obszar:backend"
+      ],
+      "blocked_by": [
+        "V3a"
+      ]
+    },
+    {
+      "key": "V3b",
+      "title": "V3b: Weryfikacja W3b - regresja i punkty specyficzne",
+      "file": "13-V3b.md",
+      "labels": [
+        "etap-2",
+        "typ:weryfikacja"
+      ],
+      "blocked_by": [
+        "W3b"
+      ]
+    },
+    {
+      "key": "W4a",
+      "title": "W4a: Kreator procesów - kroki 1-6 (UI)",
+      "file": "14-W4a.md",
+      "labels": [
+        "etap-2",
+        "typ:wdrożenie",
+        "obszar:frontend"
+      ],
+      "blocked_by": [
+        "V3b"
+      ]
+    },
+    {
+      "key": "V4a",
+      "title": "V4a: Weryfikacja W4a - regresja i punkty specyficzne",
+      "file": "15-V4a.md",
+      "labels": [
+        "etap-2",
+        "typ:weryfikacja"
+      ],
+      "blocked_by": [
+        "W4a"
+      ]
+    },
+    {
+      "key": "W4b",
+      "title": "W4b: Kreator procesów - podsumowanie z diagramem, test na sucho, widok wykonawcy",
+      "file": "16-W4b.md",
+      "labels": [
+        "etap-2",
+        "typ:wdrożenie",
+        "obszar:frontend",
+        "obszar:backend"
+      ],
+      "blocked_by": [
+        "V4a"
+      ]
+    },
+    {
+      "key": "V4b",
+      "title": "V4b: Weryfikacja W4b - regresja i punkty specyficzne",
+      "file": "17-V4b.md",
+      "labels": [
+        "etap-2",
+        "typ:weryfikacja"
+      ],
+      "blocked_by": [
+        "W4b"
+      ]
+    },
+    {
+      "key": "W5a",
+      "title": "W5a: Workflow - przegląd wersji (celowość -> technika), akceptacje wg funkcji, rozdział ról, pomijanie audytu i procesy krytyczne",
+      "file": "18-W5a.md",
+      "labels": [
+        "etap-2",
+        "typ:wdrożenie",
+        "obszar:backend",
+        "obszar:frontend",
+        "ryzyko:wysokie"
+      ],
+      "blocked_by": [
+        "V4b"
+      ]
+    },
+    {
+      "key": "V5a",
+      "title": "V5a: Weryfikacja W5a - regresja i punkty specyficzne",
+      "file": "19-V5a.md",
+      "labels": [
+        "etap-2",
+        "typ:weryfikacja"
+      ],
+      "blocked_by": [
+        "W5a"
+      ]
+    },
+    {
+      "key": "W5b",
+      "title": "W5b: Workflow - uwagi przypięte do elementów procesu i porównanie wersji",
+      "file": "20-W5b.md",
+      "labels": [
+        "etap-2",
+        "typ:wdrożenie",
+        "obszar:backend",
+        "obszar:frontend"
+      ],
+      "blocked_by": [
+        "V5a"
+      ]
+    },
+    {
+      "key": "V5b",
+      "title": "V5b: Weryfikacja W5b - regresja i punkty specyficzne",
+      "file": "21-V5b.md",
+      "labels": [
+        "etap-2",
+        "typ:weryfikacja"
+      ],
+      "blocked_by": [
+        "W5b"
+      ]
+    },
+    {
+      "key": "W5c",
+      "title": "W5c: Workflow - zgłoszenia problemów, szybka poprawka admina, audyt wsteczny i obowiązkowe uwagi",
+      "file": "22-W5c.md",
+      "labels": [
+        "etap-2",
+        "typ:wdrożenie",
+        "obszar:backend",
+        "obszar:frontend",
+        "ryzyko:wysokie"
+      ],
+      "blocked_by": [
+        "V5b"
+      ]
+    },
+    {
+      "key": "V5c",
+      "title": "V5c: Weryfikacja W5c - regresja i punkty specyficzne",
+      "file": "23-V5c.md",
+      "labels": [
+        "etap-2",
+        "typ:weryfikacja"
+      ],
+      "blocked_by": [
+        "W5c"
+      ]
+    },
+    {
+      "key": "W6a",
+      "title": "W6a: Dziennik audytowy tylko do dopisywania + dziennik wykonania procesów",
+      "file": "24-W6a.md",
+      "labels": [
+        "etap-2",
+        "typ:wdrożenie",
+        "obszar:backend",
+        "obszar:baza",
+        "ryzyko:wysokie"
+      ],
+      "blocked_by": [
+        "V5c"
+      ]
+    },
+    {
+      "key": "V6a",
+      "title": "V6a: Weryfikacja W6a - regresja i punkty specyficzne",
+      "file": "25-V6a.md",
+      "labels": [
+        "etap-2",
+        "typ:weryfikacja"
+      ],
+      "blocked_by": [
+        "W6a"
+      ]
+    },
+    {
+      "key": "W6b",
+      "title": "W6b: Workflow - wykrywanie błędów i anomalii, alarmy, ekran \"Zdrowie procesów\"",
+      "file": "26-W6b.md",
+      "labels": [
+        "etap-2",
+        "typ:wdrożenie",
+        "obszar:backend",
+        "obszar:frontend"
+      ],
+      "blocked_by": [
+        "V6a"
+      ]
+    },
+    {
+      "key": "V6b",
+      "title": "V6b: Weryfikacja W6b - regresja i punkty specyficzne",
+      "file": "27-V6b.md",
+      "labels": [
+        "etap-2",
+        "typ:weryfikacja"
+      ],
+      "blocked_by": [
+        "W6b"
+      ]
+    },
+    {
+      "key": "V-END",
+      "title": "V-END: Odbiór końcowy Etapu 2 (kreator workflow, automatyzacje, audyt)",
+      "file": "28-V-END.md",
+      "labels": [
+        "etap-2",
+        "typ:weryfikacja",
+        "ryzyko:wysokie"
+      ],
+      "blocked_by": [
+        "V6b"
+      ]
+    }
+  ]
+}
