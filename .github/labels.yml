@@ -1,0 +1,30 @@
+- name: etap-2
+  color: "0E8A16"
+  description: Zadania Etapu 2
+- name: "typ:wdrożenie"
+  color: "1D76DB"
+  description: Zadanie wdrożeniowe Etapu 2
+- name: "typ:weryfikacja"
+  color: "5319E7"
+  description: Weryfikacja zadania Etapu 2
+- name: "typ:błąd"
+  color: "D73A4A"
+  description: Błąd znaleziony podczas weryfikacji
+- name: "obszar:backend"
+  color: "0052CC"
+  description: Zmiana dotyczy backendu
+- name: "obszar:frontend"
+  color: "0075CA"
+  description: Zmiana dotyczy frontendu
+- name: "obszar:baza"
+  color: "BFD4F2"
+  description: Zmiana dotyczy bazy danych
+- name: "obszar:ci"
+  color: "FBCA04"
+  description: Zmiana dotyczy CI lub workflow
+- name: "obszar:repo"
+  color: "C5DEF5"
+  description: Zmiana dotyczy konfiguracji lub dokumentacji repozytorium
+- name: "ryzyko:wysokie"
+  color: "B60205"
+  description: Zmiana o wysokim ryzyku

@@ -1,0 +1,30 @@
+name: Weryfikacja Etapu 2
+description: Zgłoszenie weryfikujące zadanie Etapu 2
+title: "[V]: "
+labels:
+  - "typ:weryfikacja"
+  - "etap-2"
+body:
+  - type: input
+    id: weryfikowane-zgloszenie
+    attributes:
+      label: Weryfikowane zgłoszenie
+      description: Podaj numer zgłoszenia do weryfikacji.
+      placeholder: "np. #725"
+    validations:
+      required: true
+  - type: textarea
+    id: punkty-specyficzne
+    attributes:
+      label: Punkty specyficzne
+      description: Wypisz szczególne elementy do sprawdzenia dla tego zgłoszenia.
+    validations:
+      required: true
+  - type: textarea
+    id: lista-r
+    attributes:
+      label: Lista R
+      description: Sprawdź każdy punkt regresji i zapisz wynik.
+      value: "Lista regresji: https://github.com/Crack8502pl/der-mag-platform/blob/main/docs/etap-2/REGRESJA.md"
+    validations:
+      required: true
