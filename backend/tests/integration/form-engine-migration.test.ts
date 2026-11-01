@@ -2,6 +2,7 @@ import { DataSource, QueryRunner } from 'typeorm';
 import { AppDataSource } from '../../src/config/database';
 import { CreateFormChecklistEngine1790971200000 } from '../../src/migrations/20261002_create_form_checklist_engine';
 import { CreateDeviceInstallationWorkflows1793432400000 } from '../../src/migrations/20261031_create_device_installation_workflows';
+import { FormTimestampsWithTimeZone1793491800000 } from '../../src/migrations/20261101_form_timestamps_with_time_zone';
 import { FormTemplate } from '../../src/entities/FormTemplate';
 import { FormTemplateVersion } from '../../src/entities/FormTemplateVersion';
 import { FormInstance } from '../../src/entities/FormInstance';
@@ -27,7 +28,11 @@ describePostgres('Form Engine PostgreSQL migration', () => {
       url: process.env.FORM_ENGINE_TEST_DATABASE_URL,
       schema,
       entities: AppDataSource.options.entities,
-      migrations: [CreateFormChecklistEngine1790971200000, CreateDeviceInstallationWorkflows1793432400000],
+      migrations: [
+        CreateFormChecklistEngine1790971200000,
+        CreateDeviceInstallationWorkflows1793432400000,
+        FormTimestampsWithTimeZone1793491800000,
+      ],
       synchronize: false,
       extra: { options: `-c search_path=${schema}` }
     });
@@ -45,7 +50,7 @@ describePostgres('Form Engine PostgreSQL migration', () => {
     }
     await runner.query('CREATE TABLE devices (id INTEGER PRIMARY KEY, installed_asset_id INTEGER)');
     await runner.query('INSERT INTO devices (id) VALUES (1)');
-    expect(await source.runMigrations()).toHaveLength(2);
+    expect(await source.runMigrations()).toHaveLength(3);
     expect(await source.runMigrations()).toHaveLength(0);
   });
 
@@ -63,6 +68,66 @@ describePostgres('Form Engine PostgreSQL migration', () => {
 
   afterEach(async () => {
     if (runner?.isTransactionActive) await runner.rollbackTransaction();
+  });
+
+  it('uses timezone-aware columns for instance and approval timestamps', async () => {
+    const columns = await runner.query(`
+      SELECT table_name, column_name, data_type
+      FROM information_schema.columns
+      WHERE table_schema = $1
+        AND (table_name, column_name) IN (
+          ('form_instances', 'submitted_at'),
+          ('form_instances', 'created_at'),
+          ('form_instances', 'updated_at'),
+          ('form_approvals', 'decided_at')
+        )
+    `, [schema]);
+
+    expect(columns).toHaveLength(4);
+    expect(columns.every((column: { data_type: string }) =>
+      column.data_type === 'timestamp with time zone')).toBe(true);
+  });
+
+  it('converts legacy wall-clock values using UTC and Warsaw source zones', async () => {
+    const timestamps = new FormTimestampsWithTimeZone1793491800000();
+    await timestamps.down(runner);
+    const [template] = await runner.query(`
+      INSERT INTO form_templates (key, name, procedure_type)
+      VALUES ('timestamp_migration_test', 'Timestamp test', 'FIELD_INSTALLATION')
+      RETURNING id
+    `);
+    const [version] = await runner.query(`
+      INSERT INTO form_template_versions (template_id, version, title, kind, procedure_type)
+      VALUES ($1, 1, 'Timestamp test', 'FORM', 'FIELD_INSTALLATION')
+      RETURNING id
+    `, [template.id]);
+    await publish(version.id);
+    const [instance] = await runner.query(`
+      INSERT INTO form_instances (
+        template_version_id, submitted_at, created_at, updated_at
+      ) VALUES (
+        $1, TIMESTAMP '2026-07-15 12:00:00',
+        TIMESTAMP '2026-07-15 12:00:00', TIMESTAMP '2026-07-15 12:05:00'
+      )
+      RETURNING id
+    `, [version.id]);
+    await runner.query(`
+      INSERT INTO form_approvals (instance_id, decision, decided_by_id, decided_at)
+      VALUES ($1, 'APPROVED', 1, TIMESTAMP '2026-07-15 12:15:00')
+    `, [instance.id]);
+
+    await timestamps.up(runner);
+
+    const [converted] = await runner.query(`
+      SELECT instance.submitted_at, instance.created_at, instance.updated_at, approval.decided_at
+      FROM form_instances instance
+      JOIN form_approvals approval ON approval.instance_id = instance.id
+      WHERE instance.id = $1
+    `, [instance.id]);
+    expect(new Date(converted.submitted_at).toISOString()).toBe('2026-07-15T10:00:00.000Z');
+    expect(new Date(converted.created_at).toISOString()).toBe('2026-07-15T12:00:00.000Z');
+    expect(new Date(converted.updated_at).toISOString()).toBe('2026-07-15T12:05:00.000Z');
+    expect(new Date(converted.decided_at).toISOString()).toBe('2026-07-15T12:15:00.000Z');
   });
 
   async function draft(version = 1, templateId?: number) {

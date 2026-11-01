@@ -43,6 +43,6 @@ export class FormApproval {
   @Column({ type: 'jsonb', default: {} })
   metadata: FormJsonObject;
 
-  @CreateDateColumn({ name: 'decided_at' })
+  @CreateDateColumn({ name: 'decided_at', type: 'timestamptz' })
   decidedAt: Date;
 }

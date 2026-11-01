@@ -50,7 +50,9 @@ Migracje `20261031_create_form_header_footers.ts` i `20261031_create_form_audit_
 
 ### Eksport PDF (C2)
 
-`FormInstancePdfService.generate(instanceId, accessGuard?)` generuje A4 przez `pdf-lib` i `@pdf-lib/fontkit`. Osadza regularny i pogrubiony Noto Sans z `src/assets/fonts` (licencja OFL dołączona); build kopiuje fonty i weryfikuje obecność zasobów. Eksport używa zapisanych odpowiedzi, respektuje widoczność sekcji/pól, łamie długie teksty i wiersze BOM między stronami oraz powtarza nagłówki tabel. `FAIL` jest pogrubione i czerwone.
+`FormInstancePdfService.generate(instanceId, accessGuard?)` generuje A4 przez `pdf-lib` i `@pdf-lib/fontkit`. Osadza regularny i pogrubiony Noto Sans z `src/assets/fonts` (licencja OFL dołączona); build kopiuje fonty i weryfikuje obecność zasobów. Eksport używa zapisanych odpowiedzi, respektuje widoczność sekcji/pól, łamie długie teksty i wiersze BOM między stronami oraz powtarza nagłówki tabel. Odpowiedzi `PASS` i `FAIL` są prezentowane jako „OK” i „Nie OK”; niepowodzenie jest pogrubione i czerwone. Status instancji jest wyświetlany po polsku.
+
+Znaczniki czasu instancji i akceptacji są przechowywane jako `timestamptz`, a PDF wyświetla je jawnie w strefie `Europe/Warsaw` (`dd.MM.yyyy, HH:mm`). Migracja interpretuje istniejące `created_at`, `updated_at` i `decided_at` jako UTC, a `submitted_at` jako czas `Europe/Warsaw`, zgodnie z dotychczasową instalacją bez Dockera.
 
 Branding korzysta z historycznych snapshotów wersji. PDF papieru firmowego używa pierwszej strony, przyciętej do górnego/dolnego pasa; obrazy i logo są skalowane. Układ trzech kolumn jest dopasowany do dostępnej wysokości. Zmienne brandingu są obliczane przez Variable Engine dla kontekstu instancji, także gdy nie istnieje odpowiadające pole DATA. Numeracja `Strona X z Y` jest nanoszona po ustaleniu liczby stron. Na końcu widnieje ostatnia decyzja akceptacji (osoba, data, decyzja, komentarz); każda strona niezatwierdzonej instancji ma `PROJEKT`.
 
