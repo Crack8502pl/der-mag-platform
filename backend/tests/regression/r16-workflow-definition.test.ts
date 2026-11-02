@@ -70,6 +70,17 @@ describe('R16: definicja procesu z wersjami (W3a)', () => {
 
   it('SSP i SUG są oznaczone jako krytyczne dla bezpieczeństwa, pozostałe typy zadań nie', () => {
     expect(taskTypes.filter(type => type.safetyCritical).map(type => type.code).sort()).toEqual(['SSP', 'SUG']);
+    expect(taskTypes.filter(type => !['SSP', 'SUG'].includes(type.code))
+      .every(type => type.safetyCritical === false)).toBe(true);
+  });
+
+  it('istniejące role nie otrzymały uprawnień workflow; admin zachowuje dostęp przez all', async () => {
+    const roles = expectStatus(await admin.get('/api/admin/roles'), 200, 'GET /api/admin/roles').data;
+    expect(roles).toHaveLength(10);
+    expect(roles.find((role: { name: string }) => role.name === 'admin').permissions).toEqual({ all: true });
+    for (const role of roles.filter((item: { name: string }) => item.name !== 'admin')) {
+      expect(role.permissions.workflow).toBeUndefined();
+    }
   });
 
   it('proces 3-etapowy z regułą powrotu: walidacja OK, publikacja, druga wersja, pierwsza SUPERSEDED', async () => {
