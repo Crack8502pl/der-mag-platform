@@ -1,6 +1,6 @@
 # Lista regresji R
 
-To rzeczy, które działają dziś i muszą działać po każdym PR. W0b zamienia je w automatyczny test w CI (`Regression`), a każde zgłoszenie V sprawdza je dodatkowo i dopisuje nowe punkty dla właśnie dodanej funkcji. Lista rośnie razem z etapem: po W1 dochodzi R13 itd.
+To rzeczy, które działają dziś i muszą działać po każdym PR. W0b zamienia je w automatyczny test w CI (`Regression`), a każde zgłoszenie V sprawdza je dodatkowo i dopisuje nowe punkty dla właśnie dodanej funkcji. Lista rośnie razem z etapem: po W1 dochodzi R13, po W2a R14 itd.
 
 | Nr | Obszar | Co musi działać | Sposób |
 | --- | --- | --- | --- |
@@ -17,6 +17,7 @@ To rzeczy, które działają dziś i muszą działać po każdym PR. W0b zamieni
 | R11 | Docker | `docker compose up` na pustych wolumenach, logowanie działa; `down` + `up` zachowuje dane i wgrane pliki | CI (istniejący test) + V przy zmianach w Dockerze |
 | R12 | Istniejące kreatory i wyzwalacze | `POST` i `GET /api/wizard-drafts/:wizardType` zapisuje i zwraca wersję roboczą kreatora kontraktu; `GET /api/bom-triggers` = 200 dla admina | CI |
 | R13 | Funkcje obok ról (W1) | seeder tworzy funkcje `PROCESS_BUILDERS`, `PROCESS_AUDITORS`, `TECHNICAL_REVIEW`; funkcja z „all” odrzucona (400); `viewer` z funkcją `contracts.create` tworzy kontrakt, `/api/auth/me` zwraca to uprawnienie i `functionGroups`; funkcja nie otwiera `/api/admin/*` (403); po odebraniu funkcji `POST /api/contracts` = 403, a historia członkostwa zostaje (`valid_to` ustawione) | CI |
+| R14 | Automatyzacje (W2a) | łańcuch `send_email` na `FORM_APPROVED` zapisany na wersji roboczej; katalog `GET /api/automation/actions` zawiera `send_email`; nieznana zmienna w treści = 400; `POST /api/automation/chains/:id/test` (tryb testowy) zwraca OK i zapisuje run z `dry_run = true`; po akceptacji formularza w bazie jest dokładnie jeden `automation_run` SUCCEEDED | CI |
 
 Automatyzacja: workflow `.github/workflows/regression.yml` (job `Regression`), testy w `backend/tests/regression/rNN-*.test.ts` (jeden plik na punkt), progi w `backend/tests/regression/baseline.json` i `frontend/.eslint-baseline`. Uruchomienie lokalne: sekcja „Test regresji” w `README.md`. Nowy punkt R = nowy plik testu w `backend/tests/regression/`.
 

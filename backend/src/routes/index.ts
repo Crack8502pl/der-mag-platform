@@ -79,12 +79,14 @@ import healthRoutes from './health.routes';
 import railwayRoutes from './railway.routes';
 import variableEngineRoutes from './variableEngine.routes';
 import formsRoutes from './forms.routes';
+import automationRoutes from '../modules/automation/routes/automation.routes';
 
 // Wizard draft routes
 import wizardDraftController from '../controllers/WizardDraftController';
 
 const router = Router();
 router.use('/forms', formsRoutes);
+router.use('/automation', automationRoutes);
 
 // Existing routes
 router.use('/auth', authRoutes);

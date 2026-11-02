@@ -11,6 +11,7 @@ import { TaskMaterial } from '../entities/TaskMaterial';
 import { FormTemplateVersion } from '../entities/FormTemplateVersion';
 import { FormDomainError } from '../errors/FormDomainError';
 import { FormAuditService } from './FormAuditService';
+import { domainEventBus } from '../modules/events/DomainEventBus';
 import { validateBomTableMutation, validateFormDefinition, validateFormResponses } from './FormRules';
 import { FormDataSourceContext, FormDataSourceResolver } from './FormDataSourceResolver';
 
@@ -271,7 +272,7 @@ export class FormInstanceService {
   }
 
   async complete(instanceId: number, actorId: number, accessGuard?: FormInstanceAccessGuard): Promise<FormInstance> {
-    return this.dataSource.transaction(async manager => {
+    return domainEventBus.afterCommit(this.dataSource, async (manager, emit) => {
       const instance = await this.lockInstance(manager, instanceId);
       await accessGuard?.(manager, instance);
       if (![FormInstanceStatus.DRAFT, FormInstanceStatus.IN_PROGRESS, FormInstanceStatus.REJECTED].includes(instance.status)) {
@@ -292,6 +293,17 @@ export class FormInstanceService {
         { field: 'status', previousValue: oldStatus, newValue: saved.status },
         { field: 'submittedAt', previousValue: null, newValue: saved.submittedAt },
       ]);
+      emit({
+        type: 'FORM_SUBMITTED',
+        actorId,
+        subject: { type: 'FORM_INSTANCE', id: saved.id },
+        payload: {
+          instanceId: saved.id,
+          templateVersionId: saved.templateVersionId,
+          taskId: saved.taskId,
+          contractId: saved.contractId,
+        },
+      });
       return saved;
     });
   }

@@ -444,6 +444,15 @@ export class SlackWebhookService {
     await this.sendToAll('import_completed', this.buildImportCompletedMessage(payload));
   }
 
+  /** Wysyła własną treść na kanał (konfigurację webhooka) wskazany przez identyfikator. */
+  async sendToChannel(configId: number, text: string): Promise<SlackSendResult> {
+    const config = await this.configRepository.findOne({ where: { id: configId, provider: 'slack', active: true } });
+    if (!config) {
+      return { success: false, error: 'Kanał Slack nie istnieje lub jest nieaktywny' };
+    }
+    return this.sendToUrl(config.webhookUrl, { text });
+  }
+
   async testWebhook(webhookUrl: string): Promise<SlackSendResult> {
     return this.sendToUrl(webhookUrl, this.buildTestMessage());
   }

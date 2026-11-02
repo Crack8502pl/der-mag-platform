@@ -233,9 +233,16 @@ export interface FormsPermissions {
   readAll?: boolean;
 }
 
+export interface AutomationPermissions {
+  read?: boolean;
+  build?: boolean;
+  run?: boolean;
+}
+
 export interface RolePermissions {
   all?: boolean; // Admin - pełny dostęp
   forms?: FormsPermissions;
+  automation?: AutomationPermissions;
   dashboard?: DashboardPermissions;
   contracts?: ContractPermissions;
   subsystems?: SubsystemPermissions;
