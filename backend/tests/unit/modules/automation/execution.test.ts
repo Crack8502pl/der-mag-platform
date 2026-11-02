@@ -205,6 +205,19 @@ describe('AutomationExecutionService', () => {
     expect(run).toHaveBeenCalledTimes(1);
   });
 
+  it('bez skonfigurowanej kolejki wykonuje automatyzację synchronicznie', async () => {
+    const run = jest.fn(async () => ok());
+    const registry = new AutomationRegistry().register(fakeAction('one', run));
+    const store = new InMemoryAutomationStore();
+    store.addChain({ steps: [{ action: 'one', params: {} }] });
+    const service = new AutomationExecutionService({ registry, store, render: async text => text });
+
+    await service.handleEvent(approvedEvent({ id: 'evt-no-redis' }));
+
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(store.runs[0].status).toBe('SUCCEEDED');
+  });
+
   it('wspólna magistrala jest współdzielona (singleton)', () => {
     expect(domainEventBus).toBeInstanceOf(DomainEventBus);
   });

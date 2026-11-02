@@ -14,6 +14,9 @@ import { TaskService } from '../../../../src/services/TaskService';
 import { DocumentService } from '../../../../src/services/DocumentService';
 import { automationRegistry } from '../../../../src/modules/automation/actions';
 import type { AutomationContext } from '../../../../src/modules/automation/contracts';
+import { AutomationExecutionService } from '../../../../src/modules/automation/services/AutomationExecutionService';
+import { AutomationRegistry } from '../../../../src/modules/automation/registry/AutomationRegistry';
+import { InMemoryAutomationStore } from './helpers';
 
 jest.mock('../../../../src/config/database', () => ({ AppDataSource: { getRepository: jest.fn(), manager: {} } }));
 jest.mock('../../../../src/services/EmailQueueService', () => ({ __esModule: true, default: { addToQueue: jest.fn(), isReady: jest.fn() } }));
@@ -63,6 +66,33 @@ describe('send_email', () => {
     expect(EmailQueueService.addToQueue).toHaveBeenCalledWith(expect.objectContaining({
       to: ['a@example.test'], subject: 'Temat', context: { subject: 'Temat', message: 'Treść' }, automation: { automated: true },
     }));
+  });
+
+  it('ponowne dostarczenie FORM_APPROVED nie dubluje e-maila', async () => {
+    (EmailQueueService.isReady as jest.Mock).mockReturnValue(true);
+    const store = new InMemoryAutomationStore();
+    store.addChain({ steps: [{ action: 'send_email', params }] });
+    const service = new AutomationExecutionService({
+      registry: new AutomationRegistry().register(action('send_email')),
+      store,
+      render: async text => text,
+    });
+    const event = {
+      id: 'approval-email-once',
+      type: 'FORM_APPROVED',
+      occurredAt: new Date(),
+      actorId: 7,
+      subject: { type: 'FORM_INSTANCE', id: 100 },
+      payload: { templateVersionId: 5, taskId: 42 },
+      causationDepth: 0,
+    };
+
+    await service.handleEvent(event);
+    await service.handleEvent(event);
+
+    expect(store.runs).toHaveLength(1);
+    expect(EmailQueueService.addToQueue).toHaveBeenCalledTimes(1);
+    expect(EmailQueueService.addToQueue).toHaveBeenCalledWith(expect.objectContaining({ to: ['a@example.test'] }));
   });
 
   it('pomija krok, gdy kolejka e-mail jest wyłączona lub brak odbiorców', async () => {
