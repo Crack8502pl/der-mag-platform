@@ -92,7 +92,7 @@
     "nodemailer": "^10.0.13",
     "pdf-lib": "^1.17.1",
     "pg": "^8.21.0",
-    "pizzip": "^3.1.7",
+    "pizzip": "^3.3.0",
     "reflect-metadata": "^0.2.1",
     "sharp": "^0.35.3",
     "typeorm": "^0.3.30",
