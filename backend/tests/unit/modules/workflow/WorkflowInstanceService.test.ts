@@ -129,6 +129,10 @@ describe('Realizacje procesów W3b', () => {
     expect(forced.currentStepKey).toBe('s3');
     expect(events.find(event => event.type === 'WORKFLOW_FORCED')?.payload).toMatchObject({ outcome: 'FORCED', reason: 'Awaria', workflowStepId: 1 });
     expect(db.auditOf('WORKFLOW_STEP_FORCED')).toHaveLength(1);
+    const backward = await service.force(instance.id, { reason: 'Powrót awaryjny', toStepKey: 's1' }, override);
+    expect(backward.currentStepRun).toMatchObject({ stepKey: 's1', attempt: 2 });
+    expect(backward.history[1]).toMatchObject({ stepKey: 's3', outcome: 'FORCED', note: 'Powrót awaryjny' });
+    expect(events.filter(event => event.type === 'WORKFLOW_FORCED')).toHaveLength(2);
   });
 
   it('anuluje wyłącznie z override i uzasadnieniem, zamyka aktywny etap', async () => {

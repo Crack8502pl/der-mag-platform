@@ -162,6 +162,19 @@ describePostgres('Realizacje procesów W3b – PostgreSQL i HTTP', () => {
   }
 
   it('migruje daty timestamptz, chroni częściowy indeks RUNNING i przypięcie wersji', async () => {
+    const rolesBefore = await source.query(`SELECT id, permissions FROM roles ORDER BY id`);
+    const runner = source.createQueryRunner();
+    await runner.connect();
+    try {
+      await new CreateWorkflowInstances1793647200000().up(runner);
+    } finally {
+      await runner.release();
+    }
+    expect(await source.query(`SELECT id, permissions FROM roles ORDER BY id`)).toEqual(rolesBefore);
+    expect(rolesBefore.find((role: { id: number }) => role.id === 7).permissions).toEqual({});
+    expect((await api('post', '/', 4, { definitionId: 1, subjectId: 10 })).status).toBe(403);
+    const [subjectIndex] = await source.query(`SELECT indexdef FROM pg_indexes WHERE schemaname=$1 AND indexname='idx_workflow_instances_subject'`, [schema]);
+    expect(subjectIndex.indexdef).toContain('(subject_type, subject_id)');
     const dates = await source.query(`SELECT data_type FROM information_schema.columns WHERE table_schema=$1 AND table_name IN ('workflow_instances','workflow_step_runs') AND column_name LIKE '%_at'`, [schema]);
     expect(dates.length).toBeGreaterThan(5);
     expect(dates.every((row: { data_type: string }) => row.data_type === 'timestamp with time zone')).toBe(true);

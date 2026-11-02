@@ -424,6 +424,8 @@ describe('RoleController', () => {
         displayName: 'Procesy',
         actions: ['read', 'build', 'start', 'execute', 'override'],
       });
+      expect(AppDataSource.getRepository).not.toHaveBeenCalled();
+      expect(mockRoleRepository.save).not.toHaveBeenCalled();
     });
   });
 });
