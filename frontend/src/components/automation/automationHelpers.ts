@@ -31,6 +31,7 @@ export interface DataSourceOption {
   group: string;
 }
 
+export const MAX_STEPS = 20;
 export const MAX_TEXT_LENGTH = 500;
 export const MAX_LONG_TEXT_LENGTH = 10_000;
 
@@ -53,6 +54,12 @@ export const RUN_STATUS_LABELS: Record<AutomationRunStatus, string> = {
   FAILED: 'Zakończone błędem',
   PARTIAL: 'Wykonane częściowo',
   BLOCKED: 'Zablokowane',
+};
+
+export const EVENT_LABELS: Record<string, string> = {
+  FORM_SUBMITTED: 'Po wysłaniu',
+  FORM_APPROVED: 'Po zatwierdzeniu',
+  FORM_REJECTED: 'Po odrzuceniu',
 };
 
 let stepCounter = 0;
@@ -94,6 +101,40 @@ export function groupActionsByCategory(actions: AutomationActionDefinition[]): A
     const group = groups.find(item => item.category === category);
     if (group) group.actions.push(action);
     else groups.push({ category, actions: [action] });
+  }
+  return groups;
+}
+
+export interface SystemVariable {
+  expression: string;
+  description: string;
+  label?: string;
+  group?: string;
+  usableInForms?: boolean;
+}
+
+/** Dane z systemu, które można wstawić do tekstu kroku (te same co w formularzach). */
+export const toDataSources = (variables: SystemVariable[]): DataSourceOption[] =>
+  variables
+    .filter(variable => variable.usableInForms)
+    .map(variable => ({
+      expression: variable.expression,
+      label: variable.label || variable.description || variable.expression,
+      group: variable.group || 'Inne',
+    }));
+
+export interface DataSourceGroup {
+  group: string;
+  items: DataSourceOption[];
+}
+
+export function groupDataSources(sources: DataSourceOption[]): DataSourceGroup[] {
+  const groups: DataSourceGroup[] = [];
+  for (const source of sources) {
+    const name = source.group || 'Inne';
+    const group = groups.find(item => item.group === name);
+    if (group) group.items.push(source);
+    else groups.push({ group: name, items: [source] });
   }
   return groups;
 }
@@ -155,7 +196,7 @@ export const chainSignature = (
   }),
 });
 
-export const lookupKey = (type: AutomationLookupType, value: string | number): string => `${type}:${value}`;
+export const lookupKey = (type: string, value: string | number): string => `${type}:${value}`;
 
 const VARIABLE_PATTERN = /\{([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+)\}/g;
 

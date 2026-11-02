@@ -12,6 +12,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useFormTemplates } from '../../hooks/useFormTemplates';
+import { AutomationChainField } from '../automation/AutomationChainField';
 import { TaskPicker } from '../common/TaskPicker';
 import { DynamicFormRenderer } from '../forms/DynamicFormRenderer';
 import { FormBrandingPreview } from '../forms/FormBrandingPreview';
@@ -34,7 +35,7 @@ import type {
 } from '../../types/forms.types';
 import './FormBuilderPage.css';
 
-type BuilderTab = 'builder' | 'versions' | 'preview' | 'rules';
+type BuilderTab = 'builder' | 'versions' | 'preview' | 'automation' | 'rules';
 type DefinitionSection = FormSection & { id?: number };
 
 const FIELD_TYPES: Array<{ value: string; label: string }> = [
@@ -517,6 +518,7 @@ export const FormBuilderPage: React.FC = () => {
   const canUpdate = hasPermission('forms', 'update');
   const canPublish = hasPermission('forms', 'publish');
   const canAssign = hasPermission('forms', 'assign');
+  const canReadAutomation = hasPermission('automation', 'read');
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor));
 
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
@@ -524,6 +526,8 @@ export const FormBuilderPage: React.FC = () => {
   const [versions, setVersions] = useState<FormVersionSummary[]>([]);
   const [sections, setSections] = useState<DefinitionSection[]>([]);
   const [tab, setTab] = useState<BuilderTab>('builder');
+  const [automationVisited, setAutomationVisited] = useState(false);
+  const [automationDirty, setAutomationDirty] = useState({ approved: false, rejected: false });
   const [previewTask, setPreviewTask] = useState<Task | null>(null);
   const [previewValues, setPreviewValues] = useState<Record<string, unknown>>({});
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -601,6 +605,7 @@ export const FormBuilderPage: React.FC = () => {
       setAutoFieldKeys(new Set());
       setPreviewTask(null);
       setErrorFieldKey(undefined);
+      setAutomationVisited(false);
       setTab('builder');
     } catch (error) {
       showError(error);
@@ -736,6 +741,10 @@ export const FormBuilderPage: React.FC = () => {
     if (!version) return;
     if (draftDefinitionError) {
       setMessage(draftDefinitionError);
+      return;
+    }
+    if (automationDirty.approved || automationDirty.rejected) {
+      setMessage('Masz niezapisane zmiany w zakładce „Automatyzacje”. Zapisz je przed publikacją wersji.');
       return;
     }
     setSaving(true);
@@ -880,10 +889,20 @@ export const FormBuilderPage: React.FC = () => {
       : item));
   };
 
+  const setApprovedDirty = useCallback(
+    (approved: boolean) => setAutomationDirty(current => (current.approved === approved ? current : { ...current, approved })),
+    [],
+  );
+  const setRejectedDirty = useCallback(
+    (rejected: boolean) => setAutomationDirty(current => (current.rejected === rejected ? current : { ...current, rejected })),
+    [],
+  );
+
   const tabs: Array<{ id: BuilderTab; label: string }> = [
     { id: 'builder', label: 'Edytor' },
     { id: 'versions', label: 'Wersje' },
     { id: 'preview', label: 'Podgląd' },
+    ...(canReadAutomation ? [{ id: 'automation' as const, label: 'Automatyzacje' }] : []),
     { id: 'rules', label: 'Przypisania i reguły' },
   ];
 
@@ -965,7 +984,10 @@ export const FormBuilderPage: React.FC = () => {
             {version && <span className={`form-builder__status form-builder__status--${version.status.toLowerCase()}`}>{version.status} · v{version.version}</span>}
           </div>
           <nav className="form-builder__tabs" aria-label="Widoki formularza">
-            {tabs.map(item => <button type="button" key={item.id} className={tab === item.id ? 'is-active' : ''} aria-current={tab === item.id ? 'page' : undefined} onClick={() => setTab(item.id)}>{item.label}</button>)}
+            {tabs.map(item => <button type="button" key={item.id} className={tab === item.id ? 'is-active' : ''} aria-current={tab === item.id ? 'page' : undefined} onClick={() => {
+              setTab(item.id);
+              if (item.id === 'automation') setAutomationVisited(true);
+            }}>{item.label}</button>)}
           </nav>
           {loadingDetail ? <p role="status">Ładowanie definicji…</p> : !version ? (
             <div className="form-builder__empty">
@@ -1118,7 +1140,7 @@ export const FormBuilderPage: React.FC = () => {
               {previewLoading && <p role="status">Pobieranie danych zadania…</p>}
               <DynamicFormRenderer versionId={version.id} initialValues={previewValues} disabled />
             </div>
-          ) : (
+          ) : tab === 'automation' ? null : (
             <div className="form-builder__card">
               <div className="form-builder__section-actions">
                 <div>                <h3>Przypisania i reguły</h3><p>Konfiguracja reguł przypisań. Automatyczne wykonywanie należy do etapu 8.</p></div>
@@ -1169,6 +1191,41 @@ export const FormBuilderPage: React.FC = () => {
                 </form>
               )}
               {!canAssign && <p className="form-builder__hint">Do edycji reguł wymagane jest uprawnienie forms.assign.</p>}
+            </div>
+          )}
+          {version && canReadAutomation && automationVisited && !loadingDetail && (
+            <div className="form-builder__card form-builder__automation" hidden={tab !== 'automation'}>
+              <div>
+                <h3>Automatyzacje</h3>
+                <p className="form-builder__hint">
+                  Kroki, które system wykona sam po decyzji w formularzu – jeden po drugim, w kolejności kafelków.
+                </p>
+              </div>
+              {version.status !== 'DRAFT' && (
+                <p className="form-builder__notice" role="status">
+                  Wersja opublikowana – automatyzacje są tylko do odczytu. Zmiany w nowej wersji.
+                </p>
+              )}
+              <AutomationChainField
+                key={`approved-${version.id}`}
+                ownerType="FORM_TEMPLATE_VERSION"
+                ownerId={version.id}
+                eventType="FORM_APPROVED"
+                title="Po zatwierdzeniu"
+                description="Wykonają się, gdy formularz zostanie zatwierdzony."
+                readOnly={readOnly}
+                onDirtyChange={setApprovedDirty}
+              />
+              <AutomationChainField
+                key={`rejected-${version.id}`}
+                ownerType="FORM_TEMPLATE_VERSION"
+                ownerId={version.id}
+                eventType="FORM_REJECTED"
+                title="Po odrzuceniu"
+                description="Wykonają się, gdy formularz zostanie odrzucony."
+                readOnly={readOnly}
+                onDirtyChange={setRejectedDirty}
+              />
             </div>
           )}
         </section>

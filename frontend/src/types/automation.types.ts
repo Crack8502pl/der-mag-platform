@@ -96,6 +96,7 @@ export interface AutomationRun {
   startedAt: string;
   finishedAt: string | null;
   message: string | null;
+  event?: { type?: string } | null;
   steps: AutomationRunStep[];
 }
 
