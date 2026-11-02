@@ -211,6 +211,28 @@ describe('FormBuilderPage', () => {
     expect(await screen.findByText('Wersja robocza została zapisana.')).toBeInTheDocument();
   });
 
+  it('po dodaniu zakładki automatyzacji nadal pozwala przejść przez wszystkie widoki formularza', async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
+    await screen.findByDisplayValue('Wynik');
+
+    const navigation = screen.getByRole('navigation', { name: 'Widoki formularza' });
+    const views = [
+      ['Edytor', () => screen.findByDisplayValue('Wynik')],
+      ['Wersje', () => screen.findByRole('heading', { name: 'Wersje' })],
+      ['Podgląd', () => screen.findByRole('combobox', { name: 'Zadanie do podglądu' })],
+      ['Automatyzacje', () => screen.findByRole('region', { name: 'Po zatwierdzeniu' })],
+      ['Przypisania i reguły', () => screen.findByRole('heading', { name: 'Przypisania i reguły' })],
+    ] as const;
+
+    for (const [label, expectedContent] of views) {
+      const tab = within(navigation).getByRole('button', { name: label });
+      fireEvent.click(tab);
+      expect(tab).toHaveAttribute('aria-current', 'page');
+      expect(await expectedContent()).toBeInTheDocument();
+    }
+  });
+
   it('saves selected header and footer library entries with the draft', async () => {
     vi.mocked(formsService.listBranding).mockResolvedValue([
       {

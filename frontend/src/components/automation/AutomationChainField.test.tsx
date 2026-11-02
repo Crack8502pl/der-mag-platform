@@ -160,6 +160,19 @@ describe('AutomationChainField', () => {
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
+  it('pokazuje przyjazne nazwy kroków i ustawień bez JSON-a ani kluczy technicznych', async () => {
+    renderField();
+    await addStep('mail');
+    fireEvent.click(screen.getByRole('button', { name: 'Ustawienia kroku 1: Wyślij e-mail' }));
+
+    const automationField = field();
+    expect(within(automationField).getByLabelText('Do kogo')).toBeInTheDocument();
+    expect(within(automationField).getByLabelText('Temat')).toBeInTheDocument();
+    expect(within(automationField).getByLabelText('Treść')).toBeInTheDocument();
+    expect(within(automationField).queryByLabelText(/JSON/i)).not.toBeInTheDocument();
+    expect(automationField.textContent).not.toMatch(/send_email|recipientType|functionGroup/);
+  });
+
   it('dodaje kafelek po kliknięciu podpowiedzi i na końcu łańcucha', async () => {
     renderField();
     await addStep('pdf');
