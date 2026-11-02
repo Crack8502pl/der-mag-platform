@@ -10,6 +10,7 @@ const router = Router();
 
 router.use(authenticate);
 router.get('/actions', checkPermission('automation', 'read'), AutomationController.listActions);
+router.get('/lookups', checkPermission('automation', 'read'), AutomationController.listLookups);
 router.get('/chains', checkPermission('automation', 'read'), AutomationController.getChains);
 router.put('/chains', checkPermission('automation', 'build'), AutomationController.saveChain);
 router.post('/chains/:id/test', checkPermission('automation', 'run'), AutomationController.testChain);

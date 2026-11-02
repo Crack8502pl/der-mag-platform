@@ -6,11 +6,12 @@ import { Task } from '../../../entities/Task';
 import { EffectivePermissionsService } from '../../function-groups/services/EffectivePermissionsService';
 import { automationRegistry } from '../actions';
 import { AutomationError } from '../errors';
-import { automationChains, automationExecution, automationStore } from '../runtime';
+import { automationChains, automationExecution, automationLookups, automationStore } from '../runtime';
 import { serverLogger } from '../../../utils/logger';
 
 const DEFAULT_RUN_LIMIT = 50;
 const MAX_RUN_LIMIT = 200;
+const MAX_LOOKUP_SEARCH_LENGTH = 100;
 
 function fail(res: Response, error: unknown, fallback: string): void {
   if (error instanceof AutomationError) {
@@ -23,12 +24,35 @@ function fail(res: Response, error: unknown, fallback: string): void {
 
 const single = (value: unknown): unknown => (Array.isArray(value) ? value[0] : value);
 
+function parseInstanceId(value: unknown): number | undefined {
+  if (value === undefined || value === '') return undefined;
+  const id = Number(value);
+  if (!Number.isInteger(id) || id <= 0) throw new AutomationError('VALIDATION_FAILED', 'Nieprawidłowy identyfikator wypełnionego formularza.');
+  return id;
+}
+
 export class AutomationController {
   static async listActions(_req: Request, res: Response): Promise<void> {
     try {
       res.json({ success: true, data: await automationRegistry.describe() });
     } catch (error) {
       fail(res, error, 'Nie udało się pobrać katalogu klocków');
+    }
+  }
+
+  static async listLookups(req: Request, res: Response): Promise<void> {
+    try {
+      const type = automationLookups.parseType(single(req.query.type));
+      const search = single(req.query.search);
+      const selected = single(req.query.value);
+      const options = await automationLookups.find(
+        type,
+        typeof search === 'string' ? search.slice(0, MAX_LOOKUP_SEARCH_LENGTH) : '',
+        typeof selected === 'string' && selected !== '' ? selected : undefined,
+      );
+      res.json({ success: true, data: options });
+    } catch (error) {
+      fail(res, error, 'Nie udało się pobrać listy wyboru');
     }
   }
 
@@ -85,7 +109,8 @@ export class AutomationController {
       const owner = automationChains.parseOwner(single(req.query.ownerType), single(req.query.ownerId));
       const requested = Number(single(req.query.limit));
       const limit = Number.isInteger(requested) && requested > 0 ? Math.min(requested, MAX_RUN_LIMIT) : DEFAULT_RUN_LIMIT;
-      const runs = await automationStore.listRuns(owner.ownerType, owner.ownerId, limit);
+      const instanceId = parseInstanceId(single(req.query.instanceId));
+      const runs = await automationStore.listRuns(owner.ownerType, owner.ownerId, limit, instanceId);
       res.json({ success: true, data: runs.map(({ run, steps }) => ({ ...run, steps })) });
     } catch (error) {
       fail(res, error, 'Nie udało się pobrać historii uruchomień');
