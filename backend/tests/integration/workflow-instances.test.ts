@@ -365,6 +365,28 @@ describePostgres('Realizacje procesów W3b – PostgreSQL i HTTP', () => {
     expect((await service.getById(instance.id, executor)).currentStepKey).toBe('s1');
   });
 
+  it('formularz utworzony przez proces zachowuje reguły R5 dla danych systemowych i zakończenia', async () => {
+    await addForm({}, false, 'PASS_FAIL', true);
+    await source.query(`UPDATE tasks SET task_number='Z00100001', contract_id=10 WHERE id=10`);
+    await source.query(`UPDATE contracts SET contract_number='R0010001_A' WHERE id=10`);
+    const instance = await start();
+    const formId = instance.currentStepRun!.formInstanceId!;
+    const forms = new FormInstanceService(source);
+    const snapshots = await source.getRepository(FormFieldValue).find({
+      where: { instanceId: formId },
+      order: { fieldDefinitionId: 'ASC' },
+    });
+
+    expect(snapshots.map(value => [value.fieldDefinitionId, value.value])).toEqual([
+      [2, 'Z00100001'], [3, 'R0010001_A'],
+    ]);
+    await expect(forms.saveResponses(formId, { result: 'PASS', task_number: 'Z99999999' }, 1))
+      .rejects.toMatchObject({ code: 'INVALID_RESPONSES' });
+    await forms.saveResponses(formId, { result: 'PASS' }, 1);
+    await forms.complete(formId, 1);
+    expect(await service.complete(instance.id, executor)).toMatchObject({ currentStepKey: 's2' });
+  });
+
   it('pozostawia instancję na v1 po publikacji v2 i przypina formularz do wersji z wejścia', async () => {
     await addForm();
     const instance = await start();
