@@ -220,7 +220,7 @@ afterAll(() => {
 });
 
 describe('Forms REST API', () => {
-  it('allows form editors and legacy BOM readers to list the variable catalog', async () => {
+  it('allows form editors, automation readers and legacy BOM readers to list the variable catalog', async () => {
     grants = { forms: { read: true } };
     const response = await request(app).get('/api/variable-engine/variables').set('Authorization', 'Bearer valid');
     expect(response.status).toBe(200);
@@ -232,7 +232,9 @@ describe('Forms REST API', () => {
 
     grants = { bom: { read: true } };
     expect((await request(app).get('/api/variable-engine/variables').set('Authorization', 'Bearer valid')).status).toBe(200);
-    grants = { forms: { read: false }, bom: { read: false } };
+    grants = { automation: { read: true } };
+    expect((await request(app).get('/api/variable-engine/variables').set('Authorization', 'Bearer valid')).status).toBe(200);
+    grants = { forms: { read: false }, bom: { read: false }, automation: { read: false } };
     expect((await request(app).get('/api/variable-engine/variables').set('Authorization', 'Bearer valid')).status).toBe(403);
   });
 

@@ -168,6 +168,12 @@ export interface MapPermissions {
   viewAll?: boolean;
 }
 
+export interface AutomationPermissions {
+  read?: boolean;
+  build?: boolean;
+  run?: boolean;
+}
+
 export interface RolePermissions {
   all?: boolean; // Admin - pełny dostęp
   dashboard?: DashboardPermissions;
@@ -192,6 +198,7 @@ export interface RolePermissions {
   assets?: AssetPermissions;
   forms?: FormsPermissions;
   map?: MapPermissions;
+  automation?: AutomationPermissions;
   [key: string]: any;
 }
 
@@ -218,7 +225,8 @@ export type PermissionModule =
   | 'cars'
   | 'assets'
   | 'forms'
-  | 'map';
+  | 'map'
+  | 'automation';
 
 export type PermissionAction = 
   | 'read'

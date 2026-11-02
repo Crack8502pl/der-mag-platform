@@ -12,10 +12,10 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useFormTemplates } from '../../hooks/useFormTemplates';
+import { TaskPicker } from '../common/TaskPicker';
 import { DynamicFormRenderer } from '../forms/DynamicFormRenderer';
 import { FormBrandingPreview } from '../forms/FormBrandingPreview';
 import { formsService, type UpdateFormDraftInput } from '../../services/forms.service';
-import taskService from '../../services/task.service';
 import variableEngineService, { type VariableEngineVariable } from '../../services/variableEngine.service';
 import type { Task } from '../../types/task.types';
 import type {
@@ -524,13 +524,10 @@ export const FormBuilderPage: React.FC = () => {
   const [versions, setVersions] = useState<FormVersionSummary[]>([]);
   const [sections, setSections] = useState<DefinitionSection[]>([]);
   const [tab, setTab] = useState<BuilderTab>('builder');
-  const [previewTaskSearch, setPreviewTaskSearch] = useState('');
-  const [previewTasks, setPreviewTasks] = useState<Task[]>([]);
-  const [previewTaskId, setPreviewTaskId] = useState('');
+  const [previewTask, setPreviewTask] = useState<Task | null>(null);
   const [previewValues, setPreviewValues] = useState<Record<string, unknown>>({});
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState('');
-  const [previewTaskError, setPreviewTaskError] = useState('');
   const [rules, setRules] = useState<FormAssignmentRule[]>([]);
   const [assignmentUsers, setAssignmentUsers] = useState<FormUserOption[]>([]);
   const [assignmentTeams, setAssignmentTeams] = useState<FormTeamOption[]>([]);
@@ -602,8 +599,7 @@ export const FormBuilderPage: React.FC = () => {
       setSections(templateSections(nextVersion));
       setAutoSectionKeys(new Set());
       setAutoFieldKeys(new Set());
-      setPreviewTaskId('');
-      setPreviewTaskSearch('');
+      setPreviewTask(null);
       setErrorFieldKey(undefined);
       setTab('builder');
     } catch (error) {
@@ -675,31 +671,8 @@ export const FormBuilderPage: React.FC = () => {
   }, [assignmentUserSearch, currentVersionId, tab]);
 
   useEffect(() => {
-    const search = previewTaskSearch.trim();
-    if (tab !== 'preview' || !search) {
-      setPreviewTasks([]);
-      setPreviewTaskError('');
-      return;
-    }
-    let cancelled = false;
-    const timer = window.setTimeout(() => {
-      setPreviewTaskError('');
-      taskService.getAll({ search, page: 1, limit: 20 }).then(result => {
-        if (!cancelled) setPreviewTasks(result.data);
-      }).catch(() => {
-        if (!cancelled) setPreviewTaskError('Nie udało się wyszukać zadań.');
-      });
-    }, 250);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [previewTaskSearch, tab]);
-
-  useEffect(() => {
     if (!version || tab !== 'preview') return;
-    const selectedTask = previewTasks.find(task => String(task.id) === previewTaskId);
-    if (!selectedTask) {
+    if (!previewTask) {
       setPreviewValues(samplePreviewValues(version));
       setPreviewError('');
       return;
@@ -708,7 +681,7 @@ export const FormBuilderPage: React.FC = () => {
     setPreviewLoading(true);
     setPreviewError('');
     setPreviewValues({});
-    formsService.previewVersion(version.id, selectedTask.id).then(values => {
+    formsService.previewVersion(version.id, previewTask.id).then(values => {
       if (!cancelled) setPreviewValues(values);
     }).catch(() => {
       if (!cancelled) setPreviewError('Nie udało się pobrać danych podglądu dla zadania.');
@@ -716,7 +689,7 @@ export const FormBuilderPage: React.FC = () => {
       if (!cancelled) setPreviewLoading(false);
     });
     return () => { cancelled = true; };
-  }, [previewTaskId, previewTasks, tab, version]);
+  }, [previewTask, tab, version]);
 
   const createTemplate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -1133,32 +1106,14 @@ export const FormBuilderPage: React.FC = () => {
           ) : tab === 'preview' ? (
             <div className="form-builder__preview">
               <p className="form-builder__hint">Podgląd wersji roboczej w trybie tylko do odczytu. Bez wybranego zadania pola systemowe i tabela BOM pokazują dane przykładowe.</p>
-              <div className="form-builder__task-preview">
-                <label>Wyszukaj zadanie po numerze
-                  <input
-                    type="search"
-                    value={previewTaskSearch}
-                    onChange={event => {
-                      setPreviewTaskSearch(event.target.value);
-                      setPreviewTaskId('');
-                    }}
-                    placeholder="np. Z00011026"
-                  />
-                </label>
-                <label>Zadanie
-                  <select
-                    aria-label="Zadanie do podglądu"
-                    value={previewTaskId}
-                    onChange={event => setPreviewTaskId(event.target.value)}
-                  >
-                    <option value="">Dane przykładowe</option>
-                    {previewTasks.map(task => (
-                      <option key={task.id} value={task.id}>{task.taskNumber} — {task.title}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              {previewTaskError && <p className="form-builder__notice form-builder__notice--error" role="alert">{previewTaskError}</p>}
+              <TaskPicker
+                className="form-builder__task-preview"
+                errorClassName="form-builder__notice form-builder__notice--error"
+                value={previewTask}
+                onChange={setPreviewTask}
+                selectLabel="Zadanie do podglądu"
+                emptyOptionLabel="Dane przykładowe"
+              />
               {previewError && <p className="form-builder__notice form-builder__notice--error" role="alert">{previewError}</p>}
               {previewLoading && <p role="status">Pobieranie danych zadania…</p>}
               <DynamicFormRenderer versionId={version.id} initialValues={previewValues} disabled />
