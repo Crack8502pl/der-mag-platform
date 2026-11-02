@@ -251,19 +251,19 @@ export class DatabaseSeeder {
     
     // ZAKTUALIZOWANE KODY - zgodne z migracją 20260106_update_task_types.sql
     const taskTypes = [
-      { name: 'System Monitoringu Wizyjnego', code: 'SMW', description: 'System Monitoringu Wizyjnego', active: true, configuration: { has_bom: true, has_ip_config: true } },
-      { name: 'SDIP', code: 'SDIP', description: 'Cyfrowe Systemy Dźwiękowego Informowania Pasażerów', active: true, configuration: { has_bom: true, has_ip_config: true } },
-      { name: 'LAN', code: 'LAN', description: 'Sieci LAN', active: true, configuration: { has_bom: true, has_ip_config: true } },
-      { name: 'SMOK-IP/CMOK-IP (Wariant A/SKP)', code: 'SMOKIP_A', description: 'Wariant A', active: true, configuration: { has_bom: true, has_ip_config: true } },
-      { name: 'SMOK-IP/CMOK-IP (Wariant B)', code: 'SMOKIP_B', description: 'Wariant B', active: true, configuration: { has_bom: true, has_ip_config: true } },
-      { name: 'SSWiN', code: 'SSWIN', description: 'System Sygnalizacji Włamania i Napadu', active: true, configuration: { has_bom: true, has_ip_config: false } },
-      { name: 'SSP', code: 'SSP', description: 'System Sygnalizacji Pożaru', active: true, configuration: { has_bom: true, has_ip_config: false } },
-      { name: 'SUG', code: 'SUG', description: 'Stałe Urządzenie Gaśnicze', active: true, configuration: { has_bom: true, has_ip_config: false } },
-      { name: 'Zasilanie', code: 'ZASILANIE', description: 'Systemy zasilania', active: true, configuration: { has_bom: true, has_ip_config: false } },
-      { name: 'Struktury Światłowodowe', code: 'OTK', description: 'Infrastruktura światłowodowa', active: true, configuration: { has_bom: true, has_ip_config: false } },
-      { name: 'SKD', code: 'SKD', description: 'System Kontroli Dostępu', active: true, configuration: { has_bom: true, has_ip_config: true } },
-      { name: 'CCTV', code: 'CCTV', description: 'System Telewizji Przemysłowej', active: true, configuration: { has_bom: true, has_ip_config: true } },
-      { name: 'Zadanie Serwisowe', code: 'SERWIS', description: 'Naprawa, konserwacja i interwencje serwisowe', active: true, configuration: { has_bom: true, has_ip_config: false } }
+      { name: 'System Monitoringu Wizyjnego', code: 'SMW', description: 'System Monitoringu Wizyjnego', active: true, configuration: { has_bom: true, has_ip_config: true, safetyCritical: false } },
+      { name: 'SDIP', code: 'SDIP', description: 'Cyfrowe Systemy Dźwiękowego Informowania Pasażerów', active: true, configuration: { has_bom: true, has_ip_config: true, safetyCritical: false } },
+      { name: 'LAN', code: 'LAN', description: 'Sieci LAN', active: true, configuration: { has_bom: true, has_ip_config: true, safetyCritical: false } },
+      { name: 'SMOK-IP/CMOK-IP (Wariant A/SKP)', code: 'SMOKIP_A', description: 'Wariant A', active: true, configuration: { has_bom: true, has_ip_config: true, safetyCritical: false } },
+      { name: 'SMOK-IP/CMOK-IP (Wariant B)', code: 'SMOKIP_B', description: 'Wariant B', active: true, configuration: { has_bom: true, has_ip_config: true, safetyCritical: false } },
+      { name: 'SSWiN', code: 'SSWIN', description: 'System Sygnalizacji Włamania i Napadu', active: true, configuration: { has_bom: true, has_ip_config: false, safetyCritical: false } },
+      { name: 'SSP', code: 'SSP', description: 'System Sygnalizacji Pożaru', active: true, configuration: { has_bom: true, has_ip_config: false, safetyCritical: true } },
+      { name: 'SUG', code: 'SUG', description: 'Stałe Urządzenie Gaśnicze', active: true, configuration: { has_bom: true, has_ip_config: false, safetyCritical: true } },
+      { name: 'Zasilanie', code: 'ZASILANIE', description: 'Systemy zasilania', active: true, configuration: { has_bom: true, has_ip_config: false, safetyCritical: false } },
+      { name: 'Struktury Światłowodowe', code: 'OTK', description: 'Infrastruktura światłowodowa', active: true, configuration: { has_bom: true, has_ip_config: false, safetyCritical: false } },
+      { name: 'SKD', code: 'SKD', description: 'System Kontroli Dostępu', active: true, configuration: { has_bom: true, has_ip_config: true, safetyCritical: false } },
+      { name: 'CCTV', code: 'CCTV', description: 'System Telewizji Przemysłowej', active: true, configuration: { has_bom: true, has_ip_config: true, safetyCritical: false } },
+      { name: 'Zadanie Serwisowe', code: 'SERWIS', description: 'Naprawa, konserwacja i interwencje serwisowe', active: true, configuration: { has_bom: true, has_ip_config: false, safetyCritical: false } }
     ];
     
     for (const taskType of taskTypes) {

@@ -174,6 +174,11 @@ export interface AutomationPermissions {
   run?: boolean;
 }
 
+export interface WorkflowPermissions {
+  read?: boolean;
+  build?: boolean;
+}
+
 export interface RolePermissions {
   all?: boolean; // Admin - pełny dostęp
   dashboard?: DashboardPermissions;
@@ -199,6 +204,7 @@ export interface RolePermissions {
   forms?: FormsPermissions;
   map?: MapPermissions;
   automation?: AutomationPermissions;
+  workflow?: WorkflowPermissions;
   [key: string]: any;
 }
 
@@ -226,7 +232,8 @@ export type PermissionModule =
   | 'assets'
   | 'forms'
   | 'map'
-  | 'automation';
+  | 'automation'
+  | 'workflow';
 
 export type PermissionAction = 
   | 'read'

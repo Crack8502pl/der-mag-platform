@@ -414,5 +414,16 @@ describe('RoleController', () => {
         ])
       });
     });
+
+    it('should include workflow permissions (read, build) in the role matrix', async () => {
+      await RoleController.getPermissionsSchema(req as Request, res as Response);
+
+      const schema = (res.json as jest.Mock).mock.calls[0][0].data as Array<{ name: string; displayName: string; actions: string[] }>;
+      expect(schema.find(module => module.name === 'workflow')).toEqual({
+        name: 'workflow',
+        displayName: 'Procesy',
+        actions: ['read', 'build'],
+      });
+    });
   });
 });

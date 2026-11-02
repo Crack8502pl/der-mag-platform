@@ -91,11 +91,17 @@ export interface AutomationActionDescriptor {
   supportsDryRun: true;
 }
 
-export const AUTOMATION_OWNER_TYPES = ['FORM_TEMPLATE_VERSION'] as const;
+export const AUTOMATION_OWNER_TYPES = ['FORM_TEMPLATE_VERSION', 'WORKFLOW_STEP'] as const;
 export type AutomationOwnerType = typeof AUTOMATION_OWNER_TYPES[number];
 
-export const AUTOMATION_EVENT_TYPES = ['FORM_SUBMITTED', 'FORM_APPROVED', 'FORM_REJECTED'] as const;
+export const AUTOMATION_EVENT_TYPES = ['FORM_SUBMITTED', 'FORM_APPROVED', 'FORM_REJECTED', 'STEP_ENTERED', 'STEP_COMPLETED'] as const;
 export type AutomationEventType = typeof AUTOMATION_EVENT_TYPES[number];
+
+/** Zdarzenia dozwolone dla właściciela: wersja formularza – zdarzenia formularza, etap procesu – wejście i zakończenie etapu. */
+export const AUTOMATION_OWNER_EVENTS: Record<AutomationOwnerType, readonly AutomationEventType[]> = {
+  FORM_TEMPLATE_VERSION: ['FORM_SUBMITTED', 'FORM_APPROVED', 'FORM_REJECTED'],
+  WORKFLOW_STEP: ['STEP_ENTERED', 'STEP_COMPLETED'],
+};
 
 export type AutomationOnError = 'STOP' | 'CONTINUE';
 

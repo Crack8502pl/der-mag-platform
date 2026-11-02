@@ -239,10 +239,16 @@ export interface AutomationPermissions {
   run?: boolean;
 }
 
+export interface WorkflowPermissions {
+  read?: boolean;
+  build?: boolean;
+}
+
 export interface RolePermissions {
   all?: boolean; // Admin - pełny dostęp
   forms?: FormsPermissions;
   automation?: AutomationPermissions;
+  workflow?: WorkflowPermissions;
   dashboard?: DashboardPermissions;
   contracts?: ContractPermissions;
   subsystems?: SubsystemPermissions;
