@@ -60,6 +60,8 @@ export class TaskTypeSafetyService {
       const before = isTaskTypeSafetyCritical(taskType);
       taskType.configuration = { ...configuration, safetyCritical: value };
       await repository.save(taskType);
+      // Brak klucza oznacza „nie” – zapis jawnej wartości bez zmiany znaczenia nie jest zmianą do audytu.
+      if (before === value) return { taskType: view(taskType), refreshedDrafts: 0 };
       await recordWorkflowAudit(manager, 'TASK_TYPE_SAFETY_CRITICAL_CHANGED', actorId, 'task_type', {
         taskTypeId: taskType.id,
         code: taskType.code,
