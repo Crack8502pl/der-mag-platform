@@ -70,7 +70,9 @@ describe('R14: automatyzacje', () => {
       templateVersionId: versionId, taskId, contractId,
     }), 201, 'POST /api/forms/instances').data;
     expectStatus(await admin.post(`/api/forms/instances/${instance.id}/complete`, {}), 200, 'complete');
+    const approvalStartedAt = performance.now();
     expectStatus(await admin.post(`/api/forms/instances/${instance.id}/approve`, { comment: 'Test regresji R14' }), 200, 'approve');
+    expect(performance.now() - approvalStartedAt).toBeLessThan(200);
 
     let runs: Array<{ status: string; dryRun: boolean }> = [];
     for (let attempt = 0; attempt < 30; attempt += 1) {

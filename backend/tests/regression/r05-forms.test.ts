@@ -14,6 +14,13 @@ describe('R5: formularze', () => {
 
   const bomRow = async () => (await formValues(scenario.admin, scenario.versionId, scenario.instanceId)).bom[0];
 
+  it('formularz działa bez skonfigurowanego łańcucha automatyzacji', async () => {
+    const chains = expectStatus(await scenario.admin.get(
+      `/api/automation/chains?ownerType=FORM_TEMPLATE_VERSION&ownerId=${scenario.versionId}`,
+    ), 200, 'GET /api/automation/chains').data;
+    expect(chains).toEqual([]);
+  });
+
   it('pola „Dane z systemu” są wypełnione danymi zadania i kontraktu', async () => {
     const values = await formValues(scenario.admin, scenario.versionId, scenario.instanceId);
     expect(values.numer_zadania).toBe(scenario.task.taskNumber);
