@@ -186,7 +186,7 @@ jobs:
 
       - name: Upload regression artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: regression-artifacts
           path: regression-artifacts

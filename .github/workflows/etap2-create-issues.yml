@@ -35,7 +35,7 @@ jobs:
 
       - name: Podgląd treści (tylko w próbie)
         if: ${{ inputs.proba }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: podglad-zgloszen
           path: .github/etap-2-issues/rendered/
