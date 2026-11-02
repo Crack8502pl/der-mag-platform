@@ -103,6 +103,25 @@ export function scopeFormInstances(query: SelectQueryBuilder<FormInstance>, req:
       WHERE member.brigade_id = instance.assigned_team_id AND member.user_id = :actorId
         AND member.active = TRUE AND member.valid_from <= CURRENT_DATE
         AND (member.valid_to IS NULL OR member.valid_to >= CURRENT_DATE))
+    OR EXISTS (
+      SELECT 1 FROM workflow_step_runs workflow_run
+      JOIN workflow_instances workflow_instance ON workflow_instance.id = workflow_run.instance_id
+      JOIN users workflow_user ON workflow_user.id = :actorId AND workflow_user.active = TRUE
+      WHERE workflow_run.form_instance_id = instance.id
+        AND workflow_run.outcome IS NULL
+        AND workflow_instance.status = 'RUNNING'
+        AND workflow_instance.current_step_run_id = workflow_run.id
+        AND (
+          (workflow_run.assigned_group_type = 'ROLE' AND workflow_run.assigned_group_ref = workflow_user.role_id::text)
+          OR (workflow_run.assigned_group_type = 'FUNCTION_GROUP' AND EXISTS (
+            SELECT 1 FROM user_function_groups membership
+            JOIN function_groups function_group ON function_group.id = membership.function_group_id
+            WHERE membership.user_id = :actorId AND function_group.active = TRUE
+              AND function_group.key = workflow_run.assigned_group_ref
+              AND membership.valid_from <= NOW() AND (membership.valid_to IS NULL OR membership.valid_to > NOW())
+          ))
+        )
+    )
   )`, { actorId: req.userId });
 }
 

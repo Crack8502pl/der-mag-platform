@@ -360,7 +360,7 @@ export class RoleController {
         {
           name: 'workflow',
           displayName: 'Procesy',
-          actions: ['read', 'build']
+          actions: ['read', 'build', 'start', 'execute', 'override']
         },
         {
           name: 'map',

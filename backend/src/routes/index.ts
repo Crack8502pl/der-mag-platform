@@ -81,6 +81,7 @@ import variableEngineRoutes from './variableEngine.routes';
 import formsRoutes from './forms.routes';
 import automationRoutes from '../modules/automation/routes/automation.routes';
 import workflowRoutes from '../modules/workflow/routes/workflow.routes';
+import workflowInstanceRoutes from '../modules/workflow/routes/workflowInstance.routes';
 
 // Wizard draft routes
 import wizardDraftController from '../controllers/WizardDraftController';
@@ -89,6 +90,7 @@ const router = Router();
 router.use('/forms', formsRoutes);
 router.use('/automation', automationRoutes);
 router.use('/workflows', workflowRoutes);
+router.use('/workflow-instances', workflowInstanceRoutes);
 
 // Existing routes
 router.use('/auth', authRoutes);
