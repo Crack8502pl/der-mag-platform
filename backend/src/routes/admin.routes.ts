@@ -14,6 +14,7 @@ import { AdminSessionsController } from '../controllers/AdminSessionsController'
 import { EmailAutomationAdminController } from '../controllers/EmailAutomationAdminController';
 import cronConfigRouter from './cronConfig.routes';
 import functionGroupRoutes from '../modules/function-groups/routes/functionGroup.routes';
+import taskTypeSafetyRoutes from '../modules/workflow/routes/taskTypeSafety.routes';
 
 const router = Router();
 
@@ -68,6 +69,12 @@ router.patch('/users/:id/email-automation', EmailAutomationAdminController.updat
 // ============================================
 
 router.use(functionGroupRoutes);
+
+// ============================================
+// Typy zadań – przełącznik „Krytyczny dla bezpieczeństwa” (procesy W3a)
+// ============================================
+
+router.use(taskTypeSafetyRoutes);
 
 // ============================================
 // Role Management Routes

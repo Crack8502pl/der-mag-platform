@@ -137,6 +137,11 @@ import { CreateAutomation1793640000000 } from '../migrations/20261102_create_aut
 import { AutomationChain } from '../modules/automation/entities/AutomationChain';
 import { AutomationRun } from '../modules/automation/entities/AutomationRun';
 import { AutomationRunStep } from '../modules/automation/entities/AutomationRunStep';
+import { CreateWorkflowDefinitions1793643600000 } from '../migrations/20261102_create_workflow_definitions';
+import { WorkflowDefinition } from '../modules/workflow/entities/WorkflowDefinition';
+import { WorkflowVersion } from '../modules/workflow/entities/WorkflowVersion';
+import { WorkflowStep } from '../modules/workflow/entities/WorkflowStep';
+import { WorkflowTransition } from '../modules/workflow/entities/WorkflowTransition';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -280,6 +285,10 @@ export const AppDataSource = new DataSource({
     AutomationChain,
     AutomationRun,
     AutomationRunStep,
+    WorkflowDefinition,
+    WorkflowVersion,
+    WorkflowStep,
+    WorkflowTransition,
   ],
   subscribers: [],
   migrations: [
@@ -304,6 +313,7 @@ export const AppDataSource = new DataSource({
     FormTimestampsWithTimeZone1793491800000,
     CreateFunctionGroups1793553600000,
     CreateAutomation1793640000000,
+    CreateWorkflowDefinitions1793643600000,
   ],
 });
 

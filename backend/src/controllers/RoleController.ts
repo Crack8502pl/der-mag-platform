@@ -358,6 +358,11 @@ export class RoleController {
           actions: ['read', 'build', 'run']
         },
         {
+          name: 'workflow',
+          displayName: 'Procesy',
+          actions: ['read', 'build']
+        },
+        {
           name: 'map',
           displayName: 'Mapa',
           actions: ['read', 'viewAll']

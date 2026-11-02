@@ -1,16 +1,20 @@
 // src/modules/automation/services/AutomationChainService.ts
 // Odczyt i zapis łańcuchów: walidacja parametrów i zmiennych, uprawnienia zapisującego do KAŻDEGO klocka,
-// niezmienność łańcucha wersji opublikowanej.
+// niezmienność łańcucha wersji opublikowanej (formularza i procesu).
 
 import type { DataSource, EntityManager } from 'typeorm';
 import { AppDataSource } from '../../../config/database';
 import type { RolePermissions } from '../../../entities/Role';
 import { FormTemplateVersion } from '../../../entities/FormTemplateVersion';
 import { FormVersionStatus } from '../../../entities/FormTypes';
+import { WorkflowStep } from '../../workflow/entities/WorkflowStep';
+import { WorkflowVersion } from '../../workflow/entities/WorkflowVersion';
+import { recordWorkflowAudit } from '../../workflow/services/workflowAudit';
 import {
-  AUTOMATION_EVENT_TYPES,
+  AUTOMATION_OWNER_EVENTS,
   AUTOMATION_OWNER_TYPES,
   type AutomationOnError,
+  type AutomationOwnerType,
   type AutomationStepDefinition,
 } from '../contracts';
 import { AutomationChain } from '../entities/AutomationChain';
@@ -42,7 +46,7 @@ export function hasActionPermission(permissions: RolePermissions, module: string
 export class AutomationChainService {
   constructor(
     private readonly registry: AutomationRegistry,
-    private readonly dataSource: Pick<DataSource, 'getRepository'> = AppDataSource,
+    private readonly dataSource: Pick<DataSource, 'getRepository'> & Partial<Pick<DataSource, 'transaction'>> = AppDataSource,
   ) {}
 
   private repository(manager?: EntityManager) {
@@ -68,7 +72,7 @@ export class AutomationChainService {
     if (!Number.isInteger(id) || id <= 0) {
       throw new AutomationError('VALIDATION_FAILED', 'Nieprawidłowy identyfikator właściciela łańcucha.');
     }
-    if (eventType !== undefined && !AUTOMATION_EVENT_TYPES.includes(eventType as never)) {
+    if (eventType !== undefined && !AUTOMATION_OWNER_EVENTS[ownerType as AutomationOwnerType].includes(eventType as never)) {
       throw new AutomationError('VALIDATION_FAILED', 'Nieobsługiwany typ zdarzenia.');
     }
     return { ownerType: ownerType as string, ownerId: id, eventType: eventType as string | undefined };
@@ -79,8 +83,74 @@ export class AutomationChainService {
     const owner = this.parseOwner(input.ownerType, input.ownerId, input.eventType);
     if (!owner.eventType) throw new AutomationError('VALIDATION_FAILED', 'Wybierz zdarzenie, po którym łańcuch ma się uruchamiać.');
     const eventType = owner.eventType;
+    if (owner.ownerType === 'WORKFLOW_STEP') return this.saveWorkflowStepChain(owner.ownerId, eventType, input, saver);
     await this.assertOwnerEditable(owner.ownerType, owner.ownerId);
 
+    const { steps, onError } = this.prepare(input, saver);
+
+    const repository = this.repository();
+    const existing = await repository.findOne({ where: { ownerType: owner.ownerType, ownerId: owner.ownerId, eventType } });
+    const chain = existing ?? repository.create({ ownerType: owner.ownerType, ownerId: owner.ownerId, eventType });
+    chain.steps = steps;
+    chain.onError = onError;
+    chain.createdById = saver.id;
+    return repository.save(chain);
+  }
+
+  /**
+   * Łańcuch etapu procesu można zmieniać tylko w wersji roboczej (DRAFT) i tylko z uprawnieniem workflow.build.
+   * Wersja jest blokowana na czas zapisu (wyścig z publikacją), a zmiana trafia do dziennika audytowego.
+   */
+  private async saveWorkflowStepChain(stepId: number, eventType: string, input: SaveChainInput, saver: ChainSaver): Promise<AutomationChain> {
+    if (!this.dataSource.transaction) throw new Error('Zapis łańcucha etapu procesu wymaga transakcji bazy danych.');
+    return this.dataSource.transaction(async manager => {
+      const notFound = () => new AutomationError('OWNER_NOT_FOUND', 'Nie znaleziono etapu procesu.');
+      const found = await manager.getRepository(WorkflowStep).findOne({ where: { id: stepId } });
+      if (!found) throw notFound();
+      const version = await manager.getRepository(WorkflowVersion).findOne({
+        where: { id: found.versionId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      const step = version ? await manager.getRepository(WorkflowStep).findOne({ where: { id: stepId, versionId: version.id } }) : null;
+      if (!version || !step) throw notFound();
+      if (!hasActionPermission(saver.permissions, 'workflow', 'build')) {
+        throw new AutomationError(
+          'ACTION_FORBIDDEN',
+          'Łańcuchy etapów procesu może zmieniać tylko osoba z uprawnieniem do budowania procesów.',
+          { required: 'workflow.build' },
+        );
+      }
+      if (version.status !== 'DRAFT') {
+        throw new AutomationError(
+          'CHAIN_IMMUTABLE',
+          'Łańcuch etapu opublikowanej wersji procesu jest niezmienny. Utwórz nową wersję procesu i zmień łańcuch w niej.',
+        );
+      }
+      const { steps, onError } = this.prepare(input, saver);
+
+      const repository = manager.getRepository(AutomationChain);
+      const existing = await repository.findOne({ where: { ownerType: 'WORKFLOW_STEP', ownerId: stepId, eventType } });
+      const before = existing ? { steps: existing.steps, onError: existing.onError } : null;
+      const chain = existing ?? repository.create({ ownerType: 'WORKFLOW_STEP', ownerId: stepId, eventType });
+      chain.steps = steps;
+      chain.onError = onError;
+      chain.createdById = saver.id;
+      const saved = await repository.save(chain);
+      await recordWorkflowAudit(manager, 'WORKFLOW_STEP_CHAIN_UPDATED', saver.id, 'workflow_version', {
+        definitionId: version.definitionId,
+        versionId: version.id,
+        version: version.version,
+        stepId,
+        stepKey: step.key,
+        eventType,
+        before,
+        after: { steps, onError },
+      });
+      return saved;
+    });
+  }
+
+  private prepare(input: SaveChainInput, saver: ChainSaver): { steps: AutomationStepDefinition[]; onError: AutomationOnError } {
     const onError = input.onError === undefined ? 'STOP' : input.onError;
     if (onError !== 'STOP' && onError !== 'CONTINUE') {
       throw new AutomationError('VALIDATION_FAILED', 'Wybierz, co zrobić po błędzie kroku: zatrzymać łańcuch albo kontynuować.');
@@ -88,14 +158,7 @@ export class AutomationChainService {
     const steps = this.normalizeSteps(input.steps);
     this.assertPermissions(steps, saver.permissions);
     this.assertValid(steps);
-
-    const repository = this.repository();
-    const existing = await repository.findOne({ where: { ownerType: owner.ownerType, ownerId: owner.ownerId, eventType } });
-    const chain = existing ?? repository.create({ ownerType: owner.ownerType, ownerId: owner.ownerId, eventType });
-    chain.steps = steps;
-    chain.onError = onError as AutomationOnError;
-    chain.createdById = saver.id;
-    return repository.save(chain);
+    return { steps, onError };
   }
 
   private async assertOwnerEditable(ownerType: string, ownerId: number): Promise<void> {
