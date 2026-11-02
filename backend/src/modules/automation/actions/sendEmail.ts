@@ -47,9 +47,9 @@ export const sendEmailAction: AutomationAction = {
   category: 'Powiadomienia',
   params: [
     { key: 'recipientType', label: 'Do kogo', type: 'select', required: true, options: RECIPIENT_TYPES },
-    { key: 'user', label: 'Osoba', type: 'user', required: false },
-    { key: 'role', label: 'Rola', type: 'role', required: false },
-    { key: 'functionGroup', label: 'Funkcja', type: 'functionGroup', required: false },
+    { key: 'user', label: 'Osoba', type: 'user', required: false, showWhen: { param: 'recipientType', equals: 'user' } },
+    { key: 'role', label: 'Rola', type: 'role', required: false, showWhen: { param: 'recipientType', equals: 'role' } },
+    { key: 'functionGroup', label: 'Funkcja', type: 'functionGroup', required: false, showWhen: { param: 'recipientType', equals: 'functionGroup' } },
     { key: 'subject', label: 'Temat', type: 'text', required: true },
     { key: 'body', label: 'Treść', type: 'longText', required: true },
   ],

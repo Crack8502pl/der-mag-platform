@@ -24,7 +24,8 @@ export interface AutomationStore {
   getRun(runId: number): Promise<RunWithSteps | null>;
   updateRun(runId: number, patch: Partial<AutomationRun>): Promise<void>;
   updateStep(stepId: number, patch: Partial<AutomationRunStep>): Promise<void>;
-  listRuns(ownerType: string, ownerId: number, limit: number): Promise<RunWithSteps[]>;
+  /** Z `instanceId` zwraca tylko uruchomienia wywołane zdarzeniem tego formularza. */
+  listRuns(ownerType: string, ownerId: number, limit: number, instanceId?: number): Promise<RunWithSteps[]>;
 }
 
 const UNIQUE_VIOLATION = '23505';
@@ -78,11 +79,15 @@ export class TypeOrmAutomationStore implements AutomationStore {
     await this.dataSource.getRepository(AutomationRunStep).update({ id: stepId }, patch as never);
   }
 
-  async listRuns(ownerType: string, ownerId: number, limit: number): Promise<RunWithSteps[]> {
-    const runs = await this.dataSource.getRepository(AutomationRun)
+  async listRuns(ownerType: string, ownerId: number, limit: number, instanceId?: number): Promise<RunWithSteps[]> {
+    const query = this.dataSource.getRepository(AutomationRun)
       .createQueryBuilder('run')
       .innerJoin(AutomationChain, 'chain', 'chain.id = run.chainId')
-      .where('chain.ownerType = :ownerType AND chain.ownerId = :ownerId', { ownerType, ownerId })
+      .where('chain.ownerType = :ownerType AND chain.ownerId = :ownerId', { ownerType, ownerId });
+    if (instanceId !== undefined) {
+      query.andWhere(`run.event -> 'payload' ->> 'instanceId' = :instanceId`, { instanceId: String(instanceId) });
+    }
+    const runs = await query
       .orderBy('run.startedAt', 'DESC')
       .addOrderBy('run.id', 'DESC')
       .limit(limit)

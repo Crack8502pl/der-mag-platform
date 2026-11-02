@@ -3,6 +3,7 @@ import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { formsService } from '../../services/forms.service';
 import type { FormBrandingElement, FormBrandingSnapshot, FormVersion } from '../../types/forms.types';
+import { AutomationRunsSection } from '../automation/AutomationRunsSection';
 import { fieldRegistry } from './fieldRegistry';
 import {
   buildFormSchema,
@@ -335,6 +336,7 @@ function FormRuntime({
     {onSubmit && <button className="btn btn-primary" type="submit" disabled={disabled || isSubmitting || version.fields.length === 0}>
       {isSubmitting ? 'Zapisywanie…' : submitLabel}
     </button>}
+    {instanceId !== undefined && <AutomationRunsSection ownerType="FORM_TEMPLATE_VERSION" ownerId={version.id} instanceId={instanceId} />}
     {renderBranding(version.footerSnapshot, 'footer')}
   </form>;
 }

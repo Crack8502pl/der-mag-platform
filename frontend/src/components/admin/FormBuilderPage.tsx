@@ -12,10 +12,11 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useFormTemplates } from '../../hooks/useFormTemplates';
+import { AutomationChainField } from '../automation/AutomationChainField';
+import { TaskPicker } from '../common/TaskPicker';
 import { DynamicFormRenderer } from '../forms/DynamicFormRenderer';
 import { FormBrandingPreview } from '../forms/FormBrandingPreview';
 import { formsService, type UpdateFormDraftInput } from '../../services/forms.service';
-import taskService from '../../services/task.service';
 import variableEngineService, { type VariableEngineVariable } from '../../services/variableEngine.service';
 import type { Task } from '../../types/task.types';
 import type {
@@ -34,7 +35,7 @@ import type {
 } from '../../types/forms.types';
 import './FormBuilderPage.css';
 
-type BuilderTab = 'builder' | 'versions' | 'preview' | 'rules';
+type BuilderTab = 'builder' | 'versions' | 'preview' | 'automation' | 'rules';
 type DefinitionSection = FormSection & { id?: number };
 
 const FIELD_TYPES: Array<{ value: string; label: string }> = [
@@ -517,6 +518,7 @@ export const FormBuilderPage: React.FC = () => {
   const canUpdate = hasPermission('forms', 'update');
   const canPublish = hasPermission('forms', 'publish');
   const canAssign = hasPermission('forms', 'assign');
+  const canReadAutomation = hasPermission('automation', 'read');
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor));
 
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
@@ -524,13 +526,12 @@ export const FormBuilderPage: React.FC = () => {
   const [versions, setVersions] = useState<FormVersionSummary[]>([]);
   const [sections, setSections] = useState<DefinitionSection[]>([]);
   const [tab, setTab] = useState<BuilderTab>('builder');
-  const [previewTaskSearch, setPreviewTaskSearch] = useState('');
-  const [previewTasks, setPreviewTasks] = useState<Task[]>([]);
-  const [previewTaskId, setPreviewTaskId] = useState('');
+  const [automationVisited, setAutomationVisited] = useState(false);
+  const [automationDirty, setAutomationDirty] = useState({ approved: false, rejected: false });
+  const [previewTask, setPreviewTask] = useState<Task | null>(null);
   const [previewValues, setPreviewValues] = useState<Record<string, unknown>>({});
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState('');
-  const [previewTaskError, setPreviewTaskError] = useState('');
   const [rules, setRules] = useState<FormAssignmentRule[]>([]);
   const [assignmentUsers, setAssignmentUsers] = useState<FormUserOption[]>([]);
   const [assignmentTeams, setAssignmentTeams] = useState<FormTeamOption[]>([]);
@@ -602,9 +603,9 @@ export const FormBuilderPage: React.FC = () => {
       setSections(templateSections(nextVersion));
       setAutoSectionKeys(new Set());
       setAutoFieldKeys(new Set());
-      setPreviewTaskId('');
-      setPreviewTaskSearch('');
+      setPreviewTask(null);
       setErrorFieldKey(undefined);
+      setAutomationVisited(false);
       setTab('builder');
     } catch (error) {
       showError(error);
@@ -675,31 +676,8 @@ export const FormBuilderPage: React.FC = () => {
   }, [assignmentUserSearch, currentVersionId, tab]);
 
   useEffect(() => {
-    const search = previewTaskSearch.trim();
-    if (tab !== 'preview' || !search) {
-      setPreviewTasks([]);
-      setPreviewTaskError('');
-      return;
-    }
-    let cancelled = false;
-    const timer = window.setTimeout(() => {
-      setPreviewTaskError('');
-      taskService.getAll({ search, page: 1, limit: 20 }).then(result => {
-        if (!cancelled) setPreviewTasks(result.data);
-      }).catch(() => {
-        if (!cancelled) setPreviewTaskError('Nie udało się wyszukać zadań.');
-      });
-    }, 250);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [previewTaskSearch, tab]);
-
-  useEffect(() => {
     if (!version || tab !== 'preview') return;
-    const selectedTask = previewTasks.find(task => String(task.id) === previewTaskId);
-    if (!selectedTask) {
+    if (!previewTask) {
       setPreviewValues(samplePreviewValues(version));
       setPreviewError('');
       return;
@@ -708,7 +686,7 @@ export const FormBuilderPage: React.FC = () => {
     setPreviewLoading(true);
     setPreviewError('');
     setPreviewValues({});
-    formsService.previewVersion(version.id, selectedTask.id).then(values => {
+    formsService.previewVersion(version.id, previewTask.id).then(values => {
       if (!cancelled) setPreviewValues(values);
     }).catch(() => {
       if (!cancelled) setPreviewError('Nie udało się pobrać danych podglądu dla zadania.');
@@ -716,7 +694,7 @@ export const FormBuilderPage: React.FC = () => {
       if (!cancelled) setPreviewLoading(false);
     });
     return () => { cancelled = true; };
-  }, [previewTaskId, previewTasks, tab, version]);
+  }, [previewTask, tab, version]);
 
   const createTemplate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -763,6 +741,10 @@ export const FormBuilderPage: React.FC = () => {
     if (!version) return;
     if (draftDefinitionError) {
       setMessage(draftDefinitionError);
+      return;
+    }
+    if (automationDirty.approved || automationDirty.rejected) {
+      setMessage('Masz niezapisane zmiany w zakładce „Automatyzacje”. Zapisz je przed publikacją wersji.');
       return;
     }
     setSaving(true);
@@ -907,10 +889,20 @@ export const FormBuilderPage: React.FC = () => {
       : item));
   };
 
+  const setApprovedDirty = useCallback(
+    (approved: boolean) => setAutomationDirty(current => (current.approved === approved ? current : { ...current, approved })),
+    [],
+  );
+  const setRejectedDirty = useCallback(
+    (rejected: boolean) => setAutomationDirty(current => (current.rejected === rejected ? current : { ...current, rejected })),
+    [],
+  );
+
   const tabs: Array<{ id: BuilderTab; label: string }> = [
     { id: 'builder', label: 'Edytor' },
     { id: 'versions', label: 'Wersje' },
     { id: 'preview', label: 'Podgląd' },
+    ...(canReadAutomation ? [{ id: 'automation' as const, label: 'Automatyzacje' }] : []),
     { id: 'rules', label: 'Przypisania i reguły' },
   ];
 
@@ -992,7 +984,10 @@ export const FormBuilderPage: React.FC = () => {
             {version && <span className={`form-builder__status form-builder__status--${version.status.toLowerCase()}`}>{version.status} · v{version.version}</span>}
           </div>
           <nav className="form-builder__tabs" aria-label="Widoki formularza">
-            {tabs.map(item => <button type="button" key={item.id} className={tab === item.id ? 'is-active' : ''} aria-current={tab === item.id ? 'page' : undefined} onClick={() => setTab(item.id)}>{item.label}</button>)}
+            {tabs.map(item => <button type="button" key={item.id} className={tab === item.id ? 'is-active' : ''} aria-current={tab === item.id ? 'page' : undefined} onClick={() => {
+              setTab(item.id);
+              if (item.id === 'automation') setAutomationVisited(true);
+            }}>{item.label}</button>)}
           </nav>
           {loadingDetail ? <p role="status">Ładowanie definicji…</p> : !version ? (
             <div className="form-builder__empty">
@@ -1133,37 +1128,19 @@ export const FormBuilderPage: React.FC = () => {
           ) : tab === 'preview' ? (
             <div className="form-builder__preview">
               <p className="form-builder__hint">Podgląd wersji roboczej w trybie tylko do odczytu. Bez wybranego zadania pola systemowe i tabela BOM pokazują dane przykładowe.</p>
-              <div className="form-builder__task-preview">
-                <label>Wyszukaj zadanie po numerze
-                  <input
-                    type="search"
-                    value={previewTaskSearch}
-                    onChange={event => {
-                      setPreviewTaskSearch(event.target.value);
-                      setPreviewTaskId('');
-                    }}
-                    placeholder="np. Z00011026"
-                  />
-                </label>
-                <label>Zadanie
-                  <select
-                    aria-label="Zadanie do podglądu"
-                    value={previewTaskId}
-                    onChange={event => setPreviewTaskId(event.target.value)}
-                  >
-                    <option value="">Dane przykładowe</option>
-                    {previewTasks.map(task => (
-                      <option key={task.id} value={task.id}>{task.taskNumber} — {task.title}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              {previewTaskError && <p className="form-builder__notice form-builder__notice--error" role="alert">{previewTaskError}</p>}
+              <TaskPicker
+                className="form-builder__task-preview"
+                errorClassName="form-builder__notice form-builder__notice--error"
+                value={previewTask}
+                onChange={setPreviewTask}
+                selectLabel="Zadanie do podglądu"
+                emptyOptionLabel="Dane przykładowe"
+              />
               {previewError && <p className="form-builder__notice form-builder__notice--error" role="alert">{previewError}</p>}
               {previewLoading && <p role="status">Pobieranie danych zadania…</p>}
               <DynamicFormRenderer versionId={version.id} initialValues={previewValues} disabled />
             </div>
-          ) : (
+          ) : tab === 'automation' ? null : (
             <div className="form-builder__card">
               <div className="form-builder__section-actions">
                 <div>                <h3>Przypisania i reguły</h3><p>Konfiguracja reguł przypisań. Automatyczne wykonywanie należy do etapu 8.</p></div>
@@ -1214,6 +1191,41 @@ export const FormBuilderPage: React.FC = () => {
                 </form>
               )}
               {!canAssign && <p className="form-builder__hint">Do edycji reguł wymagane jest uprawnienie forms.assign.</p>}
+            </div>
+          )}
+          {version && canReadAutomation && automationVisited && !loadingDetail && (
+            <div className="form-builder__card form-builder__automation" hidden={tab !== 'automation'}>
+              <div>
+                <h3>Automatyzacje</h3>
+                <p className="form-builder__hint">
+                  Kroki, które system wykona sam po decyzji w formularzu – jeden po drugim, w kolejności kafelków.
+                </p>
+              </div>
+              {version.status !== 'DRAFT' && (
+                <p className="form-builder__notice" role="status">
+                  Wersja opublikowana – automatyzacje są tylko do odczytu. Zmiany w nowej wersji.
+                </p>
+              )}
+              <AutomationChainField
+                key={`approved-${version.id}`}
+                ownerType="FORM_TEMPLATE_VERSION"
+                ownerId={version.id}
+                eventType="FORM_APPROVED"
+                title="Po zatwierdzeniu"
+                description="Wykonają się, gdy formularz zostanie zatwierdzony."
+                readOnly={readOnly}
+                onDirtyChange={setApprovedDirty}
+              />
+              <AutomationChainField
+                key={`rejected-${version.id}`}
+                ownerType="FORM_TEMPLATE_VERSION"
+                ownerId={version.id}
+                eventType="FORM_REJECTED"
+                title="Po odrzuceniu"
+                description="Wykonają się, gdy formularz zostanie odrzucony."
+                readOnly={readOnly}
+                onDirtyChange={setRejectedDirty}
+              />
             </div>
           )}
         </section>

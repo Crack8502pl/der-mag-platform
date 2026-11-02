@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FormBuilderPage } from './FormBuilderPage';
@@ -6,6 +6,8 @@ import { formsService } from '../../services/forms.service';
 import taskService from '../../services/task.service';
 import { useFormTemplates } from '../../hooks/useFormTemplates';
 import variableEngineService from '../../services/variableEngine.service';
+import { automationService } from '../../services/automation.service';
+import type { AutomationActionDefinition, AutomationChain, AutomationEventType } from '../../types/automation.types';
 
 const permissions = vi.hoisted(() => ({ actions: ['read', 'create', 'update', 'publish', 'assign'] }));
 
@@ -43,6 +45,17 @@ vi.mock('../../services/task.service', () => ({
 vi.mock('../../services/variableEngine.service', () => ({
   default: { listVariables: vi.fn() },
 }));
+vi.mock('../../services/automation.service', () => {
+  const automationService = {
+    listActions: vi.fn(),
+    listLookups: vi.fn(),
+    getChain: vi.fn(),
+    saveChain: vi.fn(),
+    testChain: vi.fn(),
+    listRuns: vi.fn(),
+  };
+  return { automationService, default: automationService };
+});
 
 const template = {
   id: 7,
@@ -88,12 +101,42 @@ const draft = {
   assignmentRules: [],
 };
 
+const automationCatalog: AutomationActionDefinition[] = [
+  {
+    key: 'generate_form_pdf',
+    label: 'Zapisz PDF formularza w dokumentach zadania',
+    description: 'Generuje PDF formularza i zapisuje go jako dokument zadania.',
+    category: 'Dokumenty',
+    params: [{ key: 'name', label: 'Nazwa dokumentu', type: 'text', required: false }],
+    supportsDryRun: true,
+  },
+];
+
+const automationChain = (eventType: AutomationEventType): AutomationChain => ({
+  id: eventType === 'FORM_APPROVED' ? 31 : 32,
+  ownerType: 'FORM_TEMPLATE_VERSION',
+  ownerId: 14,
+  eventType,
+  onError: 'STOP',
+  steps: [{ action: 'generate_form_pdf', params: {} }],
+});
+
 const renderPage = () => render(<MemoryRouter><FormBuilderPage /></MemoryRouter>);
+
+const openAutomationTab = async () => {
+  renderPage();
+  fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
+  await screen.findByDisplayValue('Wynik');
+  fireEvent.click(screen.getByRole('button', { name: 'Automatyzacje' }));
+};
 
 describe('FormBuilderPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    permissions.actions = ['read', 'create', 'update', 'publish', 'assign'];
+    permissions.actions = ['read', 'create', 'update', 'publish', 'assign', 'build', 'run'];
+    vi.mocked(automationService.listActions).mockResolvedValue(automationCatalog);
+    vi.mocked(automationService.getChain).mockResolvedValue(null);
+    vi.mocked(automationService.listLookups).mockResolvedValue([]);
     vi.mocked(useFormTemplates).mockReturnValue({
       templates: [template],
       loading: false,
@@ -587,6 +630,109 @@ describe('FormBuilderPage', () => {
 
     expect(await screen.findAllByText('Sprawdź zakres liczbowy pola „result”.')).toHaveLength(2);
     expect(screen.getAllByRole('alert').length).toBeGreaterThan(1);
+  });
+
+  it('pokazuje zakładkę „Automatyzacje” z polami „Po zatwierdzeniu” i „Po odrzuceniu”', async () => {
+    await openAutomationTab();
+
+    expect(await screen.findByRole('region', { name: 'Po zatwierdzeniu' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Po odrzuceniu' })).toBeInTheDocument();
+    await waitFor(() => expect(automationService.getChain).toHaveBeenCalledTimes(2));
+    expect(automationService.getChain).toHaveBeenCalledWith({
+      ownerType: 'FORM_TEMPLATE_VERSION', ownerId: 14, eventType: 'FORM_APPROVED',
+    });
+    expect(automationService.getChain).toHaveBeenCalledWith({
+      ownerType: 'FORM_TEMPLATE_VERSION', ownerId: 14, eventType: 'FORM_REJECTED',
+    });
+    expect(await screen.findAllByRole('combobox', { name: 'Dodaj krok' })).toHaveLength(2);
+    expect(screen.queryByText(/Zmiany w nowej wersji/)).not.toBeInTheDocument();
+  });
+
+  it('nie wczytuje automatyzacji, dopóki zakładka nie zostanie otwarta', async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
+    await screen.findByDisplayValue('Wynik');
+
+    expect(automationService.getChain).not.toHaveBeenCalled();
+    expect(screen.queryByRole('region', { name: 'Po zatwierdzeniu' })).not.toBeInTheDocument();
+  });
+
+  it('ukrywa zakładkę „Automatyzacje” bez uprawnienia do odczytu automatyzacji', async () => {
+    permissions.actions = ['update'];
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /Kontrola jakości/ }));
+    await screen.findByDisplayValue('Wynik');
+
+    expect(screen.queryByRole('button', { name: 'Automatyzacje' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Przypisania i reguły' })).toBeInTheDocument();
+  });
+
+  it('pokazuje automatyzacje opublikowanej wersji tylko do odczytu z informacją o nowej wersji', async () => {
+    vi.mocked(formsService.listVersions).mockResolvedValue({
+      items: [{ ...draft, status: 'PUBLISHED' }], total: 1, page: 1, limit: 20,
+    });
+    vi.mocked(formsService.getVersion).mockResolvedValue({ ...draft, status: 'PUBLISHED' });
+    vi.mocked(automationService.getChain).mockImplementation(async target => automationChain(target.eventType));
+    await openAutomationTab();
+
+    const approved = await screen.findByRole('region', { name: 'Po zatwierdzeniu' });
+    expect(await within(approved).findByRole('button', { name: /Ustawienia kroku 1/ })).toBeInTheDocument();
+    expect(screen.getByText(/Zmiany w nowej wersji/)).toBeInTheDocument();
+    expect(within(approved).queryByRole('combobox', { name: 'Dodaj krok' })).not.toBeInTheDocument();
+    expect(within(approved).queryByRole('button', { name: '+ Dodaj' })).not.toBeInTheDocument();
+    expect(within(approved).queryByRole('button', { name: /Usuń krok/ })).not.toBeInTheDocument();
+    expect(within(approved).queryByRole('button', { name: 'Zapisz' })).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Po odrzuceniu' })).toBeInTheDocument();
+  });
+
+  it('zapisuje łańcuch wersji roboczej dla właściwego zdarzenia', async () => {
+    vi.mocked(automationService.saveChain).mockImplementation(async (target, input) => ({
+      ...automationChain(target.eventType), steps: input.steps,
+    }));
+    await openAutomationTab();
+
+    const rejected = await screen.findByRole('region', { name: 'Po odrzuceniu' });
+    const input = await within(rejected).findByRole('combobox', { name: 'Dodaj krok' });
+    fireEvent.change(input, { target: { value: 'pdf' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    fireEvent.click(within(rejected).getByRole('button', { name: 'Zapisz' }));
+
+    await waitFor(() => expect(automationService.saveChain).toHaveBeenCalledTimes(1));
+    expect(automationService.saveChain).toHaveBeenCalledWith(
+      { ownerType: 'FORM_TEMPLATE_VERSION', ownerId: 14, eventType: 'FORM_REJECTED' },
+      { onError: 'STOP', steps: [{ action: 'generate_form_pdf', params: {} }] },
+    );
+  });
+
+  it('nie publikuje wersji, dopóki automatyzacje mają niezapisane zmiany', async () => {
+    vi.mocked(formsService.publishVersion).mockResolvedValue({ ...draft, status: 'PUBLISHED' });
+    vi.mocked(automationService.saveChain).mockImplementation(async (target, input) => ({
+      ...automationChain(target.eventType), steps: input.steps,
+    }));
+    await openAutomationTab();
+
+    const approved = await screen.findByRole('region', { name: 'Po zatwierdzeniu' });
+    const input = await within(approved).findByRole('combobox', { name: 'Dodaj krok' });
+    fireEvent.change(input, { target: { value: 'pdf' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edytor' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Publikuj wersję' }));
+
+    expect(await screen.findByText('Masz niezapisane zmiany w zakładce „Automatyzacje”. Zapisz je przed publikacją wersji.')).toBeInTheDocument();
+    expect(formsService.publishVersion).not.toHaveBeenCalled();
+    expect(formsService.updateDraft).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Automatyzacje' }));
+    const restored = screen.getByRole('region', { name: 'Po zatwierdzeniu' });
+    expect(within(restored).getByRole('button', { name: /Ustawienia kroku 1/ })).toBeInTheDocument();
+    fireEvent.click(within(restored).getByRole('button', { name: 'Zapisz' }));
+    await waitFor(() => expect(automationService.saveChain).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(within(restored).getByRole('button', { name: 'Zapisz' })).toBeDisabled());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edytor' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Publikuj wersję' }));
+    await waitFor(() => expect(formsService.publishVersion).toHaveBeenCalledWith(14));
   });
 });
 

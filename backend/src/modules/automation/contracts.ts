@@ -20,6 +20,12 @@ export interface AutomationParamOption {
   label: string;
 }
 
+/** Pole zależne od innego parametru: pokazywane (i wymagane przez klocek) tylko dla wskazanej wartości. */
+export interface AutomationParamVisibility {
+  param: string;
+  equals: string;
+}
+
 export interface AutomationParamDefinition {
   key: string;
   /** Etykieta po polsku. */
@@ -29,6 +35,8 @@ export interface AutomationParamDefinition {
   options?: AutomationParamOption[];
   /** Podpowiedź dla osoby budującej łańcuch (PL). */
   description?: string;
+  /** Interfejs pokazuje pole tylko wtedy, gdy parametr `showWhen.param` ma wartość `showWhen.equals`. */
+  showWhen?: AutomationParamVisibility;
 }
 
 export interface AutomationRequiredPermission {

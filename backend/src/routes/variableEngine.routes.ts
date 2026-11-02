@@ -12,6 +12,7 @@ router.get(
   checkAnyModulePermission([
     { module: 'bom', actions: ['read'] },
     { module: 'forms', actions: ['read', 'create', 'update'] },
+    { module: 'automation', actions: ['read'] },
   ]),
   VariableEngineController.listVariables
 );

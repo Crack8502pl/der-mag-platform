@@ -28,6 +28,16 @@ describe('AutomationRegistry', () => {
     expect(JSON.stringify(catalog)).not.toContain('"run"');
   });
 
+  it('opisuje pola zależne od odbiorcy (showWhen), żeby edytor pokazywał tylko właściwe', async () => {
+    const catalog = await createDefaultRegistry().describe();
+    const dependent = catalog.find(action => action.key === 'send_email')!.params.filter(param => param.showWhen);
+    expect(dependent.map(param => [param.key, param.showWhen])).toEqual([
+      ['user', { param: 'recipientType', equals: 'user' }],
+      ['role', { param: 'recipientType', equals: 'role' }],
+      ['functionGroup', { param: 'recipientType', equals: 'functionGroup' }],
+    ]);
+  });
+
   it('odrzuca podwójną rejestrację tego samego klucza', () => {
     const registry = new AutomationRegistry().register(fakeAction('a', async () => ok()));
     expect(() => registry.register(fakeAction('a', async () => ok()))).toThrow(/już zarejestrowany/);
