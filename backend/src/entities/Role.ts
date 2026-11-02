@@ -242,6 +242,9 @@ export interface AutomationPermissions {
 export interface WorkflowPermissions {
   read?: boolean;
   build?: boolean;
+  start?: boolean;
+  execute?: boolean;
+  override?: boolean;
 }
 
 export interface RolePermissions {

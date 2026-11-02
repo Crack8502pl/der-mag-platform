@@ -16,3 +16,8 @@ export { TaskTypeSafetyService, taskTypeSafetyService } from './services/TaskTyp
 export { validateWorkflowVersion } from './validation/validateWorkflowVersion';
 export { default as workflowRoutes } from './routes/workflow.routes';
 export { default as taskTypeSafetyRoutes } from './routes/taskTypeSafety.routes';
+export { WorkflowInstance } from './entities/WorkflowInstance';
+export { WorkflowStepRun } from './entities/WorkflowStepRun';
+export { WorkflowInstanceService, workflowInstances } from './services/WorkflowInstanceService';
+export type { WorkflowInstanceFilters } from './services/WorkflowInstanceService';
+export { default as workflowInstanceRoutes } from './routes/workflowInstance.routes';

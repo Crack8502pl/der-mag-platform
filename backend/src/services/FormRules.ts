@@ -52,7 +52,7 @@ type LeafCondition = {
   value?: FormJsonValue;
 };
 
-type Condition = LeafCondition | { all: Condition[] } | { any: Condition[] } | { not: Condition };
+export type Condition = LeafCondition | { all: Condition[] } | { any: Condition[] } | { not: Condition };
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -214,7 +214,7 @@ export function validateFormDefinition(sections: FormSection[], fields: FormFiel
   }
 }
 
-function evaluateCondition(condition: Condition, values: FormResponses): boolean {
+export function evaluateCondition(condition: Condition, values: FormResponses): boolean {
   if ('all' in condition) return condition.all.every(item => evaluateCondition(item, values));
   if ('any' in condition) return condition.any.some(item => evaluateCondition(item, values));
   if ('not' in condition) return !evaluateCondition(condition.not, values);

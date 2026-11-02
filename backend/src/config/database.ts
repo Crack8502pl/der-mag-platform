@@ -142,6 +142,9 @@ import { WorkflowDefinition } from '../modules/workflow/entities/WorkflowDefinit
 import { WorkflowVersion } from '../modules/workflow/entities/WorkflowVersion';
 import { WorkflowStep } from '../modules/workflow/entities/WorkflowStep';
 import { WorkflowTransition } from '../modules/workflow/entities/WorkflowTransition';
+import { WorkflowInstance } from '../modules/workflow/entities/WorkflowInstance';
+import { WorkflowStepRun } from '../modules/workflow/entities/WorkflowStepRun';
+import { CreateWorkflowInstances1793647200000 } from '../migrations/20261102_create_workflow_instances';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -289,6 +292,8 @@ export const AppDataSource = new DataSource({
     WorkflowVersion,
     WorkflowStep,
     WorkflowTransition,
+    WorkflowInstance,
+    WorkflowStepRun,
   ],
   subscribers: [],
   migrations: [
@@ -314,6 +319,7 @@ export const AppDataSource = new DataSource({
     CreateFunctionGroups1793553600000,
     CreateAutomation1793640000000,
     CreateWorkflowDefinitions1793643600000,
+    CreateWorkflowInstances1793647200000,
   ],
 });
 

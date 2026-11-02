@@ -13,10 +13,16 @@ export type WorkflowAuditEvent =
   | 'WORKFLOW_VERSION_PUBLISHED'
   | 'WORKFLOW_VERSION_SUPERSEDED'
   | 'WORKFLOW_SAFETY_RECALCULATED'
+  | 'WORKFLOW_INSTANCE_STARTED'
+  | 'WORKFLOW_INSTANCE_COMPLETED'
+  | 'WORKFLOW_INSTANCE_CANCELLED'
+  | 'WORKFLOW_STEP_ENTERED'
+  | 'WORKFLOW_STEP_COMPLETED'
+  | 'WORKFLOW_STEP_FORCED'
   | 'SAFETY_SKIP_ENABLED'
   | 'TASK_TYPE_SAFETY_CRITICAL_CHANGED';
 
-export type WorkflowAuditTarget = 'workflow_definition' | 'workflow_version' | 'task_type';
+export type WorkflowAuditTarget = 'workflow_definition' | 'workflow_version' | 'workflow_instance' | 'task_type';
 
 export async function recordWorkflowAudit(
   manager: Pick<EntityManager, 'query'>,

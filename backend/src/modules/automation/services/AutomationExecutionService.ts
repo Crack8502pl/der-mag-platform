@@ -53,6 +53,8 @@ const numberOrNull = (value: unknown): number | null =>
   typeof value === 'number' && Number.isFinite(value) ? value : null;
 
 export function ownerFromEvent(event: Pick<DomainEvent, 'payload'>): { ownerType: string; ownerId: number } | null {
+  const stepId = numberOrNull(event.payload?.workflowStepId);
+  if (stepId !== null) return { ownerType: 'WORKFLOW_STEP', ownerId: stepId };
   const versionId = numberOrNull(event.payload?.templateVersionId);
   return versionId === null ? null : { ownerType: FORM_TEMPLATE_VERSION_OWNER, ownerId: versionId };
 }

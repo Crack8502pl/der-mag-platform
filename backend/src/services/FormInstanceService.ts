@@ -25,84 +25,90 @@ function dataContextForField(field: FormFieldDefinition, context: FormDataSource
 
 export type FormInstanceAccessGuard = (manager: EntityManager, instance: FormInstance) => Promise<void>;
 
+function validateInstanceContext(input: CreateFormInstanceDto): void {
+  if (input.bomItemId != null && input.workflowBomItemId != null) {
+    throw new FormDomainError('INVALID_INSTANCE_CONTEXT', 'Only one BOM item context may be linked to an instance');
+  }
+}
+
 export class FormInstanceService {
   constructor(private readonly dataSource: DataSource = AppDataSource) {}
 
   async createInstance(input: CreateFormInstanceDto, actorId: number): Promise<FormInstance> {
-    if (input.bomItemId !== undefined && input.bomItemId !== null
-      && input.workflowBomItemId !== undefined && input.workflowBomItemId !== null) {
-      throw new FormDomainError('INVALID_INSTANCE_CONTEXT', 'Only one BOM item context may be linked to an instance');
-    }
-    return this.dataSource.transaction(async manager => {
-      const version = await manager.getRepository(FormTemplateVersion).findOne({
-        where: { id: input.templateVersionId },
-      });
-      if (!version) {
-        throw new FormDomainError('VERSION_NOT_FOUND', `Form version ${input.templateVersionId} was not found`);
-      }
-      if (version.status !== FormVersionStatus.PUBLISHED) {
-        throw new FormDomainError('VERSION_NOT_PUBLISHED', 'Form instances require a published version');
-      }
+    validateInstanceContext(input);
+    return this.dataSource.transaction(manager => this.createInstanceInTransaction(manager, input, actorId));
+  }
 
-      const [sections, fields] = await Promise.all([
-        manager.getRepository(FormSection).find({ where: { templateVersionId: version.id } }),
-        manager.getRepository(FormFieldDefinition).find({ where: { templateVersionId: version.id } }),
-      ]);
-      validateFormDefinition(sections, fields);
-      const dataFields = fields.filter(field => field.fieldType.toUpperCase() === 'DATA');
-      const bomFields = fields.filter(field => field.fieldType.toUpperCase() === 'BOM_TABLE');
-      const taskId = input.taskId;
-      const sourceContext: FormDataSourceContext = {
-        taskId,
-        contractId: input.contractId,
-        userId: input.assignedUserId ?? actorId,
-      };
-      if (dataFields.some(field => !dataContextForField(field, sourceContext))) {
-        throw new FormDomainError('INVALID_INSTANCE_CONTEXT', 'System data source requires a matching task, contract or user context');
-      }
-      if (bomFields.length && taskId == null) {
-        throw new FormDomainError('INVALID_INSTANCE_CONTEXT', 'A task context is required for a BOM table');
-      }
-
-      if (taskId != null && input.contractId != null) {
-        const task = await manager.getRepository(Task).findOne({ where: { id: taskId } });
-        if (!task) {
-          throw new FormDomainError('INVALID_INSTANCE_CONTEXT', `Task ${input.taskId} was not found`);
-        }
-        if (task.contractId !== input.contractId) {
-          throw new FormDomainError('INVALID_INSTANCE_CONTEXT', 'Task does not belong to the supplied contract');
-        }
-      }
-
-      const repository = manager.getRepository(FormInstance);
-      const instance = await repository.save(repository.create({
-        ...input,
-        status: FormInstanceStatus.DRAFT,
-        createdById: actorId,
-      }));
-      if (dataFields.length || bomFields.length) {
-        const snapshots = await this.resolveInitialValues(manager, fields, sourceContext);
-        const initialValues = snapshots.map(({ field, value }) => manager.getRepository(FormFieldValue).create({
-          instanceId: instance.id,
-          templateVersionId: instance.templateVersionId,
-          fieldDefinitionId: field.id,
-          value,
-          updatedById: actorId,
-        }));
-        await manager.getRepository(FormFieldValue).save(initialValues);
-        await FormAuditService.record(manager, 'FORM_DATA_SNAPSHOT_CREATED', actorId, 'form_instance', instance.id,
-          initialValues.map((value, index) => ({
-            field: snapshots[index].field.key,
-            previousValue: null,
-            newValue: value.value,
-          })));
-      }
-      await FormAuditService.record(manager, 'FORM_INSTANCE_CREATED', actorId, 'form_instance', instance.id, [
-        { field: 'templateVersionId', previousValue: null, newValue: instance.templateVersionId },
-        { field: 'status', previousValue: null, newValue: instance.status },
-      ]);
-      return instance;
+  async createInstanceInTransaction(manager: EntityManager, input: CreateFormInstanceDto, actorId: number): Promise<FormInstance> {
+    validateInstanceContext(input);
+    const version = await manager.getRepository(FormTemplateVersion).findOne({
+      where: { id: input.templateVersionId },
     });
+    if (!version) {
+      throw new FormDomainError('VERSION_NOT_FOUND', `Form version ${input.templateVersionId} was not found`);
+    }
+    if (version.status !== FormVersionStatus.PUBLISHED) {
+      throw new FormDomainError('VERSION_NOT_PUBLISHED', 'Form instances require a published version');
+    }
+
+    const [sections, fields] = await Promise.all([
+      manager.getRepository(FormSection).find({ where: { templateVersionId: version.id } }),
+      manager.getRepository(FormFieldDefinition).find({ where: { templateVersionId: version.id } }),
+    ]);
+    validateFormDefinition(sections, fields);
+    const dataFields = fields.filter(field => field.fieldType.toUpperCase() === 'DATA');
+    const bomFields = fields.filter(field => field.fieldType.toUpperCase() === 'BOM_TABLE');
+    const taskId = input.taskId;
+    const sourceContext: FormDataSourceContext = {
+      taskId,
+      contractId: input.contractId,
+      userId: input.assignedUserId ?? actorId,
+    };
+    if (dataFields.some(field => !dataContextForField(field, sourceContext))) {
+      throw new FormDomainError('INVALID_INSTANCE_CONTEXT', 'System data source requires a matching task, contract or user context');
+    }
+    if (bomFields.length && taskId == null) {
+      throw new FormDomainError('INVALID_INSTANCE_CONTEXT', 'A task context is required for a BOM table');
+    }
+
+    if (taskId != null && input.contractId != null) {
+      const task = await manager.getRepository(Task).findOne({ where: { id: taskId } });
+      if (!task) {
+        throw new FormDomainError('INVALID_INSTANCE_CONTEXT', `Task ${input.taskId} was not found`);
+      }
+      if (task.contractId !== input.contractId) {
+        throw new FormDomainError('INVALID_INSTANCE_CONTEXT', 'Task does not belong to the supplied contract');
+      }
+    }
+
+    const repository = manager.getRepository(FormInstance);
+    const instance = await repository.save(repository.create({
+      ...input,
+      status: FormInstanceStatus.DRAFT,
+      createdById: actorId,
+    }));
+    if (dataFields.length || bomFields.length) {
+      const snapshots = await this.resolveInitialValues(manager, fields, sourceContext);
+      const initialValues = snapshots.map(({ field, value }) => manager.getRepository(FormFieldValue).create({
+        instanceId: instance.id,
+        templateVersionId: instance.templateVersionId,
+        fieldDefinitionId: field.id,
+        value,
+        updatedById: actorId,
+      }));
+      await manager.getRepository(FormFieldValue).save(initialValues);
+      await FormAuditService.record(manager, 'FORM_DATA_SNAPSHOT_CREATED', actorId, 'form_instance', instance.id,
+        initialValues.map((value, index) => ({
+          field: snapshots[index].field.key,
+          previousValue: null,
+          newValue: value.value,
+        })));
+    }
+    await FormAuditService.record(manager, 'FORM_INSTANCE_CREATED', actorId, 'form_instance', instance.id, [
+      { field: 'templateVersionId', previousValue: null, newValue: instance.templateVersionId },
+      { field: 'status', previousValue: null, newValue: instance.status },
+    ]);
+    return instance;
   }
 
   async previewVersion(versionId: number, taskId: number, userId: number): Promise<FormResponses> {
