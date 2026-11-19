@@ -4,6 +4,8 @@
 
 `LprInstallationSeed` tworzy idempotentnie template `LPR_INSTALLATION` jako `CHECKLIST` procedury `FIELD_INSTALLATION`, wraz z opublikowaną wersją 1. Seed uruchamia się przy standardowym seedowaniu aplikacji i konfiguracji bazy (`DatabaseSeeder.seed()`); istniejący template o tym kluczu nie jest nadpisywany.
 
+Wersja powstaje jako `DRAFT` z pustym `publishedAt`. Dopiero po walidacji definicji i zapisaniu sekcji oraz pól seed ustawia `PUBLISHED` i datę publikacji w tej samej transakcji. Dzięki temu triggery chroniące opublikowane definicje pozostają aktywne i nie blokują startu serwera błędem `Published form definitions are immutable`. Błąd zapisu wycofuje całą transakcję; ponowny start może bezpiecznie powtórzyć seed bez ręcznego usuwania danych.
+
 Przykład zawiera sekcje: Montaż mechaniczny, Zasilanie, Sieć, Konfiguracja, Ustawienie kamery, LPR, Nagrywanie i Test końcowy. Pola pokrywają instalację kamery, napięcie, łączność i adresację, synchronizację NTP, test LPR, nagrywanie oraz odtwarzanie.
 
 Gdy `plateRecognitionTest` ma wartość `FAIL`, pola `failureDescription` i `failurePhoto` stają się wymagane. Wbudowana reguła backendu blokuje ukończenie każdej instancji z odpowiedzią `FAIL`.
@@ -16,4 +18,4 @@ Template jest przykładową definicją danych silnika, nie implementacją workfl
 
 ## Weryfikacja
 
-Test `backend/tests/unit/services/LprInstallationSeed.test.ts` sprawdza typ i procedurę template’u, opublikowaną wersję, osiem sekcji, pola warunkowe oraz brak nadpisania istniejącego template’u.
+Test `backend/tests/unit/services/LprInstallationSeed.test.ts` sprawdza typ i procedurę template’u, kolejność zapisu wersji roboczej, sekcji, pól i publikacji, osiem sekcji, pola warunkowe, propagację błędu zapisu bez publikacji oraz brak nadpisania istniejącego template’u.
