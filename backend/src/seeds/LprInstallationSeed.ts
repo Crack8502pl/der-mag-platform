@@ -162,13 +162,13 @@ export class LprInstallationSeed {
       const version = await versionRepository.save(versionRepository.create({
         templateId: template.id,
         version: 1,
-        status: FormVersionStatus.PUBLISHED,
+        status: FormVersionStatus.DRAFT,
         title: template.name,
         description: template.description,
         kind: template.kind,
         procedureType: template.procedureType,
         settings: {},
-        publishedAt: new Date(),
+        publishedAt: null,
         createdById: null,
       }));
 
@@ -202,6 +202,9 @@ export class LprInstallationSeed {
 
       validateFormDefinition(savedSections, fields);
       await fieldRepository.save(fields);
+      version.status = FormVersionStatus.PUBLISHED;
+      version.publishedAt = new Date();
+      await versionRepository.save(version);
       return template;
     });
   }

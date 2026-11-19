@@ -64,12 +64,26 @@ describe('LprInstallationSeed', () => {
       'SELECT pg_advisory_xact_lock(hashtext($1))',
       ['LPR_INSTALLATION'],
     );
-    expect(h.versionRepository.save).toHaveBeenCalledWith(expect.objectContaining({
+    expect(h.versionRepository.save).toHaveBeenCalledTimes(2);
+    expect(h.versionRepository.save).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      templateId: 1,
+      version: 1,
+      status: FormVersionStatus.DRAFT,
+      publishedAt: null,
+    }));
+    expect(h.versionRepository.save).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      id: 7,
       templateId: 1,
       version: 1,
       status: FormVersionStatus.PUBLISHED,
       publishedAt: expect.any(Date),
     }));
+    const [draftSaveOrder, publishSaveOrder] = h.versionRepository.save.mock.invocationCallOrder;
+    const sectionSaveOrder = h.sectionRepository.save.mock.invocationCallOrder[0];
+    const fieldSaveOrder = h.fieldRepository.save.mock.invocationCallOrder[0];
+    expect(draftSaveOrder).toBeLessThan(sectionSaveOrder);
+    expect(sectionSaveOrder).toBeLessThan(fieldSaveOrder);
+    expect(fieldSaveOrder).toBeLessThan(publishSaveOrder);
     expect(h.sectionRepository.save).toHaveBeenCalledWith(expect.arrayContaining([
       expect.objectContaining({ key: 'mechanical_assembly', sortOrder: 0 }),
       expect.objectContaining({ key: 'power', sortOrder: 1 }),
@@ -119,6 +133,20 @@ describe('LprInstallationSeed', () => {
       'failurePhoto: is required',
       'plateRecognitionTest: FAIL blocks completion',
     ]));
+  });
+
+  it('propagates definition persistence errors without publishing the version', async () => {
+    const h = createHarness();
+    const error = new Error('Field persistence failed');
+    h.fieldRepository.save.mockRejectedValueOnce(error);
+
+    await expect(LprInstallationSeed.seed(h.dataSource as any)).rejects.toThrow(error);
+
+    expect(h.versionRepository.save).toHaveBeenCalledTimes(1);
+    expect(h.versionRepository.save).toHaveBeenCalledWith(expect.objectContaining({
+      status: FormVersionStatus.DRAFT,
+      publishedAt: null,
+    }));
   });
 
   it('does not overwrite an existing template or create duplicate versions', async () => {
